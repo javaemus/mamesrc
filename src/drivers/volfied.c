@@ -32,7 +32,7 @@ READ16_HANDLER( volfied_video_ram_r );
 READ16_HANDLER( volfied_video_ctrl_r );
 READ16_HANDLER( volfied_cchip_r );
 
-void volfied_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
+void volfied_vh_screenrefresh(struct mame_bitmap *bitmap, int full_refresh);
 
 int volfied_vh_start(void);
 void volfied_vh_stop(void);
@@ -207,7 +207,7 @@ static void irqhandler(int irq)
 static struct YM2203interface ym2203_interface =
 {
 	1,         /* 1 chip */
-	3000000,   /* 3 MHz? */
+	4000000,   /* 4 MHz? */
 	{ YM2203_VOL(60,15) },
 	{ input_port_0_r },    /* DSW A  */
 	{ input_port_1_r },    /* DSW B  */
@@ -249,10 +249,10 @@ static struct MachineDriver machine_driver_volfied =
 
 	320, 256, { 0, 319, 0, 255 },
 	gfxdecodeinfo,
-	8192, 8192,
+	8192, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	volfied_vh_start,
 	volfied_vh_stop,

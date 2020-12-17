@@ -6,7 +6,6 @@
 #define TC0480SCP_GFX_NUM 1
 
 UINT16 undrfire_rotate_ctrl[8];
-extern int TC0480SCP_pri_reg;
 
 struct tempsprite
 {
@@ -53,7 +52,7 @@ int undrfire_vh_start (void)
 	}
 
 	for (i=0; i<16384; i++) /* Fix later - some weird colours in places */
-		palette_change_color(i,0,0,0);
+		palette_set_color(i,0,0,0);
 	return 0;
 }
 
@@ -104,7 +103,7 @@ Heavy use is made of sprite zooming.
 
 ***************************************************************/
 
-static void undrfire_draw_sprites_16x16(struct osd_bitmap *bitmap,int *primasks,int x_offs,int y_offs)
+static void undrfire_draw_sprites_16x16(struct mame_bitmap *bitmap,int *primasks,int x_offs,int y_offs)
 {
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
 	int offs, data, tilenum, color, flipx, flipy;
@@ -251,7 +250,7 @@ logerror("Sprite number %04x had %02x invalid chunks\n",tilenum,bad_chunks);
 				SCREEN REFRESH
 **************************************************************/
 
-void undrfire_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void undrfire_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	UINT8 layer[5];
 	UINT8 pivlayer[3];
@@ -319,11 +318,6 @@ void undrfire_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	pivlayer[0] = TC0100SCN_bottomlayer(0);
 	pivlayer[1] = pivlayer[0]^1;
 	pivlayer[2] = 2;
-
-	palette_init_used_colors();
-	memset(palette_used_colors,PALETTE_COLOR_VISIBLE,Machine->drv->total_colors);
-	TC0480SCP_mark_transparent_colors(layer[0]);
-	palette_recalc();
 
 	fillbitmap(priority_bitmap,0,NULL);
 	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */

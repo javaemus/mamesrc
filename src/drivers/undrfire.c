@@ -134,7 +134,7 @@ need to reproduce the $18141a calculations.
 
 int undrfire_vh_start (void);
 void undrfire_vh_stop (void);
-void undrfire_vh_screenrefresh (struct osd_bitmap *bitmap,int full_refresh);
+void undrfire_vh_screenrefresh (struct mame_bitmap *bitmap,int full_refresh);
 
 /* F3 sound */
 READ16_HANDLER(f3_68000_share_r);
@@ -173,7 +173,7 @@ static WRITE32_HANDLER( color_ram_w )
 		g = (a &0xff00) >> 8;
 		b = (a &0xff);
 
-		palette_change_color(offset,r,g,b);
+		palette_set_color(offset,r,g,b);
 	}
 }
 
@@ -628,10 +628,10 @@ static struct MachineDriver machine_driver_undrfire =
 	40*8, 32*8, { 0, 40*8-1, 3*8, 32*8-1 },
 
 	undrfire_gfxdecodeinfo,
-	16384, 16384,
+	16384, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_NEEDS_6BITS_PER_GUN,
+	VIDEO_TYPE_RASTER | VIDEO_NEEDS_6BITS_PER_GUN,
 	0,
 	undrfire_vh_start,
 	undrfire_vh_stop,
@@ -741,4 +741,4 @@ void init_undrfire(void)
 }
 
 
-GAMEX( 1993, undrfire, 0, undrfire, undrfire, undrfire, ROT0_16BIT, "Taito Corporation Japan", "Under Fire (World)", GAME_IMPERFECT_COLORS )
+GAMEX( 1993, undrfire, 0, undrfire, undrfire, undrfire, ROT0, "Taito Corporation Japan", "Under Fire (World)", GAME_IMPERFECT_COLORS )

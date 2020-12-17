@@ -23,7 +23,7 @@ WRITE16_HANDLER( dcon_text_w );
 WRITE16_HANDLER( dcon_control_w );
 
 int dcon_vh_start(void);
-void dcon_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void dcon_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 extern data16_t *dcon_back_data,*dcon_fore_data,*dcon_mid_data,*dcon_scroll_ram,*dcon_textram;
 
@@ -236,10 +236,10 @@ static const struct MachineDriver machine_driver_dcon =
 	40*8, 32*8, { 0*8, 40*8-1, 0*8, 28*8-1 },
 
 	dcon_gfxdecodeinfo,
-	2048, 2048,
+	2048, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	dcon_vh_start,
 	0,

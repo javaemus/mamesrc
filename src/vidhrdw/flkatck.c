@@ -147,18 +147,13 @@ WRITE_HANDLER( flkatck_k007121_regs_w )
 
 ***************************************************************************/
 
-void flkatck_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void flkatck_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 #if 0
 usrintf_showmessage("%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x  %02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
 	K007121_ctrlram[0][0x00],K007121_ctrlram[0][0x01],K007121_ctrlram[0][0x02],K007121_ctrlram[0][0x03],K007121_ctrlram[0][0x04],K007121_ctrlram[0][0x05],K007121_ctrlram[0][0x06],K007121_ctrlram[0][0x07],
 	K007121_ctrlram[1][0x00],K007121_ctrlram[1][0x01],K007121_ctrlram[1][0x02],K007121_ctrlram[1][0x03],K007121_ctrlram[1][0x04],K007121_ctrlram[1][0x05],K007121_ctrlram[1][0x06],K007121_ctrlram[1][0x07]);
 #endif
-	tilemap_update( ALL_TILEMAPS );
-
-	palette_init_used_colors();
-	K007121_mark_sprites_colors(0,&k007121_ram[0x1000],0,0);
-	palette_recalc();
 
 	/* set scroll registers */
 	tilemap_set_scrollx(k007121_tilemap[0],0,K007121_ctrlram[0][0x00] - 40);

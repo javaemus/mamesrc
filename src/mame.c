@@ -8,11 +8,12 @@
 #include "vidhrdw/generic.h"
 #include "palette.h"
 
+
 static struct RunningMachine machine;
 struct RunningMachine *Machine = &machine;
 static const struct GameDriver *gamedrv;
 static const struct MachineDriver *drv;
-static struct osd_bitmap *real_scrbitmap;
+static struct mame_bitmap *real_scrbitmap;
 
 /* Variables to hold the status of various game options */
 struct GameOptions	options;
@@ -26,6 +27,17 @@ int bailing;	/* set to 1 if the startup is aborted to prevent multiple error mes
 static int settingsloaded;
 
 static int leds_status;
+
+
+struct auto_link
+{
+	struct auto_link *next;
+	int tag;
+	UINT32 cookie;
+};
+
+static struct auto_link *first_auto_link;
+static int auto_malloc_tag = 0;
 
 
 int init_machine(void);
@@ -89,6 +101,16 @@ static int validitychecks(void)
 				error = 1;
 			}
 		}
+
+#if 0
+//		if (drivers[i]->drv->color_table_len == drivers[i]->drv->total_colors &&
+		if (drivers[i]->drv->color_table_len && drivers[i]->drv->total_colors &&
+				drivers[i]->drv->vh_init_palette == 0)
+		{
+			printf("%s: %s could use color_table_len = 0\n",drivers[i]->source_file,drivers[i]->name);
+			error = 1;
+		}
+#endif
 
 		for (j = i+1;drivers[j];j++)
 		{
@@ -450,12 +472,12 @@ int run_game(int game)
 {
 	int err;
 
+	auto_malloc_start();
 
 #ifdef MAME_DEBUG
 	/* validity checks */
 	if (validitychecks()) return 1;
 #endif
-
 
 	/* copy some settings into easier-to-handle variables */
 	record	   = options.record;
@@ -473,18 +495,11 @@ int run_game(int game)
 		else
 			Machine->color_depth = 15;
 	}
-	else if (Machine->gamedrv->flags & GAME_REQUIRES_16BIT)
-		Machine->color_depth = 16;
 	else
-		Machine->color_depth = 8;
+		Machine->color_depth = 16;
 
 	switch (options.color_depth)
 	{
-		case 8:
-			/* -depth 8 is a request for speed, so always comply */
-			Machine->color_depth = options.color_depth;
-			break;
-
 		case 16:
 			/* comply to -depth 16 only if we don't need a direct RGB mode */
 			if (!(drv->video_attributes & VIDEO_RGB_DIRECT))
@@ -584,6 +599,7 @@ int run_game(int game)
 
 	if (osd_init() == 0)
 	{
+		auto_malloc_start();
 		if (init_machine() == 0)
 		{
 			if (run_machine() == 0)
@@ -602,6 +618,7 @@ int run_game(int game)
 			printf("Unable to initialize machine emulation\n");
 		}
 
+		auto_malloc_stop();
 		osd_exit();
 	}
 	else if (!bailing)
@@ -610,6 +627,7 @@ int run_game(int game)
 		printf ("Unable to initialize system\n");
 	}
 
+	auto_malloc_stop();
 	return err;
 }
 
@@ -712,7 +730,6 @@ out:
 }
 
 
-
 void shutdown_machine(void)
 {
 	int i;
@@ -728,6 +745,9 @@ void shutdown_machine(void)
 	/* free the memory allocated for ROM and RAM */
 	for (i = 0;i < MAX_MEMORY_REGIONS;i++)
 		free_memory_region(i);
+
+	/* reset the CPU system */
+	cpu_exit();
 
 	/* free the memory allocated for input ports definition */
 	input_port_free(Machine->input_ports);
@@ -768,7 +788,7 @@ static void vh_close(void)
 	}
 	if (Machine->debug_bitmap)
 	{
-		osd_free_bitmap(Machine->debug_bitmap);
+		bitmap_free(Machine->debug_bitmap);
 		Machine->debug_bitmap = NULL;
 	}
 
@@ -1018,6 +1038,8 @@ static int vh_open(void)
 		return 1;
 	}
 
+	pdrawgfx_shadow_lowpri = 0;
+
 	leds_status = 0;
 
 	return 0;
@@ -1078,7 +1100,6 @@ void draw_screen(void)
 		artwork_draw(artwork_real_scrbitmap, Machine->scrbitmap,bitmap_dirty);
 
 	bitmap_dirty = 0;
-	palette_post_screen_update_cb();
 }
 
 void schedule_full_refresh(void)
@@ -1122,10 +1143,7 @@ int run_machine(void)
 				int region;
 
 				if (artwork_overlay || artwork_backdrop)
-				{
 					real_scrbitmap = artwork_real_scrbitmap;
-					artwork_remap();
-				}
 				else
 					real_scrbitmap = Machine->scrbitmap;
 
@@ -1246,4 +1264,82 @@ void set_led_status(int num,int on)
 {
 	if (on) leds_status |=	(1 << num);
 	else	leds_status &= ~(1 << num);
+}
+
+
+
+/*************************************
+ *
+ *	Allocate memory to be auto-freed
+ *
+ *************************************/
+
+void *auto_malloc(size_t size)
+{
+	struct auto_link *result;
+
+	/* allocate reqested memory plus a link and a cookie */
+	result = malloc(size + sizeof(*result));
+	if (!result)
+		return NULL;
+
+	/* fill in the link */
+	result->next = first_auto_link;
+	result->tag = auto_malloc_tag;
+	result->cookie = 0xbaadf00d;
+	first_auto_link = result;
+
+	/* return the memory */
+	return result + 1;
+}
+
+
+
+/*************************************
+ *
+ *	Track a new set of memory
+ *
+ *************************************/
+
+void auto_malloc_start(void)
+{
+	auto_malloc_tag++;
+}
+
+
+
+/*************************************
+ *
+ *	Free the current set of memory
+ *
+ *************************************/
+
+void auto_malloc_stop(void)
+{
+	struct auto_link *link, *next;
+
+	/* follow the links */
+	link = first_auto_link;
+	while (link && link->tag == auto_malloc_tag)
+	{
+		/* validate the cookie and stop if it's bad */
+		if (link->cookie != 0xbaadf00d)
+		{
+			fprintf(stderr, "Can't free all memory due to memory corruption\n");
+			break;
+		}
+
+		/* fetch the next value before freeing */
+		next = link->next;
+
+		/* free memory */
+		free(link);
+		link = next;
+	}
+
+	/* reset the link */
+	first_auto_link = link;
+
+	/* decrement the tag counter */
+	auto_malloc_tag--;
 }

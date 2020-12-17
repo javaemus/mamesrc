@@ -56,8 +56,8 @@ extern size_t bnj_backgroundram_size;
 extern unsigned char *zoar_scrollram;
 extern unsigned char *deco_charram;
 
-void btime_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-void lnc_vh_convert_color_prom  (unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
+void btime_vh_convert_color_prom(unsigned char *obsolete,unsigned short *colortable,const unsigned char *color_prom);
+void lnc_vh_convert_color_prom  (unsigned char *obsolete,unsigned short *colortable,const unsigned char *color_prom);
 
 void lnc_init_machine (void);
 
@@ -66,13 +66,13 @@ int  bnj_vh_start (void);
 
 void bnj_vh_stop (void);
 
-void btime_vh_screenrefresh   (struct osd_bitmap *bitmap,int full_refresh);
-void cookrace_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void bnj_vh_screenrefresh     (struct osd_bitmap *bitmap,int full_refresh);
-void lnc_vh_screenrefresh     (struct osd_bitmap *bitmap,int full_refresh);
-void zoar_vh_screenrefresh    (struct osd_bitmap *bitmap,int full_refresh);
-void disco_vh_screenrefresh   (struct osd_bitmap *bitmap,int full_refresh);
-void eggs_vh_screenrefresh    (struct osd_bitmap *bitmap,int full_refresh);
+void btime_vh_screenrefresh   (struct mame_bitmap *bitmap,int full_refresh);
+void cookrace_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
+void bnj_vh_screenrefresh     (struct mame_bitmap *bitmap,int full_refresh);
+void lnc_vh_screenrefresh     (struct mame_bitmap *bitmap,int full_refresh);
+void zoar_vh_screenrefresh    (struct mame_bitmap *bitmap,int full_refresh);
+void disco_vh_screenrefresh   (struct mame_bitmap *bitmap,int full_refresh);
+void eggs_vh_screenrefresh    (struct mame_bitmap *bitmap,int full_refresh);
 
 WRITE_HANDLER( btime_paletteram_w );
 WRITE_HANDLER( bnj_background_w );
@@ -1335,10 +1335,10 @@ static const struct MachineDriver machine_driver_##GAMENAME =             \
 	/* video hardware */                                        	\
 	32*8, 32*8, { 1*8, 31*8-1, 1*8, 31*8-1 },                   	\
 	GFX,                                                        	\
-	COLOR,COLOR,                                                	\
+	COLOR, 0,	                                                	\
 	GAMENAME##_vh_convert_color_prom,                           	\
 																	\
-	VIDEO_TYPE_RASTER|VIDEO_MODIFIES_PALETTE,                   	\
+	VIDEO_TYPE_RASTER,      						             	\
 	0,                                                          	\
 	GAMENAME##_vh_start,                                        	\
 	GAMENAME##_vh_stop,                                         	\

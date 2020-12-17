@@ -22,52 +22,6 @@ size_t  exzisus_objectram_size1;
 
 
 /***************************************************************************
-  Initialize and destroy video hardware emulation
-***************************************************************************/
-
-void exzisus_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
-{
-	int i;
-
-
-	for (i = 0 ; i < Machine -> drv -> total_colors ; i ++)
-	{
-		int bit0, bit1, bit2, bit3;
-
-		/* red component */
-		bit0 = (color_prom[0] >> 0) & 0x01;
-		bit1 = (color_prom[0] >> 1) & 0x01;
-		bit2 = (color_prom[0] >> 2) & 0x01;
-		bit3 = (color_prom[0] >> 3) & 0x01;
-		*(palette++) = 0x0e * bit0 + 0x1f * bit1 + 0x43 * bit2 + 0x8f * bit3;
-
-		/* green component */
-		bit0 = (color_prom[Machine -> drv -> total_colors] >> 0) & 0x01;
-		bit1 = (color_prom[Machine -> drv -> total_colors] >> 1) & 0x01;
-		bit2 = (color_prom[Machine -> drv -> total_colors] >> 2) & 0x01;
-		bit3 = (color_prom[Machine -> drv -> total_colors] >> 3) & 0x01;
-		*(palette++) = 0x0e * bit0 + 0x1f * bit1 + 0x43 * bit2 + 0x8f * bit3;
-
-		/* blue component */
-		bit0 = (color_prom[2*Machine -> drv -> total_colors] >> 0) & 0x01;
-		bit1 = (color_prom[2*Machine -> drv -> total_colors] >> 1) & 0x01;
-		bit2 = (color_prom[2*Machine -> drv -> total_colors] >> 2) & 0x01;
-		bit3 = (color_prom[2*Machine -> drv -> total_colors] >> 3) & 0x01;
-		*(palette++) = 0x0e * bit0 + 0x1f * bit1 + 0x43 * bit2 + 0x8f * bit3;
-
-		color_prom++;
-	}
-
-	/* the gfx data is inverted so we */
-	/* cannot use the default lookup table */
-	for (i = 0 ; i < Machine -> drv -> color_table_len ; i++)
-	{
-		colortable[i] = i ^ 0x0f;
-	}
-}
-
-
-/***************************************************************************
   Memory handlers
 ***************************************************************************/
 
@@ -123,14 +77,14 @@ WRITE_HANDLER( exzisus_objectram_1_w )
   Screen refresh
 ***************************************************************************/
 
-void exzisus_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
+void exzisus_vh_screenrefresh(struct mame_bitmap *bitmap, int full_refresh)
 {
 	int offs;
 	int sx, sy, xc, yc;
 	int gfx_num, gfx_attr, gfx_offs;
 
-	/* Is it correct ? */
-	fillbitmap(bitmap, Machine -> gfx[0] -> colortable[0], &Machine -> visible_area);
+	/* Is this correct ? */
+	fillbitmap(bitmap, Machine->pens[1023], &Machine->visible_area);
 
 	/* ---------- 1st TC0010VCU ---------- */
 	sx = 0;
@@ -185,12 +139,12 @@ void exzisus_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 				x = (sx + (xc << 3)) & 0xff;
 				y = (sy + (yc << 3)) & 0xff;
 
-				drawgfx(bitmap, Machine -> gfx[0],
+				drawgfx(bitmap, Machine->gfx[0],
 						code & 0x3fff,
 						color,
 						0, 0,
 						x, y,
-						&Machine -> visible_area, TRANSPARENCY_PEN, 0);
+						&Machine->visible_area, TRANSPARENCY_PEN, 15);
 				goffs += 2;
 			}
 			gfx_offs += height << 1;
@@ -249,12 +203,12 @@ void exzisus_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 				x = (sx + (xc << 3)) & 0xff;
 				y = (sy + (yc << 3)) & 0xff;
 
-				drawgfx(bitmap, Machine -> gfx[1],
+				drawgfx(bitmap, Machine->gfx[1],
 						code & 0x3fff,
 						color,
 						0, 0,
 						x, y,
-						&Machine -> visible_area, TRANSPARENCY_PEN, 0);
+						&Machine->visible_area, TRANSPARENCY_PEN, 15);
 				goffs += 2;
 			}
 			gfx_offs += height << 1;

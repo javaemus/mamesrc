@@ -62,7 +62,7 @@ WRITE16_HANDLER( afega_palette_w )
 	b = ((data & 0x00F0) >> 0) + ((data & 0x0002) << 2);
 	g = ((data & 0x0F00) >> 4) + ((data & 0x0004) << 1);
 	r = ((data & 0xF000) >> 8) + ((data & 0x0008) << 0);
-	palette_change_color( offset, r , g , b );
+	palette_set_color( offset, r , g , b );
 }
 
 /* This game uses 8 bit tiles, so it ignores the color codes and just
@@ -199,7 +199,7 @@ int afega_vh_start(void)
 
 ***************************************************************************/
 
-static void afega_draw_sprites(struct osd_bitmap *bitmap)
+static void afega_draw_sprites(struct mame_bitmap *bitmap)
 {
 	int offs;
 
@@ -267,10 +267,6 @@ if (keyboard_pressed(KEYCODE_X))
 	}
 }
 
-static void afega_mark_sprites_colors(void)
-{
-	memset(palette_used_colors,PALETTE_COLOR_USED,Machine->drv->total_colors);
-}
 
 
 /***************************************************************************
@@ -281,7 +277,7 @@ static void afega_mark_sprites_colors(void)
 
 ***************************************************************************/
 
-void afega_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void afega_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int layers_ctrl = -1;
 
@@ -304,16 +300,8 @@ if ( keyboard_pressed(KEYCODE_Z) || keyboard_pressed(KEYCODE_X) )
 	if (msk != 0) layers_ctrl &= msk;	}
 #endif
 
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-
-	afega_mark_sprites_colors();
-
-	palette_recalc();
-
 	if (layers_ctrl & 1)	tilemap_draw(bitmap,tilemap_0,0,0);
-	else					fillbitmap(bitmap,palette_transparent_pen,&Machine->visible_area);
+	else					fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 	if (layers_ctrl & 2) 	afega_draw_sprites(bitmap);
 

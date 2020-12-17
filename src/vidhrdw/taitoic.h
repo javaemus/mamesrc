@@ -23,7 +23,10 @@ WRITE16_HANDLER( PC080SN_ctrl_word_1_w );
 void PC080SN_set_scroll(int chip,int tilemap_num,int scrollx,int scrolly);
 void PC080SN_set_trans_pen(int chip,int tilemap_num,int pen);
 void PC080SN_tilemap_update(void);
-void PC080SN_tilemap_draw(struct osd_bitmap *bitmap,int chip,int layer,int flags,UINT32 priority);
+void PC080SN_tilemap_draw(struct mame_bitmap *bitmap,int chip,int layer,int flags,UINT32 priority);
+
+/* For Topspeed */
+void PC080SN_tilemap_draw_special(struct mame_bitmap *bitmap,int chip,int layer,int flags,UINT32 priority,data16_t *ram);
 
 /***************************************************************************/
 
@@ -34,7 +37,7 @@ READ16_HANDLER ( TC0080VCO_word_r );
 WRITE16_HANDLER( TC0080VCO_word_w );
 
 void TC0080VCO_tilemap_update(void);
-void TC0080VCO_tilemap_draw(struct osd_bitmap *bitmap,int layer,int flags,UINT32 priority);
+void TC0080VCO_tilemap_draw(struct mame_bitmap *bitmap,int layer,int flags,UINT32 priority);
 void TC0080VCO_draw_sprites(void);
 
 
@@ -85,7 +88,7 @@ WRITE16_HANDLER( TC0100SCN_dual_screen_w );
 WRITE16_HANDLER( TC0100SCN_triple_screen_w );
 
 void TC0100SCN_tilemap_update(void);
-void TC0100SCN_tilemap_draw(struct osd_bitmap *bitmap,int chip,int layer,int flags,UINT32 priority);
+void TC0100SCN_tilemap_draw(struct mame_bitmap *bitmap,int chip,int layer,int flags,UINT32 priority);
 
 /* returns 0 or 1 depending on the lowest priority tilemap set in the internal
    register. Use this function to draw tilemaps in the correct order. */
@@ -100,7 +103,7 @@ READ16_HANDLER ( TC0280GRD_word_r );
 WRITE16_HANDLER( TC0280GRD_word_w );
 WRITE16_HANDLER( TC0280GRD_ctrl_word_w );
 void TC0280GRD_tilemap_update(int base_color);
-void TC0280GRD_zoom_draw(struct osd_bitmap *bitmap,int xoffset,int yoffset,UINT32 priority);
+void TC0280GRD_zoom_draw(struct mame_bitmap *bitmap,int xoffset,int yoffset,UINT32 priority);
 
 int TC0430GRW_vh_start(int gfxnum);
 void TC0430GRW_vh_stop(void);
@@ -108,7 +111,7 @@ READ16_HANDLER ( TC0430GRW_word_r );
 WRITE16_HANDLER( TC0430GRW_word_w );
 WRITE16_HANDLER( TC0430GRW_ctrl_word_w );
 void TC0430GRW_tilemap_update(int base_color);
-void TC0430GRW_zoom_draw(struct osd_bitmap *bitmap,int xoffset,int yoffset,UINT32 priority);
+void TC0430GRW_zoom_draw(struct mame_bitmap *bitmap,int xoffset,int yoffset,UINT32 priority);
 
 /***************************************************************************/
 
@@ -129,9 +132,8 @@ WRITE32_HANDLER( TC0480SCP_long_w );
 READ32_HANDLER ( TC0480SCP_ctrl_long_r );
 WRITE32_HANDLER( TC0480SCP_ctrl_long_w );
 
-void TC0480SCP_mark_transparent_colors(int opaque_layer);
 void TC0480SCP_tilemap_update(void);
-void TC0480SCP_tilemap_draw(struct osd_bitmap *bitmap,int layer,int flags,UINT32 priority);
+void TC0480SCP_tilemap_draw(struct mame_bitmap *bitmap,int layer,int flags,UINT32 priority);
 
 /* Returns the priority order of the bg tilemaps set in the internal
    register. The order in which the four layers should be drawn is
@@ -139,7 +141,7 @@ void TC0480SCP_tilemap_draw(struct osd_bitmap *bitmap,int layer,int flags,UINT32
 int TC0480SCP_get_bg_priority(void);
 
 /* Undrfire needs to read this for a sprite/tile priority hack */
-int TC0480SCP_pri_reg;
+extern int TC0480SCP_pri_reg;
 
 
 /***************************************************************************/

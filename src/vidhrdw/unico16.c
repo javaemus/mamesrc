@@ -67,7 +67,7 @@ WRITE16_HANDLER( unico16_palette_w )
 	COMBINE_DATA(&paletteram16[offset]);
 	data1 = paletteram16[offset & ~1];
 	data2 = paletteram16[offset |  1];
-	palette_change_color( offset/2,
+	palette_set_color( offset/2,
 		 (data1 >> 8) & 0xFC,
 		 (data1 >> 0) & 0xFC,
 		 (data2 >> 8) & 0xFC	);
@@ -173,7 +173,7 @@ int unico16_vh_start(void)
 
 ***************************************************************************/
 
-static void unico16_draw_sprites(struct osd_bitmap *bitmap)
+static void unico16_draw_sprites(struct mame_bitmap *bitmap)
 {
 	int offs;
 
@@ -239,11 +239,6 @@ if (keyboard_pressed(KEYCODE_X))
 	}
 }
 
-static void unico16_mark_sprites_colors(void)
-{
-	memset(palette_used_colors,PALETTE_COLOR_USED,Machine->drv->total_colors);
-}
-
 
 
 /***************************************************************************
@@ -254,7 +249,7 @@ static void unico16_mark_sprites_colors(void)
 
 ***************************************************************************/
 
-void unico16_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void unico16_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int gunx[256] = {
 		0x160,0x162,0x164,0x165,
@@ -297,14 +292,6 @@ if ( keyboard_pressed(KEYCODE_Z) || keyboard_pressed(KEYCODE_X) )
 	if (msk != 0) layers_ctrl &= msk;
 }
 #endif
-
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-
-	unico16_mark_sprites_colors();
-
-	palette_recalc();
 
 	/* The background color is the first of the last palette */
 	fillbitmap(bitmap,Machine->pens[0x1f00],&Machine->visible_area);

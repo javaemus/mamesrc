@@ -78,7 +78,7 @@ WRITE_HANDLER( raiders5_paletteram_w )
 
 /****************************************************************************/
 
-void raiders5_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void raiders5_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int offs;
 	int chr,col;
@@ -86,8 +86,6 @@ void raiders5_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	int b1,b2;
 
 	int size = videoram_size/2;
-
-	palette_recalc();
 
 /* draw BG layer */
 

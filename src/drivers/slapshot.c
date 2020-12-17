@@ -79,7 +79,7 @@ $854 marks start of service mode
 void taito_no_buffer_eof_callback(void);
 int slapshot_vh_start (void);
 void slapshot_vh_stop (void);
-void slapshot_vh_screenrefresh (struct osd_bitmap *bitmap,int full_refresh);
+void slapshot_vh_screenrefresh (struct mame_bitmap *bitmap,int full_refresh);
 
 static data16_t *color_ram;
 
@@ -107,7 +107,7 @@ static WRITE16_HANDLER( color_ram_word_w )
 		g = (color_ram[offset] &0xff00) >> 8;
 		b = (color_ram[offset] &0xff);
 
-		palette_change_color(offset/2,r,g,b);
+		palette_set_color(offset/2,r,g,b);
 	}
 }
 
@@ -393,7 +393,7 @@ static struct YM2610interface ym2610_interface =
 {
 	1,	/* 1 chip */
 	16000000/2,	/* 8 MHz ?? */
-	{ 30 },
+	{ 25 },
 	{ 0 },
 	{ 0 },
 	{ 0 },
@@ -401,7 +401,7 @@ static struct YM2610interface ym2610_interface =
 	{ irqhandler },
 	{ REGION_SOUND2 },	/* Delta-T */
 	{ REGION_SOUND1 },	/* ADPCM */
-	{ YM3012_VOL(60,MIXER_PAN_LEFT,60,MIXER_PAN_RIGHT) }
+	{ YM3012_VOL(100,MIXER_PAN_LEFT,100,MIXER_PAN_RIGHT) }
 };
 
 
@@ -433,10 +433,10 @@ static struct MachineDriver machine_driver_slapshot =
 	40*8, 32*8, { 0*8, 40*8-1, 2*8, 30*8-1 },
 
 	slapshot_gfxdecodeinfo,
-	8192, 8192,
+	8192, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_NEEDS_6BITS_PER_GUN,
+	VIDEO_TYPE_RASTER | VIDEO_NEEDS_6BITS_PER_GUN,
 	taito_no_buffer_eof_callback,
 	slapshot_vh_start,
 	slapshot_vh_stop,
@@ -522,4 +522,4 @@ static void init_slapshot(void)
 	state_save_register_func_postload(reset_sound_region);
 }
 
-GAME( 1994, slapshot, 0, slapshot, slapshot, slapshot, ROT0_16BIT,  "Taito Corporation", "Slap Shot (Japan)" )
+GAME( 1994, slapshot, 0, slapshot, slapshot, slapshot, ROT0, "Taito Corporation", "Slap Shot (Japan)" )

@@ -87,7 +87,7 @@ WRITE_HANDLER( yunsung8_videoram_w )
 		g = (color >>  5) & 0x1f;
 		b = (color >> 10) & 0x1f;
 
-		palette_change_color(offset/2 + (bank ? 0x400:0), (r << 3)|(r >> 2), (g << 3)|(g >> 2), (b << 3)|(b >> 2));
+		palette_set_color(offset/2 + (bank ? 0x400:0), (r << 3)|(r >> 2), (g << 3)|(g >> 2), (b << 3)|(b >> 2));
 	}
 	else
 	{
@@ -194,7 +194,7 @@ int yunsung8_vh_start(void)
 
 ***************************************************************************/
 
-void yunsung8_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void yunsung8_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int layers_ctrl = (~yunsung8_layers_ctrl) >> 4;
 
@@ -208,16 +208,8 @@ if (keyboard_pressed(KEYCODE_Z))
 }
 #endif
 
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-
-	/* No Sprites ... */
-
-	palette_recalc();
-
 	if (layers_ctrl&1)	tilemap_draw(bitmap, tilemap_0, 0,0);
-	else				fillbitmap(bitmap,palette_transparent_pen,&Machine->visible_area);
+	else				fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 	if (layers_ctrl&2)	tilemap_draw(bitmap, tilemap_1, 0,0);
 }

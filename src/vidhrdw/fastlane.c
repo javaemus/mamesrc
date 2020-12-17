@@ -136,7 +136,7 @@ WRITE_HANDLER( fastlane_vram2_w )
 
 ***************************************************************************/
 
-void fastlane_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void fastlane_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int i, xoffs;
 
@@ -146,9 +146,6 @@ void fastlane_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		tilemap_set_scrollx(layer0, i, fastlane_k007121_regs[0x20 + i] + xoffs - 40);
 	}
 	tilemap_set_scrolly( layer0, 0, K007121_ctrlram[0][0x02] );
-
-	tilemap_update(ALL_TILEMAPS);
-	palette_recalc();
 
 	tilemap_draw(bitmap,layer0,0,0);
 	K007121_sprites_draw(0,bitmap,spriteram,0,40,0,-1);

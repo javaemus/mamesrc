@@ -112,7 +112,7 @@ Offset:		Format:		Value:
 
 ***************************************************************************/
 
-static void draw_sprites(struct osd_bitmap *bitmap)
+static void draw_sprites(struct mame_bitmap *bitmap)
 {
 	int i;
 	int max_x = Machine->drv->screen_width  - 1;
@@ -152,15 +152,8 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 
 ***************************************************************************/
 
-void amspdwy_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void amspdwy_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-	/* 32 colors Only */
-	memset(palette_used_colors,PALETTE_COLOR_USED,Machine->drv->total_colors);
-	palette_recalc();
-
-	tilemap_draw(bitmap,tilemap,0,0);	// Opaque
+	tilemap_draw(bitmap,tilemap,0,0);
 	draw_sprites(bitmap);
 }

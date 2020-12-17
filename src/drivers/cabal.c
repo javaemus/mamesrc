@@ -46,7 +46,7 @@ COLORRAM (Colors)
 #include "sndhrdw/seibu.h"
 
 extern int cabal_vh_start( void );
-extern void cabal_vh_screenrefresh( struct osd_bitmap *bitmap, int fullrefresh );
+extern void cabal_vh_screenrefresh( struct mame_bitmap *bitmap, int fullrefresh );
 WRITE16_HANDLER( cabal_flipscreen_w );
 WRITE16_HANDLER( cabal_background_videoram16_w );
 WRITE16_HANDLER( cabal_text_videoram16_w );
@@ -565,10 +565,10 @@ static const struct MachineDriver machine_driver_cabal =
 	256, 256, { 0*8, 32*8-1, 2*8, 30*8-1 },
 
 	cabal_gfxdecodeinfo,
-	1024,1024,
+	1024, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	cabal_vh_start,
 	0,
@@ -608,10 +608,10 @@ static const struct MachineDriver machine_driver_cabalbl =
 	256, 256, { 0*8, 32*8-1, 2*8, 30*8-1 },
 
 	cabal_gfxdecodeinfo,
-	1024,1024,
+	1024, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	cabal_vh_start,
 	0,

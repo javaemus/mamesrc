@@ -42,7 +42,7 @@
 
 int superchs_vh_start (void);
 void superchs_vh_stop (void);
-void superchs_vh_screenrefresh  (struct osd_bitmap *bitmap,int full_refresh);
+void superchs_vh_screenrefresh  (struct mame_bitmap *bitmap,int full_refresh);
 
 static UINT16 coin_word;
 static data32_t *superchs_ram;
@@ -119,7 +119,7 @@ static WRITE32_HANDLER( superchs_palette_w )
 	g = (a &0xff00) >> 8;
 	b = (a &0xff);
 
-	palette_change_color(offset,r,g,b);
+	palette_set_color(offset,r,g,b);
 }
 
 static READ32_HANDLER( superchs_input_r )
@@ -496,10 +496,10 @@ static struct MachineDriver machine_driver_superchs =
 	40*8, 32*8, { 0, 40*8-1, 2*8, 32*8-1 },
 
 	superchs_gfxdecodeinfo,
-	8192, 8192,
+	8192, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_NEEDS_6BITS_PER_GUN,
+	VIDEO_TYPE_RASTER | VIDEO_NEEDS_6BITS_PER_GUN,
 	0,
 	superchs_vh_start,
 	superchs_vh_stop,
@@ -576,4 +576,4 @@ static void init_superchs(void)
 	install_mem_read16_handler(2, 0x80000a, 0x80000b, sub_cycle_r);
 }
 
-GAME( 1992, superchs, 0, superchs, superchs, superchs, ROT0_16BIT, "Taito America Corporation", "Super Chase - Criminal Termination (US)" )
+GAME( 1992, superchs, 0, superchs, superchs, superchs, ROT0, "Taito America Corporation", "Super Chase - Criminal Termination (US)" )

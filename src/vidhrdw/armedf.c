@@ -202,23 +202,23 @@ WRITE16_HANDLER( armedf_bg_videoram_w )
 		tilemap_mark_tile_dirty(bg_tilemap,offset);
 }
 
+static int waiting_msb;
+
 WRITE16_HANDLER( terraf_fg_scrollx_w )
 {
 	if (ACCESSING_MSB)
+	{
 		armedf_fg_scrollx = data >> 8;
+		waiting_msb = 1;
+	}
 }
-
-static int waiting_msb;
 
 WRITE16_HANDLER( terraf_fg_scrolly_w )
 {
 	if (ACCESSING_MSB)
 	{
 		if (waiting_msb)
-		{
 			terraf_scroll_msb = data >> 8;
-			waiting_msb = 0;
-		}
 		else
 			armedf_fg_scrolly = data >> 8;
 	}
@@ -227,7 +227,7 @@ WRITE16_HANDLER( terraf_fg_scrolly_w )
 WRITE16_HANDLER( terraf_fg_scroll_msb_arm_w )
 {
 	if (ACCESSING_MSB)
-		waiting_msb = 1;
+		waiting_msb = 0;
 }
 
 WRITE16_HANDLER( armedf_fg_scrollx_w )
@@ -262,7 +262,7 @@ WRITE16_HANDLER( armedf_bg_scrolly_w )
 
 ***************************************************************************/
 
-static void draw_sprites( struct osd_bitmap *bitmap, int priority )
+static void draw_sprites( struct mame_bitmap *bitmap, int priority )
 {
 	int offs;
 
@@ -287,37 +287,9 @@ static void draw_sprites( struct osd_bitmap *bitmap, int priority )
 	}
 }
 
-static void mark_sprite_colors( void )
-{
-	int offs;
-	int i;
-	char flag[32];
-
-	for (i = 0;i < 32;i++) flag[i] = 0;
-
-	for (offs = 0;offs < spriteram_size/2;offs += 4)
-	{
-		int color = (buffered_spriteram16[offs+2]>>8)&0x1f;
-		flag[color] = 1;
-	}
-
-	{
-		unsigned char *pen_ptr = &palette_used_colors[Machine->drv->gfxdecodeinfo[3].color_codes_start];
-		int pen;
-		for (i = 0;i < 32;i++)
-		{
-			if (flag[i])
-			{
-				for (pen = 0;pen < 0xf;pen++)
-					pen_ptr[pen] |= PALETTE_COLOR_VISIBLE;
-			}
-			pen_ptr += 16;
-		}
-	}
-}
 
 
-void armedf_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void armedf_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int sprite_enable = armedf_vreg & 0x200;
 
@@ -350,21 +322,15 @@ void armedf_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			break;
 	}
 
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-	mark_sprite_colors();
-	palette_recalc();
-
 	if( armedf_vreg & 0x0800 )
-		tilemap_draw( bitmap, bg_tilemap, 0 ,0);
+		tilemap_draw( bitmap, bg_tilemap, 0, 0);
 	else
-		fillbitmap( bitmap, palette_transparent_pen, 0 ); /* disabled bg_tilemap - all black? */
+		fillbitmap( bitmap, Machine->pens[0], 0 ); /* disabled bg_tilemap - all black? */
 
 	if( sprite_enable ) draw_sprites( bitmap, 2 );
-	tilemap_draw( bitmap, fg_tilemap, 0 ,0);
+	tilemap_draw( bitmap, fg_tilemap, 0, 0);
 	if( sprite_enable ) draw_sprites( bitmap, 1 );
-	tilemap_draw( bitmap, tx_tilemap, 0 ,0);
+	tilemap_draw( bitmap, tx_tilemap, 0, 0);
 	if( sprite_enable ) draw_sprites( bitmap, 0 );
 }
 

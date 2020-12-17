@@ -38,7 +38,7 @@ WRITE16_HANDLER( afega_palette_w );
 void grdnstrm_vh_init_palette(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 
 int  afega_vh_start(void);
-void afega_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void afega_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 
 /***************************************************************************
@@ -427,9 +427,10 @@ static const struct MachineDriver machine_driver_grdnstrm =
 	/* video hardware */
 	256, 256, { 0, 256-1, 0+16, 256-16-1 },
 	grdnstrm_gfxdecodeinfo,
-	256 * 3, 256 * 3 + 16*256,
+	768, 768 + 16*256,
 	grdnstrm_vh_init_palette,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+
+	VIDEO_TYPE_RASTER,
 	0,
 	afega_vh_start,
 	0,
@@ -466,9 +467,10 @@ static const struct MachineDriver machine_driver_stagger1 =
 	/* video hardware */
 	256, 256, { 0, 256-1, 0+16, 256-16-1 },
 	stagger1_gfxdecodeinfo,
-	256 * 3, 256 * 3,
+	768, 0,
 	0,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+
+	VIDEO_TYPE_RASTER,
 	0,
 	afega_vh_start,
 	0,
@@ -642,5 +644,5 @@ void init_grdnstrm(void)
 
 ***************************************************************************/
 
-GAMEX( 1998, stagger1, 0, stagger1, stagger1, stagger1, ROT270_16BIT, "Afega", "Stagger I (Japan)",                GAME_NOT_WORKING )
-GAMEX( 1998, grdnstrm, 0, grdnstrm, grdnstrm, grdnstrm, ROT270_16BIT, "Afega", "Sen Jin - Guardian Storm (Korea)", GAME_NOT_WORKING )
+GAMEX( 1998, stagger1, 0, stagger1, stagger1, stagger1, ROT270, "Afega", "Stagger I (Japan)",                GAME_NOT_WORKING )
+GAMEX( 1998, grdnstrm, 0, grdnstrm, grdnstrm, grdnstrm, ROT270, "Afega", "Sen Jin - Guardian Storm (Korea)", GAME_NOT_WORKING )

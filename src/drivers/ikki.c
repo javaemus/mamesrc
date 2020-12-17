@@ -13,7 +13,7 @@ Ikki (c) 1985 Sun Electronics
 
 void ikki_vh_convert_color_prom(unsigned char *palette,
 	unsigned short *colortable,const unsigned char *color_prom);
-void ikki_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void ikki_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 static UINT8 *ikki_sharedram;
 
@@ -216,7 +216,7 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 static struct SN76496interface sn76496_interface =
 {
 	2,	/* 2 chips */
-	{ 8000000/2, 8000000/2 },
+	{ 8000000/4, 8000000/2 },
 	{ 75, 75 }
 };
 
@@ -244,10 +244,10 @@ static const struct MachineDriver machine_driver_ikki =
 	32*8, 32*8, { 1*8, 31*8-1, 2*8, 30*8-1 },
 
 	gfxdecodeinfo,
-	256,1024,
+	256+1,1024,
 	ikki_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER ,
+	VIDEO_TYPE_RASTER,
 	0,
 	generic_vh_start,
 	generic_vh_stop,

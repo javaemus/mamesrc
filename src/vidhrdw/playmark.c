@@ -7,7 +7,7 @@ data16_t *bigtwin_bgvideoram;
 size_t bigtwin_bgvideoram_size;
 data16_t *wbeachvl_videoram1,*wbeachvl_videoram2,*wbeachvl_videoram3;
 
-static struct osd_bitmap *bgbitmap;
+static struct mame_bitmap *bgbitmap;
 static int bgscrollx,bgscrolly;
 static struct tilemap *tx_tilemap,*fg_tilemap,*bg_tilemap;
 
@@ -177,7 +177,7 @@ WRITE16_HANDLER( bigtwin_paletteram_w )
 	g = (g << 3) | (g >> 2);
 	b = (b << 3) | (b >> 2);
 
-	palette_change_color(offset,r,g,b);
+	palette_set_color(offset,r,g,b);
 }
 
 WRITE16_HANDLER( bigtwin_bgvideoram_w )
@@ -240,7 +240,7 @@ WRITE16_HANDLER( wbeachvl_scroll_w )
 
 ***************************************************************************/
 
-static void draw_sprites(struct osd_bitmap *bitmap,int codeshift)
+static void draw_sprites(struct mame_bitmap *bitmap,int codeshift)
 {
 	int offs;
 	int height = Machine->gfx[0]->height;
@@ -269,18 +269,9 @@ static void draw_sprites(struct osd_bitmap *bitmap,int codeshift)
 }
 
 
-void bigtwin_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void bigtwin_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_used_colors[256] = PALETTE_COLOR_TRANSPARENT;	/* keep the background black */
-	if (palette_recalc())
-	{
-		int offs;
-
-		for (offs = 0;offs < bigtwin_bgvideoram_size/2;offs++)
-			bigtwin_bgvideoram_w(offs,bigtwin_bgvideoram[offs],0);
-	}
+	palette_set_color(256,0,0,0);	/* keep the background black */
 
 	copyscrollbitmap(bitmap,bgbitmap,1,&bgscrollx,1,&bgscrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	tilemap_draw(bitmap,fg_tilemap,0,0);
@@ -288,12 +279,8 @@ void bigtwin_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	tilemap_draw(bitmap,tx_tilemap,0,0);
 }
 
-void wbeachvl_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void wbeachvl_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_recalc();
-
 	tilemap_draw(bitmap,bg_tilemap,0,0);
 	tilemap_draw(bitmap,fg_tilemap,0,0);
 	draw_sprites(bitmap,0);

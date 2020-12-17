@@ -102,7 +102,7 @@ static int bg0_enabled = 1;
 static int bg1_enabled = 1;
 static int bg2_enabled = 1;
 
-static struct osd_bitmap *bitmap_sp;	/* for sprite overdraw */
+static struct mame_bitmap *bitmap_sp;	/* for sprite overdraw */
 static int sprite_overdraw_enabled = 0;
 
 static int scrollx_mask = 0x07ff;
@@ -577,54 +577,7 @@ WRITE_HANDLER( omegaf_sprite_overdraw_w )
   Screen refresh
 ***************************************************************************/
 
-static void mark_sprite_colors(void)
-{
-	int offs, i;
-	unsigned short palette_map[16];
-
-	memset (palette_map, 0x00, sizeof (palette_map));
-
-	/* Find colors used in the sprites */
-	for (offs = 11 ;offs < spriteram_size; offs += 16)
-	{
-		int tile, big, color;
-
-		if (spriteram[offs + 2] & 2)
-		{
-			tile = spriteram[offs + 3] |
-					((spriteram[offs + 2] & 0xc0) << 2) |
-					((spriteram[offs + 2] & 0x08) << 7);
-
-			big  = spriteram[offs + 2] & 4;
-			if (big)
-				tile >>= 2;
-			color = spriteram[offs + 4] & 0x0f;
-			palette_map[color] |= Machine -> gfx[(big) ? 4 : 3] -> pen_usage[tile];
-		}
-	}
-
-	/* Tell the palette system about used colors */
-	for (i = 32 ; i < 48 ; i ++)
-	{
-		int j;
-
-		if (palette_map[i - 32])
-		{
-			for (j = 0 ; j < 15 ; j ++)
-			{
-				if (palette_map[i - 32] & (1 << j))
-					palette_used_colors[i * 16 + j] = PALETTE_COLOR_USED;
-				else if (!sprite_overdraw_enabled)
-					palette_used_colors[i * 16 + j] = PALETTE_COLOR_UNUSED;
-			}
-			palette_used_colors[i * 16 + 15] = PALETTE_COLOR_TRANSPARENT;
-		}
-		else if (!sprite_overdraw_enabled)
-			memset(&palette_used_colors[i * 16],PALETTE_COLOR_UNUSED,16);
-	}
-}
-
-static void draw_sprites(struct osd_bitmap *bitmap)
+static void draw_sprites(struct mame_bitmap *bitmap)
 {
 	int offs;
 
@@ -660,15 +613,9 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 	}
 }
 
-void omegaf_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
+void omegaf_vh_screenrefresh(struct mame_bitmap *bitmap, int full_refresh)
 {
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-	mark_sprite_colors();
-	palette_recalc();
-
-	fillbitmap(bitmap,palette_transparent_pen,&Machine->visible_area);
+	fillbitmap(bitmap,Machine->pens[15],&Machine->visible_area);	// ??
 
 	if (bg0_enabled)	tilemap_draw(bitmap, bg0_tilemap, 0, 0);
 	if (bg1_enabled)	tilemap_draw(bitmap, bg1_tilemap, 0, 0);

@@ -42,7 +42,7 @@ WRITE16_HANDLER( unico16_vram_2_w );
 WRITE16_HANDLER( unico16_palette_w );
 
 int  unico16_vh_start(void);
-void unico16_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void unico16_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 /***************************************************************************
 
@@ -464,9 +464,9 @@ static const struct MachineDriver machine_driver_burglarx =
 	/* video hardware */
 	0x180, 0xe0, { 0, 0x180-1, 0, 0xe0-1 },
 	unico16_gfxdecodeinfo,
-	0x2000, 0x2000,
+	8192, 0,
 	0,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	unico16_vh_start,
 	0,
@@ -509,9 +509,9 @@ static const struct MachineDriver machine_driver_zeropnt =
 	/* video hardware */
 	0x180, 0xe0, { 0, 0x180-1, 0, 0xe0-1 },
 	unico16_gfxdecodeinfo,
-	0x2000, 0x2000,
+	8192, 0,
 	0,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	unico16_vh_start,
 	0,
@@ -601,8 +601,8 @@ ROM_END
 
 by Unico
 
-68000-16mhz , MACH210-15JC, 3 x A1020B
-14.31818 Mhz, 32.000 Mhz
+68000-16MHz , MACH210-15JC, 3 x A1020B
+14.31818 MHz, 32.000 MHz
 
 ***************************************************************************/
 
@@ -648,5 +648,5 @@ ROM_END
 
 ***************************************************************************/
 
-GAME( 1997, burglarx, 0, burglarx, burglarx, 0, ROT0_16BIT, "Unico Electronics", "Burglar X"  )
-GAME( 1998, zeropnt,  0, zeropnt,  zeropnt,  0, ROT0_16BIT, "Unico Electronics", "Zero Point" )
+GAME( 1997, burglarx, 0, burglarx, burglarx, 0, ROT0, "Unico Electronics", "Burglar X"  )
+GAME( 1998, zeropnt,  0, zeropnt,  zeropnt,  0, ROT0, "Unico Electronics", "Zero Point" )

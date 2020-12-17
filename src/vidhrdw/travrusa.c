@@ -219,7 +219,7 @@ WRITE_HANDLER( travrusa_flipscreen_w )
 
 ***************************************************************************/
 
-static void draw_sprites(struct osd_bitmap *bitmap)
+static void draw_sprites(struct mame_bitmap *bitmap)
 {
 	int offs;
 	static struct rectangle spritevisiblearea =
@@ -260,10 +260,8 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 	}
 }
 
-void travrusa_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void travrusa_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
-	tilemap_update(ALL_TILEMAPS);
-
 	tilemap_draw(bitmap,bg_tilemap,TILEMAP_BACK,0);
 	draw_sprites(bitmap);
 	tilemap_draw(bitmap,bg_tilemap,TILEMAP_FRONT,0);

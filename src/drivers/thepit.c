@@ -64,7 +64,7 @@ WRITE_HANDLER( thepit_attributes_w );
 
 void thepit_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void suprmous_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-void thepit_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void thepit_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 READ_HANDLER( thepit_input_port_0_r );
 WRITE_HANDLER( thepit_sound_enable_w );
 WRITE_HANDLER( intrepid_graphics_bank_select_w );
@@ -856,7 +856,7 @@ GAME( 1981, roundup,  0,        thepit,   roundup,  0, ROT90, "Amenip/Centuri", 
 GAME( 1981, fitter,   roundup,  thepit,   fitter,   0, ROT90, "Taito", "Fitter" )
 GAME( 1982, thepit,   0,        thepit,   thepit,   0, ROT90, "Centuri", "The Pit" )
 GAME( 1982, portman,  0,        intrepid, portman,  0, ROT90, "Nova Games Ltd.", "Port Man" )
-GAME( 1982, funnymou, 0,        suprmous, suprmous, 0, ROT90, "Chu Co. Ltd", "Funny Mouse" )
+GAME( 1982, funnymou, 0,        suprmous, suprmous, 0, ROT90, "Chuo Co. Ltd", "Funny Mouse" )
 GAME( 1982, suprmous, funnymou, suprmous, suprmous, 0, ROT90, "Taito", "Super Mouse" )
 GAME( 1982, machomou, 0,        suprmous, suprmous, 0, ROT90, "Techstar", "Macho Mouse" )
 GAME( 1983, intrepid, 0,        intrepid, intrepid, 0, ROT90, "Nova Games Ltd.", "Intrepid (set 1)" )

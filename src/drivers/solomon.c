@@ -18,7 +18,7 @@ WRITE_HANDLER( solomon_bgvideoram_w );
 WRITE_HANDLER( solomon_bgcolorram_w );
 int  solomon_vh_start(void);
 void solomon_vh_stop(void);
-void solomon_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void solomon_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 static WRITE_HANDLER( solomon_sh_command_w )
 {
@@ -228,10 +228,10 @@ static const struct MachineDriver machine_driver_solomon =
 	/* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
 	gfxdecodeinfo,
-	256, 256,
+	256, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	solomon_vh_start,
 	solomon_vh_stop,

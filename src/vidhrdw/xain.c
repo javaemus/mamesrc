@@ -158,7 +158,7 @@ WRITE_HANDLER( xain_flipscreen_w )
 
 ***************************************************************************/
 
-static void draw_sprites(struct osd_bitmap *bitmap)
+static void draw_sprites(struct mame_bitmap *bitmap)
 {
 	int offs;
 
@@ -208,14 +208,8 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 	}
 }
 
-void xain_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void xain_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-	memset(palette_used_colors+128,PALETTE_COLOR_USED,128);	/* sprites */
-	palette_recalc();
-
 	tilemap_draw(bitmap,bgram0_tilemap,0,0);
 	tilemap_draw(bitmap,bgram1_tilemap,0,0);
 	draw_sprites(bitmap);

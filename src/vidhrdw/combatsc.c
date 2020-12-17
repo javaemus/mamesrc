@@ -483,7 +483,7 @@ WRITE_HANDLER( combasc_scrollram_w )
 
 ***************************************************************************/
 
-static void draw_sprites(struct osd_bitmap *bitmap, const unsigned char *source,int circuit,UINT32 pri_mask)
+static void draw_sprites(struct mame_bitmap *bitmap, const unsigned char *source,int circuit,UINT32 pri_mask)
 {
 	int base_color = (circuit*4)*16+(K007121_ctrlram[circuit][6]&0x10)*2;
 
@@ -491,7 +491,7 @@ static void draw_sprites(struct osd_bitmap *bitmap, const unsigned char *source,
 }
 
 
-void combasc_vh_screenrefresh( struct osd_bitmap *bitmap, int fullrefresh )
+void combasc_vh_screenrefresh( struct mame_bitmap *bitmap, int fullrefresh )
 {
 	int i;
 
@@ -526,9 +526,6 @@ void combasc_vh_screenrefresh( struct osd_bitmap *bitmap, int fullrefresh )
 
 	tilemap_set_scrolly(tilemap[0],0,K007121_ctrlram[0][0x02]);
 	tilemap_set_scrolly(tilemap[1],0,K007121_ctrlram[1][0x02]);
-
-	tilemap_update(ALL_TILEMAPS);
-	palette_recalc();
 
 	fillbitmap(priority_bitmap,0,NULL);
 
@@ -607,7 +604,7 @@ byte #4:
 
 ***************************************************************************/
 
-static void bootleg_draw_sprites( struct osd_bitmap *bitmap, const unsigned char *source, int circuit )
+static void bootleg_draw_sprites( struct mame_bitmap *bitmap, const unsigned char *source, int circuit )
 {
 	const struct GfxElement *gfx = Machine->gfx[circuit+2];
 	const struct rectangle *clip = &Machine->visible_area;
@@ -654,7 +651,7 @@ static void bootleg_draw_sprites( struct osd_bitmap *bitmap, const unsigned char
 	}
 }
 
-void combascb_vh_screenrefresh( struct osd_bitmap *bitmap, int fullrefresh )
+void combascb_vh_screenrefresh( struct mame_bitmap *bitmap, int fullrefresh )
 {
 	int i;
 
@@ -665,9 +662,6 @@ void combascb_vh_screenrefresh( struct osd_bitmap *bitmap, int fullrefresh )
 	}
 	tilemap_set_scrolly( tilemap[0],0, combasc_io_ram[0x000] );
 	tilemap_set_scrolly( tilemap[1],0, combasc_io_ram[0x020] );
-
-	tilemap_update( ALL_TILEMAPS );
-	palette_recalc();
 
 	if (priority == 0)
 	{

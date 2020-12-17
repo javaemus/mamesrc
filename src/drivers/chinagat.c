@@ -82,7 +82,7 @@ WRITE_HANDLER( ddragon_bgvideoram_w );
 WRITE_HANDLER( ddragon_fgvideoram_w );
 
 int  chinagat_vh_start(void);
-void ddragon_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void ddragon_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 extern int technos_video_hw;
 extern int ddragon_scrollx_hi, ddragon_scrolly_hi;
@@ -532,7 +532,7 @@ static int chinagat_interrupt(void)
 {
 	cpu_set_irq_line(0, 1, HOLD_LINE);	/* hold the FIRQ line */
 	cpu_set_nmi_line(0, PULSE_LINE);	/* pulse the NMI line */
-	return M6809_INT_NONE;
+	return ignore_interrupt();
 }
 
 /* This is only on the second bootleg board */
@@ -577,9 +577,9 @@ static struct MachineDriver machine_driver_chinagat =
 	/* video hardware */
 	32*8, 32*8, { 1*8, 31*8-1, 2*8, 30*8-1 },
 	gfxdecodeinfo,
-	384, 384,
+	384, 0,
 	0,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	chinagat_vh_start,
 	0,
@@ -634,9 +634,9 @@ static struct MachineDriver machine_driver_saiyugb1 =
 	/* video hardware */
 	32*8, 32*8,{ 1*8, 31*8-1, 2*8, 30*8-1 },
 	gfxdecodeinfo,
-	384, 384,
+	384, 0,
 	0,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	chinagat_vh_start,
 	0,
@@ -685,9 +685,9 @@ static struct MachineDriver machine_driver_saiyugb2 =
 	/* video hardware */
 	32*8, 32*8,{ 1*8, 31*8-1, 2*8, 30*8-1 },
 	gfxdecodeinfo,
-	384, 384,
+	384, 0,
 	0,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
 	0,
 	chinagat_vh_start,
 	0,
@@ -917,6 +917,6 @@ ROM_END
 
 /*   ( YEAR  NAME      PARENT    MACHINE   INPUT     INIT    MONITOR COMPANY    FULLNAME     FLAGS ) */
 GAME ( 1988, chinagat, 0,        chinagat, chinagat, 0     , ROT0, "[Technos] (Taito Romstar license)", "China Gate (US)" )
-GAME ( 1988, saiyugou, chinagat, chinagat, chinagat, 0     , ROT0, "Technos", "Sai Yo Gou Ma Roku (Japan)" )
-GAMEX( 1988, saiyugb1, chinagat, saiyugb1, chinagat, 0     , ROT0, "bootleg", "Sai Yo Gou Ma Roku (bootleg 1)", GAME_IMPERFECT_SOUND )
-GAME ( 1988, saiyugb2, chinagat, saiyugb2, chinagat, 0     , ROT0, "bootleg", "Sai Yo Gou Ma Roku (bootleg 2)" )
+GAME ( 1988, saiyugou, chinagat, chinagat, chinagat, 0     , ROT0, "Technos", "Sai Yu Gou Ma Roku (Japan)" )
+GAMEX( 1988, saiyugb1, chinagat, saiyugb1, chinagat, 0     , ROT0, "bootleg", "Sai Yu Gou Ma Roku (bootleg 1)", GAME_IMPERFECT_SOUND )
+GAME ( 1988, saiyugb2, chinagat, saiyugb2, chinagat, 0     , ROT0, "bootleg", "Sai Yu Gou Ma Roku (bootleg 2)" )

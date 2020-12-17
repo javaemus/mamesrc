@@ -50,7 +50,7 @@ WRITE_HANDLER( raidena_text_w );
 int raiden_vh_start(void);
 int raidena_vh_start(void);
 WRITE_HANDLER( raiden_control_w );
-void raiden_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void raiden_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 static unsigned char *raiden_shared_ram;
 extern unsigned char *raiden_back_data,*raiden_fore_data,*raiden_scroll_ram;
@@ -303,10 +303,10 @@ static const struct MachineDriver machine_driver_raiden =
 	/* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
 	raiden_gfxdecodeinfo,
-	2048, 2048,
+	2048, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_BUFFERS_SPRITERAM,
+	VIDEO_TYPE_RASTER | VIDEO_BUFFERS_SPRITERAM,
 	raiden_eof_callback,
 	raiden_vh_start,
 	0,
@@ -346,10 +346,10 @@ static const struct MachineDriver machine_driver_raidena =
 	/* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
 	raiden_gfxdecodeinfo,
-	2048, 2048,
+	2048, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_BUFFERS_SPRITERAM,
+	VIDEO_TYPE_RASTER | VIDEO_BUFFERS_SPRITERAM,
 	raiden_eof_callback,
 	raidena_vh_start,
 	0,

@@ -47,7 +47,7 @@ WRITE16_HANDLER( esd16_vram_0_w );
 WRITE16_HANDLER( esd16_vram_1_w );
 
 int  esd16_vh_start(void);
-void esd16_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void esd16_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 
 /***************************************************************************
@@ -154,7 +154,7 @@ int esd16_vh_start(void)
 
 ***************************************************************************/
 
-static void esd16_draw_sprites(struct osd_bitmap *bitmap)
+static void esd16_draw_sprites(struct mame_bitmap *bitmap)
 {
 	int offs;
 
@@ -202,11 +202,6 @@ static void esd16_draw_sprites(struct osd_bitmap *bitmap)
 	}
 }
 
-static void esd16_mark_sprites_colors(void)
-{
-	memset(palette_used_colors,PALETTE_COLOR_USED,Machine->drv->total_colors);
-}
-
 
 /***************************************************************************
 
@@ -216,7 +211,7 @@ static void esd16_mark_sprites_colors(void)
 
 ***************************************************************************/
 
-void esd16_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void esd16_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int layers_ctrl = -1;
 
@@ -235,14 +230,8 @@ if ( keyboard_pressed(KEYCODE_Z) )
 	if (msk != 0) layers_ctrl &= msk;	}
 #endif
 
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-	esd16_mark_sprites_colors();
-	palette_recalc();
-
 	if (layers_ctrl & 1)	tilemap_draw(bitmap,tilemap_0,0,0);
-	else					fillbitmap(bitmap,palette_transparent_pen,&Machine->visible_area);
+	else					fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 	if (layers_ctrl & 2)	tilemap_draw(bitmap,tilemap_1,0,0);
 

@@ -162,7 +162,7 @@ WRITE_HANDLER( skykid_flipscreen_w )
 
 ***************************************************************************/
 
-static void skykid_draw_sprites(struct osd_bitmap *bitmap)
+static void skykid_draw_sprites(struct mame_bitmap *bitmap)
 {
 	int offs;
 
@@ -216,13 +216,9 @@ static void skykid_draw_sprites(struct osd_bitmap *bitmap)
 	}
 }
 
-void skykid_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void skykid_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int offs;
-
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_recalc();
 
 	tilemap_draw(bitmap,background,0,0);
 	if ((priority & 0xf0) != 0x50)

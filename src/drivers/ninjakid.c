@@ -32,7 +32,7 @@ extern READ_HANDLER( ninjakun_io_8000_r );
 extern WRITE_HANDLER( ninjakun_io_8000_w );
 
 extern int ninjakid_vh_start( void );
-extern void ninjakid_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+extern void ninjakid_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 extern WRITE_HANDLER( ninjakun_flipscreen_w );
 
 extern WRITE_HANDLER( ninjakun_paletteram_w );
@@ -206,10 +206,10 @@ static const struct MachineDriver machine_driver_ninjakid =
     /* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 4*8, (32-4)*8-1 },
     ninjakid_gfxdecodeinfo,
-    512+256,512+256,
+    768, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER,
     0,
 	ninjakid_vh_start,
 	0,
@@ -348,4 +348,4 @@ static void init_ninjakid(void)
  Game Drivers
 *******************************************************************************/
 
-GAME( 1984, ninjakun, 0, ninjakid, ninjakid, ninjakid, ROT0_16BIT, "[UPL] (Taito license)", "Ninjakun Majou no Bouken" )
+GAME( 1984, ninjakun, 0, ninjakid, ninjakid, ninjakid, ROT0, "[UPL] (Taito license)", "Ninjakun Majou no Bouken" )

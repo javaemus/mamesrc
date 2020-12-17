@@ -33,7 +33,7 @@ WRITE16_HANDLER( esd16_vram_0_w );
 WRITE16_HANDLER( esd16_vram_1_w );
 
 int  esd16_vh_start(void);
-void esd16_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void esd16_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 
 /***************************************************************************
@@ -335,9 +335,10 @@ static const struct MachineDriver machine_driver_multchmp =
 	/* video hardware */
 	0x140, 0x100, { 0, 0x140-1, 0+8, 0x100-8-1 },
 	esd16_gfxdecodeinfo,
-	256*3, 256*3,
+	768, 0,
 	0,
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+
+	VIDEO_TYPE_RASTER,
 	0,
 	esd16_vh_start,
 	0,
@@ -437,4 +438,4 @@ ROM_END
 
 ***************************************************************************/
 
-GAME( 1998, multchmp, 0, multchmp, multchmp, 0, ROT0_16BIT, "ESD", "Multi Champ (Korea)" )
+GAME( 1998, multchmp, 0, multchmp, multchmp, 0, ROT0, "ESD", "Multi Champ (Korea)" )

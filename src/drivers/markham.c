@@ -13,7 +13,7 @@ Markham (c) 1983 Sun Electronics
 
 void markham_vh_convert_color_prom(unsigned char *palette,
 	unsigned short *colortable,const unsigned char *color_prom);
-void markham_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void markham_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 
 static UINT8 *markham_sharedram;
 
@@ -249,7 +249,7 @@ static const struct MachineDriver machine_driver_markham =
 	256,1024,
 	markham_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER ,
+	VIDEO_TYPE_RASTER,
 	0,
 	generic_vh_start,
 	generic_vh_stop,
@@ -294,4 +294,5 @@ ROM_START( markham )
 	ROM_LOAD( "14-2.115", 0x0500,  0x0200, 0x12a4f1ff ) /* bg */
 ROM_END
 
-GAME( 1983, markham, 0, markham, markham, 0, ROT0_16BIT, "Sun Electronics", "Markham" )
+
+GAME( 1983, markham, 0, markham, markham, 0, ROT0, "Sun Electronics", "Markham" )

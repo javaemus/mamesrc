@@ -7,9 +7,8 @@
 ***************************************************************************/
 
 #include "driver.h"
+#include "machine/segacrpt.h"
 
-/* in machine/segacrpt.c */
-void suprloco_decode(void);
 
 
 extern unsigned char *spriteram;
@@ -29,7 +28,7 @@ static struct tilemap *fg_tilemap,*bg1_tilemap,*bg2_tilemap,*bg3_tilemap;
 static int senjyo, scrollhack;
 static int senjyo_bgstripes;
 
-static struct osd_bitmap *bgbitmap;
+static struct mame_bitmap *bgbitmap;
 
 
 void init_starforc(void)
@@ -227,7 +226,7 @@ WRITE_HANDLER( senjyo_bgstripes_w )
 
 ***************************************************************************/
 
-static void draw_bgbitmap(struct osd_bitmap *bitmap, int full_refresh)
+static void draw_bgbitmap(struct mame_bitmap *bitmap, int full_refresh)
 {
 	int x,y,pen,strwid,count;
 
@@ -275,7 +274,7 @@ static void draw_bgbitmap(struct osd_bitmap *bitmap, int full_refresh)
 	copybitmap(bitmap,bgbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }
 
-static void draw_radar(struct osd_bitmap *bitmap)
+static void draw_radar(struct mame_bitmap *bitmap)
 {
 	int offs,x;
 
@@ -307,7 +306,7 @@ static void draw_radar(struct osd_bitmap *bitmap)
 	}
 }
 
-static void draw_sprites(struct osd_bitmap *bitmap,int priority)
+static void draw_sprites(struct mame_bitmap *bitmap,int priority)
 {
 	const struct rectangle *clip = &Machine->visible_area;
 	int offs;
@@ -359,14 +358,14 @@ static void draw_sprites(struct osd_bitmap *bitmap,int priority)
 	}
 }
 
-void senjyo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void senjyo_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 {
 	int i;
 
 
 	/* two colors for the radar dots (verified on the real board) */
-	palette_change_color(400,0xff,0x00,0x00);	/* red for enemies */
-	palette_change_color(401,0xff,0xff,0x00);	/* yellow for player */
+	palette_set_color(400,0xff,0x00,0x00);	/* red for enemies */
+	palette_set_color(401,0xff,0xff,0x00);	/* yellow for player */
 
 	{
 		int scrollx,scrolly;
@@ -400,24 +399,6 @@ void senjyo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		tilemap_set_scrollx(bg3_tilemap,0,scrollx);
 		tilemap_set_scrolly(bg3_tilemap,0,scrolly);
 	}
-
-	tilemap_update(ALL_TILEMAPS);
-
-	palette_init_used_colors();
-//	mark_sprite_colors();
-	for (i = 320; i < 384; i++)
-	{
-		if (i % 8 != 0)
-			palette_used_colors[i] = PALETTE_COLOR_USED;
-	}
-	for (i = 384; i < 400; i++)
-	{
-		palette_used_colors[i] = PALETTE_COLOR_USED;
-	}
-	palette_used_colors[400] = PALETTE_COLOR_USED;
-	palette_used_colors[401] = PALETTE_COLOR_USED;
-
-	palette_recalc();
 
 	draw_bgbitmap(bitmap, full_refresh);
 	draw_sprites(bitmap,0);

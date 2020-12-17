@@ -99,7 +99,7 @@ int froggrmc_vh_start(void);
 
 WRITE_HANDLER( galaxian_flip_screen_x_w );
 WRITE_HANDLER( galaxian_flip_screen_y_w );
-void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void galaxian_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
 WRITE_HANDLER( frogger_filter_w );
 
 READ_HANDLER( frogger_portB_r );
@@ -318,7 +318,7 @@ static const struct MachineDriver machine_driver_frogger =
 	/* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
 	galaxian_gfxdecodeinfo,
-	32+64+2+2,8*4,	/* 32 for characters, 64 for stars, 2 for bullets, 2 for background */	\
+	32+64+2+1,8*4,	/* 32 for characters, 64 for stars, 2 for bullets, 1 for background */	\
 	frogger_vh_convert_color_prom,
 
 	VIDEO_TYPE_RASTER,
@@ -361,7 +361,7 @@ static const struct MachineDriver machine_driver_froggrmc =
 	/* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
 	galaxian_gfxdecodeinfo,
-	32+64+2+2,8*4,	/* 32 for characters, 64 for stars, 2 for bullets, 2 for background */	\
+	32+64+2+1,8*4,	/* 32 for characters, 64 for stars, 2 for bullets, 1 for background */	\
 	frogger_vh_convert_color_prom,
 
 	VIDEO_TYPE_RASTER,

@@ -153,7 +153,7 @@ rumbling on a subwoofer in the cabinet.)
 
 int ninjaw_vh_start (void);
 void ninjaw_vh_stop (void);
-void ninjaw_vh_screenrefresh (struct osd_bitmap *bitmap,int full_refresh);
+void ninjaw_vh_screenrefresh (struct mame_bitmap *bitmap,int full_refresh);
 
 static UINT16 cpua_ctrl = 0xff;
 
@@ -632,7 +632,7 @@ static struct YM2610interface ym2610_interface =
 {
 	1,	/* 1 chip */
 	16000000/2,	/* 8 MHz ?? */
-	{ 30 },
+	{ 25 },
 	{ 0 },
 	{ 0 },
 	{ 0 },
@@ -640,7 +640,7 @@ static struct YM2610interface ym2610_interface =
 	{ irqhandler },
 	{ REGION_SOUND2 },	/* Delta-T */
 	{ REGION_SOUND1 },	/* ADPCM */
-	{ YM3012_VOL(60,MIXER_PAN_LEFT,60,MIXER_PAN_RIGHT) }
+	{ YM3012_VOL(100,MIXER_PAN_LEFT,100,MIXER_PAN_RIGHT) }
 };
 
 
@@ -710,10 +710,10 @@ static struct MachineDriver machine_driver_ninjaw =
 	110*8, 32*8, { 0*8, 108*8-1, 3*8, 31*8-1 },
 
 	ninjaw_gfxdecodeinfo,
-	4096*3, 4096*3,
+	4096*3, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(12,3),
+	VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(12,3),
 	0,
 	ninjaw_vh_start,
 	ninjaw_vh_stop,
@@ -765,10 +765,10 @@ static struct MachineDriver machine_driver_darius2 =
 	110*8, 32*8, { 0*8, 108*8-1, 3*8, 31*8-1 },
 
 	ninjaw_gfxdecodeinfo,
-	4096*3, 4096*3,
+	4096*3, 0,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(12,3),
+	VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(12,3),
 	0,
 	ninjaw_vh_start,
 	ninjaw_vh_stop,
