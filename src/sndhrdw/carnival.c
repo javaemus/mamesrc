@@ -1,127 +1,279 @@
-/* carnival.c ********************************* updated: 1997-07-23
- *
- * Author      : Mike Coates (based on Invaders by Tormod Tjaberg)
- * Created     : 1997-07-23
- * Description : Sound routines for the carnival
- *
- * Note:
- * The samples on which these effects are based were made by Virtual-Al
- *
- * There is also a second gun sound, but although I assume that it is
- * used on the bear screen, nothing seems to be altered to select it!
- *
- * Port 1:
- * bit 0 = fire gun
- * bit 1 = hit object     	* See Port 2
- * bit 2 = duck 1
- * bit 3 = duck 2
- * bit 4 = duck 3
- * bit 5 = hit pipe
- * bit 6 = bonus
- * bit 7 = hit background
- *
- * Port 2:
- * bit 0 = ?
- * bit 1 = ?
- * bit 2 = Switch effect for hit object
- * bit 3 = Music On/Off
- * bit 4 = ?
- * bit 5 = ?
- */
+/*****************************************************************************/
+/*                                                                           */
+/*                    (C) Copyright 1998  Peter J.C.Clare                    */
+/*                                                                           */
+/*****************************************************************************/
+/*                                                                           */
+/*                                                                           */
+/*      Module name:    carnival.c                                           */
+/*                                                                           */
+/*      Creation date:  15/03/98                Revision date:  09/01/99     */
+/*                                                                           */
+/*      Produced by:    Peter J.C.Clare                                      */
+/*                                                                           */
+/*                                                                           */
+/*      Abstract:                                                            */
+/*                                                                           */
+/*              MAME sound & music driver for Sega/Gremlin Carnival.         */
+/*                                                                           */
+/*****************************************************************************/
+/*                                                                           */
+/*      Acknowledgements:                                                    */
+/*                                                                           */
+/*      Mike Coates, for the original Carnival MAME sound driver.            */
+/*      Virtu-Al, for the sound samples & hardware information.              */
+/*      The MAME Team, for the emulator framework.                           */
+/*                                                                           */
+/*****************************************************************************/
+/*                                                                           */
+/*      Revision history                                                     */
+/*      ================                                                     */
+/*                                                                           */
+/*      Date    Vsn.    Initials        Description                          */
+/*      ~~~~    ~~~~    ~~~~~~~~        ~~~~~~~~~~~                          */
+/*                                                                           */
+/*****************************************************************************/
 
 #include "driver.h"
 
-int SoundFX;
 
-void carnival_sh_port1_w(int offset, int data)
+#define CPU_MUSIC_ID            1       /* music CPU id number */
+
+
+/* output port 0x01 definitions - sound effect drive outputs */
+#define OUT_PORT_1_RIFLE_SHOT   0x01
+#define OUT_PORT_1_CLANG        0x02
+#define OUT_PORT_1_DUCK_1       0x04
+#define OUT_PORT_1_DUCK_2       0x08
+#define OUT_PORT_1_DUCK_3       0x10
+#define OUT_PORT_1_PIPE_HIT     0x20
+#define OUT_PORT_1_BONUS_1      0x40
+#define OUT_PORT_1_BONUS_2      0x80
+
+
+/* output port 0x02 definitions - sound effect drive outputs */
+#define OUT_PORT_2_BEAR         0x04
+#define OUT_PORT_2_MUSIC_T1     0x08
+#define OUT_PORT_2_MUSIC_RESET  0x10
+#define OUT_PORT_2_RANKING      0x20
+
+
+/* music CPU port definitions */
+#define MUSIC_PORT2_PSG_BDIR    0x40    /* bit 6 on P2 */
+#define MUSIC_PORT2_PSG_BC1     0x80    /* bit 7 on P2 */
+
+
+#define PSG_BC_INACTIVE         0
+#define PSG_BC_READ             MUSIC_PORT2_PSG_BC1
+#define PSG_BC_WRITE            MUSIC_PORT2_PSG_BDIR
+#define PSG_BC_LATCH_ADDRESS    ( MUSIC_PORT2_PSG_BDIR | MUSIC_PORT2_PSG_BC1 )
+
+
+#define PLAY(id,loop)           sample_start( id, id, loop )
+#define STOP(id)                sample_stop( id )
+
+
+/* sample file names */
+const char *carnival_sample_names[] =
 {
-	static unsigned char Sound = 0;
+	"*carnival",
+	"bear.wav",
+	"bonus1.wav",
+	"bonus2.wav",
+	"clang.wav",
+	"duck1.wav",
+	"duck2.wav",
+	"duck3.wav",
+	"pipehit.wav",
+	"ranking.wav",
+	"rifle.wav",
+	0
+};
 
-	if (Machine->samples == 0) return;
+/* sample sound IDs - must match sample file name table above */
+enum
+{
+	SND_BEAR = 0,
+	SND_BONUS_1,
+	SND_BONUS_2,
+	SND_CLANG,
+	SND_DUCK_1,
+	SND_DUCK_2,
+	SND_DUCK_3,
+	SND_PIPE_HIT,
+	SND_RANKING,
+	SND_RIFLE_SHOT
+};
 
-    data = ~data;
 
- 	if (errorlog) fprintf(errorlog,"port 0 : %02x and %02x\n",data,SoundFX);
+static int port2State = 0;
+static int psgData = 0;
 
-	if (data & 0x01 && ~Sound & 0x01 && Machine->samples->sample[0])
-		osd_play_sample(0,Machine->samples->sample[0]->data,
-				          Machine->samples->sample[0]->length,
-                          Machine->samples->sample[0]->smpfreq,
-                          Machine->samples->sample[0]->volume,0);
 
-	if (data & 0x02 && ~Sound & 0x02)
+void carnival_sh_port1_w( int offset, int data )
+{
+	static int port1State = 0;
+	int bitsChanged;
+	int bitsGoneHigh;
+	int bitsGoneLow;
+
+
+	/* U64 74LS374 8 bit latch */
+
+	/* bit 0: connector pin 36 - rifle shot */
+	/* bit 1: connector pin 35 - clang */
+	/* bit 2: connector pin 33 - duck #1 */
+	/* bit 3: connector pin 34 - duck #2 */
+	/* bit 4: connector pin 32 - duck #3 */
+	/* bit 5: connector pin 31 - pipe hit */
+	/* bit 6: connector pin 30 - bonus #1 */
+	/* bit 7: connector pin 29 - bonus #2 */
+
+	bitsChanged  = port1State ^ data;
+	bitsGoneHigh = bitsChanged & data;
+	bitsGoneLow  = bitsChanged & ~data;
+
+	port1State = data;
+
+	if ( bitsGoneLow & OUT_PORT_1_RIFLE_SHOT )
 	{
-        if (SoundFX & 0x04 && Machine->samples->sample[1])
- 		    osd_play_sample(1,Machine->samples->sample[1]->data,
-				              Machine->samples->sample[1]->length,
-                              Machine->samples->sample[1]->smpfreq,
-                              Machine->samples->sample[1]->volume,0);
-        else
-            if (Machine->samples->sample[9])
-		        osd_play_sample(1,Machine->samples->sample[9]->data,
-				                  Machine->samples->sample[9]->length,
-                                  Machine->samples->sample[9]->smpfreq,
-                                  Machine->samples->sample[9]->volume,0);
-    }
+		PLAY( SND_RIFLE_SHOT, 0 );
+	}
 
-	if (data & 0x04 && ~Sound & 0x04 && Machine->samples->sample[2])
-		osd_play_sample(2,Machine->samples->sample[2]->data,
-				          Machine->samples->sample[2]->length,
-                          Machine->samples->sample[2]->smpfreq,
-                          Machine->samples->sample[2]->volume,1);
+	if ( bitsGoneLow & OUT_PORT_1_CLANG )
+	{
+		PLAY( SND_CLANG, 0 );
+	}
+	if ( bitsGoneHigh & OUT_PORT_1_CLANG )
+	{
+		STOP( SND_CLANG );
+	}
 
-  	if (~data & 0x04 && Sound & 0x04)
-  		osd_stop_sample(2);
+	if ( bitsGoneLow & OUT_PORT_1_DUCK_1 )
+	{
+		PLAY( SND_DUCK_1, 1 );
+	}
+	if ( bitsGoneHigh & OUT_PORT_1_DUCK_1 )
+	{
+		STOP( SND_DUCK_1 );
+	}
 
+	if ( bitsGoneLow & OUT_PORT_1_DUCK_2 )
+	{
+		PLAY( SND_DUCK_2, 1 );
+	}
+	if ( bitsGoneHigh & OUT_PORT_1_DUCK_2 )
+	{
+		STOP( SND_DUCK_2 );
+	}
 
-	if (data & 0x08 && ~Sound & 0x08 && Machine->samples->sample[3])
-		osd_play_sample(3,Machine->samples->sample[3]->data,
-				          Machine->samples->sample[3]->length,
-                          Machine->samples->sample[3]->smpfreq,
-                          Machine->samples->sample[3]->volume,1);
+	if ( bitsGoneLow & OUT_PORT_1_DUCK_3 )
+	{
+		PLAY( SND_DUCK_3, 1 );
+	}
+	if ( bitsGoneHigh & OUT_PORT_1_DUCK_3 )
+	{
+		STOP( SND_DUCK_3 );
+	}
 
-  	if (~data & 0x08 && Sound & 0x08)
-  		osd_stop_sample(3);
+	if ( bitsGoneLow & OUT_PORT_1_PIPE_HIT )
+	{
+		PLAY( SND_PIPE_HIT, 0 );
+	}
 
+	if ( bitsGoneLow & OUT_PORT_1_BONUS_1 )
+	{
+		PLAY( SND_BONUS_1, 0 );
+	}
 
-	if (data & 0x10 && ~Sound & 0x10 && Machine->samples->sample[4])
-		osd_play_sample(4,Machine->samples->sample[4]->data,
-				          Machine->samples->sample[4]->length,
-                          Machine->samples->sample[4]->smpfreq,
-                          Machine->samples->sample[4]->volume,1);
-
-  	if (~data & 0x10 && Sound & 0x10)
-  		osd_stop_sample(4);
-
-
-	if (data & 0x20 && ~Sound & 0x20 && Machine->samples->sample[5])
-		osd_play_sample(5,Machine->samples->sample[5]->data,
-				          Machine->samples->sample[5]->length,
-                          Machine->samples->sample[5]->smpfreq,
-                          Machine->samples->sample[5]->volume,0);
-
-	if (data & 0x40 && ~Sound & 0x40 && Machine->samples->sample[6])
-		osd_play_sample(6,Machine->samples->sample[6]->data,
-				          Machine->samples->sample[6]->length,
-                          Machine->samples->sample[6]->smpfreq,
-                          Machine->samples->sample[6]->volume,0);
-
-	if (data & 0x80 && ~Sound & 0x80 && Machine->samples->sample[7])
-		osd_play_sample(7,Machine->samples->sample[7]->data,
- 						  Machine->samples->sample[7]->length,
-                		  Machine->samples->sample[7]->smpfreq,
-                		  Machine->samples->sample[7]->volume,0);
-
-	Sound = data;
+	if ( bitsGoneLow & OUT_PORT_1_BONUS_2 )
+	{
+		PLAY( SND_BONUS_2, 0 );
+	}
 }
 
 
-void carnival_sh_port2_w(int offset, int data)
+void carnival_sh_port2_w( int offset, int data )
 {
-    SoundFX = data;
+	int bitsChanged;
+	int bitsGoneHigh;
+	int bitsGoneLow;
+
+	/* U63 74LS374 8 bit latch */
+
+	/* bit 0: connector pin 48 */
+	/* bit 1: connector pin 47 */
+	/* bit 2: connector pin 45 - bear */
+	/* bit 3: connector pin 46 - Music !T1 input */
+	/* bit 4: connector pin 44 - Music reset */
+	/* bit 5: connector pin 43 - ranking */
+	/* bit 6: connector pin 42 */
+	/* bit 7: connector pin 41 */
+
+	bitsChanged  = port2State ^ data;
+	bitsGoneHigh = bitsChanged & data;
+	bitsGoneLow  = bitsChanged & ~data;
+
+	port2State = data;
+
+	if ( bitsGoneLow & OUT_PORT_2_BEAR )
+	{
+		PLAY( SND_BEAR, 0 );
+	}
+
+	if ( bitsGoneLow & OUT_PORT_2_RANKING )
+	{
+		PLAY( SND_RANKING, 0 );
+	}
+
+	if ( bitsGoneHigh & OUT_PORT_2_MUSIC_RESET )
+	{
+		/* reset output is no longer asserted active low */
+		cpu_set_reset_line( CPU_MUSIC_ID, PULSE_LINE );
+	}
 }
 
 
-void carnival_sh_update(void)
+int carnival_music_port_t1_r( int offset )
 {
+	/* note: 8039 T1 signal is inverted on music board */
+	return ( port2State & OUT_PORT_2_MUSIC_T1 ) ? 0 : 1;
+}
+
+
+void carnival_music_port_1_w( int offset, int data )
+{
+	psgData = data;
+}
+
+
+void carnival_music_port_2_w( int offset, int data )
+{
+	static int psgSelect = 0;
+	int newSelect;
+
+	newSelect = data & ( MUSIC_PORT2_PSG_BDIR | MUSIC_PORT2_PSG_BC1 );
+	if ( psgSelect != newSelect )
+	{
+		psgSelect = newSelect;
+
+		switch ( psgSelect )
+		{
+		case PSG_BC_INACTIVE:
+			/* do nowt */
+			break;
+
+		case PSG_BC_READ:
+			/* not very sensible for a write */
+			break;
+
+		case PSG_BC_WRITE:
+			AY8910_write_port_0_w( 0, psgData );
+			break;
+
+		case PSG_BC_LATCH_ADDRESS:
+			AY8910_control_port_0_w( 0, psgData );
+			break;
+		}
+	}
 }

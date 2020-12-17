@@ -2,6 +2,8 @@
 
 Tutankham :  memory map (preliminary)
 
+driver by Mirko Buffoni
+
 I include here the document based on Rob Jarrett's research because it's
 really exaustive.
 
@@ -17,16 +19,19 @@ or robncait@inforamp.net
 Special thanks go to Pete Custerson for the schematics!!
 
 
-I've recently been working on an emulator for Tutankham. Unfortunately, time and resources
-are not on my side so I'd like to provide anyone with the technical information I've gathered
-so far, that way someone can finish the project.
+I've recently been working on an emulator for Tutankham. Unfortunately,
+time and resources are not on my side so I'd like to provide anyone with
+the technical information I've gathered so far, that way someone can
+finish the project.
 
-First of all, I'd like to say that I've had no prior experience in writing an emulator, and
-my hardware knowledge is weak. I've managed to find out a fair amount by looking at the
-schematics of the game and the disassembled ROMs. Using the USim C++ 6809 core I have the
-game sort of up and running, albeit in a pathetic state. It's not playable, and crashes after
-a short amount of time. I don't feel the source code is worth releasing because of the bad
-design; I was using it as a testing bed and anticipated rewriting everything in the future.
+First of all, I'd like to say that I've had no prior experience in
+writing an emulator, and my hardware knowledge is weak. I've managed to
+find out a fair amount by looking at the schematics of the game and the
+disassembled ROMs. Using the USim C++ 6809 core I have the game sort of
+up and running, albeit in a pathetic state. It's not playable, and
+crashes after a short amount of time. I don't feel the source code is
+worth releasing because of the bad design; I was using it as a testing
+bed and anticipated rewriting everything in the future.
 
 Here's all the info I know about Tutankham:
 
@@ -50,12 +55,13 @@ $8000-$800f	R/W     aaaaaaaa	Palette colors
 
 $8100		W			Not sure
 					- Video chip function of some sort
-					( split screen x pan position -- TT )
+					( split screen y pan position -- TT )
 
 $8120		R			Not sure
 					- Read from quite frequently
 					- Some sort of video or interrupt thing?
 					- Or a random number seed?
+					( watchdog reset -- NS )
 
 $8160					Dip Switch 2
 					- Inverted bits (ie. 1=off)
@@ -106,9 +112,11 @@ $8205					MUT on schematics
 
 $8206					HFF on schematics
 		W			- Don't know what it does
+					( horizontal screen flip -- NS )
 
 $8207					Not sure - can't resolve on schematics
 		W
+					( vertical screen flip -- NS )
 
 $8300					Graphics bank select
 		W	xxxxxaaa	- Selects graphics ROM 0-11 that appears at $9000-9fff
@@ -116,6 +124,7 @@ $8300					Graphics bank select
 					  ROMs for patches/mods to the game. Just make 9-11 return 0's
 
 $8600		W			SON on schematics
+					( trigger interrupt on audio CPU -- NS )
 $8608		R/W			SON on schematics
 					- Sound on/off? i.e. Run/halt Z80 sound CPU?
 
@@ -163,327 +172,263 @@ BTW, this information is completely free - do as you wish with it. I'm not even 
 correct! (Most of it seems to be). Giving me some credit if credit is due would be nice,
 and please let me know about your emulator if you release it.
 
+
+Sound board: uses the same board as Pooyan.
+
 ***************************************************************************/
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
-#include "sndhrdw/generic.h"
-#include "sndhrdw/8910intf.h"
+#include "cpu/m6809/m6809.h"
 
 
-extern unsigned char *tut_paletteram;
-extern unsigned char *tut_scrollx;
 
-int tutankhm_sh_start(void);
+extern unsigned char *tutankhm_scrollx;
 
-int tutankhm_sh_interrupt(void);
-int tut_bankedrom_r( int offset );
-void tut_bankselect_w( int offset,int data );
-int tut_rnd_r( int offset );
-void tutankhm_init_machine(void);
-int tutankhm_interrupt(void);
+void tutankhm_videoram_w( int offset, int data );
+void tutankhm_flipscreen_w( int offset, int data );
+void tutankhm_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-void tut_videoram_w( int offset, int data );
-void tut_palette_w( int offset, int data );
-void tut_vh_convert_color_prom( unsigned char *palette, unsigned char *colortable, const unsigned char *color_prom );
-void tut_vh_screenrefresh( struct osd_bitmap *bitmap );
+/* defined in sndhrdw/timeplt.c */
+extern struct MemoryReadAddress timeplt_sound_readmem[];
+extern struct MemoryWriteAddress timeplt_sound_writemem[];
+extern struct AY8910interface timeplt_ay8910_interface;
+void timeplt_sh_irqtrigger_w(int offset,int data);
+
+
+void tutankhm_bankselect_w(int offset,int data)
+{
+	int bankaddress;
+	unsigned char *RAM = memory_region(REGION_CPU1);
+
+
+	bankaddress = 0x10000 + (data & 0x0f) * 0x1000;
+	cpu_setbank(1,&RAM[bankaddress]);
+}
 
 
 static struct MemoryReadAddress readmem[] =
 {
 	{ 0x0000, 0x7fff, MRA_RAM },
-	{ 0x8800, 0x8fff, MRA_RAM },		/* Game RAM */
-	{ 0xa000, 0xffff, MRA_ROM },		/* Game ROM */
-	{ 0x9000, 0x9fff, tut_bankedrom_r },	/* Graphics ROMs ra1_1i.cpu - ra1_9i.cpu (See address $8300 for usage) */
-	{ 0x81a0, 0x81a0, input_port_2_r },	/* Player 1 I/O */
-	{ 0x81c0, 0x81c0, input_port_3_r },	/* Player 2 I/O */
-	{ 0x8120, 0x8120, tut_rnd_r },
-	{ 0x8180, 0x8180, input_port_1_r },	/* I/O: Coin slots, service, 1P/2P buttons */
+	{ 0x8120, 0x8120, watchdog_reset_r },
 	{ 0x8160, 0x8160, input_port_0_r },	/* DSW2 (inverted bits) */
+	{ 0x8180, 0x8180, input_port_1_r },	/* IN0 I/O: Coin slots, service, 1P/2P buttons */
+	{ 0x81a0, 0x81a0, input_port_2_r },	/* IN1: Player 1 I/O */
+	{ 0x81c0, 0x81c0, input_port_3_r },	/* IN2: Player 2 I/O */
 	{ 0x81e0, 0x81e0, input_port_4_r },	/* DSW1 (inverted bits) */
-	{ 0x8200, 0x8200, MRA_RAM },	        /* 1 IRQ can be fired, 0 IRQ can't be fired */
-	{ 0x8205, 0x8205, MRA_RAM },            /* Sound amplification on/off? */
-
+	{ 0x8800, 0x8fff, MRA_RAM },
+	{ 0x9000, 0x9fff, MRA_BANK1 },
+	{ 0xa000, 0xffff, MRA_ROM },
 	{ -1 }	/* end of table */
 };
 
 static struct MemoryWriteAddress writemem[] =
 {
-	{ 0x0000, 0x7fff, tut_videoram_w, &videoram, &videoram_size },
-	{ 0x8800, 0x8fff, MWA_RAM },		                /* Game RAM */
-	{ 0x8000, 0x800f, tut_palette_w, &tut_paletteram },	/* Palette RAM */
-	{ 0x8100, 0x8100, MWA_RAM, &tut_scrollx },              /* video x pan hardware reg */
-	{ 0x8300, 0x8300, tut_bankselect_w },	                /* Graphics bank select */
-	{ 0x8200, 0x8200, interrupt_enable_w },		        /* 1 IRQ can be fired, 0 IRQ can't be fired */
-        { 0x8202, 0x8203, MWA_RAM },
-        { 0x8205, 0x8207, MWA_RAM },
-	{ 0x8700, 0x8700, sound_command_w },
-	{ 0xa000, 0xffff, MWA_ROM },		                /* Game ROM */
+	{ 0x0000, 0x7fff, tutankhm_videoram_w, &videoram, &videoram_size },
+	{ 0x8000, 0x800f, paletteram_BBGGGRRR_w, &paletteram },
+	{ 0x8100, 0x8100, MWA_RAM, &tutankhm_scrollx },
+	{ 0x8200, 0x8200, interrupt_enable_w },
+	{ 0x8202, 0x8203, MWA_RAM },	/* coin counters */
+	{ 0x8205, 0x8205, MWA_NOP },	/* ??? */
+	{ 0x8206, 0x8207, tutankhm_flipscreen_w },
+	{ 0x8300, 0x8300, tutankhm_bankselect_w },
+	{ 0x8600, 0x8600, timeplt_sh_irqtrigger_w },
+	{ 0x8700, 0x8700, soundlatch_w },
+	{ 0x8800, 0x8fff, MWA_RAM },
+	{ 0xa000, 0xffff, MWA_ROM },
 	{ -1 } /* end of table */
 };
 
 
-static struct MemoryReadAddress sound_readmem[] =
+INPUT_PORTS_START( tutankhm )
+	PORT_START      /* DSW2 */
+	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x03, "3" )
+	PORT_DIPSETTING(    0x01, "4" )
+	PORT_DIPSETTING(    0x02, "5" )
+	PORT_BITX( 0,       0x00, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "256", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x04, DEF_STR( Cocktail ) )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x08, "30000" )
+	PORT_DIPSETTING(    0x00, "40000" )
+	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x30, "Easy" )
+	PORT_DIPSETTING(    0x10, "Normal" )
+	PORT_DIPSETTING(    0x20, "Hard" )
+	PORT_DIPSETTING(    0x00, "Hardest" )
+	PORT_DIPNAME( 0x40, 0x40, "Flash Bomb" )
+	PORT_DIPSETTING(    0x40, "1 per Life" )
+	PORT_DIPSETTING(    0x00, "1 per Game" )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Demo_Sounds ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+
+	PORT_START      /* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START      /* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_4WAY )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_4WAY )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_4WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_4WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START      /* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_COCKTAIL )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_COCKTAIL )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START      /* DSW1 */
+	PORT_DIPNAME( 0x0f, 0x0f, DEF_STR( Coin_A ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( 4C_1C ) )
+	PORT_DIPSETTING(    0x05, DEF_STR( 3C_1C ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x04, DEF_STR( 3C_2C ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( 4C_3C ) )
+	PORT_DIPSETTING(    0x0f, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x03, DEF_STR( 3C_4C ) )
+	PORT_DIPSETTING(    0x07, DEF_STR( 2C_3C ) )
+	PORT_DIPSETTING(    0x0e, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x06, DEF_STR( 2C_5C ) )
+	PORT_DIPSETTING(    0x0d, DEF_STR( 1C_3C ) )
+	PORT_DIPSETTING(    0x0c, DEF_STR( 1C_4C ) )
+	PORT_DIPSETTING(    0x0b, DEF_STR( 1C_5C ) )
+	PORT_DIPSETTING(    0x0a, DEF_STR( 1C_6C ) )
+	PORT_DIPSETTING(    0x09, DEF_STR( 1C_7C ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Free_Play ) )
+	PORT_DIPNAME( 0xf0, 0xf0, DEF_STR( Coin_B ) )
+	PORT_DIPSETTING(    0x20, DEF_STR( 4C_1C ) )
+	PORT_DIPSETTING(    0x50, DEF_STR( 3C_1C ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( 3C_2C ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( 4C_3C ) )
+	PORT_DIPSETTING(    0xf0, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x30, DEF_STR( 3C_4C ) )
+	PORT_DIPSETTING(    0x70, DEF_STR( 2C_3C ) )
+	PORT_DIPSETTING(    0xe0, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x60, DEF_STR( 2C_5C ) )
+	PORT_DIPSETTING(    0xd0, DEF_STR( 1C_3C ) )
+	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_4C ) )
+	PORT_DIPSETTING(    0xb0, DEF_STR( 1C_5C ) )
+	PORT_DIPSETTING(    0xa0, DEF_STR( 1C_6C ) )
+	PORT_DIPSETTING(    0x90, DEF_STR( 1C_7C ) )
+	PORT_DIPSETTING(    0x00, "Disabled" )
+/* 0x00 not commented out since the game makes the usual sound if you insert the coin */
+INPUT_PORTS_END
+
+
+
+static struct MachineDriver machine_driver_tutankhm =
 {
-	{ 0x0000, 0x2fff, MRA_ROM },            	/* Z80 sound ROM */
-	{ 0x3000, 0x3fff, MRA_RAM },            	/* RAM ??? */
-	{ 0x4000, 0x4000, AY8910_read_port_0_r },	/* Master AY3-8910 (data ???) */
-	{ 0x6000, 0x6000, AY8910_read_port_1_r },	/* Other AY3-8910 (data ???) */
-	{ -1 }	/* end of table */
-
-};
-
-static struct MemoryWriteAddress sound_writemem[] =
-{
-	{ 0x3000, 0x3fff, MWA_RAM },            	/* RAM ??? */
-	{ 0x4000, 0x4000, AY8910_write_port_0_w },	/* Master AY3-8910 (data ???) */
-	{ 0x5000, 0x5000, AY8910_control_port_0_w },	/* Master AY3-8910 (control ???) */
-	{ 0x6000, 0x6000, AY8910_write_port_1_w },	/* Other AY3-8910 (data ???) */
-	{ 0x7000, 0x7000, AY8910_control_port_1_w },	/* Other AY3-8910 (control ???) */
-	{ 0x8000, 0x8000, MWA_RAM },			/* ??? */
-	{ 0x0000, 0x2fff, MWA_ROM },			/* Z80 sound ROM */
-	{ -1 } /* end of table */
-};
-
-static struct InputPort input_ports[] =
-{
-	{	/* DSW2 */
-		0xff,	/* default_value */
-		{ 0, 0, 0, 0, 0, 0, 0, 0 },	/* not affected by keyboard */
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }	/* not affected by joystick */
-	},
-	{	/* I/O: Coin slots, service, 1P/2P buttons */
-		0xff,	/* default_value */
-		{ OSD_KEY_3, 0, 0, OSD_KEY_1, OSD_KEY_2, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }	/* not affected by joystick */
-	},
-	{	/* Player 1 I/O */
-		0xff,	/* default_value */
-		{ OSD_KEY_LEFT, OSD_KEY_RIGHT, OSD_KEY_UP, OSD_KEY_DOWN, OSD_KEY_LCONTROL, OSD_KEY_ALT, OSD_KEY_SPACE, 0 },
-		{ OSD_JOY_LEFT, OSD_JOY_RIGHT, OSD_JOY_UP, OSD_JOY_DOWN, OSD_JOY_FIRE1, OSD_JOY_FIRE2, OSD_JOY_FIRE3, 0 }
-	},
-	{	/* Player 2 I/O */
-		0xff,	/* default_value */
-		{ OSD_KEY_LEFT, OSD_KEY_RIGHT, OSD_KEY_UP, OSD_KEY_DOWN, OSD_KEY_LCONTROL, OSD_KEY_ALT, OSD_KEY_SPACE, 0 },
-		{ OSD_JOY_LEFT, OSD_JOY_RIGHT, OSD_JOY_UP, OSD_JOY_DOWN, OSD_JOY_FIRE1, OSD_JOY_FIRE2, OSD_JOY_FIRE3, 0 }
-	},
-	{	/* Dip Switch 1 */
-		0xff,	/* default_value */
-		{ 0, 0, 0, 0, 0, 0, 0, 0 },	/* not affected by keyboard */
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }	/* not affected by joystick */
-	},
-	{ -1 }	/* end of table */
-};
-
-static struct TrakPort trak_ports[] =
-{
-        { -1 }
-};
-
-
-static struct DSW dsw[] =
-{
-
-	{ 4, 0x0f, "COIN1", { "FREE PLAY",
-			    "4 COINS  3 CREDITS",
-			    "4 COINS  1 CREDIT",
-			    "3 COINS  4 CREDITS",
-			    "3 COINS  2 CREDITS",
-			    "3 COINS  1 CREDITS",
-			    "2 COINS  5 CREDITS",
-			    "2 COINS  3 CREDITS",
-			    "2 COINS  1 CREDIT",
-			    "1 COIN  7 CREDITS",
-			    "1 COIN  6 CREDITS",
-			    "1 COIN  5 CREDITS",
-			    "1 COIN  4 CREDITS",
-			    "1 COIN  3 CREDITS",
-			    "1 COIN  2 CREDITS",
-			    "1 COIN  1 CREDIT", }, 1 },
-
-	{ 0, 0x03, "LIVES", { "256", "4", "5", "3" }, 1 },
-	{ 0, 0x04, "CABINET", { "TABLE", "UPRIGHT" }, 0 },
-	{ 0, 0x08, "BONUS", { "30000", "40000" }, 0 },
-	{ 0, 0x30, "DIFFICULTY", { "HARDEST", "MEDIUM", "HARD", "EASY" }, 1 },
-	{ 0, 0x40, "BOMB", { "1 PER GAME", "3 PER GAME" }, 0 },
-	{ 0, 0x80, "ATTRACT MUSIC", { "OFF", "ON" }, 0 },
-	{ -1 }
-};
-
-static struct KEYSet keys[] =
-{
-	{ 2, 2, "P1 MOVE UP" },
-	{ 2, 0, "P1 MOVE LEFT"  },
-	{ 2, 1, "P1 MOVE RIGHT" },
-	{ 2, 3, "P1 MOVE DOWN" },
-	{ 2, 4, "P1 FIRE LEFT" },
-	{ 2, 5, "P1 FIRE RIGHT" },
-	{ 2, 6, "P1 FLASH BOMB" },
-	{ 3, 2, "P2 MOVE UP" },
-	{ 3, 0, "P2 MOVE LEFT"  },
-	{ 3, 1, "P2 MOVE RIGHT" },
-	{ 3, 3, "P2 MOVE DOWN" },
-	{ 3, 4, "P2 FIRE LEFT" },
-	{ 3, 5, "P2 FIRE RIGHT" },
-	{ 3, 6, "P2 FLASH BOMB" },
-	{ -1 }
-};
-
-
-/* there's nothing here, this is just a placeholder to let the video hardware */
-/* pick the background color table. */
-static struct GfxLayout fakelayout =
-{
-	1,1,
-	0,
-	4,	/* 4 bits per pixel */
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	0
-};
-
-
-static struct GfxDecodeInfo gfxdecodeinfo[] =
-{
-	{ 0, 0, &fakelayout, 0, 1 },
-	{ -1 } /* end of array */
-};
-
-static struct MachineDriver machine_driver =
-{
-	/* basic machine hardware  */
+	/* basic machine hardware */
 	{
 		{
 			CPU_M6809,
-			1500000,			/* 2.5 Mhz ??? */
-			0,				/* memory region # 0 */
-			readmem,			/* MemoryReadAddress */
-			writemem,			/* MemoryWriteAddress */
-			0,				/* IOReadPort */
-			0,				/* IOWritePort */
-			tutankhm_interrupt,			/* interrupt routine */
-			1				/* interrupts per frame */
+			1500000,			/* 1.5 Mhz ??? */
+			readmem,writemem,0,0,
+			interrupt,1
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			2100000,			/* 2.000 Mhz ??? */
-			2,				/* memory region # 2 */
-			sound_readmem,			/* MemoryReadAddress */
-			sound_writemem,			/* MemoryWriteAddress */
-			0,				/* IOReadPort */
-			0,				/* IOWritePort */
-			tutankhm_sh_interrupt, 		/* interrupt routine */
-			10			        /* interrupts per frame */
+			14318180/8,	/* 1.789772727 MHz */						\
+			timeplt_sound_readmem,timeplt_sound_writemem,0,0,
+			ignore_interrupt,1	/* interrupts are triggered by the main CPU */
 		}
 	},
-	60,						/* frames per second */
-	10,	/* 10 CPU slices per frame - enough for the sound CPU to read all commands */
-	tutankhm_init_machine,				/* init machine routine */
+	30, DEFAULT_30HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
+	1,	/* 1 CPU slice per frame - interleaving is forced when a sound command is written */
+	0,
 
 	/* video hardware */
-	32*8, 32*8,			                /* screen_width, screen_height */
-	{ 2, 8*32-3, 0*32, 8*32-1 },			/* struct rectangle visible_area */
-	gfxdecodeinfo,					/* GfxDecodeInfo * */
-	16,                                  /* total colors */
-	16,                                      /* color table length */
-	tut_vh_convert_color_prom,			/* convert color prom routine */
+	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },	/* not sure about the visible area */
+	0,					/* GfxDecodeInfo * */
+	16, 0,
+	0,
 
 	VIDEO_TYPE_RASTER|VIDEO_MODIFIES_PALETTE,
 	0,						/* vh_init routine */
 	generic_vh_start,					/* vh_start routine */
 	generic_vh_stop,					/* vh_stop routine */
-	tut_vh_screenrefresh,				/* vh_update routine */
+	tutankhm_vh_screenrefresh,				/* vh_update routine */
 
 	/* sound hardware */
-	0,						/* pointer to samples */
-	0,						/* sh_init routine */
-	tutankhm_sh_start,				/* sh_start routine */
-	AY8910_sh_stop,					/* sh_stop routine */
-	AY8910_sh_update				/* sh_update routine */
+	0,0,0,0,
+	{
+		{
+			SOUND_AY8910,
+			&timeplt_ay8910_interface
+		}
+	}
 };
 
 
-ROM_START( tutankhm_rom )
-	ROM_REGION( 0x10000 + 0x1000 * 12 )      /* 64k for M6809 CPU code + ( 4k * 12 ) for ROM banks */
-	ROM_LOAD( "ra1_1h.cpu", 0x0a000, 0x1000, 0xc0622dc2 ) /* program ROMs */
-	ROM_LOAD( "ra1_2h.cpu", 0x0b000, 0x1000, 0x4cff2ad5 )
-	ROM_LOAD( "ra1_3h.cpu", 0x0c000, 0x1000, 0xb3914153 )
-	ROM_LOAD( "ra1_4h.cpu", 0x0d000, 0x1000, 0x0c36af12 )
-	ROM_LOAD( "ra1_5h.cpu", 0x0e000, 0x1000, 0xf6bc4352 )
-	ROM_LOAD( "ra1_6h.cpu", 0x0f000, 0x1000, 0x7397e4d1 )
-	ROM_LOAD( "ra1_1i.cpu", 0x10000, 0x1000, 0x076360bf ) /* graphic ROMs (banked) -- only 9 of 12 are filled */
-	ROM_LOAD( "ra1_2i.cpu", 0x11000, 0x1000, 0x7c5691fa )
-	ROM_LOAD( "ra1_3i.cpu", 0x12000, 0x1000, 0xda9a4984 )
-	ROM_LOAD( "ra1_4i.cpu", 0x13000, 0x1000, 0x8938bdc0 )
-	ROM_LOAD( "ra1_5i.cpu", 0x14000, 0x1000, 0x6643cec3 )
-	ROM_LOAD( "ra1_6i.cpu", 0x15000, 0x1000, 0x2721bb0b )
-	ROM_LOAD( "ra1_7i.cpu", 0x16000, 0x1000, 0xe48c0550 )
-	ROM_LOAD( "ra1_8i.cpu", 0x17000, 0x1000, 0x7a2c6b34 )
-	ROM_LOAD( "ra1_9i.cpu", 0x18000, 0x1000, 0x8e1e46ce )
+ROM_START( tutankhm )
+	ROM_REGION( 0x20000, REGION_CPU1 )      /* 64k for M6809 CPU code + 64k for ROM banks */
+	ROM_LOAD( "h1.bin",       0x0a000, 0x1000, 0xda18679f ) /* program ROMs */
+	ROM_LOAD( "h2.bin",       0x0b000, 0x1000, 0xa0f02c85 )
+	ROM_LOAD( "h3.bin",       0x0c000, 0x1000, 0xea03a1ab )
+	ROM_LOAD( "h4.bin",       0x0d000, 0x1000, 0xbd06fad0 )
+	ROM_LOAD( "h5.bin",       0x0e000, 0x1000, 0xbf9fd9b0 )
+	ROM_LOAD( "h6.bin",       0x0f000, 0x1000, 0xfe079c5b )
+	ROM_LOAD( "j1.bin",       0x10000, 0x1000, 0x7eb59b21 ) /* graphic ROMs (banked) -- only 9 of 12 are filled */
+	ROM_LOAD( "j2.bin",       0x11000, 0x1000, 0x6615eff3 )
+	ROM_LOAD( "j3.bin",       0x12000, 0x1000, 0xa10d4444 )
+	ROM_LOAD( "j4.bin",       0x13000, 0x1000, 0x58cd143c )
+	ROM_LOAD( "j5.bin",       0x14000, 0x1000, 0xd7e7ae95 )
+	ROM_LOAD( "j6.bin",       0x15000, 0x1000, 0x91f62b82 )
+	ROM_LOAD( "j7.bin",       0x16000, 0x1000, 0xafd0a81f )
+	ROM_LOAD( "j8.bin",       0x17000, 0x1000, 0xdabb609b )
+	ROM_LOAD( "j9.bin",       0x18000, 0x1000, 0x8ea9c6a6 )
+	/* the other banks (1900-1fff) are empty */
 
-	ROM_REGION( 0x1000 ) /* ROM Region 1 -- discarded */
-	ROM_OBSOLETELOAD( "ra1_6h.cpu", 0x0000, 0x1000 )	/* not needed - could be removed */
-
-	ROM_REGION( 0x10000 ) /* 64k for Z80 sound CPU code */
-	ROM_LOAD( "ra1_7a.snd", 0x0000, 0x1000, 0x00122ac0 )
-	ROM_LOAD( "ra1_8a.snd", 0x1000, 0x1000, 0xc5102f10 )
+	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for Z80 sound CPU code */
+	ROM_LOAD( "11-7a.bin",    0x0000, 0x1000, 0xb52d01fa )
+	ROM_LOAD( "10-8a.bin",    0x1000, 0x1000, 0x9db5c0ce )
 ROM_END
 
 
-static int hiload(void)
-{
-   void *f;
+ROM_START( tutankst )
+	ROM_REGION( 0x20000, REGION_CPU1 )      /* 64k for M6809 CPU code + 64k for ROM banks */
+	ROM_LOAD( "h1.bin",       0x0a000, 0x1000, 0xda18679f ) /* program ROMs */
+	ROM_LOAD( "h2.bin",       0x0b000, 0x1000, 0xa0f02c85 )
+	ROM_LOAD( "ra1_3h.cpu",   0x0c000, 0x1000, 0x2d62d7b1 )
+	ROM_LOAD( "h4.bin",       0x0d000, 0x1000, 0xbd06fad0 )
+	ROM_LOAD( "h5.bin",       0x0e000, 0x1000, 0xbf9fd9b0 )
+	ROM_LOAD( "ra1_6h.cpu",   0x0f000, 0x1000, 0xc43b3865 )
+	ROM_LOAD( "j1.bin",       0x10000, 0x1000, 0x7eb59b21 ) /* graphic ROMs (banked) -- only 9 of 12 are filled */
+	ROM_LOAD( "j2.bin",       0x11000, 0x1000, 0x6615eff3 )
+	ROM_LOAD( "j3.bin",       0x12000, 0x1000, 0xa10d4444 )
+	ROM_LOAD( "j4.bin",       0x13000, 0x1000, 0x58cd143c )
+	ROM_LOAD( "j5.bin",       0x14000, 0x1000, 0xd7e7ae95 )
+	ROM_LOAD( "j6.bin",       0x15000, 0x1000, 0x91f62b82 )
+	ROM_LOAD( "j7.bin",       0x16000, 0x1000, 0xafd0a81f )
+	ROM_LOAD( "j8.bin",       0x17000, 0x1000, 0xdabb609b )
+	ROM_LOAD( "j9.bin",       0x18000, 0x1000, 0x8ea9c6a6 )
+	/* the other banks (1900-1fff) are empty */
 
-   /* get RAM pointer (this game is multiCPU, we can't assume the global */
-   /* RAM pointer is pointing to the right place) */
-   unsigned char *RAM = Machine->memory_region[0];
-
-   /* check if the hi score table has already been initialized */
-   if (memcmp(&RAM[0x88d9],"\x01\x00",2) == 0)
-   {
-      if ((f = osd_fopen(Machine->gamedrv->name,0,OSD_FILETYPE_HIGHSCORE,0)) != 0)
-      {
-         osd_fread(f,&RAM[0x88a6],52);
-         osd_fclose(f);
-      }
-
-      return 1;
-   }
-   else
-      return 0; /* we can't load the hi scores yet */
-}
-
-static void hisave(void)
-{
-	void *f;
-        /* get RAM pointer (this game is multiCPU, we can't assume the global */
-        /* RAM pointer is pointing to the right place) */
-        unsigned char *RAM = Machine->memory_region[0];
-
-	if ((f = osd_fopen(Machine->gamedrv->name,0,OSD_FILETYPE_HIGHSCORE,1)) != 0)
-	{
-		osd_fwrite(f,&RAM[0x88a6],52);
-		osd_fclose(f);
-	}
-}
+	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for Z80 sound CPU code */
+	ROM_LOAD( "11-7a.bin",    0x0000, 0x1000, 0xb52d01fa )
+	ROM_LOAD( "10-8a.bin",    0x1000, 0x1000, 0x9db5c0ce )
+ROM_END
 
 
-struct GameDriver tutankhm_driver =
-{
-        "Tutankham",
-	"tutankhm",
-        "MIRKO BUFFONI\nDAVID DAHL\nAARON GILES",
-	&machine_driver,
 
-	tutankhm_rom,
-	0, 0,   /* ROM decode and opcode decode functions */
-	0,      /* Sample names */
-
-	input_ports, 0, trak_ports, dsw, keys,
-
-	0, 0, 0,   /* colors, palette, colortable */
-	ORIENTATION_DEFAULT,
-
-	hiload, hisave		        /* High score load and save */
-};
+GAME( 1982, tutankhm, 0,        tutankhm, tutankhm, 0, ROT90, "Konami", "Tutankham" )
+GAME( 1982, tutankst, tutankhm, tutankhm, tutankhm, 0, ROT90, "[Konami] (Stern license)", "Tutankham (Stern)" )

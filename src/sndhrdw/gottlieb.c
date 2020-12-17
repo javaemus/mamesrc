@@ -1,205 +1,177 @@
 #include "driver.h"
-#include "sndhrdw/generic.h"
-
-#define AUDIO_CONV(A) (A+0x80)
+#include "cpu/m6502/m6502.h"
 
 
-#ifdef OLD_ROUTINES
-
-/* macroscopic sound emulation from my understanding of the 6502 rom (FF) */
-
-static int current_fx,interrupted_fx;
-
-void gottlieb_sh_w(int offset,int data)
-{
-   int fx= 255-data;
-
-
-   if (Machine->samples == 0) return;
-
-   if (fx && fx<48 && Machine->samples->sample[fx])
-	switch (fx) {
-		case 44: /* reset */
-			break;
-		case 45:
-		case 46:
-		case 47:
-			/* read expansion socket */
-			break;
-		default:
-		     osd_play_sample(0,Machine->samples->sample[fx]->data,
-					Machine->samples->sample[fx]->length,
-					 Machine->samples->sample[fx]->smpfreq,
-					  Machine->samples->sample[fx]->volume,0);
-		     break;
-	}
-}
-
-void gottlieb_sh_update(void)
-{
-	if (interrupted_fx && osd_get_sample_status(1)) {
-		current_fx=interrupted_fx;
-		interrupted_fx=0;
-		osd_restart_sample(0);
-	}
-	if (current_fx && osd_get_sample_status(0))
-		current_fx=0;
-}
-
-void qbert_sh_w(int offset,int data)
-{
-   static int fx_priority[]={
-	0,
-	3,3,3,3,3,3,3,3,3,3,3,3,5,3,4,3,
-	3,3,3,3,3,5,5,3,3,3,3,3,3,3,3,3,
-	15,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3 };
-   int fx= 255-data;
-   int channel;
-
-   if (Machine->samples == 0) return;
-
-   if (fx==44) { /* reset */
-	interrupted_fx=0;
-	current_fx=0;
-	osd_stop_sample(0);
-	osd_stop_sample(1);
-   }
-   if (fx && fx<44 && fx_priority[fx] >= fx_priority[current_fx]) {
-	if (current_fx==25 || current_fx==26 || current_fx==27)
-		interrupted_fx=current_fx;
-	if (fx==25 || fx==26 || fx==27 || fx==35)
-		interrupted_fx=0;
-	if (interrupted_fx)
-		channel=1;
-	else
-		channel=0;
-	osd_stop_sample(0);
-	osd_stop_sample(1);
-	if (Machine->samples->sample[fx])
-		osd_play_sample(channel,Machine->samples->sample[fx]->data,
-				   Machine->samples->sample[fx]->length,
-				    Machine->samples->sample[fx]->smpfreq,
-				      Machine->samples->sample[fx]->volume,0);
-	current_fx=fx;
-   }
-}
-#else
-
-#define TARGET_EMULATION_RATE 44100     /* will be adapted to be a multiple of buffer_len */
-static int emulation_rate;
-static int buffer_len;
-static unsigned char *buffer;
-static int sample_pos;
-
-
-static unsigned char amplitude_DAC;
 
 
 void gottlieb_sh_w(int offset,int data)
 {
-    int command= 255-data;
-    if (command) sound_command_w(offset,command);
+	static int score_sample=7;
+	static int random_offset=0;
+	data &= 0x3f;
+
+	if ((data&0x0f) != 0xf) /* interrupt trigered by four low bits (not all 1's) */
+	{
+		if (Machine->samples)
+		{
+			if (!strcmp(Machine->gamedrv->name,"reactor"))	/* reactor */
+			{
+				switch (data ^ 0x3f)
+				{
+					case 53:
+					case 54:
+					case 55:
+					case 56:
+					case 57:
+					case 58:
+					case 59:
+						sample_start(0,(data^0x3f)-53,0);
+						break;
+					case 31:
+						sample_start(0,7,0);
+						score_sample=7;
+						break;
+					case 39:
+						score_sample++;
+						if (score_sample<20) sample_start(0,score_sample,0);
+						break;
+				}
+			}
+			else	/* qbert */
+			{
+				switch (data ^ 0x3f)
+				{
+					case 17:
+					case 18:
+					case 19:
+					case 20:
+					case 21:
+						sample_start(0,((data^0x3f)-17)*8+random_offset,0);
+						random_offset= (random_offset+1)&7;
+						break;
+					case 22:
+						sample_start(0,40,0);
+						break;
+					case 23:
+						sample_start(0,41,0);
+						break;
+					case 28:
+						sample_start(0,42,0);
+						break;
+					case 36:
+						sample_start(0,43,0);
+						break;
+				}
+			}
+		}
+
+		soundlatch_w(offset,data);
+
+		switch (cpu_gettotalcpu())
+		{
+		case 2:
+			/* Revision 1 sound board */
+			cpu_cause_interrupt(1,M6502_INT_IRQ);
+			break;
+		case 3:
+		case 4:
+			/* Revision 2 & 3 sound board */
+			cpu_cause_interrupt(cpu_gettotalcpu()-1,M6502_INT_IRQ);
+			cpu_cause_interrupt(cpu_gettotalcpu()-2,M6502_INT_IRQ);
+			break;
+		}
+	}
 }
 
-void gottlieb_sh2_w(int offset,int command)
+
+void gottlieb_knocker(void)
 {
-    if (command) sound_command_w(offset,command);
+	if (Machine->samples)
+	{
+		if (!strcmp(Machine->gamedrv->name,"reactor"))	/* reactor */
+		{
+		}
+		else	/* qbert */
+			sample_start(0,44,0);
+	}
 }
 
-
-void gottlieb_sh_update(void)
+/* callback for the timer */
+void gottlieb_nmi_generate(int param)
 {
-	while (sample_pos < buffer_len)
-		buffer[sample_pos++] = amplitude_DAC;
-
-	osd_play_streamed_sample(0,buffer,buffer_len,emulation_rate,255);
-
-	sample_pos=0;
+	cpu_cause_interrupt(1,M6502_INT_NMI);
 }
 
-void qbert_sh_w(int offset, int data)
-{}
-#endif
-
-int gottlieb_sh_start(void)
+static const char *PhonemeTable[65] =
 {
-    buffer_len = TARGET_EMULATION_RATE / Machine->drv->frames_per_second;
-    emulation_rate = buffer_len * Machine->drv->frames_per_second;
+ "EH3","EH2","EH1","PA0","DT" ,"A1" ,"A2" ,"ZH",
+ "AH2","I3" ,"I2" ,"I1" ,"M"  ,"N"  ,"B"  ,"V",
+ "CH" ,"SH" ,"Z"  ,"AW1","NG" ,"AH1","OO1","OO",
+ "L"  ,"K"  ,"J"  ,"H"  ,"G"  ,"F"  ,"D"  ,"S",
+ "A"  ,"AY" ,"Y1" ,"UH3","AH" ,"P"  ,"O"  ,"I",
+ "U"  ,"Y"  ,"T"  ,"R"  ,"E"  ,"W"  ,"AE" ,"AE1",
+ "AW2","UH2","UH1","UH" ,"O2" ,"O1" ,"IU" ,"U1",
+ "THV","TH" ,"ER" ,"EH" ,"E1" ,"AW" ,"PA1","STOP",
+ 0
+};
 
-    if ((buffer = malloc(buffer_len)) == 0)
-	return 1;
-    memset(buffer,0x80,buffer_len);
-
-    sample_pos = 0;
-
-    return 0;
-}
-
-
-
-void gottlieb_sh_stop(void)
-{
-    free(buffer);
-}
-
-
-
-void gottlieb_amplitude_DAC_w(int offset,int data)
-{
-	int totcycles,leftcycles,newpos;
-
-
-	totcycles = Machine->drv->cpu[1].cpu_clock / Machine->drv->frames_per_second;
-	leftcycles = cpu_getfcount();
-	newpos = buffer_len * (totcycles-leftcycles) / totcycles;
-
-	while (sample_pos < newpos-1)
-	    buffer[sample_pos++] = amplitude_DAC;
-
-    amplitude_DAC=AUDIO_CONV(data);
-
-    buffer[sample_pos++] = amplitude_DAC;
-}
-
-
-int gottlieb_sh_interrupt(void)
-{
-    if (pending_commands) return interrupt();
-    else return ignore_interrupt();
-}
-
-int gottlieb_sound_expansion_socket_r(int offset)
-{
-    return 0;
-}
 
 void gottlieb_speech_w(int offset, int data)
-{}
+{
+	static int queue[100],pos;
+
+	data ^= 255;
+
+if (errorlog) fprintf(errorlog,"Votrax: intonation %d, phoneme %02x %s\n",data >> 6,data & 0x3f,PhonemeTable[data & 0x3f]);
+
+	queue[pos++] = data & 0x3f;
+
+	if ((data & 0x3f) == 0x3f)
+	{
+#if 0
+		if (pos > 1)
+		{
+			int i;
+			char buf[200];
+
+			buf[0] = 0;
+			for (i = 0;i < pos-1;i++)
+			{
+				if (queue[i] == 0x03 || queue[i] == 0x3e) strcat(buf," ");
+				else strcat(buf,PhonemeTable[queue[i]]);
+			}
+
+			usrintf_showmessage(buf);
+		}
+#endif
+
+		pos = 0;
+	}
+
+	/* generate a NMI after a while to make the CPU continue to send data */
+	timer_set(TIME_IN_USEC(50),0,gottlieb_nmi_generate);
+}
 
 void gottlieb_speech_clock_DAC_w(int offset, int data)
 {}
 
-void gottlieb_sound_expansion_socket_w(int offset, int data)
-{}
+
 
     /* partial decoding takes place to minimize chip count in a 6502+6532
        system, so both page 0 (direct page) and 1 (stack) access the same
        128-bytes ram,
        either with the first 128 bytes of the page or the last 128 bytes */
 
+unsigned char *riot_ram;
+
 int riot_ram_r(int offset)
 {
-    return RAM[offset&0x7f];
+    return riot_ram[offset&0x7f];
 }
 
 void riot_ram_w(int offset, int data)
 {
-	/* pb is that M6502.c does some memory reads directly, so we
-	  repeat the writes */
-    RAM[offset&0x7F]=data;
-    RAM[0x80+(offset&0x7F)]=data;
-    RAM[0x100+(offset&0x7F)]=data;
-    RAM[0x180+(offset&0x7F)]=data;
+	riot_ram[offset&0x7f]=data;
 }
 
 static unsigned char riot_regs[32];
@@ -209,7 +181,7 @@ int gottlieb_riot_r(int offset)
 {
     switch (offset&0x1f) {
 	case 0: /* port A */
-		return sound_command_r(offset);
+		return soundlatch_r(offset) ^ 0xff;	/* invert command */
 	case 2: /* port B */
 		return 0x40;    /* say that PB6 is 1 (test SW1 not pressed) */
 	case 5: /* interrupt register */
@@ -222,4 +194,143 @@ int gottlieb_riot_r(int offset)
 void gottlieb_riot_w(int offset, int data)
 {
     riot_regs[offset&0x1f]=data;
+}
+
+
+
+
+static int psg_latch;
+static void *nmi_timer;
+static int nmi_rate;
+static int ym2151_port;
+
+void gottlieb_sound_init(void)
+{
+	nmi_timer = NULL;
+}
+
+int stooges_sound_input_r(int offset)
+{
+	/* bits 0-3 are probably unused (future expansion) */
+
+	/* bits 4 & 5 are two dip switches. Unused? */
+
+	/* bit 6 is the test switch. When 0, the CPU plays a pulsing tone. */
+
+	/* bit 7 comes from the speech chip DATA REQUEST pin */
+
+	return 0xc0;
+}
+
+void stooges_8910_latch_w(int offset,int data)
+{
+	psg_latch = data;
+}
+
+/* callback for the timer */
+static void nmi_callback(int param)
+{
+	cpu_cause_interrupt(cpu_gettotalcpu()-1, M6502_INT_NMI);
+}
+
+static void common_sound_control_w(int offset, int data)
+{
+	/* Bit 0 enables and starts NMI timer */
+
+	if (nmi_timer)
+	{
+		timer_remove(nmi_timer);
+		nmi_timer = 0;
+	}
+
+	if (data & 0x01)
+	{
+		/* base clock is 250kHz divided by 256 */
+		double interval = TIME_IN_HZ(250000.0/256/(256-nmi_rate));
+		nmi_timer = timer_pulse(interval, 0, nmi_callback);
+	}
+
+	/* Bit 1 controls a LED on the sound board. I'm not emulating it */
+}
+
+void stooges_sound_control_w(int offset,int data)
+{
+	static int last;
+
+	common_sound_control_w(offset, data);
+
+	/* bit 2 goes to 8913 BDIR pin  */
+	if ((last & 0x04) == 0x04 && (data & 0x04) == 0x00)
+	{
+		/* bit 3 selects which of the two 8913 to enable */
+		if (data & 0x08)
+		{
+			/* bit 4 goes to the 8913 BC1 pin */
+			if (data & 0x10)
+				AY8910_control_port_0_w(0,psg_latch);
+			else
+				AY8910_write_port_0_w(0,psg_latch);
+		}
+		else
+		{
+			/* bit 4 goes to the 8913 BC1 pin */
+			if (data & 0x10)
+				AY8910_control_port_1_w(0,psg_latch);
+			else
+				AY8910_write_port_1_w(0,psg_latch);
+		}
+	}
+
+	/* bit 5 goes to the speech chip DIRECT DATA TEST pin */
+
+	/* bit 6 = speech chip DATA PRESENT pin; high then low to make the chip read data */
+	if ((last & 0x40) == 0x40 && (data & 0x40) == 0x00)
+	{
+	}
+
+	/* bit 7 goes to the speech chip RESET pin */
+
+	last = data & 0x44;
+}
+
+void exterm_sound_control_w(int offset, int data)
+{
+	common_sound_control_w(offset, data);
+
+	/* Bit 7 selects YM2151 register or data port */
+	ym2151_port = data & 0x80;
+}
+
+void gottlieb_nmi_rate_w(int offset, int data)
+{
+	nmi_rate = data;
+}
+
+static void cause_dac_nmi_callback(int param)
+{
+	cpu_cause_interrupt(cpu_gettotalcpu()-2, M6502_INT_NMI);
+}
+
+void gottlieb_cause_dac_nmi_w(int offset, int data)
+{
+	/* make all the CPUs synchronize, and only AFTER that cause the NMI */
+	timer_set(TIME_NOW,0,cause_dac_nmi_callback);
+}
+
+int gottlieb_cause_dac_nmi_r(int offset)
+{
+    gottlieb_cause_dac_nmi_w(offset, 0);
+	return 0;
+}
+
+void exterm_ym2151_w(int offset, int data)
+{
+	if (ym2151_port)
+	{
+		YM2151_data_port_0_w(offset, data);
+	}
+	else
+	{
+		YM2151_register_port_0_w(offset, data);
+	}
 }

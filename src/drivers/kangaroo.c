@@ -1,41 +1,28 @@
-/* Kangaroo driver
-Kangaroo (c) Atari Games / Sun Electronics Corp 1982
-
-   Changes:
-   97/06/19 - mod to ensure it's really safe to load the scores.
-
-   97/06/17 - added the coin counter output so the error log will
-              not get cluttered with so much garbage about unknown locations.
-            - added music on/off to dip switch settings.
-              Thanks to S. Joe Dunkle for mentioning the game should
-              have music. btw. this is not really a dip switch on the PCB,
-              it's a pin on the edge connector and the damn manual doesn't
-              really tell what it does, so I hadn't ever tried it out...
-            - added high score saving/loading. Since I try to avoid disassembling
-              the code at all costs I'm not sure it's correct - seems to work tho' ;-) -V-
-
-   97/05/07 - changed to conform the new AUDIO_CPU code
-            - changed the audio command read to use the latched version.
-
-   97/04/xx - created, based on the Arabian driver,
-            The two games (arabian & kangaroo) are both by Sun Electronics
-            and run on very similar hardware.
-            Kangaroo PCB is constructed from two boards:
-            TVG-1-CPU-B , which houses program ROMS, two Z80 CPUs,
-             a GI-AY-8910, a custom microcontroller and the logic chips connecting these.
-            TVG-1-VIDEO-B is obviously the video board. On this one
-             you can find the graphics ROMS (tvg83 -tvg86), some logic
-             chips and 4 banks of 8 4116 RAM chips.
-
-            */
-/* TODO */
-/* This is still a bit messy after my cut/paste from the arabian driver */
-/* will have to clean up && correct the sound problems */
-
 /***************************************************************************
 
-Kangaroo memory map (preliminary)
-(these are for CPU#0)
+Kangaroo (c) Atari Games / Sun Electronics Corp 1982
+
+driver by Ville Laitinen
+
+In test mode, to test sound press 1 and 2 player start simultaneously.
+Punch + 1 player start moves to the crosshatch pattern.
+
+To enter test mode in Funky Fish, keep the service coin pressed while
+resetting
+
+TODO:
+- There is a custom microcontroller on the original Kangaroo board which is
+  not emulated. This MIGHT cause some problems, but we don't know of any.
+
+- Funky Fish graphics don't work correctly, I suppose there's some scrolling
+  effect missing and the radar often corrupts. Also note the wrong FUNKY on
+  the tile screen.
+
+***************************************************************************
+
+Kangaroo memory map
+
+CPU #0
 
 0000-0fff tvg75
 1000-1fff tvg76
@@ -43,360 +30,343 @@ Kangaroo memory map (preliminary)
 3000-3fff tvg78
 4000-4fff tvg79
 5000-5fff tvg80
-
-8000-bfff VIDEO RAM
-
+8000-bfff VIDEO RAM (four banks)
+c000-cfff tvg83/84 (banked)
+d000-dfff tvg85/86 (banked)
 e000-e3ff RAM
-
-e800-e80a CRT controller  ? blitter ?
 
 
 memory mapped ports:
 read:
-ec00 - IN 0
-ed00 - IN 1
-ee00 - IN 2
+e400      DSW 0
+ec00      IN 0
+ed00      IN 1
+ee00      IN 2
+efxx      (4 bits wide) security chip in. It seems to work like a clock.
 
-efxx - security chip in/out
-       it seems to work like a clock.
+write:
+e800-e801 low/high byte start address of data in picture ROM for DMA
+e802-e803 low/high byte start address in bitmap RAM (where picture is to be
+          written) during DMA
+e804-e805 picture size for DMA, and DMA start
+e806      vertical start address in bitmap
+e807      horizontal start address in bitmap
+e808      bank select latch
+e809      A & B bitmap control latch (A=playfield B=motion)
+          bit 5 FLIP A
+          bit 4 FLIP B
+          bit 3 EN A
+          bit 2 EN B
+          bit 1 PRI A
+          bit 0 PRI B
+e80a      color shading latch
+ec00      command to sound CPU
+ed00      coin counters
+efxx      (4 bits wide) security chip out
 
-e400 - DSW 0
-
-DSW 0
-bit 7 = ?
-bit 6 = ?
-bit 5 = ?
-bit 4 = ?
-bit 3 = ?
-bit 2 = 1 - test mode
-bit 1 = COIN 2
-bit 0 = COIN 1
 ---------------------------------------------------------------------------
-(these are for CPU#1)
-0x0000-0x0fff tvg81
+CPU #1 (sound)
 
-0x4000-0x43ff RAM
-0x6000        sound commands from CPU#0
+0000 0fff tvg81
+4000 43ff RAM
+6000      command from main CPU
 
-8000 - AY-3-8910 control
-7000 - AY-3-8910 write
+I/O ports:
+7000      AY-3-8910 write
+8000      AY-3-8910 control
 ---------------------------------------------------------------------------
 
 interrupts:
 (CPU#0) standard IM 1 interrupt mode (rst #38 every vblank)
 (CPU#1) same here
+
 ***************************************************************************/
 
 #include "driver.h"
-#include "vidhrdw/generic.h"
-#include "Z80.h"
-#include "sndhrdw/8910intf.h"
-#include "sndhrdw/generic.h"
+#include "cpu/z80/z80.h"
 
 
 
 /* machine */
 int  kangaroo_sec_chip_r(int offset);
 void kangaroo_sec_chip_w(int offset,int val);
-int  kangaroo_interrupt(void);
 
 /* vidhrdw */
+extern unsigned char *kangaroo_video_control;
+extern unsigned char *kangaroo_bank_select;
+extern unsigned char *kangaroo_blitter;
+void kangaroo_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int  kangaroo_vh_start(void);
 void kangaroo_vh_stop(void);
-void kangaroo_vh_screenrefresh(struct osd_bitmap *bitmap);
-void kangaroo_spriteramw(int offset, int val);
-void kangaroo_videoramw(int offset, int val);
-void kangaroo_color_shadew(int offset, int val);
+void kangaroo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void kangaroo_blitter_w(int offset, int val);
+void kangaroo_videoram_w(int offset, int val);
+void kangaroo_video_control_w(int offset,int data);
+void kangaroo_bank_select_w(int offset,int data);
+void kangaroo_color_mask_w(int offset,int data);
 
-/*sndhrdw*/
-int kangaroo_sh_start(void);
+
+
+static void kangaroo_init_machine(void)
+{
+	/* I think there is a bug in the startup checks of the game. At the very */
+	/* beginning, during the RAM check, it goes one byte too far, and ends up */
+	/* trying to write, and re-read, location dfff. To the best of my knowledge, */
+	/* that is a ROM address, so the test fails and the code keeps jumping back */
+	/* at 0000. */
+	/* However, a NMI causes a successful reset. Maybe the hardware generates a */
+	/* NMI short after power on, therefore masking the bug? The NMI is generated */
+	/* by the MB8841 custom microcontroller, so this could be a way to disguise */
+	/* the copy protection. */
+	/* Anyway, what I do here is just immediately generate the NMI, so the game */
+	/* properly starts. */
+	cpu_cause_interrupt(0,Z80_NMI_INT);
+}
+
+
+static void kangaroo_coin_counter_w(int offset, int data)
+{
+	coin_counter_w(0, data & 1);
+	coin_counter_w(1, data & 2);
+}
+
 
 static struct MemoryReadAddress readmem[] =
 {
-        { 0x0000, 0x5fff, MRA_ROM },
-	{ 0x8000, 0xbfff, MRA_RAM },
-        { 0xee00, 0xee00, input_port_3_r },
-        { 0xe400, 0xe400, input_port_7_r },
-        { 0xe000, 0xe3ff, MRA_RAM },
-        { 0xec00, 0xec00, input_port_0_r },
-        { 0xed00, 0xed00, input_port_1_r },
-        { 0xef00, 0xef00, kangaroo_sec_chip_r },
-        { 0xe800, 0xe80a, MRA_RAM },
+	{ 0x0000, 0x5fff, MRA_ROM },
+	{ 0xc000, 0xdfff, MRA_BANK1 },
+	{ 0xe000, 0xe3ff, MRA_RAM },
+	{ 0xe400, 0xe400, input_port_3_r },
+	{ 0xec00, 0xec00, input_port_0_r },
+	{ 0xed00, 0xed00, input_port_1_r },
+	{ 0xee00, 0xee00, input_port_2_r },
+	{ 0xef00, 0xef00, kangaroo_sec_chip_r },
 	{ -1 }  /* end of table */
 };
-static struct MemoryReadAddress sh_readmem[] =
-{
-        { 0x0000, 0x0fff, MRA_ROM },
-        { 0x4000, 0x43ff, MRA_RAM },
-        { 0x6000, 0x6000, sound_command_latch_r },
-        { -1 }
-};
+
 static struct MemoryWriteAddress writemem[] =
 {
-        { 0x8000, 0xbfff, kangaroo_videoramw, &videoram },
-        { 0xe000, 0xe3ff, MWA_RAM },
-        { 0xe800, 0xe80a, kangaroo_spriteramw, &spriteram },
-        { 0xef00, 0xefff, kangaroo_sec_chip_w },
-        { 0xec00, 0xec00, sound_command_w },
-        { 0xed00, 0xed00, MWA_NOP },
-        { 0x0000, 0x5fff, MWA_ROM },
-        { -1 }  /* end of table */
-};
-static struct MemoryWriteAddress sh_writemem[] =
-{
-        { 0x4000, 0x43ff, MWA_RAM },
-        { 0x0000, 0x0fff, MWA_ROM },
-        { 0x6000, 0x6000, MWA_ROM },
-        { -1 }
-};
-
-
-void kanga_moja(int port, int val)
-{
-/* does this really work, or is there a problem with the PSG code,
-   it seems like one channel is completely missing from the output
-*/
-
-  Z80_Regs regs;
-  Z80_GetRegs(&regs);
-
-  if (regs.BC.D==0x8000)
-    AY8910_control_port_0_w(port,val);
-  else /* it must be 0x7000 ;-) -V- */
-    AY8910_write_port_0_w(port,val);
-
-}
-int kanga_rdport(int port)
-{
-/* this is actually not used*/
-        return AY8910_read_port_0_r(port);
-}
-static struct IOWritePort sh_writeport[] =
-{
-        { 0x00, 0x00, kanga_moja },
-	{ -1 }	/* end of table */
-};
-static struct IOReadPort sh_readport[] =
-{
-        { 0x00, 0x00, kanga_rdport },
-        { -1 }
-};
-
-
-static struct InputPort k_input_ports[] =
-{
-	{	/* IN0 */
-                0x20,
-                { OSD_KEY_4, OSD_KEY_1, OSD_KEY_2, OSD_KEY_3, 0, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
-
-	{	/* IN1 */
-                0x00,
-		{ OSD_KEY_RIGHT, OSD_KEY_LEFT, OSD_KEY_UP, OSD_KEY_DOWN,
-                                OSD_KEY_LCONTROL, 0, 0, 0 },
-		{ OSD_JOY_RIGHT, OSD_JOY_LEFT, OSD_JOY_UP, OSD_JOY_DOWN,
-                                OSD_JOY_FIRE, 0, 0, 0 }
-	},
-	{	/* IN2 */
-		0x00,
-                { 0 , 0, 0, 0, 0, 0, 0, 0 },
-                { 0 , 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{	/* IN3 */
-                0x00,
-		{ OSD_KEY_RIGHT, OSD_KEY_LEFT, OSD_KEY_UP, OSD_KEY_DOWN,
-                                OSD_KEY_LCONTROL, 0, 0, 0 },
-		{ OSD_JOY_RIGHT, OSD_JOY_LEFT, OSD_JOY_UP, OSD_JOY_DOWN,
-                                OSD_JOY_FIRE, 0, 0, 0 }
-	},
-	{	/* IN4 */
-		0x00,
-                { 0 , 0, 0, 0, 0, 0, 0, 0 },
-                { 0 , 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{	/* IN5 */
-		0x0f,
-		{ 0, 0, 0, 0, 0, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{	/* IN6 */
-		0x00,
-		{ OSD_KEY_3, OSD_KEY_4, OSD_KEY_F1, 0, 0, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{	/* DSW1 */
-		0x00,
-		{ 0, 0, 0, 0, 0, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
+	{ 0x0000, 0x5fff, MWA_ROM },
+	{ 0x8000, 0xbfff, kangaroo_videoram_w },
+	{ 0xc000, 0xdfff, MWA_ROM },
+	{ 0xe000, 0xe3ff, MWA_RAM },
+	{ 0xe800, 0xe807, kangaroo_blitter_w, &kangaroo_blitter },
+	{ 0xe808, 0xe808, kangaroo_bank_select_w, &kangaroo_bank_select },
+	{ 0xe809, 0xe809, kangaroo_video_control_w, &kangaroo_video_control },
+	{ 0xe80a, 0xe80a, kangaroo_color_mask_w },
+	{ 0xec00, 0xec00, soundlatch_w },
+	{ 0xed00, 0xed00, kangaroo_coin_counter_w },
+	{ 0xef00, 0xefff, kangaroo_sec_chip_w },
 	{ -1 }  /* end of table */
 };
 
-static struct TrakPort trak_ports[] =
+static struct MemoryReadAddress sh_readmem[] =
 {
-        { -1 }
+	{ 0x0000, 0x0fff, MRA_ROM },
+	{ 0x4000, 0x43ff, MRA_RAM },
+	{ 0x6000, 0x6000, soundlatch_r },
+	{ -1 }  /* end of table */
 };
 
-
-static struct KEYSet keys[] =
+static struct MemoryWriteAddress sh_writemem[] =
 {
-        { 1, 2, "PL1 MOVE UP" },
-        { 1, 1, "PL1 MOVE LEFT"  },
-        { 1, 0, "PL1 MOVE RIGHT" },
-        { 1, 3, "PL1 MOVE DOWN" },
-        { 1, 4, "PL1 FIRE" },
-        { 3, 2, "PL2 MOVE UP" },
-        { 3, 1, "PL2 MOVE LEFT"  },
-        { 3, 0, "PL2 MOVE RIGHT" },
-        { 3, 3, "PL2 MOVE DOWN" },
-        { 3, 4, "PL2 FIRE" },
-        { -1 }
+	{ 0x0000, 0x0fff, MWA_ROM },
+	{ 0x4000, 0x43ff, MWA_RAM },
+	{ -1 }  /* end of table */
 };
 
-
-static struct DSW dsw[] =
+static struct IOWritePort sh_writeport[] =
 {
-        { 7, 0x01, "LIVES", { "03", "05" } },
-        { 7, 0x02, "DIFFICULTY", { "EASY", "HARD" } },
-        { 7, 0x0c, "BONUS", { "NO BONUS", "AT 10 000", "AT 10 AND EVERY 30 000", "AT 20 AND EVERY 40 000" } },
-        { 0, 0x20, "MUSIC", { "ON ", "OFF" } }, /* 970617 -V- */
-        { 7, 0xf0, "COIN SELECT 1", { "1/1 1/1", "2/1 2/1", "2/1 1/3", "1/1 1/2",\
-                        "1/1 1/3", "1/1 1/4", "1/1 1/5", "1/1 1/6",\
-                        "1/2 1/2", "1/2 1/4", "1/2 1/5", "1/2 1/10",\
-                        "1/2 1/11", "1/2 1/12", "1/2 1/6", "FREE FREE" } },
-       /* { 7, 0xc0, "COIN SELECT 2", { "SET A", "SET B", "SET C", "SET D" } },*/
-	{ -1 }
+	{ 0x7000, 0x7000, AY8910_write_port_0_w },
+	{ 0x8000, 0x8000, AY8910_control_port_0_w },
+	{ -1 }  /* end of table */
 };
 
 
 
-static struct GfxLayout sprlayout =
+INPUT_PORTS_START( fnkyfish )
+	PORT_START      /* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SERVICE1 )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START1 )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START2 )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_COIN1 )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+
+	PORT_START      /* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_8WAY )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_8WAY )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP    | IPF_8WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_DOWN  | IPF_8WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+
+	PORT_START      /* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+
+	PORT_START      /* DSW0 */
+	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x00, "3" )
+	PORT_DIPSETTING(    0x01, "5" )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Cocktail ) )
+	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Flip_Screen ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x04, DEF_STR( On ) )
+	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	PORT_DIPNAME( 0x10, 0x00, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( On ) )
+	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x20, DEF_STR( On ) )
+	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( On ) )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( On ) )
+INPUT_PORTS_END
+
+INPUT_PORTS_START( kangaroo )
+	PORT_START      /* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SERVICE1 )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START1 )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START2 )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_COIN1 )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_COIN2 )
+	PORT_DIPNAME( 0x20, 0x00, "Music" )
+	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( Cocktail ) )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Flip_Screen ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+
+	PORT_START      /* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_8WAY )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_8WAY )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP    | IPF_8WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_DOWN  | IPF_8WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_SERVICE( 0x80, IP_ACTIVE_HIGH )
+
+	PORT_START      /* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+
+	PORT_START      /* DSW0 */
+	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x00, "3" )
+	PORT_DIPSETTING(    0x01, "5" )
+	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x00, "Easy" )
+	PORT_DIPSETTING(    0x02, "Hard" )
+	PORT_DIPNAME( 0x0c, 0x00, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x08, "10000 30000" )
+	PORT_DIPSETTING(    0x0c, "20000 40000" )
+	PORT_DIPSETTING(    0x04, "10000" )
+	PORT_DIPSETTING(    0x00, "None" )
+	PORT_DIPNAME( 0xf0, 0x00, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x20, "A 2C/1C B 1C/3C" )
+	PORT_DIPSETTING(    0x00, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x30, "A 1C/1C B 1C/2C" )
+	PORT_DIPSETTING(    0x40, "A 1C/1C B 1C/3C" )
+	PORT_DIPSETTING(    0x50, "A 1C/1C B 1C/4C" )
+	PORT_DIPSETTING(    0x60, "A 1C/1C B 1C/5C" )
+	PORT_DIPSETTING(    0x70, "A 1C/1C B 1C/6C" )
+	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x90, "A 1C/2C B 1C/4C" )
+	PORT_DIPSETTING(    0xa0, "A 1C/2C B 1C/5C" )
+	PORT_DIPSETTING(    0xe0, "A 1C/2C B 1C/6C" )
+	PORT_DIPSETTING(    0xb0, "A 1C/2C B 1C/10C" )
+	PORT_DIPSETTING(    0xc0, "A 1C/2C B 1C/11C" )
+	PORT_DIPSETTING(    0xd0, "A 1C/2C B 1C/12C" )
+	/* 0xe0 gives A 1/2 B 1/6 */
+	PORT_DIPSETTING(    0xf0, DEF_STR( Free_Play ) )
+INPUT_PORTS_END
+
+
+
+static struct AY8910interface ay8910_interface =
 {
-        1,4,    /* 4 * 1 lines */
-        8192,   /* 8192 "characters" */
-        4,      /* 4 bpp        */
-        { 0x2000*8, 0x2000*8+4, 0, 4  },       /* 4 and 8192 bytes between planes */
-        { 0,1,2,3 },
-        { 0,1,2,3 },
-        1*8
+	1,  /* 1 chip */
+	10000000/8,     /* 1.25 MHz */
+	{ 50 },
+	{ 0 },
+	{ 0 },
+	{ 0 },
+	{ 0 }
 };
 
 
 
-static struct GfxDecodeInfo gfxdecodeinfo[] =
-{
-        { 2, 0 , &sprlayout, 0, 1 },
-        { -1 } /* end of array */
-};
-
-
-
-static unsigned char palette[] =
-{
-	0x00,0x00,0x00,
-	0x00,0x00,42*4,
-	0x00,42*4,0x00,
-	0x00,42*4,42*4,
-	42*4,00,00,
-	42*4,00,42*4,
-	42*4,21*4,00,
-	42*4,42*4,42*4,
-	21*4,21*4,21*4,
-	21*4,21*4,63*4,
-	21*4,63*4,21*4,
-	21*4,63*4,63*4,
-	63*4,21*4,21*4,
-	63*4,21*4,63*4,
-	63*4,63*4,21*4,
-	63*4,63*4,63*4
-};
-
-
-static unsigned char colortable[] =
-{
-	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-};
-
-/* 971706 -V- */
-static int kangaroo_hiload(void)
-{
-        /* Ok, we need to explicitly tell what RAM to read...*/
-        /* realizing this was necessary took me quite a long time :( -V- */
-
-        unsigned char *RAM = Machine->memory_region[0];
-
-        /* just a guess really... */
-        if ( RAM[0xe1da] == 0x50 )
-        {
-                void *f;
-                if (( f = osd_fopen(Machine->gamedrv->name,0,OSD_FILETYPE_HIGHSCORE,0)) != 0)
-                {
-                        osd_fread(f,&RAM[0xe1a0],0x40);
-                        /* is this enough ??? */
-                        osd_fclose(f);
-                }
-                return 1;
-         }
-         else return 0; /* didn't load them yet, do stop by later ;-) -V- */
-}
-/* 970617 -V- */
-static void kangaroo_hisave(void)
-{
-        void *f;
-
-        unsigned char *RAM = Machine->memory_region[0];
-
-        if ((f = osd_fopen(Machine->gamedrv->name,0,OSD_FILETYPE_HIGHSCORE,1)) != 0)
-        {
-                osd_fwrite(f,&RAM[0xe1a0],0x40);
-                osd_fclose(f);
-        }
-}
-
-
-
-static struct MachineDriver machine_driver =
+static struct MachineDriver machine_driver_kangaroo =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3000000,        /* 3 Mhz */
-			0,
+			10000000/4, /* 2.5 Mhz */
 			readmem,writemem,0,0,
 			interrupt,1
 		},
 		{
-			CPU_Z80 | CPU_AUDIO_CPU,
-			2500000,
-			3,
-			sh_readmem,sh_writemem,sh_readport,sh_writeport,
-			kangaroo_interrupt,1
+			CPU_Z80 | CPU_16BIT_PORT | CPU_AUDIO_CPU,
+			10000000/4, /* 2.5 MHz */
+			sh_readmem,sh_writemem,0,sh_writeport,
+			interrupt,1
 		}
 	},
-	60,
-	10,	/* 10 CPU slices per frame - enough for the sound CPU to read all commands */
-	0,
+	60, DEFAULT_60HZ_VBLANK_DURATION,   /* frames per second, vblank duration */
+	1,  /* 1 CPU slice per frame - interleaving is forced when a sound command is written */
+	kangaroo_init_machine,
 
 	/* video hardware */
-	32*8, 32*8, { 0x0b, 0xfa, 0, 32*8-1 },
-	gfxdecodeinfo,
-	sizeof(palette)/3,sizeof(colortable),
+	32*8, 32*8, { 0, 255, 8, 255-8 },
 	0,
+	24,0,
+	kangaroo_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER|VIDEO_MODIFIES_PALETTE|VIDEO_SUPPORTS_DIRTY,
 	0,
-        kangaroo_vh_start,
-        kangaroo_vh_stop,
-        kangaroo_vh_screenrefresh,
+	kangaroo_vh_start,
+	kangaroo_vh_stop,
+	kangaroo_vh_screenrefresh,
 
 	/* sound hardware */
-	0,
-	0,
-        kangaroo_sh_start,
-	AY8910_sh_stop,
-        AY8910_sh_update
+	0,0,0,0,
+	{
+		{
+			SOUND_AY8910,
+			&ay8910_interface
+		}
+	}
 };
 
 
@@ -406,45 +376,85 @@ static struct MachineDriver machine_driver =
 
 ***************************************************************************/
 
-ROM_START( kangaroo_rom )
-	ROM_REGION(0x10000)	/* 64k for code */
-	ROM_LOAD( "tvg75.bin", 0x0000, 0x1000, 0xc79eeb0a )  /* fonts are messed up with */
-	ROM_LOAD( "tvg76.bin", 0x1000, 0x1000, 0x1f254c59 )  /* program code */
-	ROM_LOAD( "tvg77.bin", 0x2000, 0x1000, 0x84cf6cd7 )
-	ROM_LOAD( "tvg78.bin", 0x3000, 0x1000, 0xfec4c312 )
-	ROM_LOAD( "tvg79.bin", 0x4000, 0x1000, 0x55d4a740 )
-	ROM_LOAD( "tvg80.bin", 0x5000, 0x1000, 0xf47576eb )
+ROM_START( fnkyfish )
+	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_LOAD( "tvg_64.0",    0x0000,  0x1000, 0xaf728803 )
+	ROM_LOAD( "tvg_65.1",    0x1000,  0x1000, 0x71959e6b )
+	ROM_LOAD( "tvg_66.2",    0x2000,  0x1000, 0x5ccf68d4 )
+	ROM_LOAD( "tvg_67.3",    0x3000,  0x1000, 0x938ff36f )
 
-	ROM_REGION(0x2000)	/* temporary space for graphics (disposed after conversion) */
-	ROM_OBSOLETELOAD( "tvg83.bin", 0x0000, 0x1000 )	/* not needed - could be removed */
+	ROM_LOAD( "tvg_69.v0",   0x10000, 0x1000, 0xcd532d0b ) /* graphics ROMs */
+	ROM_LOAD( "tvg_71.v2",   0x11000, 0x1000, 0xa59c9713 )
+	ROM_LOAD( "tvg_70.v1",   0x12000, 0x1000, 0xfd308ef1 )
+	ROM_LOAD( "tvg_72.v3",   0x13000, 0x1000, 0x6ae9b584 )
 
-	ROM_REGION(0x10000) /* space for graphics roms */
-	ROM_LOAD( "tvg84.bin", 0x0000, 0x1000, 0x6d872ead )  /* because of very rare way */
-	ROM_LOAD( "tvg86.bin", 0x1000, 0x1000, 0x9048077c )  /* CRT controller uses these roms */
-	ROM_LOAD( "tvg83.bin", 0x2000, 0x1000, 0x5da33f11 )  /* there's no way, but to decode */
-	ROM_LOAD( "tvg85.bin", 0x3000, 0x1000, 0x6450024c )  /* it at runtime - which is SLOW */
+	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_LOAD( "tvg_68.8",    0x0000,  0x1000, 0xd36bb2be )
+ROM_END
 
-	ROM_REGION(0x10000) /* sound */
-	ROM_LOAD( "tvg81.bin", 0x0000, 0x1000, 0x03a6e98a )
+ROM_START( kangaroo )
+	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_LOAD( "tvg_75.0",    0x0000,  0x1000, 0x0d18c581 )
+	ROM_LOAD( "tvg_76.1",    0x1000,  0x1000, 0x5978d37a )
+	ROM_LOAD( "tvg_77.2",    0x2000,  0x1000, 0x522d1097 )
+	ROM_LOAD( "tvg_78.3",    0x3000,  0x1000, 0x063da970 )
+	ROM_LOAD( "tvg_79.4",    0x4000,  0x1000, 0x9e5cf8ca )
+	ROM_LOAD( "tvg_80.5",    0x5000,  0x1000, 0x2fc18049 )
+
+	ROM_LOAD( "tvg_83.v0",   0x10000, 0x1000, 0xc0446ca6 ) /* graphics ROMs */
+	ROM_LOAD( "tvg_85.v2",   0x11000, 0x1000, 0x72c52695 )
+	ROM_LOAD( "tvg_84.v1",   0x12000, 0x1000, 0xe4cb26c2 )
+	ROM_LOAD( "tvg_86.v3",   0x13000, 0x1000, 0x9e6a599f )
+
+	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_LOAD( "tvg_81.8",    0x0000,  0x1000, 0xfb449bfd )
+
+	ROM_REGION( 0x0800, REGION_CPU3 )  /* 8k for the MB8841 custom microcontroller (currently not emulated) */
+	ROM_LOAD( "tvg_82.12",   0x0000,  0x0800, 0x57766f69 )
+ROM_END
+
+ROM_START( kangaroa )
+	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_LOAD( "tvg_75.0",    0x0000,  0x1000, 0x0d18c581 )
+	ROM_LOAD( "tvg_76.1",    0x1000,  0x1000, 0x5978d37a )
+	ROM_LOAD( "tvg_77.2",    0x2000,  0x1000, 0x522d1097 )
+	ROM_LOAD( "tvg_78.3",    0x3000,  0x1000, 0x063da970 )
+	ROM_LOAD( "tvg79.bin",   0x4000,  0x1000, 0x82a26c7d )
+	ROM_LOAD( "tvg80.bin",   0x5000,  0x1000, 0x3dead542 )
+
+	ROM_LOAD( "tvg_83.v0",   0x10000, 0x1000, 0xc0446ca6 ) /* graphics ROMs */
+	ROM_LOAD( "tvg_85.v2",   0x11000, 0x1000, 0x72c52695 )
+	ROM_LOAD( "tvg_84.v1",   0x12000, 0x1000, 0xe4cb26c2 )
+	ROM_LOAD( "tvg_86.v3",   0x13000, 0x1000, 0x9e6a599f )
+
+	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_LOAD( "tvg_81.8",    0x0000,  0x1000, 0xfb449bfd )
+
+	ROM_REGION( 0x0800, REGION_CPU3 )  /* 8k for the MB8841 custom microcontroller (currently not emulated) */
+	ROM_LOAD( "tvg_82.12",   0x0000,  0x0800, 0x57766f69 )
+ROM_END
+
+ROM_START( kangarob )
+	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_LOAD( "tvg_75.0",    0x0000,  0x1000, 0x0d18c581 )
+	ROM_LOAD( "tvg_76.1",    0x1000,  0x1000, 0x5978d37a )
+	ROM_LOAD( "tvg_77.2",    0x2000,  0x1000, 0x522d1097 )
+	ROM_LOAD( "tvg_78.3",    0x3000,  0x1000, 0x063da970 )
+	ROM_LOAD( "tvg_79.4",    0x4000,  0x1000, 0x9e5cf8ca )
+	ROM_LOAD( "k6",          0x5000,  0x1000, 0x7644504a )
+
+	ROM_LOAD( "tvg_83.v0",   0x10000, 0x1000, 0xc0446ca6 ) /* graphics ROMs */
+	ROM_LOAD( "tvg_85.v2",   0x11000, 0x1000, 0x72c52695 )
+	ROM_LOAD( "tvg_84.v1",   0x12000, 0x1000, 0xe4cb26c2 )
+	ROM_LOAD( "tvg_86.v3",   0x13000, 0x1000, 0x9e6a599f )
+
+	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_LOAD( "tvg_81.8",    0x0000,  0x1000, 0xfb449bfd )
 ROM_END
 
 
 
-struct GameDriver kangaroo_driver =
-{
-	"Kangaroo",
-	"kangaroo",
-	"VILLE LAITINEN",
-	&machine_driver,
-
-        kangaroo_rom,
-	0, 0,
-	0,
-
-        k_input_ports, 0, trak_ports, dsw, keys,
-
-	0, palette, colortable,
-	ORIENTATION_DEFAULT,
-
-        kangaroo_hiload, kangaroo_hisave
-};
+GAMEX(1981, fnkyfish, 0,        kangaroo, fnkyfish, 0, ROT90, "Sun Electronics", "Funky Fish", GAME_NOT_WORKING )
+GAME( 1982, kangaroo, 0,        kangaroo, kangaroo, 0, ROT90, "Sun Electronics", "Kangaroo" )
+GAME( 1982, kangaroa, kangaroo, kangaroo, kangaroo, 0, ROT90, "[Sun Electronics] (Atari license)", "Kangaroo (Atari)" )
+GAME( 1982, kangarob, kangaroo, kangaroo, kangaroo, 0, ROT90, "bootleg", "Kangaroo (bootleg)" )

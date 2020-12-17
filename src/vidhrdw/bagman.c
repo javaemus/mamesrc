@@ -31,7 +31,7 @@ static int flipscreen[2];
   bit 0 -- 1  kohm resistor  -- RED
 
 ***************************************************************************/
-void bagman_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void bagman_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
 	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
@@ -61,11 +61,6 @@ void bagman_vh_convert_color_prom(unsigned char *palette, unsigned char *colorta
 
 		color_prom++;
 	}
-
-
-	/* characters and sprites use the same palette */
-	for (i = 0;i < TOTAL_COLORS(0);i++)
-		COLOR(0,i) = i;
 }
 
 
@@ -90,7 +85,7 @@ void bagman_flipscreen_w(int offset,int data)
   the main emulation engine.
 
 ***************************************************************************/
-void bagman_vh_screenrefresh(struct osd_bitmap *bitmap)
+void bagman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int offs;
 
@@ -110,6 +105,7 @@ void bagman_vh_screenrefresh(struct osd_bitmap *bitmap)
 		if (dirtybuffer[offs])
 		{
 			int sx,sy;
+			int bank;
 
 
 			dirtybuffer[offs] = 0;
@@ -119,7 +115,11 @@ void bagman_vh_screenrefresh(struct osd_bitmap *bitmap)
 			sy = offs / 32;
 			if (flipscreen[1]) sy = 31 - sy;
 
-			drawgfx(tmpbitmap,Machine->gfx[colorram[offs] & 0x10 ? 1 : 0],
+			/* Pickin' doesn't have the second char bank */
+			bank = 0;
+			if (Machine->gfx[2] && (colorram[offs] & 0x10)) bank = 2;
+
+			drawgfx(tmpbitmap,Machine->gfx[bank],
 					videoram[offs] + 8 * (colorram[offs] & 0x20),
 					colorram[offs] & 0x0f,
 					flipscreen[0],flipscreen[1],
@@ -155,7 +155,7 @@ void bagman_vh_screenrefresh(struct osd_bitmap *bitmap)
 		}
 
 		if (spriteram[offs + 2] && spriteram[offs + 3])
-			drawgfx(bitmap,Machine->gfx[2],
+			drawgfx(bitmap,Machine->gfx[1],
 					(spriteram[offs] & 0x3f) + 2 * (spriteram[offs + 1] & 0x20),
 					spriteram[offs + 1] & 0x1f,
 					flipx,flipy,

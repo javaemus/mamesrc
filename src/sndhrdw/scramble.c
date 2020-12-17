@@ -1,21 +1,53 @@
+/***************************************************************************
+
+  This sound driver is used by the Scramble, Super Cobra  and Amidar drivers.
+
+***************************************************************************/
+
+
 #include "driver.h"
-#include "sndhrdw/generic.h"
-#include "sndhrdw/8910intf.h"
+#include "cpu/z80/z80.h"
 
 
 
-static int scramble_portB_r(int offset)
+/* The timer clock which feeds the upper 4 bits of    					*/
+/* AY-3-8910 port A is based on the same clock        					*/
+/* feeding the sound CPU Z80.  It is a divide by      					*/
+/* 5120, formed by a standard divide by 512,        					*/
+/* followed by a divide by 10 using a 4 bit           					*/
+/* bi-quinary count sequence. (See LS90 data sheet    					*/
+/* for an example).                                   					*/
+/*																		*/
+/* Bit 4 comes from the output of the divide by 1024  					*/
+/*       0, 1, 0, 1, 0, 1, 0, 1, 0, 1									*/
+/* Bit 5 comes from the QC output of the LS90 producing a sequence of	*/
+/* 		 0, 0, 1, 1, 0, 0, 1, 1, 1, 0									*/
+/* Bit 6 comes from the QD output of the LS90 producing a sequence of	*/
+/*		 0, 0, 0, 0, 1, 0, 0, 0, 0, 1									*/
+/* Bit 7 comes from the QA output of the LS90 producing a sequence of	*/
+/*		 0, 0, 0, 0, 0, 1, 1, 1, 1, 1			 						*/
+
+static int scramble_timer[10] =
 {
-	int clock;
+	0x00, 0x10, 0x20, 0x30, 0x40, 0x90, 0xa0, 0xb0, 0xa0, 0xd0
+};
 
-#define TIMER_RATE (512*2)
+int scramble_portB_r(int offset)
+{
+	/* need to protect from totalcycles overflow */
+	static int last_totalcycles = 0;
 
-	clock = cpu_gettotalcycles() / TIMER_RATE;
+	/* number of Z80 clock cycles to count */
+	static int clock;
 
-	clock = ((clock & 0x01) << 4) | ((clock & 0x02) << 6) |
-			((clock & 0x08) << 2) | ((clock & 0x10) << 2);
+	int current_totalcycles;
 
-	return clock;
+	current_totalcycles = cpu_gettotalcycles();
+	clock = (clock + (current_totalcycles-last_totalcycles)) % 5120;
+
+	last_totalcycles = current_totalcycles;
+
+	return scramble_timer[clock/512];
 }
 
 
@@ -28,39 +60,35 @@ void scramble_sh_irqtrigger_w(int offset,int data)
 	if (last == 0 && (data & 0x08) != 0)
 	{
 		/* setting bit 3 low then high triggers IRQ on the sound CPU */
-		cpu_cause_interrupt(1,0xff);
+		cpu_cause_interrupt(1, Z80_IRQ_INT);
 	}
 
 	last = data & 0x08;
 }
 
-
-
-int scramble_sh_interrupt(void)
+void hotshock_sh_irqtrigger_w(int offset,int data)
 {
-	AY8910_update();
-
-	/* interrupts don't happen here, the handler is used only to update the 8910 */
-	return ignore_interrupt();
+	cpu_cause_interrupt(1, Z80_IRQ_INT);
 }
 
 
-
-static struct AY8910interface interface =
+static void filter_w(int chip, int channel, int data)
 {
-	2,	/* 2 chips */
-	10,	/* 10 updates per video frame (good quality) */
-	1789750000,	/* 1.78975 Mhz (? the crystal is 14.318 MHz) */
-	{ 255, 255 },
-	{ soundlatch_r },
-	{ scramble_portB_r },
-	{ 0 },
-	{ 0 }
-};
+	int C;
 
 
+	C = 0;
+	if (data & 1) C += 220000;	/* 220000pF = 0.220uF */
+	if (data & 2) C +=  47000;	/*  47000pF = 0.047uF */
+	set_RC_filter(3*chip + channel,1000,5100,0,C);
+}
 
-int scramble_sh_start(void)
+void scramble_filter_w(int offset,int data)
 {
-	return AY8910_sh_start(&interface);
+	filter_w(1, 0, (offset >>  0) & 3);
+	filter_w(1, 1, (offset >>  2) & 3);
+	filter_w(1, 2, (offset >>  4) & 3);
+	filter_w(0, 0, (offset >>  6) & 3);
+	filter_w(0, 1, (offset >>  8) & 3);
+	filter_w(0, 2, (offset >> 10) & 3);
 }

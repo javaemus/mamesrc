@@ -8,30 +8,32 @@
 ***************************************************************************/
 
 #include "driver.h"
-
-
-
-static int interrupt_enable;
-
+#include "cpu/z80/z80.h"
 
 
 void espial_init_machine(void)
 {
 	/* we must start with NMI interrupts disabled */
-	interrupt_enable = 0;
+	//interrupt_enable = 0;
+	interrupt_enable_w(0, 0);
 }
 
 
-
-void espial_interrupt_enable_w(int offset,int data)
+void zodiac_master_interrupt_enable_w(int offset, int data)
 {
-	interrupt_enable = !(data & 1);
+	interrupt_enable_w(offset, data ^ 1);
 }
 
 
-
-int espial_interrupt(void)
+int zodiac_master_interrupt(void)
 {
-	if (interrupt_enable) return nmi_interrupt();
-	else return ignore_interrupt();
+	return (cpu_getiloops() == 0) ? nmi_interrupt() : interrupt();
 }
+
+
+void zodiac_master_soundlatch_w(int offset, int data)
+{
+	soundlatch_w(offset, data);
+	cpu_cause_interrupt(1, Z80_IRQ_INT);
+}
+

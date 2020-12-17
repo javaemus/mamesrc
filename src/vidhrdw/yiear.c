@@ -8,8 +8,11 @@
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
+#include "cpu/m6809/m6809.h"
 
 
+static int flipscreen;
+static int nmi_enable;
 
 
 /***************************************************************************
@@ -29,28 +32,27 @@
   bit 0 -- 1  kohm resistor  -- RED
 
 ***************************************************************************/
-void yiear_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void yiear_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
-	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
-	#define COLOR(gfxn,offs) (colortable[Machine->drv->gfxdecodeinfo[gfxn].color_codes_start + offs])
 
 
 	for (i = 0;i < Machine->drv->total_colors;i++)
 	{
 		int bit0,bit1,bit2;
 
-
 		/* red component */
 		bit0 = (*color_prom >> 0) & 0x01;
 		bit1 = (*color_prom >> 1) & 0x01;
 		bit2 = (*color_prom >> 2) & 0x01;
 		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
 		/* green component */
 		bit0 = (*color_prom >> 3) & 0x01;
 		bit1 = (*color_prom >> 4) & 0x01;
 		bit2 = (*color_prom >> 5) & 0x01;
 		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
 		/* blue component */
 		bit0 = 0;
 		bit1 = (*color_prom >> 6) & 0x01;
@@ -59,74 +61,113 @@ void yiear_vh_convert_color_prom(unsigned char *palette, unsigned char *colortab
 
 		color_prom++;
 	}
-
-
-	/* sprites lookup table */
-	for (i = 0;i < TOTAL_COLORS(1);i++)
-		COLOR(1,i) = i;
-
-	/* characters lookup table */
-	for (i = 0;i < TOTAL_COLORS(0);i++)
-		COLOR(0,i) = i + 16;
 }
 
 
-
-void yiear_videoram_w(int offset,int data)
+void yiear_control_w(int offset,int data)
 {
-	if (videoram[offset] != data)
+	/* bit 0 flips screen */
+	if (flipscreen != (data & 1))
 	{
-		dirtybuffer[offset/2] = 1;
-		videoram[offset] = data;
+		flipscreen = data & 1;
+		memset(dirtybuffer,1,videoram_size);
 	}
+
+	/* bit 1 is NMI enable */
+	nmi_enable = data & 0x02;
+
+	/* bit 2 is IRQ enable */
+	interrupt_enable_w(0, data & 0x04);
+
+	/* bits 3 and 4 are coin counters */
+	coin_counter_w(0, (data >> 3) & 0x01);
+	coin_counter_w(1, (data >> 4) & 0x01);
 }
 
-void yiear_vh_screenrefresh(struct osd_bitmap *bitmap)
+
+int yiear_nmi_interrupt(void)
 {
-	int i;
+	/* can't use nmi_interrupt() because interrupt_enable_w() effects it */
+	return nmi_enable ? M6809_INT_NMI : ignore_interrupt();
+}
 
-	/* draw background */
+
+/***************************************************************************
+
+  Draw the game screen in the given osd_bitmap.
+  Do NOT call osd_update_display() from this function, it will be called by
+  the main emulation engine.
+
+***************************************************************************/
+void yiear_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+{
+	int offs;
+
+
+	/* for every character in the Video RAM, check if it has been modified */
+	/* since last time and update it accordingly. */
+	for (offs = videoram_size - 2;offs >= 0;offs -= 2)
 	{
-		unsigned char *vr = videoram;
-		for (i = 0;i < videoram_size;i++) if ( dirtybuffer[i] )
+		if (dirtybuffer[offs] || dirtybuffer[offs + 1])
 		{
-			unsigned char byte1 = vr[i*2];
-			unsigned char byte2 = vr[i*2+1];
-			int code = 16*(byte1 & 0x10) + byte2;
-			int flipx = byte1 & 0x80;
-			int flipy = byte1 & 0x40;
-			int sx = 8 * (i % 32);
-			int sy = 8 * (i / 32);
+			int sx,sy,flipx,flipy;
 
-			dirtybuffer[i] = 0;
+
+			dirtybuffer[offs] = dirtybuffer[offs + 1] = 0;
+
+			sx = (offs/2) % 32;
+			sy = (offs/2) / 32;
+			flipx = videoram[offs] & 0x80;
+			flipy = videoram[offs] & 0x40;
+			if (flipscreen)
+			{
+				sx = 31 - sx;
+				sy = 31 - sy;
+				flipx = !flipx;
+				flipy = !flipy;
+			}
 
 			drawgfx(tmpbitmap,Machine->gfx[0],
-				code,0,flipx,flipy,sx,sy,
+				videoram[offs + 1] | ((videoram[offs] & 0x10) << 4),
+				0,
+				flipx,flipy,
+				8*sx,8*sy,
 				0,TRANSPARENCY_NONE,0);
 		}
 	}
 
+
 	/* copy the temporary bitmap to the screen */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,
-		&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
 
-	/* draw sprites. */
+
+	/* draw sprites */
+	for (offs = spriteram_size - 2;offs >= 0;offs -= 2)
 	{
-		unsigned char *sr  = spriteram;
+		int sx,sy,flipx,flipy;
 
-		for (i = 23*16; i>=0; i -= 16)
+
+		sy    =  240 - spriteram[offs + 1];
+		sx    =  spriteram_2[offs];
+		flipx = ~spriteram[offs] & 0x40;
+		flipy =  spriteram[offs] & 0x80;
+
+		if (flipscreen)
 		{
-			int sy = 239-sr[i+0x06];
-			if( sy<239 ){
-				int code = 256*(sr[i+0x0f] & 1) + sr[i+0x0e];
-				int flipx = (sr[i+0x0f]&0x40)?0:1;
-				int flipy = (sr[i+0x0f]&0x80)?1:0;
-				int sx = sr[i+0x04];
-
-				drawgfx(bitmap,Machine->gfx[1],
-					code,0,flipx,flipy,sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
-				}
+			sy = 240 - sy;
+			flipy = !flipy;
 		}
+
+		if (offs < 0x26)
+		{
+			sy++;	/* fix title screen & garbage at the bottom of the screen */
+		}
+
+		drawgfx(bitmap,Machine->gfx[1],
+			spriteram_2[offs + 1] + 256 * (spriteram[offs] & 1),
+			0,
+			flipx,flipy,
+			sx,sy,
+			&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

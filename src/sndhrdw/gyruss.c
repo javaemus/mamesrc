@@ -1,108 +1,87 @@
 #include "driver.h"
-#include "sndhrdw/generic.h"
-#include "sndhrdw/8910intf.h"
+#include "cpu/i8039/i8039.h"
 
 
 
-static unsigned char samplenumber = 0;
+/* The timer clock which feeds the upper 4 bits of    					*/
+/* AY-3-8910 port A is based on the same clock        					*/
+/* feeding the sound CPU Z80.  It is a divide by      					*/
+/* 10240, formed by a standard divide by 1024,        					*/
+/* followed by a divide by 10 using a 4 bit           					*/
+/* bi-quinary count sequence. (See LS90 data sheet    					*/
+/* for an example).                                   					*/
+/*																		*/
+/* Bit 0 comes from the output of the divide by 1024  					*/
+/*       0, 1, 0, 1, 0, 1, 0, 1, 0, 1									*/
+/* Bit 1 comes from the QC output of the LS90 producing a sequence of	*/
+/* 		 0, 0, 1, 1, 0, 0, 1, 1, 1, 0									*/
+/* Bit 2 comes from the QD output of the LS90 producing a sequence of	*/
+/*		 0, 0, 0, 0, 1, 0, 0, 0, 0, 1									*/
+/* Bit 3 comes from the QA output of the LS90 producing a sequence of	*/
+/*		 0, 0, 0, 0, 0, 1, 1, 1, 1, 1			 						*/
 
-
-void gyruss_sh_soundfx_on_w(int offset, int data)
+static int gyruss_timer[10] =
 {
-        static unsigned char soundon = 0;
-
-	if (Machine->samples == 0) return;
-/*
-        if (errorlog) fprintf(errorlog, "SoundON:  %d\n", data);
-*/
-        if (data) {
-          if (Machine->samples->sample[data-1])
-            osd_play_sample(7,Machine->samples->sample[data-1]->data,
-                          Machine->samples->sample[data-1]->length,
-                          Machine->samples->sample[data-1]->smpfreq,
-                          Machine->samples->sample[data-1]->volume,0);
-        }
-        else osd_stop_sample(7);
-
-        soundon = data;
-}
-
-void gyruss_sh_soundfx_data_w(int offset, int data)
-{
-/*
-        if (errorlog) fprintf(errorlog, "SoundDATA:  %d\n", data);
-*/
-        samplenumber = data;
-}
-
-
-
-static int gyruss_portA_r(int offset)
-{
-	#define TIMER_RATE (570)
-
-	return cpu_gettotalcycles() / TIMER_RATE;
-
-
-#if 0	/* temporarily removed */
-	/* to speed up the emulation, detect when the program is looping waiting */
-	/* for the timer, and skip the necessary CPU cycles in that case */
-	if (cpu_getreturnpc() == 0x0101)
-	{
-		/* wait until clock & 0x04 == 0 */
-		if ((clock & 0x04) != 0)
-		{
-//			clock = clock + 0x04;
-clock = (clock - 0x04) | 0x03;
-			clockticks = clock * TIMER_RATE;
-//			cpu_seticount(Z80_IPeriod - clockticks);
-cpu_seticount(clockticks);
-		}
-	}
-	else if (cpu_getreturnpc() == 0x0108)
-	{
-		/* wait until clock & 0x04 != 0 */
-		if ((clock & 0x04) == 0)
-		{
-//			clock = (clock + 0x04) & ~0x03;
-clock = (clock - 0x04) | 0x03;
-			clockticks = clock * TIMER_RATE;
-//			cpu_seticount(Z80_IPeriod - clockticks);
-cpu_seticount(clockticks);
-		}
-	}
-#endif
-}
-
-
-
-int gyruss_sh_interrupt(void)
-{
-	AY8910_update();
-
-	if (pending_commands) return interrupt();
-	else return ignore_interrupt();
-}
-
-
-
-static struct AY8910interface interface =
-{
-	5,	/* 5 chips */
-	10,	/* 10 updates per video frame (good quality) */
-	1789772727,	/* 1.789772727 MHZ */
-	{ 255, 255, 255, 255, 255 },
-	{ 0, 0, gyruss_portA_r },
-	{ 0 },
-	{ 0 },
-	{ 0 }
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x09, 0x0a, 0x0b, 0x0a, 0x0d
 };
 
-
-
-int gyruss_sh_start(void)
+int gyruss_portA_r(int offset)
 {
-	pending_commands = 0;
+	/* need to protect from totalcycles overflow */
+	static int last_totalcycles = 0;
 
-	return AY8910_sh_start(&interface);
+	/* number of Z80 clock cycles to count */
+	static int clock;
+
+	int current_totalcycles;
+
+	current_totalcycles = cpu_gettotalcycles();
+	clock = (clock + (current_totalcycles-last_totalcycles)) % 10240;
+
+	last_totalcycles = current_totalcycles;
+
+	return gyruss_timer[clock/1024];
+}
+
+
+
+static void filter_w(int chip,int data)
+{
+	int i;
+
+
+	for (i = 0;i < 3;i++)
+	{
+		int C;
+
+
+		C = 0;
+		if (data & 1) C += 47000;	/* 47000pF = 0.047uF */
+		if (data & 2) C += 220000;	/* 220000pF = 0.22uF */
+		data >>= 2;
+		set_RC_filter(3*chip + i,1000,2200,200,C);
+	}
+}
+
+void gyruss_filter0_w(int offset,int data)
+{
+	filter_w(0,data);
+}
+
+void gyruss_filter1_w(int offset,int data)
+{
+	filter_w(1,data);
+}
+
+
+
+void gyruss_sh_irqtrigger_w(int offset,int data)
+{
+	/* writing to this register triggers IRQ on the sound CPU */
+	cpu_cause_interrupt(1,0xff);
+}
+
+void gyruss_i8039_irq_w(int offset,int data)
+{
+	cpu_cause_interrupt(2,I8039_EXT_INT);
 }

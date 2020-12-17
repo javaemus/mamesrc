@@ -43,7 +43,7 @@ static int priority;
   bit 0 -- 1  kohm resistor  -- RED
 
 ***************************************************************************/
-void bankp_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void bankp_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
 	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
@@ -167,8 +167,12 @@ void bankp_colorram2_w(int offset,int data)
 
 void bankp_out_w(int offset,int data)
 {
-	/* I'm not sure how, but bits 0/1 control playfield priority */
+	/* bits 0-1 are playfield priority */
+	/* TODO: understand how this works, currently the only thing I do is */
+	/* invert the layer order when priority == 2 */
 	priority = data & 0x03;
+
+	/* bits 2-3 unknown (2 is used) */
 
 	/* bit 4 controls NMI */
 	if (data & 0x10) interrupt_enable_w(0,1);
@@ -181,6 +185,8 @@ void bankp_out_w(int offset,int data)
 		memset(dirtybuffer,1,videoram_size);
 		memset(dirtybuffer2,1,videoram_size);
 	}
+
+	/* bits 6-7 unknown */
 }
 
 
@@ -192,7 +198,7 @@ void bankp_out_w(int offset,int data)
   the main emulation engine.
 
 ***************************************************************************/
-void bankp_vh_screenrefresh(struct osd_bitmap *bitmap)
+void bankp_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int offs;
 

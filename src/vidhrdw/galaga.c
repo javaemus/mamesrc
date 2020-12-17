@@ -46,9 +46,11 @@ static int total_stars;
   bit 0 -- 1  kohm resistor  -- RED
 
 ***************************************************************************/
-void galaga_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void galaga_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
+	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
+	#define COLOR(gfxn,offs) (colortable[Machine->drv->gfxdecodeinfo[gfxn].color_codes_start + offs])
 
 
 	for (i = 0;i < 32;i++)
@@ -70,15 +72,25 @@ void galaga_vh_convert_color_prom(unsigned char *palette, unsigned char *colorta
 		palette[3*i + 2] = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
 	}
 
+	color_prom += 32;
+
 	/* characters */
-	for (i = 0;i < 32*4;i++)
-		colortable[i] = 15 - (color_prom[i + 32] & 0x0f);
+	for (i = 0;i < TOTAL_COLORS(0);i++)
+		COLOR(0,i) = 15 - (*(color_prom++) & 0x0f);
+
+	color_prom += 128;
+
 	/* sprites */
-	for (i = 32*4;i < 64*4;i++)
+	for (i = 0;i < TOTAL_COLORS(1);i++)
 	{
-		if (i % 4 == 0) colortable[i] = 0;	/* preserve transparency */
-		else colortable[i] = (15 - (color_prom[i + 32] & 0x0f)) + 0x10;
+		if (i % 4 == 0) COLOR(1,i) = 0;	/* preserve transparency */
+		else COLOR(1,i) = 15 - ((*color_prom & 0x0f)) + 0x10;
+
+		color_prom++;
 	}
+
+	color_prom += 128;
+
 
 	/* now the stars */
 	for (i = 32;i < 32 + 64;i++)
@@ -118,9 +130,9 @@ int galaga_vh_start(void)
 	total_stars = 0;
 	generator = 0;
 
-	for (x = 255;x >= 0;x--)
+	for (y = 0;y <= 255;y++)
 	{
-		for (y = 511;y >= 0;y--)
+		for (x = 511;x >= 0;x--)
 		{
 			int bit1,bit2;
 
@@ -131,10 +143,7 @@ int galaga_vh_start(void)
 
 			if (bit1 ^ bit2) generator |= 1;
 
-			if (x >= Machine->drv->visible_area.min_x &&
-					x <= Machine->drv->visible_area.max_x &&
-					((~generator >> 16) & 1) &&
-					(generator & 0xff) == 0xff)
+			if (((~generator >> 16) & 1) && (generator & 0xff) == 0xff)
 			{
 				int color;
 
@@ -177,7 +186,7 @@ void galaga_flipscreen_w(int offset,int data)
   the main emulation engine.
 
 ***************************************************************************/
-void galaga_vh_screenrefresh(struct osd_bitmap *bitmap)
+void galaga_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int offs;
 
@@ -199,29 +208,29 @@ void galaga_vh_screenrefresh(struct osd_bitmap *bitmap)
 		/* don't map to a screen position. We don't check that here, however: range */
 		/* checking is performed by drawgfx(). */
 
-			mx = offs / 32;
-			my = offs % 32;
+			mx = offs % 32;
+			my = offs / 32;
 
-			if (mx <= 1)
+			if (my <= 1)
 			{
-				sx = 29 - my;
-				sy = mx + 34;
+				sx = my + 34;
+				sy = mx - 2;
 			}
-			else if (mx >= 30)
+			else if (my >= 30)
 			{
-				sx = 29 - my;
-				sy = mx - 30;
+				sx = my - 30;
+				sy = mx - 2;
 			}
 			else
 			{
-				sx = 29 - mx;
-				sy = my + 2;
+				sx = mx + 2;
+				sy = my - 2;
 			}
 
 			if (flipscreen)
 			{
-				sx = 27 - sx;
-				sy = 35 - sy;
+				sx = 35 - sx;
+				sy = 27 - sy;
 			}
 
 			drawgfx(tmpbitmap,Machine->gfx[0],
@@ -243,54 +252,69 @@ void galaga_vh_screenrefresh(struct osd_bitmap *bitmap)
 	{
 		if ((spriteram_3[offs + 1] & 2) == 0)
 		{
-			int code,color,flipx,flipy,sx,sy;
+			int code,color,flipx,flipy,sx,sy,sfa,sfb;
 
 
 			code = spriteram[offs];
 			color = spriteram[offs + 1];
-			flipx = spriteram_3[offs] & 2;
-			flipy = spriteram_3[offs] & 1;
-			sx = spriteram_2[offs] - 16;
-			sy = spriteram_2[offs + 1] - 40 + 0x100*(spriteram_3[offs + 1] & 1);
+			flipx = spriteram_3[offs] & 1;
+			flipy = spriteram_3[offs] & 2;
+			sx = spriteram_2[offs + 1] - 40 + 0x100*(spriteram_3[offs + 1] & 1);
+			sy = 28*8 - spriteram_2[offs];
+			sfa = 0;
+			sfb = 16;
+
+			/* this constraint fell out of the old, pre-rotated code automatically */
+			/* we need to explicitly add it because of the way we flip Y */
+			if (sy <= -16)
+				continue;
 
 			if (flipscreen)
 			{
 				flipx = !flipx;
 				flipy = !flipy;
+				sfa = 16;
+				sfb = 0;
 			}
 
-			if (spriteram_3[offs] & 8)	/* double width */
+			if ((spriteram_3[offs] & 0x0c) == 0x0c)		/* double width, double height */
 			{
 				drawgfx(bitmap,Machine->gfx[1],
-						code+2,color,flipx,flipy,sx,sy,
-						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,0);
+						code+2,color,flipx,flipy,sx+sfa,sy-sfa,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
 				drawgfx(bitmap,Machine->gfx[1],
-						code,color,flipx,flipy,sx+16,sy,
-						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,0);
+						code,color,flipx,flipy,sx+sfa,sy-sfb,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
 
-				if (spriteram_3[offs] & 4)	/* double width, double height */
-				{
-					drawgfx(bitmap,Machine->gfx[1],
-							code+3,color,flipx,flipy,sx,sy+16,
-							&Machine->drv->visible_area,TRANSPARENCY_THROUGH,0);
-					drawgfx(bitmap,Machine->gfx[1],
-							code+1,color,flipx,flipy,sx+16,sy+16,
-							&Machine->drv->visible_area,TRANSPARENCY_THROUGH,0);
-				}
+				drawgfx(bitmap,Machine->gfx[1],
+						code+3,color,flipx,flipy,sx+sfb,sy-sfa,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
+				drawgfx(bitmap,Machine->gfx[1],
+						code+1,color,flipx,flipy,sx+sfb,sy-sfb,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
+			}
+			else if (spriteram_3[offs] & 8)	/* double width */
+			{
+				drawgfx(bitmap,Machine->gfx[1],
+						code+2,color,flipx,flipy,sx,sy-sfa,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
+				drawgfx(bitmap,Machine->gfx[1],
+						code,color,flipx,flipy,sx,sy-sfb,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
 			}
 			else if (spriteram_3[offs] & 4)	/* double height */
 			{
 				drawgfx(bitmap,Machine->gfx[1],
-						code,color,flipx,flipy,sx,sy,
-						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,0);
+						code,color,flipx,flipy,sx+sfa,sy,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
 				drawgfx(bitmap,Machine->gfx[1],
-						code+1,color,flipx,flipy,sx,sy+16,
-						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,0);
+						code+1,color,flipx,flipy,sx+sfb,sy,
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
 			}
 			else	/* normal */
 				drawgfx(bitmap,Machine->gfx[1],
 						code,color,flipx,flipy,sx,sy,
-						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,0);
+						&Machine->drv->visible_area,TRANSPARENCY_THROUGH,Machine->pens[0]);
 		}
 	}
 
@@ -308,28 +332,20 @@ void galaga_vh_screenrefresh(struct osd_bitmap *bitmap)
 			int set;
 			int starset[4][2] = {{0,3},{0,1},{2,3},{2,1}};
 
-			x = stars[offs].x;
-			y = (stars[offs].y + stars_scroll/2) % 256 + 16;
-
-			if (Machine->orientation & ORIENTATION_SWAP_XY)
-			{
-				int temp;
-
-
-				temp = x;
-				x = y;
-				y = temp;
-			}
-			if (Machine->orientation & ORIENTATION_FLIP_X)
-				x = bitmap->width - 1 - x;
-			if (Machine->orientation & ORIENTATION_FLIP_Y)
-				y = bitmap->height - 1 - y;
-
 			set = ((galaga_starcontrol[4] << 1) | galaga_starcontrol[3]) & 3;
-			if ((bitmap->line[y][x] == bpen) &&
-					((stars[offs].set == starset[set][0]) ||
-					 (stars[offs].set == starset[set][1])))
-				bitmap->line[y][x] = stars[offs].col;
+			if ((stars[offs].set == starset[set][0]) ||
+				(stars[offs].set == starset[set][1]))
+			{
+				x = ((stars[offs].x + stars_scroll) % 512) / 2 + 16;
+				y = (stars[offs].y + (stars_scroll + stars[offs].x) / 512) % 256;
+
+				if (y >= Machine->drv->visible_area.min_y &&
+					y <= Machine->drv->visible_area.max_y)
+				{
+					if (read_pixel(bitmap, x, y) == bpen)
+						plot_pixel(bitmap, x, y, stars[offs].col);
+				}
+			}
 		}
 	}
 }

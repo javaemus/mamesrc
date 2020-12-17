@@ -7,26 +7,25 @@
 **************************************************************************/
 
 #include "driver.h"
-#include "Z80.h"
 
-extern void CopyLine(int Line);
-extern void Gorf_CopyLine(int Line);
-extern int interrupt(void);
-extern int Z80_IRQ;
+
+
+void wow_update_line(int line, int gorf);
+
 
 /****************************************************************************
  * Scanline Interrupt System
  ****************************************************************************/
 
-int NextScanInt=0;			/* Normal */
-int CurrentScan=0;
-int InterruptFlag=0;
+static int NextScanInt=0;			/* Normal */
+static int CurrentScan=0;
+static int InterruptFlag=0;
 
-int Controller1=32;			/* Seawolf II */
-int Controller2=32;
+int wow_controller1=32;			/* Seawolf II */
+int wow_controller2=32;
 
-int GorfDelay;				/* Gorf */
-int Countdown=0;
+static int GorfDelay;				/* Gorf */
+static int Countdown=0;
 
 void wow_interrupt_enable_w(int offset, int data)
 {
@@ -41,7 +40,7 @@ void wow_interrupt_enable_w(int offset, int data)
 
     if (data & 0x10)
  	{
-  		GorfDelay =(CurrentScan + 10) & 0xFF;
+  		GorfDelay =(CurrentScan + 7) & 0xFF;
 
         /* Gorf Special *MUST* occur before next scanline interrupt */
 
@@ -50,29 +49,36 @@ void wow_interrupt_enable_w(int offset, int data)
           	GorfDelay = NextScanInt - 1;
         }
 
+#ifdef MAME_DEBUG
         if (errorlog) fprintf(errorlog,"Gorf Delay set to %02x\n",GorfDelay);
+#endif
+
     }
 
+#ifdef MAME_DEBUG
     if (errorlog) fprintf(errorlog,"Interrupt Flag set to %02x\n",InterruptFlag);
+#endif
 }
 
 void wow_interrupt_w(int offset, int data)
 {
 	/* A write to 0F triggers an interrupt at that scanline */
 
+#ifdef MAME_DEBUG
 	if (errorlog) fprintf(errorlog,"Scanline interrupt set to %02x\n",data);
+#endif
 
     NextScanInt = data;
 }
 
 int wow_interrupt(void)
 {
-	int res=Z80_IGNORE_INT;
+	int res=ignore_interrupt();
     int Direction;
 
     CurrentScan++;
 
-    if (CurrentScan == Machine->drv->cpu[0].interrupts_per_frame)
+    if (CurrentScan == Machine->drv->cpu[0].vblank_interrupts_per_frame)
 	{
 		CurrentScan = 0;
 
@@ -84,22 +90,22 @@ int wow_interrupt(void)
 
         Direction = input_port_0_r(0);
 
-        if ((Direction & 2) && (Controller1 > 0))
-			Controller1--;
+        if ((Direction & 2) && (wow_controller1 > 0))
+			wow_controller1--;
 
-		if ((Direction & 1) && (Controller1 < 63))
-			Controller1++;
+		if ((Direction & 1) && (wow_controller1 < 63))
+			wow_controller1++;
 
         Direction = input_port_1_r(0);
 
-        if ((Direction & 2) && (Controller2 > 0))
-			Controller2--;
+        if ((Direction & 2) && (wow_controller2 > 0))
+			wow_controller2--;
 
-		if ((Direction & 1) && (Controller2 < 63))
-			Controller2++;
+		if ((Direction & 1) && (wow_controller2 < 63))
+			wow_controller2++;
     }
 
-    if (CurrentScan < 204) CopyLine(CurrentScan);
+    if (CurrentScan < 204) wow_update_line(CurrentScan, 0);
 
     /* Scanline interrupt enabled ? */
 
@@ -115,7 +121,7 @@ int wow_interrupt(void)
 
 int gorf_interrupt(void)
 {
-	int res=Z80_IGNORE_INT;
+	int res=ignore_interrupt();
 
     CurrentScan++;
 
@@ -124,13 +130,12 @@ int gorf_interrupt(void)
 		CurrentScan=0;
     }
 
-    if (CurrentScan < 204) Gorf_CopyLine(CurrentScan);
+    if (CurrentScan < 204) wow_update_line(CurrentScan, 1);
 
     /* Scanline interrupt enabled ? */
 
     if ((InterruptFlag & 0x08) && (CurrentScan == NextScanInt))
 		res = interrupt();
-
 
     /* Gorf Special Bits */
 
@@ -139,7 +144,10 @@ int gorf_interrupt(void)
     if ((InterruptFlag & 0x10) && (CurrentScan==GorfDelay))
 		res = interrupt() & 0xF0;
 
-	cpu_clear_pending_interrupts(0);
+/*	cpu_clear_pending_interrupts(0); */
+
+//	Z80_Clear_Pending_Interrupts();					/* Temporary Fix */
+	cpu_set_irq_line(0,0,CLEAR_LINE);
 
     return res;
 }
@@ -147,10 +155,12 @@ int gorf_interrupt(void)
 int gorf_timer_r(int offset)
 {
 	static int Skip=0;
+	unsigned char *RAM = memory_region(REGION_CPU1);
+
 
 	if ((RAM[0x5A93]==160) || (RAM[0x5A93]==4)) 	/* INVADERS AND    */
 	{												/* GALAXIAN SCREEN */
-        if (cpu_getpc()==0x3086)
+        if (cpu_get_pc()==0x3086)
         {
     	    if(--Skip==-1)
             {
@@ -166,6 +176,13 @@ int gorf_timer_r(int offset)
     }
 
 }
+
+
+int wow_video_retrace_r(int offset)
+{
+    return CurrentScan;
+}
+
 
 /****************************************************************************
  * Seawolf Controllers
@@ -194,11 +211,25 @@ static const int ControllerTable[64] = {
 
 int seawolf2_controller1_r(int offset)
 {
-    return (input_port_0_r(0) & 0x80) + ControllerTable[Controller1];
+    return (input_port_0_r(0) & 0xC0) + ControllerTable[wow_controller1];
 }
 
 int seawolf2_controller2_r(int offset)
 {
-    return (input_port_1_r(0) & 0x80) + ControllerTable[Controller2];
+    return (input_port_1_r(0) & 0x80) + ControllerTable[wow_controller2];
 }
 
+
+static int ebases_trackball_select = 0;
+
+void ebases_trackball_select_w(int offset, int data)
+{
+	ebases_trackball_select = data;
+}
+
+int ebases_trackball_r(int offset)
+{
+	int ret = readinputport(3 + ebases_trackball_select);
+	if (errorlog) fprintf(errorlog, "Port %d = %d\n", ebases_trackball_select, ret);
+	return ret;
+}

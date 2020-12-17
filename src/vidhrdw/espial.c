@@ -35,7 +35,7 @@ unsigned char *espial_column_scroll;
   bit 0 -- 1  kohm resistor  -- RED
 
 ***************************************************************************/
-void espial_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void espial_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
 	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
@@ -65,11 +65,6 @@ void espial_vh_convert_color_prom(unsigned char *palette, unsigned char *colorta
 
 		color_prom++;
 	}
-
-
-	/* characters and sprites use the same palette */
-	for (i = 0;i < TOTAL_COLORS(0);i++)
-		COLOR(0,i) = i;
 }
 
 
@@ -92,7 +87,7 @@ void espial_attributeram_w(int offset,int data)
   the main emulation engine.
 
 ***************************************************************************/
-void espial_vh_screenrefresh(struct osd_bitmap *bitmap)
+void espial_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int offs;
 

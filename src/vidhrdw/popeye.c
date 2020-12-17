@@ -27,49 +27,223 @@ static struct osd_bitmap *tmpbitmap2;
   - 32x8 char palette
   - 32x8 background palette
   - two 256x4 sprite palette
-  I don't know for sure how the PROMs are connected to the RGB output, but
-  it's probably the usual:
 
-  bit 7 -- 220 ohm resistor  -- BLUE
-        -- 470 ohm resistor  -- BLUE
-        -- 220 ohm resistor  -- GREEN
-        -- 470 ohm resistor  -- GREEN
-        -- 1  kohm resistor  -- GREEN
-        -- 220 ohm resistor  -- RED
-        -- 470 ohm resistor  -- RED
-  bit 0 -- 1  kohm resistor  -- RED
+  The char and sprite PROMs are connected to the RGB output this way:
+
+  bit 7 -- 220 ohm resistor  -- BLUE (inverted)
+        -- 470 ohm resistor  -- BLUE (inverted)
+        -- 220 ohm resistor  -- GREEN (inverted)
+        -- 470 ohm resistor  -- GREEN (inverted)
+        -- 1  kohm resistor  -- GREEN (inverted)
+        -- 220 ohm resistor  -- RED (inverted)
+        -- 470 ohm resistor  -- RED (inverted)
+  bit 0 -- 1  kohm resistor  -- RED (inverted)
+
+  The background PROM is connected to the RGB output this way:
+
+  bit 7 -- 470 ohm resistor  -- BLUE (inverted)
+        -- 680 ohm resistor  -- BLUE (inverted)
+        -- 470 ohm resistor  -- GREEN (inverted)
+        -- 680 ohm resistor  -- GREEN (inverted)
+        -- 1.2kohm resistor  -- GREEN (inverted)
+        -- 470 ohm resistor  -- RED (inverted)
+        -- 680 ohm resistor  -- RED (inverted)
+  bit 0 -- 1.2kohm resistor  -- RED (inverted)
+
+  The bootleg is the same, but the outputs are not inverted.
 
 ***************************************************************************/
-void popeye_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void popeye_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
 
 
+	/* background - darker than the others */
+	for (i = 0;i < 32;i++)
+	{
+		int bit0,bit1,bit2;
+
+
+		/* red component */
+		bit0 = (*color_prom >> 0) & 0x01;
+		bit1 = (*color_prom >> 1) & 0x01;
+		bit2 = (*color_prom >> 2) & 0x01;
+		*(palette++) = 0x1c * bit0 + 0x31 * bit1 + 0x47 * bit2;
+		/* green component */
+		bit0 = (*color_prom >> 3) & 0x01;
+		bit1 = (*color_prom >> 4) & 0x01;
+		bit2 = (*color_prom >> 5) & 0x01;
+		*(palette++) = 0x1c * bit0 + 0x31 * bit1 + 0x47 * bit2;
+		/* blue component */
+		bit0 = 0;
+		bit1 = (*color_prom >> 6) & 0x01;
+		bit2 = (*color_prom >> 7) & 0x01;
+		*(palette++) = 0x1c * bit0 + 0x31 * bit1 + 0x47 * bit2;
+
+		color_prom++;
+	}
+
+	/* characters */
+	for (i = 0;i < 16;i++)
+	{
+		int bit0,bit1,bit2;
+
+
+		/* red component */
+		bit0 = (*color_prom >> 0) & 0x01;
+		bit1 = (*color_prom >> 1) & 0x01;
+		bit2 = (*color_prom >> 2) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* green component */
+		bit0 = (*color_prom >> 3) & 0x01;
+		bit1 = (*color_prom >> 4) & 0x01;
+		bit2 = (*color_prom >> 5) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* blue component */
+		bit0 = 0;
+		bit1 = (*color_prom >> 6) & 0x01;
+		bit2 = (*color_prom >> 7) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
+		color_prom++;
+	}
+
+	color_prom += 16;	/* skip unused part of the PROM */
+
+	/* sprites */
 	for (i = 0;i < 256;i++)
 	{
-		int bits;
+		int bit0,bit1,bit2;
 
 
-		bits = (i >> 0) & 0x07;
-		palette[3*i] = (bits >> 1) | (bits << 2) | (bits << 5);
-		bits = (i >> 3) & 0x07;
-		palette[3*i + 1] = (bits >> 1) | (bits << 2) | (bits << 5);
-		bits = (i >> 6) & 0x03;
-		palette[3*i + 2] = bits | (bits >> 2) | (bits << 4) | (bits << 6);
+		/* red component */
+		bit0 = (color_prom[0] >> 0) & 0x01;
+		bit1 = (color_prom[0] >> 1) & 0x01;
+		bit2 = (color_prom[0] >> 2) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* green component */
+		bit0 = (color_prom[0] >> 3) & 0x01;
+		bit1 = (color_prom[256] >> 0) & 0x01;
+		bit2 = (color_prom[256] >> 1) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* blue component */
+		bit0 = 0;
+		bit1 = (color_prom[256] >> 2) & 0x01;
+		bit2 = (color_prom[256] >> 3) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
+		color_prom++;
 	}
 
-	for (i = 0;i < 32;i++)	/* characters */
+
+	/* palette entries 0-31 are directly used by the background */
+
+	for (i = 0;i < 16;i++)	/* characters */
 	{
-		colortable[2*i] = 0;
-		colortable[2*i + 1] = color_prom[i];
+		*(colortable++) = 0;	/* since chars are transparent, the PROM only */
+								/* stores the non transparent color */
+		*(colortable++) = i + 32;
 	}
-	for (i = 0;i < 32;i++)	/* background */
+	for (i = 0;i < 256;i++)	/* sprites */
 	{
-		colortable[i+32*2] = color_prom[i+32];
+		*(colortable++) = i + 32+16;
 	}
-	for (i = 0;i < 64*4;i++)	/* sprites */
+}
+
+void popeyebl_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
+{
+	int i;
+
+
+	/* background - darker than the others */
+	for (i = 0;i < 32;i++)
 	{
-		colortable[i+32*2+32] = (color_prom[i+64] & 0x0f) | ((color_prom[i+64+64*4] << 4) & 0xf0);
+		int bit0,bit1,bit2;
+
+
+		/* red component */
+		bit0 = (*color_prom >> 0) & 0x01;
+		bit1 = (*color_prom >> 1) & 0x01;
+		bit2 = (*color_prom >> 2) & 0x01;
+		*(palette++) = 0x1c * bit0 + 0x31 * bit1 + 0x47 * bit2;
+		/* green component */
+		bit0 = (*color_prom >> 3) & 0x01;
+		bit1 = (*color_prom >> 4) & 0x01;
+		bit2 = (*color_prom >> 5) & 0x01;
+		*(palette++) = 0x1c * bit0 + 0x31 * bit1 + 0x47 * bit2;
+		/* blue component */
+		bit0 = 0;
+		bit1 = (*color_prom >> 6) & 0x01;
+		bit2 = (*color_prom >> 7) & 0x01;
+		*(palette++) = 0x1c * bit0 + 0x31 * bit1 + 0x47 * bit2;
+
+		color_prom++;
+	}
+
+	/* characters */
+	for (i = 0;i < 16;i++)
+	{
+		int bit0,bit1,bit2;
+
+
+		/* red component */
+		bit0 = (*color_prom >> 0) & 0x01;
+		bit1 = (*color_prom >> 1) & 0x01;
+		bit2 = (*color_prom >> 2) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* green component */
+		bit0 = (*color_prom >> 3) & 0x01;
+		bit1 = (*color_prom >> 4) & 0x01;
+		bit2 = (*color_prom >> 5) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* blue component */
+		bit0 = 0;
+		bit1 = (*color_prom >> 6) & 0x01;
+		bit2 = (*color_prom >> 7) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
+		color_prom++;
+	}
+
+	color_prom += 16;	/* skip unused part of the PROM */
+
+	/* sprites */
+	for (i = 0;i < 256;i++)
+	{
+		int bit0,bit1,bit2;
+
+
+		/* red component */
+		bit0 = (color_prom[0] >> 0) & 0x01;
+		bit1 = (color_prom[0] >> 1) & 0x01;
+		bit2 = (color_prom[0] >> 2) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* green component */
+		bit0 = (color_prom[0] >> 3) & 0x01;
+		bit1 = (color_prom[256] >> 0) & 0x01;
+		bit2 = (color_prom[256] >> 1) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		/* blue component */
+		bit0 = 0;
+		bit1 = (color_prom[256] >> 2) & 0x01;
+		bit2 = (color_prom[256] >> 3) & 0x01;
+		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
+		color_prom++;
+	}
+
+
+	/* palette entries 0-31 are directly used by the background */
+
+	for (i = 0;i < 16;i++)	/* characters */
+	{
+		*(colortable++) = 0;	/* since chars are transparent, the PROM only */
+								/* stores the non transparent color */
+		*(colortable++) = i + 32;
+	}
+	for (i = 0;i < 256;i++)	/* sprites */
+	{
+		*(colortable++) = i + 32+16;
 	}
 }
 
@@ -161,7 +335,7 @@ void popeye_palettebank_w(int offset,int data)
   the main emulation engine.
 
 ***************************************************************************/
-void popeye_vh_screenrefresh(struct osd_bitmap *bitmap)
+void popeye_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int offs;
 
@@ -172,37 +346,49 @@ void popeye_vh_screenrefresh(struct osd_bitmap *bitmap)
 	{
 		if (dirtybuffer2[offs])
 		{
-			int sx,sy,y,colour;
-
+			int sx,sy,x,y,colour;
 
 			dirtybuffer2[offs] = 0;
 
 			sx = 8 * (offs % 64);
 			sy = 8 * (offs / 64) - 16;
 
-			if (sx >= Machine->drv->visible_area.min_x &&
-					sx+7 <= Machine->drv->visible_area.max_x &&
-					sy >= Machine->drv->visible_area.min_y &&
-					sy+7 <= Machine->drv->visible_area.max_y)
+			if (sx   >= Machine->drv->visible_area.min_x &&
+				sx+7 <= Machine->drv->visible_area.max_x &&
+				sy   >= Machine->drv->visible_area.min_y &&
+				sy+7 <= Machine->drv->visible_area.max_y)
 			{
-				colour = Machine->gfx[3]->colortable[(popeye_videoram[offs] & 0x0f) + 2*(*popeye_palette_bank & 0x08)];
-				for (y = 0;y < 4;y++)
-					memset(&tmpbitmap2->line[sy+y][sx],colour,8);
+				/* this is slow, but the background doesn't change during game */
 
-				colour = Machine->gfx[3]->colortable[(popeye_videoram[offs] >> 4) + 2*(*popeye_palette_bank & 0x08)];
+				colour = Machine->pens[(popeye_videoram[offs] & 0x0f) + 2*(*popeye_palette_bank & 0x08)];
+				for (y = 0; y < 4; y++)
+				{
+					for (x = 0; x < 8; x++)
+					{
+						plot_pixel(tmpbitmap2, sx+x, sy+y, colour);
+					}
+				}
+
+				colour = Machine->pens[(popeye_videoram[offs] >> 4) + 2*(*popeye_palette_bank & 0x08)];
 				for (y = 4;y < 8;y++)
-					memset(&tmpbitmap2->line[sy+y][sx],colour,8);
+				{
+					for (x = 0; x < 8; x++)
+					{
+						plot_pixel(tmpbitmap2, sx+x, sy+y, colour);
+					}
+				}
 			}
 		}
 	}
 
 	{
 		static int lastpos[2] = { -1, -1 };
-		if (/*popeye_background_pos[0] != 0 ||*/ popeye_background_pos[0] != lastpos[0] || 
+
+		if (popeye_background_pos[0] != lastpos[0] ||
 		    popeye_background_pos[1] != lastpos[1])
 		{
 			/* mark the whole screen dirty if we're scrolling */
-			osd_mark_dirty (Machine->drv->visible_area.min_x, Machine->drv->visible_area.min_y, 
+			osd_mark_dirty (Machine->drv->visible_area.min_x, Machine->drv->visible_area.min_y,
 				Machine->drv->visible_area.max_x, Machine->drv->visible_area.max_y, 0);
 			lastpos[0] = popeye_background_pos[0];
 			lastpos[1] = popeye_background_pos[1];
@@ -216,7 +402,6 @@ void popeye_vh_screenrefresh(struct osd_bitmap *bitmap)
 			if (dirtybuffer[offs])
 			{
 				int sx,sy;
-
 
 				dirtybuffer[offs] = 0;
 
@@ -237,9 +422,13 @@ void popeye_vh_screenrefresh(struct osd_bitmap *bitmap)
 	else
 	{
 		/* copy the background graphics */
+
+       	int x = 400 - 2 * popeye_background_pos[0];
+        int y = 2 * (256 - popeye_background_pos[1]);
+
 		copybitmap(bitmap,tmpbitmap2,0,0,
-			400 - 2 * popeye_background_pos[0],
-			2 * (256 - popeye_background_pos[1]),
+			x,
+			y,
 			&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
 	}
 
@@ -248,6 +437,8 @@ void popeye_vh_screenrefresh(struct osd_bitmap *bitmap)
 	/* order, to have the correct priorities. */
 	for (offs = 0;offs < spriteram_size;offs += 4)
 	{
+		int code,color;
+
 		/*
 		 * offs+3:
 		 * bit 7 ?
@@ -259,11 +450,18 @@ void popeye_vh_screenrefresh(struct osd_bitmap *bitmap)
 		 * bit 1 \ color (with bit 2 as well)
 		 * bit 0 /
 		 */
+
+		code = (spriteram[offs + 2] & 0x7f) + ((spriteram[offs + 3] & 0x10) << 3)
+							+ ((spriteram[offs + 3] & 0x04) << 6);
+		color = (spriteram[offs + 3] & 0x07) + 8*(*popeye_palette_bank & 0x07);
+
 		if (spriteram[offs] != 0)
-			drawgfx(bitmap,Machine->gfx[(spriteram[offs + 3] & 0x04) ? 1 : 2],
-					0xff - (spriteram[offs + 2] & 0x7f) - 8*(spriteram[offs + 3] & 0x10),
-					(spriteram[offs + 3] & 0x07) + 8*(*popeye_palette_bank & 0x07),
+			drawgfx(bitmap,Machine->gfx[1],
+					code ^ 0x1ff,
+					color,
 					spriteram[offs + 2] & 0x80,spriteram[offs + 3] & 0x08,
+		/* sprite placement IS correct - the squares on level 1 leave one pixel */
+		/* of the house background uncovered */
 					2*(spriteram[offs])-7,2*(256-spriteram[offs + 1]) - 16,
 					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
 	}
@@ -277,16 +475,13 @@ void popeye_vh_screenrefresh(struct osd_bitmap *bitmap)
 			int sx,sy;
 
 
-			if (videoram[offs] != 0xff)	/* don't draw spaces */
-			{
-				sx = 16 * (offs % 32);
-				sy = 16 * (offs / 32) - 16;
+			sx = 16 * (offs % 32);
+			sy = 16 * (offs / 32) - 16;
 
-				drawgfx(bitmap,Machine->gfx[0],
-						videoram[offs],colorram[offs],
-						0,0,sx,sy,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
-			}
+			drawgfx(bitmap,Machine->gfx[0],
+					videoram[offs],colorram[offs],
+					0,0,sx,sy,
+					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 }

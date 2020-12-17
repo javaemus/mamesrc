@@ -17,12 +17,12 @@ static int flipscreen[2];
 
 static struct rectangle spritevisiblearea =
 {
-	2*8, 32*8-1,
+	2*8+1, 32*8-1,
 	2*8, 30*8-1
 };
 static struct rectangle spritevisibleareaflipx =
 {
-	0*8, 30*8-1,
+	0*8, 30*8-2,
 	2*8, 30*8-1
 };
 
@@ -45,7 +45,7 @@ static struct rectangle spritevisibleareaflipx =
   bit 0 -- 1  kohm resistor  -- RED
 
 ***************************************************************************/
-void amidar_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void amidar_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
 	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
@@ -68,10 +68,9 @@ void amidar_vh_convert_color_prom(unsigned char *palette, unsigned char *colorta
 		bit2 = (*color_prom >> 5) & 0x01;
 		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
 		/* blue component */
-		bit0 = 0;
-		bit1 = (*color_prom >> 6) & 0x01;
-		bit2 = (*color_prom >> 7) & 0x01;
-		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+		bit0 = (*color_prom >> 6) & 0x01;
+		bit1 = (*color_prom >> 7) & 0x01;
+		*(palette++) = 0x4f * bit0 + 0xa8 * bit1;
 
 		color_prom++;
 	}
@@ -130,7 +129,7 @@ void amidar_attributes_w(int offset,int data)
   the main emulation engine.
 
 ***************************************************************************/
-void amidar_vh_screenrefresh(struct osd_bitmap *bitmap)
+void amidar_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int offs;
 
@@ -173,20 +172,20 @@ void amidar_vh_screenrefresh(struct osd_bitmap *bitmap)
 		int flipx,flipy,sx,sy;
 
 
-		flipx = spriteram[offs + 1] & 0x40;
-		flipy = spriteram[offs + 1] & 0x80;
 		sx = (spriteram[offs + 3] + 1) & 0xff;	/* ??? */
 		sy = 240 - spriteram[offs];
+		flipx = spriteram[offs + 1] & 0x40;
+		flipy = spriteram[offs + 1] & 0x80;
 
 		if (flipscreen[0])
 		{
-			flipx = !flipx;
 			sx = 241 - sx;	/* note: 241, not 240 */
+			flipx = !flipx;
 		}
 		if (flipscreen[1])
 		{
-			flipy = !flipy;
 			sy = 240 - sy;
+			flipy = !flipy;
 		}
 
 		/* Sprites #0, #1 and #2 need to be offset one pixel to be correctly */

@@ -8,31 +8,26 @@
 ***************************************************************************/
 
 #include "driver.h"
-#include "Z80.h"
 #include "vidhrdw/generic.h"
+#include "cpu/z80/z80.h"
 
 
 unsigned char *digdug_sharedram;
 static unsigned char interrupt_enable_1,interrupt_enable_2,interrupt_enable_3;
-unsigned char digdug_hiscoreloaded;
 
 static int credits;
 
+static void *nmi_timer;
+
+void digdug_halt_w(int offset,int data);
+
+
 void digdig_init_machine(void)
 {
-	/* halt the slave CPUs until they're reset */
-	cpu_halt(1,0);
-	cpu_halt(2,0);
-
 	credits = 0;
-}
-
-
-int digdug_reset_r(int offset)
-{
-	digdug_hiscoreloaded = 0;
-
-	return RAM[offset];
+	nmi_timer = 0;
+	interrupt_enable_1 = interrupt_enable_2 = interrupt_enable_3 = 0;
+	digdug_halt_w (0, 0);
 }
 
 
@@ -49,12 +44,8 @@ void digdug_sharedram_w(int offset,int data)
 		dirtybuffer[offset] = 1;
 
 	/* location 9b3d is set to zero just before CPU 2 spins */
-	if (offset == 0x1b3d && data == 0 && cpu_getpc () == 0x1df1 && Z80_ICount > 50)
-		Z80_ICount = 50;
-
-	/* location 9b3c is set to zero just before CPU 3 spins */
-	if (offset == 0x1b3c && data == 0 && cpu_getpc () == 0x0316 && Z80_ICount > 50)
-		Z80_ICount = 50;
+	if (offset == 0x1b3d && data == 0 && cpu_get_pc () == 0x1df1 && cpu_getactivecpu () == 1)
+		cpu_spinuntil_int ();
 
 	digdug_sharedram[offset] = data;
 }
@@ -64,77 +55,185 @@ void digdug_sharedram_w(int offset,int data)
 
  Emulate the custom IO chip.
 
- In the real digdug machine, the chip would cause an NMI on CPU #1 to ask
- for data to be transferred. We don't bother causing the NMI, we just look
- into the CPU register to see where the data has to be read/written to, and
- emulate the behaviour of the NMI interrupt.
-
 ***************************************************************************/
-void digdug_customio_w(int offset,int data)
+static int customio_command;
+static int leftcoinpercred,leftcredpercoin;
+static int rightcoinpercred,rightcredpercoin;
+static unsigned char customio[16];
+static int mode;
+
+void digdug_customio_data_w(int offset,int data)
 {
-	static int mode;
-	Z80_Regs regs;
+	customio[offset] = data;
 
-	switch (data)
+if (errorlog) fprintf(errorlog,"%04x: custom IO offset %02x data %02x\n",cpu_get_pc(),offset,data);
+
+	switch (customio_command)
 	{
-		case 0x10:	/* nop */
-			return;
+		case 0xc1:
+			if (offset == 8)
+			{
+				leftcoinpercred = customio[2] & 0x0f;
+				leftcredpercoin = customio[3] & 0x0f;
+				rightcoinpercred = customio[4] & 0x0f;
+				rightcredpercoin = customio[5] & 0x0f;
+			}
+			break;
+	}
+}
 
+
+int digdug_customio_data_r(int offset)
+{
+	switch (customio_command)
+	{
 		case 0x71:
+			if (offset == 0)
+			{
+				if (mode)	/* switch mode */
+				{
+					/* bit 7 is the service switch */
+                                        return readinputport(4);
+				}
+				else	/* credits mode: return number of credits in BCD format */
+				{
+					int in;
+					static int leftcoininserted;
+					static int rightcoininserted;
+
+
+                                        in = readinputport(4);
+
+					/* check if the user inserted a coin */
+					if (leftcoinpercred > 0)
+					{
+						if ((in & 0x01) == 0 && credits < 99)
+						{
+							leftcoininserted++;
+							if (leftcoininserted >= leftcoinpercred)
+							{
+								credits += leftcredpercoin;
+								leftcoininserted = 0;
+							}
+						}
+						if ((in & 0x02) == 0 && credits < 99)
+						{
+							rightcoininserted++;
+							if (rightcoininserted >= rightcoinpercred)
+							{
+								credits += rightcredpercoin;
+								rightcoininserted = 0;
+							}
+						}
+					}
+					else credits = 2;
+
+
+					/* check for 1 player start button */
+					if ((in & 0x10) == 0)
+						if (credits >= 1) credits--;
+
+					/* check for 2 players start button */
+					if ((in & 0x20) == 0)
+						if (credits >= 2) credits -= 2;
+
+					return (credits / 10) * 16 + credits % 10;
+				}
+			}
+			else if (offset == 1)
 			{
 				int p2 = readinputport (2);
-				int p3 = readinputport (3);
 
-				/* check if the user inserted a coin */
-				if ((p3 & 0x01) == 0 && credits < 99)
-					credits++;
+				if (mode == 0)
+				{
+					/* check directions, according to the following 8-position rule */
+					/*         0          */
+					/*        7 1         */
+					/*       6 8 2        */
+					/*        5 3         */
+					/*         4          */
+					if ((p2 & 0x01) == 0)		/* up */
+						p2 = (p2 & ~0x0f) | 0x00;
+					else if ((p2 & 0x02) == 0)	/* right */
+						p2 = (p2 & ~0x0f) | 0x02;
+					else if ((p2 & 0x04) == 0)	/* down */
+						p2 = (p2 & ~0x0f) | 0x04;
+					else if ((p2 & 0x08) == 0) /* left */
+						p2 = (p2 & ~0x0f) | 0x06;
+					else
+						p2 = (p2 & ~0x0f) | 0x08;
+				}
 
-				/* check if the user inserted a coin */
-				if ((p3 & 0x02) == 0 && credits < 99)
-					credits++;
+				return p2;
+			}
+                        else if (offset == 2)
+			{
+                                int p2 = readinputport (3);
 
-				/* check for 1 player start button */
-				if ((p3 & 0x10) == 0 && credits >= 1)
-					credits--;
+				if (mode == 0)
+				{
+					/* check directions, according to the following 8-position rule */
+					/*         0          */
+					/*        7 1         */
+					/*       6 8 2        */
+					/*        5 3         */
+					/*         4          */
+					if ((p2 & 0x01) == 0)		/* up */
+						p2 = (p2 & ~0x0f) | 0x00;
+					else if ((p2 & 0x02) == 0)	/* right */
+						p2 = (p2 & ~0x0f) | 0x02;
+					else if ((p2 & 0x04) == 0)	/* down */
+						p2 = (p2 & ~0x0f) | 0x04;
+					else if ((p2 & 0x08) == 0) /* left */
+						p2 = (p2 & ~0x0f) | 0x06;
+					else
+						p2 = (p2 & ~0x0f) | 0x08;
+				}
 
-				/* check for 2 players start button */
-				if ((p3 & 0x20) == 0 && credits >= 2)
-					credits -= 2;
-
-
-				/* check directions, according to the following 8-position rule */
-				/*         0          */
-				/*        7 1         */
-				/*       6 8 2        */
-				/*        5 3         */
-				/*         4          */
-				if ((p2 & 0x01) == 0)		/* up */
-					p2 = (p2 & ~0x0f) | 0x00;
-				else if ((p2 & 0x02) == 0)	/* right */
-					p2 = (p2 & ~0x0f) | 0x02;
-				else if ((p2 & 0x04) == 0)	/* down */
-					p2 = (p2 & ~0x0f) | 0x04;
-				else if ((p2 & 0x08) == 0) /* left */
-					p2 = (p2 & ~0x0f) | 0x06;
-				else
-					p2 = (p2 & ~0x0f) | 0x08;
-
-				if (mode)	/* switch mode */
-					cpu_writemem16(0x7000,p3 & 0x80);
-				else	/* credits mode: return number of credits in BCD format */
-					cpu_writemem16(0x7000,(credits / 10) * 16 + credits % 10);
-
-				cpu_writemem16(0x7000 + 1,p2);
-				cpu_writemem16(0x7000 + 2,0xff);
+                                return p2; /*p2 jochen*/
 			}
 			break;
 
 		case 0xb1:	/* status? */
-			credits = 0;	/* this is a good time to reset the credits counter */
-			cpu_writemem16(0x7000,0);
-			cpu_writemem16(0x7000 + 1,0);
-			cpu_writemem16(0x7000 + 2,0);
+			if (offset <= 2)
+				return 0;
 			break;
+
+		case 0xd2:	/* checking the dipswitches */
+			if (offset == 0)
+				return readinputport (0);
+			else if (offset == 1)
+				return readinputport (1);
+			break;
+	}
+
+	return -1;
+}
+
+
+int digdug_customio_r(int offset)
+{
+	return customio_command;
+}
+
+void digdug_nmi_generate (int param)
+{
+	cpu_cause_interrupt (0, Z80_NMI_INT);
+}
+
+
+void digdug_customio_w(int offset,int data)
+{
+if (errorlog && data != 0x10 && data != 0x71) fprintf(errorlog,"%04x: custom IO command %02x\n",cpu_get_pc(),data);
+
+	customio_command = data;
+
+	switch (data)
+	{
+		case 0x10:
+			if (nmi_timer) timer_remove (nmi_timer);
+			nmi_timer = 0;
+			return;
 
 		case 0xa1:	/* go into switch mode */
 			mode = 1;
@@ -145,88 +244,71 @@ void digdug_customio_w(int offset,int data)
 			mode = 0;
 			break;
 
-		case 0xd2:	/* checking the dipswitches */
-			cpu_writemem16(0x7000,readinputport(0));
-			cpu_writemem16(0x7001,readinputport(1));
-			break;
-
-		default:
-			if (errorlog) fprintf(errorlog,"%04x: warning: unknown custom IO command %02x\n",cpu_getpc(),data);
+		case 0xb1:	/* status? */
+			credits = 0;	/* this is a good time to reset the credits counter */
 			break;
 	}
 
-	/* copy all but the last byte of the data into the destination, just like the NMI */
-	Z80_GetRegs(&regs);
-	while (regs.BC2.D > 1)
-	{
-		cpu_writemem16(regs.DE2.D,cpu_readmem16(regs.HL2.D));	/* ASG 971005 */
-		++regs.DE2.W.l;
-		++regs.HL2.W.l;
-		--regs.BC2.W.l;
-	}
-
-	Z80_SetRegs(&regs);
-
-	/* actually generate an NMI for the final byte, to handle special processing */
-	cpu_cause_interrupt(0,Z80_NMI_INT);
-}
-
-
-
-int digdug_customio_r(int offset)
-{
-	return 0x10;	/* everything is handled by customio_w() */
+	nmi_timer = timer_pulse (TIME_IN_USEC (50), 0, digdug_nmi_generate);
 }
 
 
 
 void digdug_halt_w(int offset,int data)
 {
-	cpu_halt(1,data);
-	cpu_halt(2,data);
+	if (data & 1)
+	{
+		cpu_set_reset_line(1,CLEAR_LINE);
+		cpu_set_reset_line(2,CLEAR_LINE);
+	}
+	else
+	{
+		cpu_set_reset_line(1,ASSERT_LINE);
+		cpu_set_reset_line(2,ASSERT_LINE);
+	}
 }
 
 
 
 void digdug_interrupt_enable_1_w(int offset,int data)
 {
-	interrupt_enable_1 = data;
+	interrupt_enable_1 = (data&1);
 }
 
 
 
 int digdug_interrupt_1(void)
 {
-	if (interrupt_enable_1) return 0xff;
-	else return Z80_IGNORE_INT;
+	if (interrupt_enable_1) return interrupt();
+	else return ignore_interrupt();
 }
 
 
 
 void digdug_interrupt_enable_2_w(int offset,int data)
 {
-	interrupt_enable_2 = data;
+	interrupt_enable_2 = data & 1;
 }
 
 
 
 int digdug_interrupt_2(void)
 {
-	if (interrupt_enable_2) return 0xff;
-	else return Z80_IGNORE_INT;
+	if (interrupt_enable_2) return interrupt();
+	else return ignore_interrupt();
 }
 
 
 
 void digdug_interrupt_enable_3_w(int offset,int data)
 {
-	interrupt_enable_3 = data;
+	interrupt_enable_3 = !(data & 1);
 }
 
 
 
 int digdug_interrupt_3(void)
 {
-	if (interrupt_enable_3) return Z80_IGNORE_INT;
-	else return Z80_NMI_INT;
+	if (interrupt_enable_3) return nmi_interrupt();
+	else return ignore_interrupt();
 }

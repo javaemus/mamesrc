@@ -1,29 +1,57 @@
-/* CHANGELOG
-        97/06/19        some minor cleanup -V-
-
-        97/05/07        wrote a few comments ;-) -V-
-
-        97/04/xx        renamed the arabian.c to kangaroo.c and
-                        was a bit disappointed when it did not work
-                        straight away: the arabian videohardware is
-                        just as kludgy as kangaroo's
-*/
 /***************************************************************************
 
   vidhrdw.c
 
   Functions to emulate the video hardware of the machine.
 
+changes:
+Aug 16, 1999 - Rotation (-ror and -rol) implementation fixed by Chad Hendrickson
+
 ***************************************************************************/
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
-#include "Z80.h"
 
+
+unsigned char *kangaroo_video_control;
+unsigned char *kangaroo_bank_select;
+unsigned char *kangaroo_blitter;
+
+static int screen_flipped;
 static struct osd_bitmap *tmpbitmap2;
-static unsigned char inverse_palette[256]; /* JB 970727 */
 
-static void kangaroo_color_shadew(int val);
+
+/***************************************************************************
+
+  Convert the color PROMs into a more useable format.
+
+  Kangaroo doesn't have color PROMs, the playfield data is directly converted
+  into colors: 1 bit per gun, therefore only 8 possible colors, but there is
+  also a global mask register which controls intensities of the three guns,
+  separately for foreground and background. The fourth bit in the video RAM
+  data disables this mask, making the color display at full intensity
+  regardless of the mask value.
+  Actually the mask doesn't directly control intensity. The guns are rapidly
+  turned on and off at a subpixel rate, relying on the monitor to blend the
+  colors into a more or less uniform half intensity color.
+
+  We use three groups of 8 pens: the first is fixed and contains the 8
+  possible colors; the other two are dynamically modified when the mask
+  register is written to, one is for the background, the other for sprites.
+
+***************************************************************************/
+void kangaroo_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
+{
+    int i;
+
+
+    for (i = 0;i < Machine->drv->total_colors;i++)
+    {
+        *(palette++) = ((i & 4) >> 2) * 0xff;
+        *(palette++) = ((i & 2) >> 1) * 0xff;
+        *(palette++) = ((i & 1) >> 0) * 0xff;
+    }
+}
 
 
 
@@ -34,24 +62,24 @@ static void kangaroo_color_shadew(int val);
 ***************************************************************************/
 int kangaroo_vh_start(void)
 {
-	int i;	/* JB 970727 */
+    if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+        return 1;
 
+    if ((tmpbitmap2 = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+    {
+        osd_free_bitmap(tmpbitmap);
+        return 1;
+    }
 
-	if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
-		return 1;
+    if ((videoram = malloc(Machine->drv->screen_width*Machine->drv->screen_height)) == 0)
+    {
+        osd_free_bitmap(tmpbitmap);
+        osd_free_bitmap(tmpbitmap2);
+    }
 
-	if ((tmpbitmap2 = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
-	{
-		osd_free_bitmap(tmpbitmap);
-		return 1;
-	}
-
-	/* JB 970727 */
-	for (i = 0;i < Machine->drv->total_colors;i++)
-		inverse_palette[ Machine->pens[i] ] = i;
-
-	return 0;
+    return 0;
 }
+
 
 
 /***************************************************************************
@@ -61,210 +89,216 @@ int kangaroo_vh_start(void)
 ***************************************************************************/
 void kangaroo_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap2);
-	osd_free_bitmap(tmpbitmap);
+    osd_free_bitmap(tmpbitmap2);
+    osd_free_bitmap(tmpbitmap);
+    free(videoram);
+}
+
+
+void kangaroo_video_control_w(int offset,int data)
+{
+    /* A & B bitmap control latch (A=playfield B=motion)
+          bit 5 FLIP A
+          bit 4 FLIP B
+          bit 3 EN A
+          bit 2 EN B
+          bit 1 PRI A
+          bit 0 PRI B */
+
+    if ((*kangaroo_video_control & 0x30) != (data & 0x30))
+    {
+        screen_flipped = 1;
+    }
+
+    *kangaroo_video_control = data;
+}
+
+
+void kangaroo_bank_select_w(int offset,int data)
+{
+    unsigned char *RAM = memory_region(REGION_CPU1);
+
+
+    /* this is a VERY crude way to handle the banked ROMs - but it's */
+    /* correct enough to pass the self test */
+    if (data & 0x05)
+        cpu_setbank(1,&RAM[0x10000])
+    else
+        cpu_setbank(1,&RAM[0x12000]);
+
+    *kangaroo_bank_select = data;
 }
 
 
 
-/* There has to be a better way to do this ;-)
-   and faster -V-
-*/
-void kangaroo_spriteramw(int offset,int val)
+void kangaroo_color_mask_w(int offset,int data)
 {
-  int ofsx, ofsy,x, y, pl, src, xb,yb;
+    int i;
 
 
-  spriteram[offset]=val;
+    /* color mask for A plane */
+    for (i = 0;i < 8;i++)
+    {
+        int r,g,b;
 
-  if ( (offset) ==5 )
-  {
-     pl  = spriteram[8];
-     src = spriteram[0] + 256 * spriteram[1] - 0xc000;
-/*     trg = spriteram[2] + 256 * spriteram[3] - 0x8000;*/
-/*     xb  = spriteram[4] ; */
-/*     yb  = spriteram[5] * 4; */
-/*     pl |= ( pl << 1 ); */
 
-     ofsx = spriteram[2];
-     ofsy = ( 0xbf - spriteram[3] )*4;
-     yb = ofsy - ( spriteram[5] *4 );
-     xb = ofsx + spriteram[4] ;
+        r = ((i & 4) >> 2) * ((data & 0x20) ? 0xff : 0x7f);
+        g = ((i & 2) >> 1) * ((data & 0x10) ? 0xff : 0x7f);
+        b = ((i & 1) >> 0) * ((data & 0x08) ? 0xff : 0x7f);
 
-     for (y=ofsy; y>=yb; y-=4)
-       for (x=ofsx; x<=xb; x++, src++)
-       {
-         if(pl & 0x0c)
-           drawgfx(tmpbitmap2,Machine->gfx[0],src,0,0,0,\
-             x , y  ,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
-         if(pl & 0x03)
-           drawgfx(tmpbitmap,Machine->gfx[0],src,0,0,0,\
-             x , y ,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+        palette_change_color(8+i,r,g,b);
+    }
+
+    /* color mask for B plane */
+    for (i = 0;i < 8;i++)
+    {
+        int r,g,b;
+
+
+        r = ((i & 4) >> 2) * ((data & 0x04) ? 0xff : 0x7f);
+        g = ((i & 2) >> 1) * ((data & 0x02) ? 0xff : 0x7f);
+        b = ((i & 1) >> 0) * ((data & 0x01) ? 0xff : 0x7f);
+
+        palette_change_color(16+i,r,g,b);
+    }
+}
+
+
+
+void kangaroo_blitter_w(int offset,int data)
+{
+    kangaroo_blitter[offset] = data;
+
+    if (offset == 5)    /* trigger DMA */
+    {
+        int src,dest;
+        int x,y,xb,yb,old_bank_select,new_bank_select;
+
+        src = kangaroo_blitter[0] + 256 * kangaroo_blitter[1];
+        dest = kangaroo_blitter[2] + 256 * kangaroo_blitter[3];
+
+        xb = kangaroo_blitter[5];
+        yb = kangaroo_blitter[4];
+        /* kangaroo_blitter[6] (vertical start address in bitmap) and */
+        /* kangaroo_blitter[7] (horizontal start address in bitmap) seem */
+        /* to be always 0 */
+
+        old_bank_select = new_bank_select = *kangaroo_bank_select;
+
+        if (new_bank_select & 0x0c)  new_bank_select |= 0x0c;
+        if (new_bank_select & 0x03)  new_bank_select |= 0x03;
+        kangaroo_bank_select_w(0, new_bank_select & 0x05);
+
+        for (x = 0;x <= xb;x++)
+        {
+            for (y = 0;y <= yb;y++)
+            {
+                cpu_writemem16(dest++, cpu_readmem16(src++));
+            }
+
+            dest = dest - (yb + 1) + 256;
         }
 
-  }
-/*  if( (offset)  == 0x0a ) kangaroo_color_shadew(val);
-    this will be back when I figure a simple way to implement
-    the flashing. -V-
-*/
+        src = kangaroo_blitter[0] + 256 * kangaroo_blitter[1];
+        dest = kangaroo_blitter[2] + 256 * kangaroo_blitter[3];
+
+        kangaroo_bank_select_w(0, new_bank_select & 0x0a);
+
+        for (x = 0;x <= xb;x++)
+        {
+            for (y = 0;y <= yb;y++)
+            {
+                cpu_writemem16(dest++, cpu_readmem16(src++));
+            }
+
+            dest = dest - (yb + 1) + 256;
+        }
+
+        kangaroo_bank_select_w(0, old_bank_select);
+    }
 }
 
-static void kangaroo_color_shadew(int val)
+
+
+INLINE void kangaroo_plot_pixel(struct osd_bitmap *bitmap, int x, int y, int col, int color_base, int flip)
 {
-/* Kangaroo has a color intensity latch at 0xe80a
-   values are: (a guess ;)
-   bit            plane          colour
----------------------------------------
-   0(0x01)        sprite         Blue
-   1(0x02)        sprite         Green
-   2(0x04)        sprite         Red
-   3(0x08)        playfield      Blue
-   4(0x10)        playfield      Green
-   5(0x20)        playfield      Red
-   normal value for the latch seems to be 0x14.
-   The value pulsates between 0x34 and 0x14 at the beginning
-   of a new game when the topmost kangaroo is falling down
-   and the 'trees' are supposed to flash.
+    if (flip)
+    {
+        x = bitmap->width - 1 - x;
+        y = bitmap->height - 1 - y;
+    }
 
-   Currently nothing is done here as the framework does not allow
-   for changing colours on the fly and drawing the whole screen
-   takes too much time at the moment
-*/
-
-
+    plot_pixel(bitmap, x, y, Machine->pens[((col & 0x08) ? 0 : color_base) + (col & 0x07)]);
 }
 
-/* this is almost the same as in arabian.c, the planes are arranged
-   a bit differently. -V-
-*/
-void kangaroo_videoramw(int offset, int val)
+INLINE void kangaroo_redraw_4pixels(int x, int y)
 {
-	int plane1,plane2,plane3,plane4;
-	unsigned char *bm;
-	int sx, sy;
+    int offs, flipA, flipB;
 
 
-	plane1 = Machine->memory_region[0][0xe808] & 0x01;
-	plane2 = Machine->memory_region[0][0xe808] & 0x02;
-	plane3 = Machine->memory_region[0][0xe808] & 0x04;
-	plane4 = Machine->memory_region[0][0xe808] & 0x08;
+    offs = y * 256 + x;
+
+    flipA = *kangaroo_video_control & 0x20;
+    flipB = *kangaroo_video_control & 0x10;
+
+    kangaroo_plot_pixel(tmpbitmap , x  , y, videoram[offs  ] & 0x0f, 8,  flipA);
+    kangaroo_plot_pixel(tmpbitmap , x+1, y, videoram[offs+1] & 0x0f, 8,  flipA);
+    kangaroo_plot_pixel(tmpbitmap , x+2, y, videoram[offs+2] & 0x0f, 8,  flipA);
+    kangaroo_plot_pixel(tmpbitmap , x+3, y, videoram[offs+3] & 0x0f, 8,  flipA);
+    kangaroo_plot_pixel(tmpbitmap2, x  , y, videoram[offs  ] >> 4,   16, flipB);
+    kangaroo_plot_pixel(tmpbitmap2, x+1, y, videoram[offs+1] >> 4,   16, flipB);
+    kangaroo_plot_pixel(tmpbitmap2, x+2, y, videoram[offs+2] >> 4,   16, flipB);
+    kangaroo_plot_pixel(tmpbitmap2, x+3, y, videoram[offs+3] >> 4,   16, flipB);
+}
+
+void kangaroo_videoram_w(int offset,int data)
+{
+    int a_Z_R,a_G_B,b_Z_R,b_G_B;
+    int sx, sy, offs;
+
+    a_Z_R = *kangaroo_bank_select & 0x01;
+    a_G_B = *kangaroo_bank_select & 0x02;
+    b_Z_R = *kangaroo_bank_select & 0x04;
+    b_G_B = *kangaroo_bank_select & 0x08;
 
 
-	sx = offset % 256;
-	sy = (0x3f - (offset / 256)) * 4;
+    sx = (offset / 256) * 4;
+    sy = offset % 256;
+    offs = sy * 256 + sx;
 
-	/* JB 970727 */
-	tmpbitmap->line[sy][sx] = inverse_palette[ tmpbitmap->line[sy][sx] ];
-	tmpbitmap->line[sy+1][sx] = inverse_palette[ tmpbitmap->line[sy+1][sx] ];
-	tmpbitmap->line[sy+2][sx] = inverse_palette[ tmpbitmap->line[sy+2][sx] ];
-	tmpbitmap->line[sy+3][sx] = inverse_palette[ tmpbitmap->line[sy+3][sx] ];
-	tmpbitmap2->line[sy][sx] = inverse_palette[ tmpbitmap2->line[sy][sx] ];
-	tmpbitmap2->line[sy+1][sx] = inverse_palette[ tmpbitmap2->line[sy+1][sx] ];
-	tmpbitmap2->line[sy+2][sx] = inverse_palette[ tmpbitmap2->line[sy+2][sx] ];
-	tmpbitmap2->line[sy+3][sx] = inverse_palette[ tmpbitmap2->line[sy+3][sx] ];
+    if (a_G_B)
+    {
+        videoram[offs  ] = (videoram[offs  ] & 0xfc) | ((data & 0x10) >> 3) | ((data & 0x01) >> 0);
+        videoram[offs+1] = (videoram[offs+1] & 0xfc) | ((data & 0x20) >> 4) | ((data & 0x02) >> 1);
+        videoram[offs+2] = (videoram[offs+2] & 0xfc) | ((data & 0x40) >> 5) | ((data & 0x04) >> 2);
+        videoram[offs+3] = (videoram[offs+3] & 0xfc) | ((data & 0x80) >> 6) | ((data & 0x08) >> 3);
+    }
 
+    if (a_Z_R)
+    {
+        videoram[offs  ] = (videoram[offs  ] & 0xf3) | ((data & 0x10) >> 1) | ((data & 0x01) << 2);
+        videoram[offs+1] = (videoram[offs+1] & 0xf3) | ((data & 0x20) >> 2) | ((data & 0x02) << 1);
+        videoram[offs+2] = (videoram[offs+2] & 0xf3) | ((data & 0x40) >> 3) | ((data & 0x04) >> 0);
+        videoram[offs+3] = (videoram[offs+3] & 0xf3) | ((data & 0x80) >> 4) | ((data & 0x08) >> 1);
+    }
 
-	if (plane2)
-	{
-		bm = tmpbitmap->line[sy] + sx;
-		*bm &= 0xfc;
-		if (val & 0x80) *bm |= 2;
-		if (val & 0x08) *bm |= 1;
+    if (b_G_B)
+    {
+        videoram[offs  ] = (videoram[offs  ] & 0xcf) | ((data & 0x10) << 1) | ((data & 0x01) << 4);
+        videoram[offs+1] = (videoram[offs+1] & 0xcf) | ((data & 0x20) >> 0) | ((data & 0x02) << 3);
+        videoram[offs+2] = (videoram[offs+2] & 0xcf) | ((data & 0x40) >> 1) | ((data & 0x04) << 2);
+        videoram[offs+3] = (videoram[offs+3] & 0xcf) | ((data & 0x80) >> 2) | ((data & 0x08) << 1);
+    }
 
-		bm = tmpbitmap->line[sy+1] + sx;
-		*bm &= 0xfc;
-		if (val & 0x40) *bm |= 2;
-		if (val & 0x04) *bm |= 1;
+    if (b_Z_R)
+    {
+        videoram[offs  ] = (videoram[offs  ] & 0x3f) | ((data & 0x10) << 3) | ((data & 0x01) << 6);
+        videoram[offs+1] = (videoram[offs+1] & 0x3f) | ((data & 0x20) << 2) | ((data & 0x02) << 5);
+        videoram[offs+2] = (videoram[offs+2] & 0x3f) | ((data & 0x40) << 1) | ((data & 0x04) << 4);
+        videoram[offs+3] = (videoram[offs+3] & 0x3f) | ((data & 0x80) << 0) | ((data & 0x08) << 3);
+    }
 
-		bm = tmpbitmap->line[sy+2] + sx;
-		*bm &= 0xfc;
-		if (val & 0x20) *bm |= 2;
-		if (val & 0x02) *bm |= 1;
-
-		bm = tmpbitmap->line[sy+3] + sx;
-		*bm &= 0xfc;
-		if (val & 0x10) *bm |= 2;
-		if (val & 0x01) *bm |= 1;
-	}
-
-	if (plane1)
-	{
-		bm = tmpbitmap->line[sy] + sx;
-		*bm &= 0xf3;
-		if (val & 0x80) *bm |= 8;
-		if (val & 0x08) *bm |= 4;
-
-		bm = tmpbitmap->line[sy+1] + sx;
-		*bm &= 0xf3;
-		if (val & 0x40) *bm |= 8;
-		if (val & 0x04) *bm |= 4;
-
-		bm = tmpbitmap->line[sy+2] + sx;
-		*bm &= 0xf3;
-		if (val & 0x20) *bm |= 8;
-		if (val & 0x02) *bm |= 4;
-
-		bm = tmpbitmap->line[sy+3] + sx;
-		*bm &= 0xf3;
-		if (val & 0x10) *bm |= 8;
-		if (val & 0x01) *bm |= 4;
-	}
-
-	if (plane4)
-	{
-		bm = tmpbitmap2->line[sy] + sx;
-		*bm &= 0xfc;
-		if (val & 0x80) *bm |= 2;
-		if (val & 0x08) *bm |= 1;
-
-		bm = tmpbitmap2->line[sy+1] + sx;
-		*bm &= 0xfc;
-		if (val & 0x40) *bm |= 2;
-		if (val & 0x04) *bm |= 1;
-
-		bm = tmpbitmap2->line[sy+2] + sx;
-		*bm &= 0xfc;
-		if (val & 0x20) *bm |= 2;
-		if (val & 0x02) *bm |= 1;
-
-		bm = tmpbitmap2->line[sy+3] + sx;
-		*bm &= 0xfc;
-		if (val & 0x10) *bm |= 2;
-		if (val & 0x01) *bm |= 1;
-	}
-
-	if (plane3)
-	{
-		bm = tmpbitmap2->line[sy] + sx;
-		*bm &= 0xf3;
-		if (val & 0x80) *bm |= 8;
-		if (val & 0x08) *bm |= 4;
-
-		bm = tmpbitmap2->line[sy+1] + sx;
-		*bm &= 0xf3;
-		if (val & 0x40) *bm |= 8;
-		if (val & 0x04) *bm |= 4;
-
-		bm = tmpbitmap2->line[sy+2] + sx;
-		*bm &= 0xf3;
-		if (val & 0x20) *bm |= 8;
-		if (val & 0x02) *bm |= 4;
-
-		bm = tmpbitmap2->line[sy+3] + sx;
-		*bm &= 0xf3;
-		if (val & 0x10) *bm |= 8;
-		if (val & 0x01) *bm |= 4;
-	}
-
-	/* JB 970727 */
-	tmpbitmap->line[sy][sx] = Machine->pens[ tmpbitmap->line[sy][sx] ];
-	tmpbitmap->line[sy+1][sx] = Machine->pens[ tmpbitmap->line[sy+1][sx] ];
-	tmpbitmap->line[sy+2][sx] = Machine->pens[ tmpbitmap->line[sy+2][sx] ];
-	tmpbitmap->line[sy+3][sx] = Machine->pens[ tmpbitmap->line[sy+3][sx] ];
-	tmpbitmap2->line[sy][sx] = Machine->pens[ tmpbitmap2->line[sy][sx] ];
-	tmpbitmap2->line[sy+1][sx] = Machine->pens[ tmpbitmap2->line[sy+1][sx] ];
-	tmpbitmap2->line[sy+2][sx] = Machine->pens[ tmpbitmap2->line[sy+2][sx] ];
-	tmpbitmap2->line[sy+3][sx] = Machine->pens[ tmpbitmap2->line[sy+3][sx] ];
+    kangaroo_redraw_4pixels(sx, sy);
 }
 
 
@@ -276,10 +310,34 @@ void kangaroo_videoramw(int offset, int val)
   the main emulation engine.
 
 ***************************************************************************/
-void kangaroo_vh_screenrefresh(struct osd_bitmap *bitmap)
+void kangaroo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	/* copy the character mapped graphics */
-        copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
-        copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,\
-        	TRANSPARENCY_COLOR,0);/* JB 970727 */
+    if (palette_recalc() || screen_flipped)
+    {
+        int x, y;
+
+        /* redraw bitmap */
+        for (x = 0; x < 256; x+=4)
+        {
+            for (y = 0; y < 256; y++)
+            {
+                kangaroo_redraw_4pixels(x, y);
+            }
+        }
+
+        screen_flipped = 0;
+    }
+
+    if (*kangaroo_bank_select & 0x01)
+    {
+        /* Plane B is primary */
+        copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+        copybitmap(bitmap,tmpbitmap ,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,8);
+    }
+    else
+    {
+        /* Plane A is primary */
+        copybitmap(bitmap,tmpbitmap, 0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+        copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,16);
+    }
 }

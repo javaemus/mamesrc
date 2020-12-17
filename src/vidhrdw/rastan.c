@@ -10,405 +10,146 @@
 #include "vidhrdw/generic.h"
 
 
+void rastan_vh_stop (void);
 
-//#define VIDEO_RAM_SIZE 0x400
-//static const unsigned char *colors;
+int rastan_videoram_size;
+unsigned char *rastan_videoram1;
+unsigned char *rastan_videoram3;
+unsigned char *rastan_spriteram;
+unsigned char *rastan_scrollx;
+unsigned char *rastan_scrolly;
 
-static struct osd_bitmap *tmpbitmap2;
+static unsigned char *rastan_dirty1;
+static unsigned char *rastan_dirty3;
+
+static unsigned char spritepalettebank;
+
+static struct osd_bitmap *tmpbitmap1;
 static struct osd_bitmap *tmpbitmap3;
 
-static unsigned char *dirty1;		/* 16KB .L organization */
-/*static unsigned char *dirty2;	* 16KB .W organization */
-static unsigned char *dirty3;		/* 16KB .L organization */
-/*static unsigned char *dirty4;	* 16KB .L organization */
 
-static unsigned char *r_palram;   /*64KB for palette RAM*/
-static unsigned char *r_sprram;   /*64KB for sprite RAM*/
-static unsigned char pal_dirty[0x80];	  /*only 0x50 color schemes are in use*/
 
-/*static unsigned char paltab[0x10000];	* rip the palette */
-
-static unsigned char *r_vidram1;   /*16KB for video RAM 8x8   0x1000.L */
-static unsigned char *r_vidram2;   /*16KB for video RAM 16x16 0x2000.W */
-static unsigned char *r_vidram3;   /*16KB for video RAM 8x8   0x1000.L */
-static unsigned char *r_vidram4;   /*16KB for video RAM 16x16 0x2000.W */
-
-static unsigned char *r_ram;
-
-static unsigned char scrollY[4]={0,0,0,0};
-static unsigned char scrollX[4]={0,0,0,0};
-
-static struct rectangle visiblearea =
+int rastan_vh_start (void)
 {
-  0, 64*8-1,
-  0, 64*8-1
-};
-
-/***************************************************************************
-
-  Convert the color PROMs into a more useable format.
-
-  RASTAN doesn't have a color PROM. It uses 64KB bytes of RAM to
-  dynamically create the palette. Each couple of bytes defines one
-  color (5 bits per R,G,B; the highest 1 bit of the first byte is unused).
-  Graphics use 4 bitplanes. It seems only first 0x50 colors are in use.
-  Game uses 512+ colors at run time so there's no chance for optimized
-  palette.
-
-***************************************************************************/
-void rastan_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
-{
-	int i;
-
-	for (i = 0;i < 256;i++)
+	/* Allocate a video RAM */
+	rastan_dirty1 = malloc ( rastan_videoram_size/4);
+	if (!rastan_dirty1)
 	{
-		int bits;
-
-		bits = (i >> 0) & 0x07;
-		palette[3*i] = (bits >> 1) | (bits << 2) | (bits << 5);
-		bits = (i >> 3) & 0x07;
-		palette[3*i + 1] = (bits >> 1) | (bits << 2) | (bits << 5);
-		bits = (i >> 6) & 0x03;
-		palette[3*i + 2] = bits | (bits >> 2) | (bits << 4) | (bits << 6);
-	}
-
-	for (i = 0;i < 256;i++)
-		colortable[0x50*16+i] = i;
-
-}
-
-
-int rastan_vh_start(void)
-{
-	if (generic_vh_start() != 0)
+		rastan_vh_stop();
 		return 1;
+	}
+	memset(rastan_dirty1,1,rastan_videoram_size / 4);
 
-	/* the background area is twice as tall and twice as large as the screen */
-	if ((tmpbitmap2 = osd_create_bitmap(512,512)) == 0)
-        {
-		generic_vh_stop();
+	rastan_dirty3 = malloc ( rastan_videoram_size/4);
+	if (!rastan_dirty3)
+	{
+		rastan_vh_stop();
+		return 1;
+	}
+	memset(rastan_dirty3,1,rastan_videoram_size / 4);
+
+	/* Allocate temporary bitmaps */
+ 	if ((tmpbitmap1 = osd_create_bitmap(512,512)) == 0)
+	{
+		rastan_vh_stop ();
 		return 1;
 	}
 	if ((tmpbitmap3 = osd_create_bitmap(512,512)) == 0)
-        {
-		generic_vh_stop();
-		osd_free_bitmap(tmpbitmap2);
-		return 1;
-	}
-
-	/* Allocate a bunch o' buffers */
-	dirty1 = malloc (2 * 0x1000 + 2 * 0x10000 + 5 * 0x4000);
-	if (!dirty1)
 	{
-		generic_vh_stop();
-		osd_free_bitmap(tmpbitmap2);
-		osd_free_bitmap(tmpbitmap3);
+		rastan_vh_stop ();
 		return 1;
 	}
-	dirty3 = dirty1 + 0x1000;
-	r_palram = dirty3 + 0x1000;
-	r_sprram = r_palram + 0x10000;
-	r_vidram1 = r_sprram + 0x10000;
-	r_vidram2 = r_vidram1 + 0x4000;
-	r_vidram3 = r_vidram2 + 0x4000;
-	r_vidram4 = r_vidram3 + 0x4000;
-	r_ram = r_vidram4 + 0x4000;
-
-	cpu_setbank (1, r_ram);
 
 	return 0;
 }
 
 
-static int getb(int i)
+
+void rastan_vh_stop (void)
 {
-	return 2*((r_palram[i]>>2)&0x1f);
-}
-static int getg(int i)
-{
-	return 2*( ((r_palram[i]&0x03)<<3)|((r_palram[i+1]>>5)&0x07) );
-}
-static int getr(int i)
-{
-	return 2*(r_palram[i+1]&0x1f);
-}
+	/* Free temporary bitmaps */
+	if (tmpbitmap3)
+		osd_free_bitmap (tmpbitmap3);
+	tmpbitmap3 = 0;
+	if (tmpbitmap1)
+		osd_free_bitmap (tmpbitmap1);
+	tmpbitmap1 = 0;
 
-void rastan_vh_stop(void){
-
-#if 0
-
-tab=fopen("vidram1","wa");
-for (i=0; i<0x4000; i+=4)
-{
-  for (pom=0; pom<4; pom++)
-    fprintf(tab,"%02x ",r_vidram1[i+pom]);
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-tab=fopen("vidram3","wa");
-for (i=0; i<0x4000; i+=4)
-{
-  for (pom=0; pom<4; pom++)
-    fprintf(tab,"%02x ",r_vidram3[i+pom]);
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-
-
-
-
-tab=fopen("vidram2","wa");
-for (i=0; i<0x4000; i+=4)
-{
-  for (pom=0; pom<4; pom++)
-    fprintf(tab,"%02x ",r_vidram2[i+pom]);
-  fprintf(tab,"\n");
-}
-fclose(tab);
-tab=fopen("vidram4","wa");
-for (i=0; i<0x4000; i+=4)
-{
-  for (pom=0; pom<4; pom++)
-    fprintf(tab,"%02x ",r_vidram4[i+pom]);
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-
-
-tab=fopen("paltab","wa");
-pom=0;
-for (i=0; i<0x10000; i++)
-{
-  if (paltab[i])
-  {
-    fprintf(tab,"%04x ",i);
-    fprintf(tab,"\n");
-    pom++;
-  }
-}
-  fprintf(tab,"\ntotal colors %04x\n",pom);
-fclose(tab);
-
-
-tab=fopen("sprram","wa");
-for (i=0; i<0x800; i+=8)
-{
-  fprintf(tab,"%04x  ",i/8);
-  for (pom=0; pom<8; pom+=2)
-    fprintf(tab,"%02x%02x ",r_sprram[i+pom],r_sprram[i+pom+1]);
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-
-
-tab=fopen("p0-200","wa");
-fprintf(tab,"NeoPaint Palette File\n(C)1992-95 NeoSoft Corp.\n256\n");
-for (i=0x000; i<0x200; i+=2)
-{
-//  fprintf(tab,"%04x %04x ",i, i/32);
-//  fprintf(tab,"%02x%02x ",r_palram[i],r_palram[i+1]);
-  fprintf(tab,"%3i %3i %3i",getr(i),getg(i),getb(i) );
-  fprintf(tab,"\n");
-}
-fclose(tab);
-tab=fopen("p200-400","wa");
-fprintf(tab,"NeoPaint Palette File\n(C)1992-95 NeoSoft Corp.\n256\n");
-for (i=0x200; i<0x400; i+=2)
-{
-//  fprintf(tab,"%04x %04x ",i, i/32);
-//  fprintf(tab,"%02x%02x ",r_palram[i],r_palram[i+1]);
-  fprintf(tab,"%3i %3i %3i",getr(i),getg(i),getb(i) );
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-tab=fopen("p400-600","wa");
-fprintf(tab,"NeoPaint Palette File\n(C)1992-95 NeoSoft Corp.\n256\n");
-for (i=0x400; i<0x600; i+=2)
-{
-//  fprintf(tab,"%04x %04x ",i, i/32);
-//  fprintf(tab,"%02x%02x ",r_palram[i],r_palram[i+1]);
-  fprintf(tab,"%3i %3i %3i",getr(i),getg(i),getb(i) );
-  fprintf(tab,"\n");
-}
-fclose(tab);
-tab=fopen("p600-800","wa");
-fprintf(tab,"NeoPaint Palette File\n(C)1992-95 NeoSoft Corp.\n256\n");
-for (i=0x600; i<0x800; i+=2)
-{
-//  fprintf(tab,"%04x %04x ",i, i/32);
-//  fprintf(tab,"%02x%02x ",r_palram[i],r_palram[i+1]);
-  fprintf(tab,"%3i %3i %3i",getr(i),getg(i),getb(i) );
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-tab=fopen("p800-a00","wa");
-fprintf(tab,"NeoPaint Palette File\n(C)1992-95 NeoSoft Corp.\n256\n");
-for (i=0x800; i<0xa00; i+=2)
-{
-//  fprintf(tab,"%04x %04x ",i, i/32);
-//  fprintf(tab,"%02x%02x ",r_palram[i],r_palram[i+1]);
-  fprintf(tab,"%3i %3i %3i",getr(i),getg(i),getb(i) );
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-tab=fopen("pa-2000","wa");
-fprintf(tab,"NeoPaint Palette File\n(C)1992-95 NeoSoft Corp.\n256\n");
-for (i=0xa00; i<0x2000; i+=2)
-{
-  fprintf(tab,"%3i %3i %3i",getr(i),getg(i),getb(i) );
-  fprintf(tab,"\n");
-}
-fclose(tab);
-
-#endif
-
-	/* Free everything */
-	free (dirty1);
-	osd_free_bitmap(tmpbitmap2);
-	osd_free_bitmap(tmpbitmap3);
-	generic_vh_stop();
+	/* Free video RAM */
+	if (rastan_dirty1)
+	        free (rastan_dirty1);
+	if (rastan_dirty3)
+	        free (rastan_dirty3);
+	rastan_dirty1 = rastan_dirty3 = 0;
 }
 
 
 
+/*
+ *   scroll write handlers
+ */
 
-void rastan_scrollY_w(int offset,int data)
+void rastan_scrollY_w (int offset, int data)
 {
-	scrollY[offset]=data;
+	COMBINE_WORD_MEM (&rastan_scrolly[offset], data);
 }
 
-void rastan_scrollX_w(int offset,int data)
+void rastan_scrollX_w (int offset, int data)
 {
-	scrollX[offset]=data;
-}
-
-void rastan_paletteram_w(int offset,int data)
-{
-	r_palram[offset]=data;
-	if ((offset/32) < 0x80)
-		pal_dirty[offset/32] = 1;
-}
-
-int rastan_paletteram_r(int offset)
-{
-	return r_palram[offset];
+	COMBINE_WORD_MEM (&rastan_scrollx[offset], data);
 }
 
 
-void rastan_spriteram_w(int offset,int data)
-{
-	r_sprram[offset]=data;
-}
 
-int rastan_spriteram_r(int offset)
+void rastan_videoram1_w (int offset, int data)
 {
-	return r_sprram[offset];
-}
+	int oldword = READ_WORD(&rastan_videoram1[offset]);
+	int newword = COMBINE_WORD(oldword,data);
 
-void rastan_videoram1_w(int offset,int data)
-{
-	if (r_vidram1[offset] != data)
+
+	if (oldword != newword)
 	{
-		dirty1[offset >> 2] = 1;
-		r_vidram1[offset]=data;
+		WRITE_WORD(&rastan_videoram1[offset],newword);
+		rastan_dirty1[offset / 4] = 1;
+	}
+}
+int rastan_videoram1_r (int offset)
+{
+   return READ_WORD (&rastan_videoram1[offset]);
+}
+
+void rastan_videoram3_w (int offset, int data)
+{
+	int oldword = READ_WORD(&rastan_videoram3[offset]);
+	int newword = COMBINE_WORD(oldword,data);
+
+
+	if (oldword != newword)
+	{
+		WRITE_WORD(&rastan_videoram3[offset],newword);
+		rastan_dirty3[offset / 4] = 1;
+	}
+}
+int rastan_videoram3_r (int offset)
+{
+   return READ_WORD (&rastan_videoram3[offset]);
+}
+
+
+
+void rastan_videocontrol_w (int offset, int data)
+{
+	if (offset == 0)
+	{
+		/* bits 2 and 3 are the coin counters */
+
+		/* bits 5-7 look like the sprite palette bank */
+		spritepalettebank = (data & 0xe0) >> 5;
+
+		/* other bits unknown */
 	}
 }
 
-int rastan_videoram1_r(int offset)
-{
-   return r_vidram1[offset];
-}
-
-
-void rastan_videoram2_w(int offset,int data)
-{
-	r_vidram2[offset]=data;
-	if (errorlog)
-		if (data>0)
-			fprintf(errorlog,"Writing data>0 %02x to vidram2 !!!\n",data);
-}
-
-int rastan_videoram2_r(int offset)
-{
-	return r_vidram2[offset];
-}
-
-void rastan_videoram3_w(int offset,int data)
-{
-	if (r_vidram3[offset] != data)
-	{
-		dirty3[offset >> 2] = 1;
-		r_vidram3[offset]=data;
-	}
-}
-
-int rastan_videoram3_r(int offset)
-{
-	return r_vidram3[offset];
-}
-
-void rastan_videoram4_w(int offset,int data)
-{
-	r_vidram4[offset]=data;
-	if (errorlog)
-		if (data>0)
-			fprintf(errorlog,"Writing data>0 %02x to vidram4 !!!\n",data);
-}
-
-int rastan_videoram4_r(int offset)
-{
-	return r_vidram4[offset];
-}
-
-
-
-int rastan_interrupt(void)
-{
-//static int inter=0;
-//	inter = (inter+1)&0x01;
-//	if (inter)
-		return 5;  /*Interrupt vector 5*/
-//	else
-//		return 4;
-}
-
-
-
-void rastan_machine_init(void)
-{
-
-//	Machine->memory_region[0][0x3a204]=0x60;  /* Rastan infinite lives */
-//	Machine->memory_region[0][0x517ec]=0x60;  /* Rastan infinite energy */
-//	Machine->memory_region[0][0x527b2]=0x60;  /* Rastan infinite energy */
-
-}
-
-int rastan_input_r (int offset)
-{
-	switch (offset)
-	{
-		case 1:
-		case 3:
-			return input_port_0_r (offset);
-		case 5:
-			return input_port_1_r (offset);
-		case 7:
-			return input_port_2_r (offset);
-		case 9:
-			return input_port_3_r (offset);
-		case 11:
-			return input_port_4_r (offset);
-		default:
-			return 0;
-	}
-}
 
 
 /***************************************************************************
@@ -418,124 +159,526 @@ int rastan_input_r (int offset)
   the main emulation engine.
 
 ***************************************************************************/
-void rastan_vh_screenrefresh(struct osd_bitmap *bitmap)
+void rastan_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int offs,pom;
+	int offs;
 	int scrollx,scrolly;
-	int i,col;
 
-	for (pom=0; pom<0x50; pom++){
-		if (pal_dirty[pom])
+
+palette_init_used_colors();
+
+{
+	int color,code,i;
+	int colmask[128];
+	int pal_base;
+
+
+	pal_base = 0;
+
+	for (color = 0;color < 128;color++) colmask[color] = 0;
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		code = READ_WORD(&rastan_videoram1[offs + 2]) & 0x3fff;
+		color = READ_WORD(&rastan_videoram1[offs]) & 0x7f;
+
+		colmask[color] |= Machine->gfx[0]->pen_usage[code];
+	}
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		code = READ_WORD(&rastan_videoram3[offs + 2]) & 0x3fff;
+		color = READ_WORD(&rastan_videoram3[offs]) & 0x7f;
+
+		colmask[color] |= Machine->gfx[0]->pen_usage[code];
+	}
+
+	for (offs = 0x800-8; offs >= 0; offs -= 8)
+	{
+		code = READ_WORD (&rastan_spriteram[offs+4]);
+
+		if (code)
 		{
-			Machine->gfx[0]->colortable[pom*16] = Machine->pens[0];
-			for (i = 1;i <16 ;i++) {
-				col = (r_palram[pom*32+i*2+1] >> 2) & 0x07;   /* red component */
-				col |= (r_palram[pom*32+i*2+1] >> 4) & 0x08;   /* green component LSB */
-				col |= (r_palram[pom*32+i*2] << 4) & 0x30;   /* green component MSB */
-				col |= (r_palram[pom*32+i*2] << 1) & 0xc0;   /* blue component */
-				if (col==0)
-					col=1;
-				Machine->gfx[0]->colortable[pom*16+i] =
-					Machine->gfx[8]->colortable[col];
-			}
+			int data1;
+
+			data1 = READ_WORD (&rastan_spriteram[offs]);
+
+			color = (data1 & 0x0f) + 0x10 * spritepalettebank;
+			colmask[color] |= Machine->gfx[1]->pen_usage[code];
 		}
 	}
 
-	for (pom = 0x0;pom < 0x4000;pom+=4)
+	for (color = 0;color < 128;color++)
 	{
-		offs=pom>>2;
-		if ( dirty1[offs] || pal_dirty[ r_vidram1[pom+1] & 0x7f ] )
+		if (colmask[color] & (1 << 0))
+			palette_used_colors[pal_base + 16 * color] = PALETTE_COLOR_TRANSPARENT;
+		for (i = 1;i < 16;i++)
+		{
+			if (colmask[color] & (1 << i))
+				palette_used_colors[pal_base + 16 * color + i] = PALETTE_COLOR_USED;
+		}
+	}
 
+
+	if (palette_recalc())
+	{
+		memset(rastan_dirty1,1,rastan_videoram_size / 4);
+		memset(rastan_dirty3,1,rastan_videoram_size / 4);
+	}
+}
+
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		if (rastan_dirty1[offs/4])
 		{
 			int sx,sy;
-			int num,bank;
+			int data1,data2;
 
-			num = ((r_vidram1[pom+2]<<8)+r_vidram1[pom+3]) & 0x1fff;
-			bank= (r_vidram1[pom+2] & 0x20)>>5;
 
-			dirty1[offs] = 0;
+			rastan_dirty1[offs/4] = 0;
 
-			sx = 8 * (offs % 64);
-			sy = 8 * (offs / 64);
+			data1 = READ_WORD(&rastan_videoram1[offs]);
+			data2 = READ_WORD(&rastan_videoram1[offs + 2]);
 
-			drawgfx(tmpbitmap2, Machine->gfx[bank]   ,
-					num,
-					r_vidram1[pom+1]&0x7f,
-					r_vidram1[pom]&0x40,r_vidram1[pom]&0x80,
-					sx,sy,
-					&visiblearea,TRANSPARENCY_NONE,0);
+			sx = (offs/4) % 64;
+			sy = (offs/4) / 64;
 
+			drawgfx(tmpbitmap1, Machine->gfx[0],
+					data2 & 0x3fff,
+					data1 & 0x7f,
+					data1 & 0x4000, data1 & 0x8000,
+					8*sx,8*sy,
+					0,TRANSPARENCY_NONE,0);
 		}
 	}
 
-	for (pom = 0x0;pom < 0x4000;pom+=4)
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
 	{
-		offs=pom>>2;
-		if ( dirty3[offs] || pal_dirty[ r_vidram3[pom+1] & 0x7f ] )
+		if (rastan_dirty3[offs/4])
 		{
 			int sx,sy;
-			int num,bank;
+			int data1,data2;
 
-			num = ((r_vidram3[pom+2]<<8)+r_vidram3[pom+3]) & 0x1fff;
-			bank= (r_vidram3[pom+2] & 0x20)>>5;
 
-			dirty3[offs] = 0;
+			rastan_dirty3[offs/4] = 0;
 
-			sx = 8 * (offs % 64);
-			sy = 8 * (offs / 64);
+			data1 = READ_WORD(&rastan_videoram3[offs]);
+			data2 = READ_WORD(&rastan_videoram3[offs + 2]);
 
-			drawgfx(tmpbitmap3, Machine->gfx[bank]   ,
-					num,
-					r_vidram3[pom+1]&0x7f,
-					r_vidram3[pom]&0x40,r_vidram3[pom]&0x80,
-					sx,sy,
-					&visiblearea,TRANSPARENCY_NONE,0);
+			sx = (offs/4) % 64;
+			sy = (offs/4) / 64;
 
+			drawgfx(tmpbitmap3, Machine->gfx[0],
+					data2 & 0x3fff,
+					data1 & 0x7f,
+					data1 & 0x4000, data1 & 0x8000,
+					8*sx,8*sy,
+					0,TRANSPARENCY_NONE,0);
 		}
 	}
 
-	for (pom=0; pom<0x80; pom++)
-		pal_dirty[pom]=0;
+	scrollx = READ_WORD(&rastan_scrollx[0]) - 16;
+	scrolly = READ_WORD(&rastan_scrolly[0]);
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
 
-	/* copy the character mapped graphics */
-
-	scrollx = (scrollX[0]<<8) + scrollX[1] - 16;
-	scrolly = (scrollY[0]<<8) + scrollY[1] - 8;
-	copyscrollbitmap(bitmap,tmpbitmap2, 1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
-
-	scrollx = (scrollX[2]<<8) + scrollX[3] - 16;
-	scrolly = (scrollY[2]<<8) + scrollY[3] - 8;
-	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+	scrollx = READ_WORD(&rastan_scrollx[2]) - 16;
+	scrolly = READ_WORD(&rastan_scrolly[2]);
+	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 
 	/* Draw the sprites. 256 sprites in total */
-	for (offs = 0x800-8;offs >=0;offs -= 8)
+	for (offs = 0x800-8; offs >= 0; offs -= 8)
 	{
-		int sx,sy,col;
-		int num,bank;
+		int num = READ_WORD (&rastan_spriteram[offs+4]);
 
-		sx = (r_sprram[offs+6]<<8) | r_sprram[offs+7];
-		sy = (r_sprram[offs+2]<<8) | r_sprram[offs+3];
 
-		sx = sx<32768 ? sx&0x1ff : -( (65536-sx) & 0x1ff );
-		sy = sy<32768 ? sy&0x1ff : -( (65536-sy) & 0x1ff );
-
-		num=(r_sprram[offs+4]<<8) | r_sprram[offs+5];
-		if  ( num && (sx<320) && (sy<240) )
+		if (num)
 		{
-			num &= 0x3ff;
-			bank =(r_sprram[offs+4]>>2)&0x03;
-			col = r_sprram[offs+1];
-			if (col<0x40)
-				col= col|0x30;
-			if (offs/8>=0xbe) /*found experimentally*/
-				col= ((col&0x3f)|0x30);
-			drawgfx(bitmap,Machine->gfx[4+bank],
-				num,
-				col ,
-				r_sprram[offs]&0x40,0,
-				sx,sy-8,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+			int sx,sy,col,data1;
+
+			sx = READ_WORD(&rastan_spriteram[offs+6]) & 0x1ff;
+			if (sx > 400) sx = sx - 512;
+			sy = READ_WORD(&rastan_spriteram[offs+2]) & 0x1ff;
+			if (sy > 400) sy = sy - 512;
+
+			data1 = READ_WORD (&rastan_spriteram[offs]);
+
+			col = (data1 & 0x0f) + 0x10 * spritepalettebank;
+
+			drawgfx(bitmap,Machine->gfx[1],
+					num,
+					col,
+					data1 & 0x4000, data1 & 0x8000,
+					sx,sy,
+					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
+}
+
+void rainbow_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+{
+	int offs;
+	int scrollx,scrolly;
+
+
+palette_init_used_colors();
+
+/* TODO: we are using the same table for background and foreground tiles, but this */
+/* causes the sky to be black instead of blue. */
+{
+	int color,code,i;
+	int colmask[128];
+	int pal_base;
+
+
+	pal_base = 0;
+
+	for (color = 0;color < 128;color++)
+	{
+		colmask[color] = 0;
+    }
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		code = READ_WORD(&rastan_videoram1[offs + 2]) & 0x3FFF;
+		color = READ_WORD(&rastan_videoram1[offs]) & 0x7f;
+
+		colmask[color] |= Machine->gfx[0]->pen_usage[code];
+	}
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		code = READ_WORD(&rastan_videoram3[offs + 2]) & 0x3fff;
+		color = READ_WORD(&rastan_videoram3[offs]) & 0x7f;
+
+		colmask[color] |= Machine->gfx[0]->pen_usage[code];
+	}
+
+	for (offs = 0x800-8; offs >= 0; offs -= 8)
+	{
+		code = READ_WORD (&rastan_spriteram[offs+4]);
+
+		if (code)
+		{
+			int data1;
+
+			data1 = READ_WORD (&rastan_spriteram[offs]);
+
+			color = (data1 + 0x10) & 0x7f;
+
+            if(code < 4096)
+				colmask[color] |= Machine->gfx[1]->pen_usage[code];
+            else
+				colmask[color] |= Machine->gfx[2]->pen_usage[code-4096];
+		}
+	}
+
+	for (color = 0;color < 128;color++)
+	{
+		if (colmask[color] & (1 << 0))
+			palette_used_colors[pal_base + 16 * color] = PALETTE_COLOR_USED;
+
+		for (i = 1;i < 16;i++)
+		{
+			if (colmask[color] & (1 << i))
+				palette_used_colors[pal_base + 16 * color + i] = PALETTE_COLOR_USED;
+		}
+	}
+
+    /* Make one transparent colour */
+
+    palette_used_colors[pal_base] = PALETTE_COLOR_TRANSPARENT;
+
+	if (palette_recalc())
+	{
+		memset(rastan_dirty1,1,rastan_videoram_size / 4);
+		memset(rastan_dirty3,1,rastan_videoram_size / 4);
+	}
+}
+
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		if (rastan_dirty1[offs/4])
+		{
+			int sx,sy;
+			int data1,data2;
+
+
+			rastan_dirty1[offs/4] = 0;
+
+			data1 = READ_WORD(&rastan_videoram1[offs]);
+			data2 = READ_WORD(&rastan_videoram1[offs + 2]);
+
+			sx = (offs/4) % 64;
+			sy = (offs/4) / 64;
+
+			drawgfx(tmpbitmap1, Machine->gfx[0],
+					data2 & 0x3fff,
+					data1 & 0x7f,
+					data1 & 0x4000, data1 & 0x8000,
+					8*sx,8*sy,
+					0,TRANSPARENCY_NONE,0);
+		}
+	}
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		if (rastan_dirty3[offs/4])
+		{
+			int sx,sy;
+			int data1,data2;
+
+
+			rastan_dirty3[offs/4] = 0;
+
+			data1 = READ_WORD(&rastan_videoram3[offs]);
+			data2 = READ_WORD(&rastan_videoram3[offs + 2]);
+
+			sx = (offs/4) % 64;
+			sy = (offs/4) / 64;
+
+            /* Colour as Transparent */
+
+			drawgfx(tmpbitmap3, Machine->gfx[0],
+					0,
+					0,
+					0, 0,
+					8*sx,8*sy,
+					0,TRANSPARENCY_NONE,0);
+
+            /* Draw over with correct Transparency */
+
+			drawgfx(tmpbitmap3, Machine->gfx[0],
+					data2 & 0x3fff,
+					data1 & 0x7f,
+					data1 & 0x4000, data1 & 0x8000,
+					8*sx,8*sy,
+					0,TRANSPARENCY_PEN,0);
+		}
+	}
+
+	scrollx = READ_WORD(&rastan_scrollx[0]) - 16;
+	scrolly = READ_WORD(&rastan_scrolly[0]);
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+
+	/* Draw the sprites. 256 sprites in total */
+	for (offs = 0x800-8; offs >= 0; offs -= 8)
+	{
+		int num = READ_WORD (&rastan_spriteram[offs+4]);
+
+		if (num)
+		{
+			int sx,sy,col,data1;
+
+			sx = READ_WORD(&rastan_spriteram[offs+6]) & 0x1ff;
+			if (sx > 400) sx = sx - 512;
+			sy = READ_WORD(&rastan_spriteram[offs+2]) & 0x1ff;
+			if (sy > 400) sy = sy - 512;
+
+			data1 = READ_WORD (&rastan_spriteram[offs]);
+
+			col = (data1 + 0x10) & 0x7f;
+
+            if(num < 4096)
+			    drawgfx(bitmap,Machine->gfx[1],
+					    num,
+					    col,
+					    data1 & 0x4000, data1 & 0x8000,
+					    sx,sy,
+					    &Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+            else
+			    drawgfx(bitmap,Machine->gfx[2],
+					    num-4096,
+					    col,
+					    data1 & 0x4000, data1 & 0x8000,
+					    sx,sy,
+					    &Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+		}
+	}
+
+	scrollx = READ_WORD(&rastan_scrollx[2]) - 16;
+	scrolly = READ_WORD(&rastan_scrolly[2]);
+	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+
+
+}
+
+
+/* Jumping uses different sprite controller   */
+/* than rainbow island. - values are remapped */
+/* at address 0x2EA in the code. Apart from   */
+/* physical layout, the main change is that   */
+/* the Y settings are active low              */
+
+void jumping_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+{
+	int offs;
+	int scrollx,scrolly;
+
+    palette_init_used_colors();
+
+    /* TODO: we are using the same table for background and foreground tiles, but this */
+    /* causes the sky to be black instead of blue. */
+    {
+	    int color,code,i;
+	    int colmask[128];
+    	int pal_base;
+
+	    pal_base = 0;
+
+	    for (color = 0;color < 128;color++) colmask[color] = 0;
+
+	    for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	    {
+		    code = READ_WORD(&rastan_videoram1[offs + 2]) & 0x3FFF;
+		    color = READ_WORD(&rastan_videoram1[offs]) & 0x7f;
+
+		    colmask[color] |= Machine->gfx[0]->pen_usage[code];
+	    }
+
+	    for (offs = 0x800-8; offs >= 0; offs -= 8)
+	    {
+		    code = READ_WORD (&rastan_spriteram[offs]);
+
+		    if (code < Machine->gfx[1]->total_elements)
+		    {
+			    int data1;
+
+			    data1 = READ_WORD (&rastan_spriteram[offs+8]);
+
+			    color = (data1 + 0x10) & 0x7f;
+			    colmask[color] |= Machine->gfx[1]->pen_usage[code];
+		    }
+	    }
+
+	    for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	    {
+		    code = READ_WORD(&rastan_videoram3[offs + 2]) & 0x3FFF;
+		    color = READ_WORD(&rastan_videoram3[offs]) & 0x7f;
+
+		    colmask[color] |= Machine->gfx[0]->pen_usage[code];
+	    }
+
+
+	    for (color = 0;color < 128;color++)
+	    {
+		    if (colmask[color] & (1 << 15))
+			    palette_used_colors[pal_base + 16 * color + 15] = PALETTE_COLOR_USED;
+
+		    for (i = 0;i < 15;i++)
+		    {
+			    if (colmask[color] & (1 << i))
+				    palette_used_colors[pal_base + 16 * color + i] = PALETTE_COLOR_USED;
+		    }
+	    }
+
+        /* Make one transparent colour */
+
+        palette_used_colors[pal_base + 15] = PALETTE_COLOR_TRANSPARENT;
+
+	    if (palette_recalc())
+	    {
+		    memset(rastan_dirty1,1,rastan_videoram_size / 4);
+		    memset(rastan_dirty3,1,rastan_videoram_size / 4);
+	    }
+
+    }
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		if (rastan_dirty1[offs/4])
+		{
+			int sx,sy;
+			int data1,data2;
+
+			rastan_dirty1[offs/4] = 0;
+
+			data1 = READ_WORD(&rastan_videoram1[offs]);
+			data2 = READ_WORD(&rastan_videoram1[offs + 2]);
+
+			sx = (offs/4) % 64;
+			sy = (offs/4) / 64;
+
+			drawgfx(tmpbitmap1, Machine->gfx[0],
+					data2,
+					data1 & 0x7f,
+					data1 & 0x4000, data1 & 0x8000,
+					8*sx,8*sy,
+					0,TRANSPARENCY_NONE,0);
+		}
+	}
+
+	for (offs = rastan_videoram_size - 4;offs >= 0;offs -= 4)
+	{
+		if (rastan_dirty3[offs/4])
+		{
+			int sx,sy;
+			int data1,data2;
+
+
+			rastan_dirty3[offs/4] = 0;
+
+			data1 = READ_WORD(&rastan_videoram3[offs]);
+			data2 = READ_WORD(&rastan_videoram3[offs + 2]);
+
+			sx = (offs/4) % 64;
+			sy = (offs/4) / 64;
+
+            /* Colour as Transparent */
+
+			drawgfx(tmpbitmap3, Machine->gfx[0],
+					0,
+					0,
+					0, 0,
+					8*sx,8*sy,
+					0,TRANSPARENCY_NONE,0);
+
+            /* Draw over with correct Transparency */
+
+			drawgfx(tmpbitmap3, Machine->gfx[0],
+					data2,
+					data1 & 0x7f,
+					data1 & 0x4000, data1 & 0x8000,
+					8*sx,8*sy,
+					0,TRANSPARENCY_PEN,15);
+		}
+	}
+
+	scrollx = READ_WORD(&rastan_scrollx[0]) - 16;
+	scrolly = -READ_WORD(&rastan_scrolly[0]);
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+
+	/* Draw the sprites. 128 sprites in total */
+
+	for (offs = 0x07F0; offs >= 0; offs -= 16)
+	{
+		int num = READ_WORD (&rastan_spriteram[offs]);
+
+		if (num)
+		{
+			int  sx,col,data1;
+            int sy;
+
+			sy = ((READ_WORD(&rastan_spriteram[offs+2]) - 0xFFF1) ^ 0xFFFF) & 0x1FF;
+  			if (sy > 400) sy = sy - 512;
+			sx = (READ_WORD(&rastan_spriteram[offs+4]) - 0x38) & 0x1ff;
+			if (sx > 400) sx = sx - 512;
+
+			data1 = READ_WORD(&rastan_spriteram[offs+6]);
+			col   = (READ_WORD(&rastan_spriteram[offs+8]) + 0x10) & 0x7F;
+
+			drawgfx(bitmap,Machine->gfx[1],
+					num,
+					col,
+					data1 & 0x40, data1 & 0x80,
+					sx,sy+1,
+					&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+		}
+	}
+
+	scrollx = - 16;
+	scrolly = 0;
+  	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 }

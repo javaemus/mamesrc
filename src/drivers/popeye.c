@@ -2,6 +2,8 @@
 
 Popeye memory map (preliminary)
 
+driver by Marc Lafontaine
+
 0000-7fff  ROM
 
 8000-87ff  RAM
@@ -16,8 +18,8 @@ Popeye memory map (preliminary)
 a000-a3ff  Text video ram
 a400-a7ff  Text Attribute
 
-c000-cfff  Background bitmap. Accessed as nibbles: bit 7 selects which of the
-           two nibbles should be written to.
+c000-cfff  Background bitmap. Accessed as nibbles: bit 7 selects which of
+           the two nibbles should be written to.
 
 
 I/O 0  ;AY-3-8910 Control Reg.
@@ -31,7 +33,7 @@ I/O 3  ;AY-3-8910 Data Read Reg.
 		bit 4-5 = ?
 
 		DSW2
-        bit 0-1 = lives
+		bit 0-1 = lives
 		bit 2-3 = difficulty
 		bit 4-5 = bonus
 		bit 6 = demo sounds
@@ -50,7 +52,6 @@ I/O 2  ;bit 0 Coin in 1
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
-#include "sndhrdw/8910intf.h"
 
 
 
@@ -61,27 +62,26 @@ void popeye_backgroundram_w(int offset,int data);
 void popeye_videoram_w(int offset,int data);
 void popeye_colorram_w(int offset,int data);
 void popeye_palettebank_w(int offset,int data);
-void popeye_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom);
-void popeye_vh_screenrefresh(struct osd_bitmap *bitmap);
+void popeye_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
+void popeyebl_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
+void popeye_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 int  popeye_vh_start(void);
 void popeye_vh_stop(void);
-
-int popeye_sh_start(void);
-int popeye_sh_interrupt(void);
 
 
 
 static struct MemoryReadAddress readmem[] =
 {
+	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0x8c00, 0x8e7f, MRA_RAM },
 	{ 0x8f00, 0x8fff, MRA_RAM },
-	{ 0x0000, 0x7fff, MRA_ROM },
 	{ -1 }	/* end of table */
 };
 
 static struct MemoryWriteAddress writemem[] =
 {
+	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0x8c04, 0x8e7f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x8f00, 0x8fff, MWA_RAM },
@@ -90,7 +90,6 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xc000, 0xcfff, popeye_videoram_w, &popeye_videoram, &popeye_videoram_size },
 	{ 0x8c00, 0x8c01, MWA_RAM, &popeye_background_pos },
 	{ 0x8c03, 0x8c03, popeye_palettebank_w, &popeye_palette_bank },
-	{ 0x0000, 0x7fff, MWA_ROM },
 	{ -1 }	/* end of table */
 };
 
@@ -113,72 +112,78 @@ static struct IOWritePort writeport[] =
 };
 
 
+INPUT_PORTS_START( popeye )
 
+	PORT_START	/* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_4WAY )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT | IPF_4WAY )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP | IPF_4WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_DOWN | IPF_4WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
 
+	PORT_START	/* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_DOWN | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
 
-static struct InputPort input_ports[] =
-{
-	{	/* IN0 */
-		0x00,
-		{ OSD_KEY_RIGHT, OSD_KEY_LEFT, OSD_KEY_UP, OSD_KEY_DOWN,
-				OSD_KEY_LCONTROL, OSD_KEY_E, OSD_KEY_Q, OSD_KEY_W },
-		{ OSD_JOY_RIGHT, OSD_JOY_LEFT, OSD_JOY_UP, OSD_JOY_DOWN,
-                                OSD_JOY_FIRE1, OSD_JOY_FIRE2, OSD_JOY_FIRE3, OSD_JOY_FIRE4 }
-	},
-	{	/* IN1 */
-		0x00,
-		{ 0, 0, 0, 0, 0, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{	/* IN2 */
-		0x00,
-		{ OSD_KEY_8, OSD_KEY_9, OSD_KEY_1,OSD_KEY_2,
-                      OSD_KEY_0, OSD_KEY_5, OSD_KEY_4,OSD_KEY_3 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{	/* DSW1 */
-		0x3f,
-		{ 0, 0, 0, 0, 0, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{	/* DSW2 */
-		0x3d,
-		{ 0, 0, 0, 0, 0, 0, 0, 0 },
-		{ 0, 0, 0, 0, 0, 0, 0, 0 }
-	},
-	{ -1 }	/* end of table */
-};
+	PORT_START	/* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START1 )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_START2 )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_COIN2 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN1 )
 
-static struct TrakPort trak_ports[] =
-{
-        { -1 }
-};
+	PORT_START	/* DSW0 */
+	PORT_DIPNAME( 0x0f, 0x0f, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x03, DEF_STR( 3C_1C ) )
+	PORT_DIPSETTING(    0x04, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x0f, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x06, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( 2C_5C ) )
+	PORT_DIPSETTING(    0x0a, DEF_STR( 1C_3C ) )
+	PORT_DIPSETTING(    0x09, DEF_STR( 1C_4C ) )
+	PORT_DIPSETTING(    0x05, DEF_STR( 1C_5C ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( 1C_6C ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Free_Play ) )
+/*  0x0e = 2 Coins/1 Credit
+    0x07, 0x0c = 1 Coin/1 Credit
+    0x01, 0x0b, 0x0d = 1 Coin/2 Credits */
+	PORT_BIT( 0xf0, IP_ACTIVE_HIGH, IPT_UNUSED )	/* bit 7 scans DSW1 one bit at a time */
 
-static struct KEYSet keys[] =
-{
-        { 0, 2, "MOVE UP" },
-        { 0, 1, "MOVE LEFT"  },
-        { 0, 0, "MOVE RIGHT" },
-        { 0, 3, "MOVE DOWN" },
-        { 0, 4, "FIRE1" },
-        { 0, 6, "FIRE2" },
-        { 0, 7, "FIRE3" },
-        { 0, 5, "FIRE4" },
-        { -1 }
-};
-
-
-static struct DSW dsw[] =
-{
-	{ 4, 0x03, "LIVES", { "4", "3", "2", "1" }, 1 },
-	{ 4, 0x30, "BONUS", { "NONE", "80000", "60000", "40000" }, 1 },
-	{ 4, 0x0c, "DIFFICULTY", { "HARDEST", "HARD", "MEDIUM", "EASY" }, 1 },
-	{ 4, 0x40, "DEMO SOUNDS", { "ON", "OFF" }, 1 },
-	{ 3, 0x10, "SW1 5", { "ON", "OFF" }, 1 },
-	{ 3, 0x20, "SW1 6", { "ON", "OFF" }, 1 },
-	{ -1 }
-};
-
+	PORT_START	/* DSW1 (FAKE - appears as bit 7 of DSW0, see code below) */
+	PORT_DIPNAME( 0x03, 0x01, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x03, "1" )
+	PORT_DIPSETTING(    0x02, "2" )
+	PORT_DIPSETTING(    0x01, "3" )
+	PORT_DIPSETTING(    0x00, "4" )
+	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x0c, "Easy" )
+	PORT_DIPSETTING(    0x08, "Medium" )
+	PORT_DIPSETTING(    0x04, "Hard" )
+	PORT_DIPSETTING(    0x00, "Hardest" )
+	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x30, "40000" )
+	PORT_DIPSETTING(    0x20, "60000" )
+	PORT_DIPSETTING(    0x10, "80000" )
+	PORT_DIPSETTING(    0x00, "None" )
+	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Demo_Sounds ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Cocktail ) )
+INPUT_PORTS_END
 
 
 static struct GfxLayout charlayout =
@@ -194,7 +199,7 @@ static struct GfxLayout charlayout =
 static struct GfxLayout spritelayout =
 {
 	16,16,	/* 16*16 sprites */
-	256,	/* 256 sprites */
+	512,	/* 512 sprites */
 	2,	/* 2 bits per pixel */
 	{ 0, 0x4000*8 },	/* the two bitplanes are separated in different files */
 	{7+(0x2000*8),6+(0x2000*8),5+(0x2000*8),4+(0x2000*8),
@@ -204,100 +209,72 @@ static struct GfxLayout spritelayout =
     7*8, 6*8, 5*8, 4*8, 3*8, 2*8, 1*8, 0*8, },
 	16*8	/* every sprite takes 16 consecutive bytes */
 };
-/* there's nothing here, this is just a placeholder to let the video hardware */
-/* pick the background color table. */
-static struct GfxLayout fakelayout =
-{
-	1,1,
-	0,
-	1,
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	0
-};
 
 
 
 static struct GfxDecodeInfo gfxdecodeinfo[] =
 {
-	{ 1, 0x0800, &charlayout,        0, 32 },	/* chars */
-	{ 1, 0x1000, &spritelayout,32*2+32, 64 },	/* sprites */
-	{ 1, 0x2000, &spritelayout,32*2+32, 64 },	/* sprites */
-	{ 0, 0,      &fakelayout,     32*2, 32 },	/* background bitmap */
+	{ REGION_GFX1, 0x0000, &charlayout,      0, 16 },	/* chars */
+	{ REGION_GFX2, 0x0000, &spritelayout, 16*2, 64 },	/* sprites */
 	{ -1 } /* end of array */
 };
 
 
 
-static unsigned char color_prom[] =
+static int dswbit;
+
+static void popeye_portB_w(int offset,int data)
 {
-	/* char palette */
-	0x78,0xF0,0xF6,0xA4,0x07,0xD0,0x2F,0xAD,0xFF,0x36,0x3F,0x73,0xFF,0xAF,0xD0,0x00,
-	0x78,0xF0,0xF6,0xA4,0x07,0xD0,0x2F,0xAD,0xFF,0x36,0x3F,0x73,0xFF,0xAF,0xD0,0x00,
-	/* background palette */
-	0x00,0x0A,0x2A,0x01,0x15,0x27,0x05,0x5B,0x40,0x48,0x9B,0xAE,0x54,0x53,0xB7,0x4D,
-	0x00,0x89,0x05,0x40,0xFF,0x0F,0x01,0x16,0x00,0x0B,0xB7,0x2F,0x03,0x07,0xED,0xFF,
-	/* sprite palette */
-	/* low 4 bits */
-	0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x0F,0x00,0x07,0x0F,0x0A,0x00,0x07,0x0F,0x00,
-	0x00,0x07,0x0F,0x08,0x00,0x0C,0x07,0x00,0x00,0x06,0x08,0x00,0x00,0x03,0x0F,0x04,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x0F,0x00,0x07,0x0F,0x0B,0x00,0x07,0x0F,0x0F,
-	0x00,0x07,0x06,0x06,0x00,0x04,0x06,0x00,0x00,0x06,0x08,0x00,0x00,0x0C,0x0F,0x0F,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x0F,0x00,0x07,0x0F,0x0B,0x00,0x07,0x0F,0x08,
-	0x00,0x08,0x00,0x0F,0x00,0x02,0x0F,0x0F,0x00,0x06,0x08,0x00,0x00,0x02,0x0F,0x07,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x07,0x00,0x05,0x0F,0x0F,0x00,0x07,0x00,0x07,
-	0x00,0x07,0x0F,0x05,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x0F,0x00,0x07,0x0F,0x0A,0x00,0x07,0x0F,0x00,
-	0x00,0x07,0x0F,0x08,0x00,0x0C,0x07,0x00,0x00,0x06,0x08,0x00,0x00,0x03,0x0F,0x04,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x0F,0x00,0x07,0x0F,0x0B,0x00,0x07,0x0F,0x0F,
-	0x00,0x07,0x06,0x06,0x00,0x04,0x06,0x00,0x00,0x06,0x08,0x00,0x00,0x0C,0x0F,0x0F,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x0F,0x00,0x07,0x0F,0x0B,0x00,0x07,0x0F,0x08,
-	0x00,0x08,0x00,0x0F,0x00,0x02,0x0F,0x0F,0x00,0x06,0x08,0x00,0x00,0x02,0x0F,0x07,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x07,0x07,0x00,0x05,0x0F,0x0F,0x00,0x07,0x00,0x07,
-	0x00,0x07,0x0F,0x05,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F,
-	/* high 4 bits */
-	0x00,0x00,0x00,0x00,0x00,0x08,0x0A,0x0F,0x00,0x00,0x0A,0x00,0x00,0x00,0x0A,0x0A,
-	0x00,0x00,0x0F,0x03,0x00,0x00,0x0B,0x0C,0x00,0x0F,0x03,0x0C,0x00,0x00,0x0A,0x08,
-	0x00,0x00,0x00,0x00,0x00,0x08,0x0A,0x0F,0x00,0x00,0x0A,0x00,0x00,0x00,0x0A,0x0F,
-	0x00,0x00,0x0F,0x03,0x00,0x01,0x0F,0x0C,0x00,0x0F,0x03,0x0C,0x00,0x00,0x0A,0x01,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x0A,0x0F,0x00,0x00,0x0A,0x00,0x00,0x00,0x0A,0x09,
-	0x00,0x03,0x00,0x03,0x00,0x00,0x06,0x0F,0x00,0x0F,0x03,0x0C,0x00,0x00,0x0A,0x04,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x02,0x02,0x00,0x01,0x0A,0x0F,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x0A,0x01,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F,
-	0x00,0x00,0x00,0x00,0x00,0x08,0x04,0x0F,0x00,0x00,0x0A,0x00,0x00,0x00,0x0A,0x0A,
-	0x00,0x00,0x0F,0x03,0x00,0x00,0x0B,0x0C,0x00,0x0F,0x03,0x0C,0x00,0x00,0x0A,0x08,
-	0x00,0x00,0x00,0x00,0x00,0x08,0x04,0x0F,0x00,0x00,0x0A,0x00,0x00,0x00,0x0A,0x0F,
-	0x00,0x00,0x0F,0x03,0x00,0x01,0x0F,0x0C,0x00,0x0F,0x03,0x0C,0x00,0x00,0x0A,0x01,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x04,0x0F,0x00,0x00,0x0A,0x00,0x00,0x00,0x0A,0x09,
-	0x00,0x03,0x00,0x03,0x00,0x00,0x06,0x0F,0x00,0x0F,0x03,0x0C,0x00,0x00,0x0A,0x04,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x02,0x02,0x00,0x01,0x0A,0x0F,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x0A,0x01,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F,0x00,0x0F,0x0F,0x0F
+	/* bit 0 does something - RV in the schematics */
+
+	/* bits 1-3 select DSW1 bit to read */
+	dswbit = (data & 0x0e) >> 1;
+}
+
+static int popeye_portA_r(int offset)
+{
+	int res;
+
+
+	res = input_port_3_r(offset);
+	res |= (input_port_4_r(offset) << (7-dswbit)) & 0x80;
+
+	return res;
+}
+
+static struct AY8910interface ay8910_interface =
+{
+	1,	/* 1 chip */
+	2000000,	/* 2 MHz */
+	{ 40 },
+	{ popeye_portA_r },
+	{ 0 },
+	{ 0 },
+	{ popeye_portB_w }
 };
 
 
 
-static struct MachineDriver machine_driver =
+static struct MachineDriver machine_driver_popeyebl =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
 			4000000,	/* 4 Mhz */
-			0,
 			readmem,writemem,readport,writeport,
-			popeye_sh_interrupt,20
+			nmi_interrupt,2
 		}
 	},
-	30,
+	30, DEFAULT_30HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
 	1,	/* single CPU, no need for interleaving */
 	0,
 
 	/* video hardware */
 	32*16, 30*16, { 0*16, 32*16-1, 1*16, 29*16-1 },
 	gfxdecodeinfo,
-	256,32*2+32+64*4,
-	popeye_vh_convert_color_prom,
+	32+16+256, 16*2+64*4,
+	popeyebl_vh_convert_color_prom,
 
 	VIDEO_TYPE_RASTER | VIDEO_SUPPORTS_DIRTY,
 	0,
@@ -306,11 +283,13 @@ static struct MachineDriver machine_driver =
 	popeye_vh_screenrefresh,
 
 	/* sound hardware */
-	0,
-	0,
-	popeye_sh_start,
-	AY8910_sh_stop,
-	AY8910_sh_update
+	0,0,0,0,
+	{
+		{
+			SOUND_AY8910,
+			&ay8910_interface
+		}
+	}
 };
 
 
@@ -321,92 +300,87 @@ static struct MachineDriver machine_driver =
 
 ***************************************************************************/
 
-ROM_START( popeyebl_rom )
-	ROM_REGION(0x10000)	/* 64k for code */
-	ROM_LOAD( "po1",          0x0000, 0x2000, 0x85dcf3d2 )
-	ROM_LOAD( "po2",          0x2000, 0x2000, 0xdbef4a97 )
-	ROM_LOAD( "po3",          0x4000, 0x2000, 0x912ec99c )
-	ROM_LOAD( "po4",          0x6000, 0x2000, 0x76663258 )
-	ROM_LOAD( "po_d1-e1.bin", 0xe000, 0x0020, 0x64007604 )	/* protection PROM */
+ROM_START( popeye )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "c-7a",         0x0000, 0x2000, 0x9af7c821 )
+	ROM_LOAD( "c-7b",         0x2000, 0x2000, 0xc3704958 )
+	ROM_LOAD( "c-7c",         0x4000, 0x2000, 0x5882ebf9 )
+	ROM_LOAD( "c-7e",         0x6000, 0x2000, 0xef8649ca )
 
-	ROM_REGION(0x9000)	/* temporary space for graphics (disposed after conversion) */
-	ROM_LOAD( "po5", 0x0000, 0x1000, 0x4e800000 )
-	ROM_LOAD( "po6", 0x1000, 0x2000, 0x034f71a7 )
-	ROM_LOAD( "po7", 0x3000, 0x2000, 0x0d9053e2 )
-	ROM_LOAD( "po8", 0x5000, 0x2000, 0x8568d90c )
-	ROM_LOAD( "po9", 0x7000, 0x2000, 0xe2b9685f )
+	ROM_REGION( 0x0800, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "v-5n",         0x0000, 0x0800, 0xcca61ddd )	/* first half is empty */
+	ROM_CONTINUE(             0x0000, 0x0800 )
+
+	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "v-1e",         0x0000, 0x2000, 0x0f2cd853 )
+	ROM_LOAD( "v-1f",         0x2000, 0x2000, 0x888f3474 )
+	ROM_LOAD( "v-1j",         0x4000, 0x2000, 0x7e864668 )
+	ROM_LOAD( "v-1k",         0x6000, 0x2000, 0x49e1d170 )
+
+	ROM_REGION( 0x0340, REGION_PROMS )
+	ROM_LOAD( "prom-cpu.4a",  0x0000, 0x0020, 0x375e1602 ) /* background palette */
+	ROM_LOAD( "prom-cpu.3a",  0x0020, 0x0020, 0xe950bea1 ) /* char palette */
+	ROM_LOAD( "prom-cpu.5b",  0x0040, 0x0100, 0xc5826883 ) /* sprite palette - low 4 bits */
+	ROM_LOAD( "prom-cpu.5a",  0x0140, 0x0100, 0xc576afba ) /* sprite palette - high 4 bits */
+	ROM_LOAD( "prom-vid.7j",  0x0240, 0x0100, 0xa4655e2e ) /* timing for the protection ALU */
+ROM_END
+
+ROM_START( popeye2 )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "7a",           0x0000, 0x2000, 0x0bd04389 )
+	ROM_LOAD( "7b",           0x2000, 0x2000, 0xefdf02c3 )
+	ROM_LOAD( "7c",           0x4000, 0x2000, 0x8eee859e )
+	ROM_LOAD( "7e",           0x6000, 0x2000, 0xb64aa314 )
+
+	ROM_REGION( 0x0800, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "v-5n",         0x0000, 0x0800, 0xcca61ddd )	/* first half is empty */
+	ROM_CONTINUE(             0x0000, 0x0800 )
+
+	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "v-1e",         0x0000, 0x2000, 0x0f2cd853 )
+	ROM_LOAD( "v-1f",         0x2000, 0x2000, 0x888f3474 )
+	ROM_LOAD( "v-1j",         0x4000, 0x2000, 0x7e864668 )
+	ROM_LOAD( "v-1k",         0x6000, 0x2000, 0x49e1d170 )
+
+	ROM_REGION( 0x0340, REGION_PROMS )
+	ROM_LOAD( "prom-cpu.4a",  0x0000, 0x0020, 0x375e1602 ) /* background palette */
+	ROM_LOAD( "prom-cpu.3a",  0x0020, 0x0020, 0xe950bea1 ) /* char palette */
+	ROM_LOAD( "prom-cpu.5b",  0x0040, 0x0100, 0xc5826883 ) /* sprite palette - low 4 bits */
+	ROM_LOAD( "prom-cpu.5a",  0x0140, 0x0100, 0xc576afba ) /* sprite palette - high 4 bits */
+	ROM_LOAD( "prom-vid.7j",  0x0240, 0x0100, 0xa4655e2e ) /* timing for the protection ALU */
+ROM_END
+
+ROM_START( popeyebl )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "po1",          0x0000, 0x2000, 0xb14a07ca )
+	ROM_LOAD( "po2",          0x2000, 0x2000, 0x995475ff )
+	ROM_LOAD( "po3",          0x4000, 0x2000, 0x99d6a04a )
+	ROM_LOAD( "po4",          0x6000, 0x2000, 0x548a6514 )
+	ROM_LOAD( "po_d1-e1.bin", 0xe000, 0x0020, 0x8de22998 )	/* protection PROM */
+
+	ROM_REGION( 0x0800, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "v-5n",         0x0000, 0x0800, 0xcca61ddd )	/* first half is empty */
+	ROM_CONTINUE(             0x0000, 0x0800 )
+
+	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "v-1e",         0x0000, 0x2000, 0x0f2cd853 )
+	ROM_LOAD( "v-1f",         0x2000, 0x2000, 0x888f3474 )
+	ROM_LOAD( "v-1j",         0x4000, 0x2000, 0x7e864668 )
+	ROM_LOAD( "v-1k",         0x6000, 0x2000, 0x49e1d170 )
+
+	ROM_REGION( 0x0240, REGION_PROMS )
+	ROM_LOAD( "popeye.pr1",   0x0000, 0x0020, 0xd138e8a4 ) /* background palette */
+	ROM_LOAD( "popeye.pr2",   0x0020, 0x0020, 0x0f364007 ) /* char palette */
+	ROM_LOAD( "popeye.pr3",   0x0040, 0x0100, 0xca4d7b6a ) /* sprite palette - low 4 bits */
+	ROM_LOAD( "popeye.pr4",   0x0140, 0x0100, 0xcab9bc53 ) /* sprite palette - high 4 bits */
 ROM_END
 
 
 
-static int hiload(void)
-{
-	/* check if the hi score table has already been initialized */
-	if (memcmp(&RAM[0x8209],"\x00\x26\x03",3) == 0 &&
-			memcmp(&RAM[0x8221],"\x50\x11\x02",3) == 0)
-	{
-		void *f;
-
-
-		if ((f = osd_fopen(Machine->gamedrv->name,0,OSD_FILETYPE_HIGHSCORE,0)) != 0)
-		{
-			int i;
-
-
-			osd_fread(f,&RAM[0x8200],6+6*5);
-
-			i = RAM[0x8201];
-
-			RAM[0x8fed] = RAM[0x8200+i-2];
-			RAM[0x8fee] = RAM[0x8200+i-1];
-			RAM[0x8fef] = RAM[0x8200+i];
-
-			RAM[0x8f32] = RAM[0x8200+i] >> 4;
-			RAM[0x8f33] = RAM[0x8200+i] & 0x0f;
-			RAM[0x8f34] = RAM[0x8200+i-1] >> 4;
-			RAM[0x8f35] = RAM[0x8200+i-1] & 0x0f;
-			RAM[0x8f36] = RAM[0x8200+i-2] >> 4;
-			RAM[0x8f37] = RAM[0x8200+i-2] & 0x0f;
-
-			osd_fclose(f);
-		}
-
-		return 1;
-	}
-	else return 0;	/* we can't load the hi scores yet */
-}
-
-
-
-static void hisave(void)
-{
-	void *f;
-
-
-	if ((f = osd_fopen(Machine->gamedrv->name,0,OSD_FILETYPE_HIGHSCORE,1)) != 0)
-	{
-		osd_fwrite(f,&RAM[0x8200],6+6*5);
-		osd_fclose(f);
-	}
-}
-
-
-
-struct GameDriver popeyebl_driver =
-{
-	"Popeye (bootleg)",
-	"popeyebl",
-	"MARC LAFONTAINE\nNICOLA SALMORIA",
-	&machine_driver,
-
-	popeyebl_rom,
-	0, 0,
-	0,
-
-	input_ports, 0, trak_ports, dsw, keys,
-
-	color_prom, 0, 0,
-	ORIENTATION_DEFAULT,
-
-	hiload,hisave
-};
+/* The original doesn't work because the ROMs are encrypted. */
+/* The encryption is based on a custom ALU and seems to be dynamically evolving */
+/* (like Jr. PacMan). I think it decodes 16 bits at a time, bits 0-2 are (or can be) */
+/* an opcode for the ALU and the others contain the data. */
+GAMEX( 1982?, popeye,   0,      popeyebl, popeye, 0, ROT0, "Nintendo", "Popeye (set 1)", GAME_NOT_WORKING | GAME_NO_COCKTAIL )
+GAMEX( 1982?, popeye2,  popeye, popeyebl, popeye, 0, ROT0, "Nintendo", "Popeye (set 2)", GAME_NOT_WORKING | GAME_NO_COCKTAIL )
+GAMEX( 1982?, popeyebl, popeye, popeyebl, popeye, 0, ROT0, "bootleg", "Popeye (bootleg)", GAME_NO_COCKTAIL )

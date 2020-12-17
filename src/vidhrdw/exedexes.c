@@ -16,8 +16,8 @@ unsigned char *exedexes_bg_scroll;
 unsigned char *exedexes_nbg_yscroll;
 unsigned char *exedexes_nbg_xscroll;
 
-#define TileMap(offs) (Machine->memory_region[3][offs])
-#define BackTileMap(offs) (Machine->memory_region[3][offs+0x4000])
+#define TileMap(offs) (memory_region(REGION_GFX5)[offs])
+#define BackTileMap(offs) (memory_region(REGION_GFX5)[offs+0x4000])
 
 
 /***************************************************************************
@@ -36,7 +36,7 @@ unsigned char *exedexes_nbg_xscroll;
   bit 0 -- 2.2kohm resistor  -- RED/GREEN/BLUE
 
 ***************************************************************************/
-void exedexes_vh_convert_color_prom(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
+void exedexes_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
 	int i;
 	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
@@ -99,7 +99,7 @@ void exedexes_vh_convert_color_prom(unsigned char *palette, unsigned char *color
   the main emulation engine.
 
 ***************************************************************************/
-void exedexes_vh_screenrefresh(struct osd_bitmap *bitmap)
+void exedexes_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int offs,sx,sy;
 
@@ -122,8 +122,8 @@ void exedexes_vh_screenrefresh(struct osd_bitmap *bitmap)
 			drawgfx(bitmap,Machine->gfx[1],
 					BackTileMap(tile) & 0x3f,
 					BackTileMap(tile+8*8),
-					BackTileMap(tile) & 0x80,BackTileMap(tile) & 0x40,
-					sx*32,224-sy*32+(yo&0x1F),
+					BackTileMap(tile) & 0x40,BackTileMap(tile) & 0x80,
+					sy*32-(yo&0x1F),sx*32,
 					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
@@ -141,12 +141,11 @@ void exedexes_vh_screenrefresh(struct osd_bitmap *bitmap)
 
 			tile = ((yo & 0xf0) >> 4) + (xo & 0xF0) + (yo & 0x700) + ((xo & 0x700) << 3);
 
-			if (TileMap(tile))	/* don't draw spaces */
 			drawgfx(bitmap,Machine->gfx[2],
 				TileMap(tile),
 				0,
 				0,0,
-				sx*16-(xo&0xF),240-sy*16+(yo&0xF),
+				sy*16-(yo&0xF),sx*16-(xo&0xF),
 				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
@@ -158,8 +157,8 @@ void exedexes_vh_screenrefresh(struct osd_bitmap *bitmap)
 		drawgfx(bitmap,Machine->gfx[3],
 				spriteram[offs],
 				spriteram[offs + 1] & 0x0f,
-				spriteram[offs + 1] & 0x20, spriteram[offs + 1] & 0x10,
-				spriteram[offs + 2],240 - spriteram[offs + 3] + 0x10 * (spriteram[offs + 1] & 0x80),
+				spriteram[offs + 1] & 0x10, spriteram[offs + 1] & 0x20,
+				spriteram[offs + 3] - 0x10 * (spriteram[offs + 1] & 0x80),spriteram[offs + 2],
 				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
 	}
 
@@ -167,25 +166,14 @@ void exedexes_vh_screenrefresh(struct osd_bitmap *bitmap)
 	/* draw the frontmost playfield. They are characters, but draw them as sprites */
 	for (offs = videoram_size - 1;offs >= 0;offs--)
 	{
-		int code;
+		sx = offs % 32;
+		sy = offs / 32;
 
-
-		code = videoram[offs] + 2 * (colorram[offs] & 0x80);
-
-		if (code != 0x24 || colorram[offs] != 0)		/* don't draw spaces */
-		{
-			int sx,sy;
-
-
-			sx = 8 * (offs / 32);
-			sy = 8 * (31 - offs % 32);
-
-			drawgfx(bitmap,Machine->gfx[0],
-					code,
-					colorram[offs] & 0x3f,
-					0,0,
-					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_COLOR,207);
-		}
+		drawgfx(bitmap,Machine->gfx[0],
+				videoram[offs] + 2 * (colorram[offs] & 0x80),
+				colorram[offs] & 0x3f,
+				0,0,
+				8*sx,8*sy,
+				&Machine->drv->visible_area,TRANSPARENCY_COLOR,207);
 	}
 }

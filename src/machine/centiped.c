@@ -9,82 +9,49 @@
 
 #include "driver.h"
 
-
+/*
+ * This wrapper routine is necessary because Centipede requires a direction bit
+ * to be set or cleared. The direction bit is held until the mouse is moved
+ * again.
+ *
+ * There is a 4-bit counter, and two inputs from the trackball: DIR and CLOCK.
+ * CLOCK makes the counter move in the direction of DIR. Since DIR is latched
+ * only when a CLOCK arrives, the DIR bit in the input port doesn't change
+ * until the trackball actually moves.
+ *
+ * There is also a CLR input to the counter which could be used by the game to
+ * clear the counter, but Centipede doesn't use it (though it would be a good
+ * idea to support it anyway).
+ *
+ * The counter is read 240 times per second. There is no provision whatsoever
+ * to prevent the counter from wrapping around between reads.
+ */
 int centiped_IN0_r(int offset)
 {
-	int res;
-	int trak;
+	static int oldpos,sign;
+	int newpos;
 
-	res = readinputport(0);
-	trak = readtrakport(0);
+	newpos = readinputport(6);
+	if (newpos != oldpos)
+	{
+		sign = (newpos - oldpos) & 0x80;
+		oldpos = newpos;
+	}
 
-	return(res|trak);
+	return ((readinputport(0) & 0x70) | (oldpos & 0x0f) | sign );
 }
 
-int centiped_trakball_x(int data) {
-  static char x = 0;
-  static int res = 0;
+int centiped_IN2_r(int offset)
+{
+	static int oldpos,sign;
+	int newpos;
 
-  if(data > 7) {
-    data = 7;
-  }
+	newpos = readinputport(2);
+	if (newpos != oldpos)
+	{
+		sign = (newpos - oldpos) & 0x80;
+		oldpos = newpos;
+	}
 
-  if(data < -7) {
-    data = -7;
-  }
-
-  x -= (char)data;
-
-  if(x<0x00) {
-    x += 0x10;
-  }
-
-  if(x>0x10) {
-    x -= 0x10;
-  }
-
-  if(data < 0) {
-    res = x;
-  }
-
-  if(data > 0) {
-    res = 0x80|x;
-  }
-
-  return(res);
-}
-
-int centiped_trakball_y(int data) {
-  static char y = 0;
-  static int res = 0;
-
-  data = -data;
-
-  if(data > 7) {
-    data = 7;
-  }
-
-  if(data < -7) {
-    data = -7;
-  }
-
-  y -= (char)data;
-
-  if(y<0x00) {
-    y += 0x10;
-  }
-
-  if(y>0x10) {
-    y -= 0x10;
-  }
-
-  if(data < 0) {
-    res = y;
-  }
-
-  if(data > 0) {
-    res = 0x80|y;
-  }
-
-  return(res);
+	return ((oldpos & 0x0f) | sign );
 }

@@ -166,58 +166,60 @@ High Scores:
 #include "vidhrdw/generic.h"
 #include "machine/mathbox.h"
 #include "vidhrdw/avgdvg.h"
+#include "vidhrdw/vector.h"
 #include "machine/atari_vg.h"
-#include "sndhrdw/pokyintf.h"
 
 
-int tempest_interrupt(void);
-int tempest_catch_busyloop (int offset);
-int tempest_IN0_r(int offset);
-
-/* Misc sound code */
-static struct POKEYinterface interface =
+static int tempest_IN0_r(int offset)
 {
-	2,	/* 2 chips */
-	6,	/* 6 updates per video frame - tied to interrupts per frame */
-	FREQ_17_APPROX,	/* 1.7 Mhz */
-	255,
-	NO_CLIP,
-	/* The 8 pot handlers */
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	/* The allpot handler */
-	{ input_port_1_r, input_port_2_r },
-};
+	int res;
 
+	res = readinputport(0);
 
-int tempest_sh_start(void)
+	if (avgdvg_done())
+		res|=0x40;
+
+	/* Emulate the 3Khz source on bit 7 (divide 1.5Mhz by 512) */
+	if (cpu_gettotalcycles() & 0x100)
+		res |=0x80;
+
+	return res;
+}
+
+static void tempest_led_w (int offset, int data)
 {
-	return pokey_sh_start (&interface);
+	osd_led_w (0, ~(data >> 1));
+	osd_led_w (1, ~data);
+	/* FLIP is bit 0x04 */
+}
+
+static void tempest_coin_w (int offset, int data)
+{
+	static int lastval;
+
+	if (lastval == data) return;
+	coin_counter_w (0, (data & 0x01));
+	coin_counter_w (1, (data & 0x02));
+	coin_counter_w (2, (data & 0x04));
+	lastval = data;
 }
 
 static struct MemoryReadAddress readmem[] =
 {
-//	{ 0x0053, 0x0053, tempest_catch_busyloop },
 	{ 0x0000, 0x07ff, MRA_RAM },
-	{ 0x9000, 0xdfff, MRA_ROM },
-	{ 0x3000, 0x3fff, MRA_ROM },
-	{ 0xf000, 0xffff, MRA_ROM },	/* for the reset / interrupt vectors */
-	{ 0x2000, 0x2fff, MRA_RAM, &vectorram, &vectorram_size },
 	{ 0x0c00, 0x0c00, tempest_IN0_r },	/* IN0 */
-	{ 0x60c0, 0x60cf, pokey1_r },
-	{ 0x60d0, 0x60df, pokey2_r },
 	{ 0x0d00, 0x0d00, input_port_3_r },	/* DSW1 */
 	{ 0x0e00, 0x0e00, input_port_4_r },	/* DSW2 */
+	{ 0x2000, 0x2fff, MRA_RAM },
+	{ 0x3000, 0x3fff, MRA_ROM },
 	{ 0x6040, 0x6040, mb_status_r },
 	{ 0x6050, 0x6050, atari_vg_earom_r },
 	{ 0x6060, 0x6060, mb_lo_r },
 	{ 0x6070, 0x6070, mb_hi_r },
+	{ 0x60c0, 0x60cf, pokey1_r },
+	{ 0x60d0, 0x60df, pokey2_r },
+	{ 0x9000, 0xdfff, MRA_ROM },
+	{ 0xf000, 0xffff, MRA_ROM },	/* for the reset / interrupt vectors */
 	{ -1 }	/* end of table */
 };
 
@@ -225,201 +227,178 @@ static struct MemoryWriteAddress writemem[] =
 {
 	{ 0x0000, 0x07ff, MWA_RAM },
 	{ 0x0800, 0x080f, tempest_colorram_w },
-	{ 0x2000, 0x2fff, MWA_RAM },
+	{ 0x2000, 0x2fff, MWA_RAM, &vectorram, &vectorram_size },
+	{ 0x3000, 0x3fff, MWA_ROM },
+	{ 0x4000, 0x4000, tempest_coin_w },
+	{ 0x4800, 0x4800, avgdvg_go },
+	{ 0x5000, 0x5000, watchdog_reset_w },
+	{ 0x5800, 0x5800, avgdvg_reset },
 	{ 0x6000, 0x603f, atari_vg_earom_w },
 	{ 0x6040, 0x6040, atari_vg_earom_ctrl },
+	{ 0x6080, 0x609f, mb_go },
 	{ 0x60c0, 0x60cf, pokey1_w },
 	{ 0x60d0, 0x60df, pokey2_w },
-	{ 0x6080, 0x609f, mb_go },
-	{ 0x4800, 0x4800, avgdvg_go },
-	{ 0x5000, 0x5000, MWA_RAM },
-	{ 0x5800, 0x5800, avgdvg_reset },
+	{ 0x60e0, 0x60e0, tempest_led_w },
 	{ 0x9000, 0xdfff, MWA_ROM },
-	{ 0x3000, 0x3fff, MWA_ROM },
-	{ 0x4000, 0x4000, MWA_NOP },
-	{ 0x60e0, 0x60e0, MWA_NOP },
 	{ -1 }	/* end of table */
 };
 
-INPUT_PORTS_START( input_ports )
+INPUT_PORTS_START( tempest )
 	PORT_START	/* IN0 */
-	PORT_BIT ( 0x01, IP_ACTIVE_LOW, IPT_COIN3)
-	PORT_BIT ( 0x02, IP_ACTIVE_LOW, IPT_COIN2)
-	PORT_BIT ( 0x04, IP_ACTIVE_LOW, IPT_COIN1)
-	PORT_BIT ( 0x08, IP_ACTIVE_LOW, IPT_TILT)
-	PORT_BITX(    0x10, 0x10, IPT_DIPSWITCH_NAME | IPF_TOGGLE, "Service Mode", OSD_KEY_F2, IP_JOY_NONE, 0 )
-	PORT_DIPSETTING(    0x10, "Off" )
-	PORT_DIPSETTING(    0x00, "On" )
-	PORT_BITX( 0x20, IP_ACTIVE_LOW, IPT_SERVICE, "Diagnostic Step", OSD_KEY_F1, IP_JOY_NONE, 0 )
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_TILT )
+	PORT_SERVICE( 0x10, IP_ACTIVE_LOW )
+	PORT_BITX( 0x20, IP_ACTIVE_LOW, IPT_SERVICE, "Diagnostic Step", KEYCODE_F1, IP_JOY_NONE )
 	/* bit 6 is the VG HALT bit. We set it to "low" */
 	/* per default (busy vector processor). */
  	/* handled by tempest_IN0_r() */
-	PORT_BIT ( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 	/* bit 7 is tied to a 3khz (?) clock */
  	/* handled by tempest_IN0_r() */
-	PORT_BIT ( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 
 	PORT_START	/* IN1/DSW0 */
-	/* This is the Tempest spinner input. It only uses 4 bits. It also clips the */
-	/* returned value to a maximum of +/- 7 */
-	PORT_ANALOG ( 0x0f, 0x00, IPT_DIAL | IPF_REVERSE, 100, 7, 0, 0 )
+	/* This is the Tempest spinner input. It only uses 4 bits. */
+	PORT_ANALOG( 0x0f, 0x00, IPT_DIAL, 25, 20, 0, 0)
 	/* The next one is reponsible for cocktail mode.
 	 * According to the documentation, this is not a switch, although
 	 * it may have been planned to put it on the Math Box PCB, D/E2 )
 	 */
-	PORT_DIPNAME( 0x10, 0x10, "Cabinet", IP_KEY_NONE )
-	PORT_DIPSETTING(    0x10, "Upright" )
-	PORT_DIPSETTING(    0x00, "Cocktail" )
-	PORT_BIT ( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
-	PORT_BIT ( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
-	PORT_BIT ( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_DIPNAME( 0x10, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( Cocktail ) )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START	/* IN2 */
-	PORT_DIPNAME ( 0x03, 0x00, "Difficulty", IP_KEY_NONE )
-	PORT_DIPSETTING(     0x01, "Easy" )
-	PORT_DIPSETTING(     0x00, "Medium1" )
-	PORT_DIPSETTING(     0x03, "Medium2" )
-	PORT_DIPSETTING(     0x02, "Hard" )
-	PORT_DIPNAME ( 0x04, 0x00, "Rating", IP_KEY_NONE )
-	PORT_DIPSETTING(     0x00, "1, 3, 5, 7, 9" )
-	PORT_DIPSETTING(     0x04, "tied to high score" )
-	PORT_BIT (0x08, IP_ACTIVE_HIGH, IPT_BUTTON2 )
-	PORT_BIT (0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
-	PORT_BIT (0x20, IP_ACTIVE_HIGH, IPT_START1 )
-	PORT_BIT (0x40, IP_ACTIVE_HIGH, IPT_START2 )
-	PORT_BIT (0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_DIPNAME(  0x03, 0x03, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(     0x02, "Easy" )
+	PORT_DIPSETTING(     0x03, "Medium1" )
+	PORT_DIPSETTING(     0x00, "Medium2" )
+	PORT_DIPSETTING(     0x01, "Hard" )
+	PORT_DIPNAME(  0x04, 0x04, "Rating" )
+	PORT_DIPSETTING(     0x04, "1, 3, 5, 7, 9" )
+	PORT_DIPSETTING(     0x00, "tied to high score" )
+	PORT_BIT(0x08, IP_ACTIVE_LOW, IPT_BUTTON2 )
+	PORT_BIT(0x10, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT(0x20, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT(0x40, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START	/* DSW1 - (N13 on analog vector generator PCB */
-	PORT_DIPNAME (0x03, 0x00, "Coinage", IP_KEY_NONE )
-	PORT_DIPSETTING (   0x01, "2 Coins/1 Credit" )
-	PORT_DIPSETTING (   0x00, "1 Coin/1 Credit" )
-	PORT_DIPSETTING (   0x03, "1 Coin/2 Credits" )
-	PORT_DIPSETTING (   0x02, "Free Play" )
-	PORT_DIPNAME (0x0c, 0x00, "Right Coin", IP_KEY_NONE )
-	PORT_DIPSETTING (   0x00, "*1" )
-	PORT_DIPSETTING (   0x04, "*4" )
-	PORT_DIPSETTING (   0x08, "*5" )
-	PORT_DIPSETTING (   0x0c, "*6" )
-	PORT_DIPNAME (0x10, 0x00, "Left Coin", IP_KEY_NONE )
-	PORT_DIPSETTING (   0x00, "*1" )
-	PORT_DIPSETTING (   0x10, "*2" )
-	PORT_DIPNAME (0xe0, 0x00, "Bonus Coins", IP_KEY_NONE )
-	PORT_DIPSETTING (   0x00, "None" )
-	PORT_DIPSETTING (   0x80, "1 each 5" )
-	PORT_DIPSETTING (   0x40, "1 each 4 (+Demo)" )
-	PORT_DIPSETTING (   0xa0, "1 each 3" )
-	PORT_DIPSETTING (   0x60, "2 each 4 (+Demo)" )
-	PORT_DIPSETTING (   0x20, "1 each 2" )
-	PORT_DIPSETTING (   0xc0, "Freeze Mode" )
-	PORT_DIPSETTING (   0xe0, "Freeze Mode" )
+	PORT_DIPNAME( 0x03, 0x00, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x03, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( Free_Play ) )
+	PORT_DIPNAME( 0x0c, 0x00, "Right Coin" )
+	PORT_DIPSETTING(    0x00, "*1" )
+	PORT_DIPSETTING(    0x04, "*4" )
+	PORT_DIPSETTING(    0x08, "*5" )
+	PORT_DIPSETTING(    0x0c, "*6" )
+	PORT_DIPNAME( 0x10, 0x00, "Left Coin" )
+	PORT_DIPSETTING(    0x00, "*1" )
+	PORT_DIPSETTING(    0x10, "*2" )
+	PORT_DIPNAME( 0xe0, 0x00, "Bonus Coins" )
+	PORT_DIPSETTING(    0x00, "None" )
+	PORT_DIPSETTING(    0x80, "1 each 5" )
+	PORT_DIPSETTING(    0x40, "1 each 4 (+Demo)" )
+	PORT_DIPSETTING(    0xa0, "1 each 3" )
+	PORT_DIPSETTING(    0x60, "2 each 4 (+Demo)" )
+	PORT_DIPSETTING(    0x20, "1 each 2" )
+	PORT_DIPSETTING(    0xc0, "Freeze Mode" )
+	PORT_DIPSETTING(    0xe0, "Freeze Mode" )
 
 	PORT_START	/* DSW2 - (L12 on analog vector generator PCB */
-	PORT_DIPNAME (0x01, 0x00, "Minimum", IP_KEY_NONE )
-	PORT_DIPSETTING (   0x00, "1 Credit" )
-	PORT_DIPSETTING (   0x01, "2 Credit" )
-	PORT_DIPNAME (0x06, 0x00, "Language", IP_KEY_NONE)
-	PORT_DIPSETTING (   0x00, "English" )
-	PORT_DIPSETTING (   0x02, "French" )
-	PORT_DIPSETTING (   0x04, "German" )
-	PORT_DIPSETTING (   0x06, "Spanish" )
-	PORT_DIPNAME (0x38, 0x00, "Bonus Life", IP_KEY_NONE )
-	PORT_DIPSETTING (   0x08, "10000" )
-	PORT_DIPSETTING (   0x00, "20000" )
-	PORT_DIPSETTING (   0x10, "30000" )
-	PORT_DIPSETTING (   0x18, "40000" )
-	PORT_DIPSETTING (   0x20, "50000" )
-	PORT_DIPSETTING (   0x28, "60000" )
-	PORT_DIPSETTING (   0x30, "70000" )
-	PORT_DIPSETTING (   0x38, "None" )
-	PORT_DIPNAME (0xc0, 0x00, "Lives", IP_KEY_NONE )
-	PORT_DIPSETTING (   0xc0, "2" )
-	PORT_DIPSETTING (   0x00, "3" )
-	PORT_DIPSETTING (   0x40, "4" )
-	PORT_DIPSETTING (   0x80, "5" )
+	PORT_DIPNAME( 0x01, 0x00, "Minimum" )
+	PORT_DIPSETTING(    0x00, "1 Credit" )
+	PORT_DIPSETTING(    0x01, "2 Credit" )
+	PORT_DIPNAME( 0x06, 0x00, "Language" )
+	PORT_DIPSETTING(    0x00, "English" )
+	PORT_DIPSETTING(    0x02, "French" )
+	PORT_DIPSETTING(    0x04, "German" )
+	PORT_DIPSETTING(    0x06, "Spanish" )
+	PORT_DIPNAME( 0x38, 0x00, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x08, "10000" )
+	PORT_DIPSETTING(    0x00, "20000" )
+	PORT_DIPSETTING(    0x10, "30000" )
+	PORT_DIPSETTING(    0x18, "40000" )
+	PORT_DIPSETTING(    0x20, "50000" )
+	PORT_DIPSETTING(    0x28, "60000" )
+	PORT_DIPSETTING(    0x30, "70000" )
+	PORT_DIPSETTING(    0x38, "None" )
+	PORT_DIPNAME( 0xc0, 0x00, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0xc0, "2" )
+	PORT_DIPSETTING(    0x00, "3" )
+	PORT_DIPSETTING(    0x40, "4" )
+	PORT_DIPSETTING(    0x80, "5" )
 INPUT_PORTS_END
 
-/*
- * Tempest does not really have a colorprom, nor any graphics to
- * decode. It has a 16 byte long colorram, but only the lower nibble
- * of each byte is important.
- * The (inverted) meaning of the bits is:
- * 3-green 2-blue 1-red 0-intensity.
- * To dynamically alter the colors, we need access to the colortable.
- * This is what this fakelayout is for.
- */
-static struct GfxLayout fakelayout =
+
+int input_port_1_bit_r(int offs) { return (readinputport(1) & (1 << offs)) ? 0 : 228; }
+int input_port_2_bit_r(int offs) { return (readinputport(2) & (1 << offs)) ? 0 : 228; }
+
+static struct POKEYinterface pokey_interface =
 {
-        1,1,
-        0,
-        1,
-        { 0 },
-        { 0 },
-        { 0 },
-        0
+	2,	/* 2 chips */
+	12096000/8,	/* 1.512 MHz */
+	{ 50, 50 },
+	/* The 8 pot handlers */
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	{ input_port_1_bit_r, input_port_2_bit_r },
+	/* The allpot handler */
+	{ 0, 0 },
 };
 
-static struct GfxDecodeInfo gfxdecodeinfo[] =
-{
-        { 0, 0,      &fakelayout,     0, 256 },
-        { -1 } /* end of array */
-};
 
-static unsigned char color_prom[] =
-{
-	0xff,0xff,0xff,	/* WHITE */
-	0xaf,0xaf,0xaf,	/* WHITE */
-	0x00,0xff,0xff, /* CYAN */
-	0x00,0xaf,0xaf, /* CYAN */
-	0xff,0xff,0x00, /* YELLOW */
-	0xaf,0xaf,0x00, /* YELLOW */
-	0x00,0xff,0x00, /* GREEN */
-	0x00,0xaf,0x00, /* GREEN */
-	0xff,0x00,0xff, /* MAGENTA */
-	0xaf,0x00,0xaf, /* MAGENTA */
-	0x00,0x00,0xff,	/* BLUE */
-	0x00,0x00,0xaf,	/* BLUE */
-	0xff,0x00,0x00, /* RED */
-	0xaf,0x00,0x00, /* RED */
-	0x00,0x00,0x00, /* BLACK */
-	0x00,0x00,0x00  /* BLACK */
-};
 
-static struct MachineDriver machine_driver =
+static struct MachineDriver machine_driver_tempest =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6502,
-			1500000,	/* 1.5 Mhz */
-			0,
+			12096000/8,	/* 1.512 MHz */
 			readmem,writemem,0,0,
-			tempest_interrupt,6 /* approx. 250Hz */
+			interrupt,4 /* 4.1ms */
 		}
 	},
-	45, /* frames per second */
+	60, 0,	/* frames per second, vblank duration (vector game, so no vblank) */
 	1,
 	0,
 
 	/* video hardware */
-	224, 288, { 0, 580, 0, 540 },
-	gfxdecodeinfo,
+	300, 400, { 0, 550, 0, 580 },
+	0,
 	256,256,
-	avg_init_colors,
+	avg_init_palette_multi,
 
 	VIDEO_TYPE_VECTOR,
 	0,
-	avg_start,
+	avg_start_tempest,
 	avg_stop,
 	avg_screenrefresh,
 
 	/* sound hardware */
-	0,
-	0,
-	tempest_sh_start,
-	pokey_sh_stop,
-	pokey_sh_update
-};
+	0,0,0,0,
+	{
+		{
+			SOUND_POKEY,
+			&pokey_interface
+		}
+	},
 
+	atari_vg_earom_handler
+};
 
 
 /***************************************************************************
@@ -436,56 +415,95 @@ static struct MachineDriver machine_driver =
  */
 
 
-ROM_START( tempest_rom )
-	ROM_REGION(0x10000)	/* 64k for code */
-	ROM_LOAD( "136002.113", 0x9000, 0x0800, 0xc4180c0e )
-	ROM_LOAD( "136002.114", 0x9800, 0x0800, 0x3bf4999a )
-	ROM_LOAD( "136002.115", 0xa000, 0x0800, 0x22bb1713 )
-	ROM_LOAD( "136002.116", 0xa800, 0x0800, 0xee2a0306 )
-	ROM_LOAD( "136002.117", 0xb000, 0x0800, 0x85788680 )
-	ROM_LOAD( "136002.118", 0xb800, 0x0800, 0x461ca3a4 )
-	ROM_LOAD( "136002.119", 0xc000, 0x0800, 0x02e4a6ae )
-	ROM_LOAD( "136002.120", 0xc800, 0x0800, 0x82d1e4ed )
-	ROM_LOAD( "136002.121", 0xd000, 0x0800, 0xe663151f )
-	ROM_LOAD( "136002.122", 0xd800, 0x0800, 0x292ebfb4 )
-	ROM_RELOAD(             0xf800, 0x0800 )	/* for reset/interrupt vectors */
+ROM_START( tempest ) /* rev 3 */
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "136002.113",   0x9000, 0x0800, 0x65d61fe7 )
+	ROM_LOAD( "136002.114",   0x9800, 0x0800, 0x11077375 )
+	ROM_LOAD( "136002.115",   0xa000, 0x0800, 0xf3e2827a )
+	ROM_LOAD( "136002.316",   0xa800, 0x0800, 0xaeb0f7e9 )
+	ROM_LOAD( "136002.217",   0xb000, 0x0800, 0xef2eb645 )
+	ROM_LOAD( "136002.118",   0xb800, 0x0800, 0xbeb352ab )
+	ROM_LOAD( "136002.119",   0xc000, 0x0800, 0xa4de050f )
+	ROM_LOAD( "136002.120",   0xc800, 0x0800, 0x35619648 )
+	ROM_LOAD( "136002.121",   0xd000, 0x0800, 0x73d38e47 )
+	ROM_LOAD( "136002.222",   0xd800, 0x0800, 0x707bd5c3 )
+	ROM_RELOAD(             0xf800, 0x0800 ) /* for reset/interrupt vectors */
 	/* Mathbox ROMs */
-	ROM_LOAD( "136002.123", 0x3000, 0x0800, 0xca906060 )
-	ROM_LOAD( "136002.124", 0x3800, 0x0800, 0xb6c4f9f8 )
+	ROM_LOAD( "136002.123",   0x3000, 0x0800, 0x29f7e937 )
+	ROM_LOAD( "136002.124",   0x3800, 0x0800, 0xc16ec351 )
 ROM_END
 
-#if 0
-ROM_START( tempest3_rom )
-	ROM_REGION(0x10000)	/* 64k for code */
-	ROM_LOAD( "tempest.x", 0x9000, 0x1000, -1 )
-	ROM_LOAD( "tempest.1", 0xa000, 0x1000, -1 )
-	ROM_LOAD( "tempest.3", 0xb000, 0x1000, -1 )
-	ROM_LOAD( "tempest.5", 0xc000, 0x1000, -1 )
-	ROM_LOAD( "tempest.7", 0xd000, 0x1000, -1 )
+ROM_START( tempest1 ) /* rev 1 */
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "136002.113",   0x9000, 0x0800, 0x65d61fe7 )
+	ROM_LOAD( "136002.114",   0x9800, 0x0800, 0x11077375 )
+	ROM_LOAD( "136002.115",   0xa000, 0x0800, 0xf3e2827a )
+	ROM_LOAD( "136002.116",   0xa800, 0x0800, 0x7356896c )
+	ROM_LOAD( "136002.117",   0xb000, 0x0800, 0x55952119 )
+	ROM_LOAD( "136002.118",   0xb800, 0x0800, 0xbeb352ab )
+	ROM_LOAD( "136002.119",   0xc000, 0x0800, 0xa4de050f )
+	ROM_LOAD( "136002.120",   0xc800, 0x0800, 0x35619648 )
+	ROM_LOAD( "136002.121",   0xd000, 0x0800, 0x73d38e47 )
+	ROM_LOAD( "136002.122",   0xd800, 0x0800, 0x796a9918 )
+	ROM_RELOAD(             0xf800, 0x0800 ) /* for reset/interrupt vectors */
+	/* Mathbox ROMs */
+	ROM_LOAD( "136002.123",   0x3000, 0x0800, 0x29f7e937 )
+	ROM_LOAD( "136002.124",   0x3800, 0x0800, 0xc16ec351 )
+ROM_END
+
+ROM_START( tempest2 ) /* rev 2 */
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "136002.113",   0x9000, 0x0800, 0x65d61fe7 )
+	ROM_LOAD( "136002.114",   0x9800, 0x0800, 0x11077375 )
+	ROM_LOAD( "136002.115",   0xa000, 0x0800, 0xf3e2827a )
+	ROM_LOAD( "136002.116",   0xa800, 0x0800, 0x7356896c )
+	ROM_LOAD( "136002.217",   0xb000, 0x0800, 0xef2eb645 )
+	ROM_LOAD( "136002.118",   0xb800, 0x0800, 0xbeb352ab )
+	ROM_LOAD( "136002.119",   0xc000, 0x0800, 0xa4de050f )
+	ROM_LOAD( "136002.120",   0xc800, 0x0800, 0x35619648 )
+	ROM_LOAD( "136002.121",   0xd000, 0x0800, 0x73d38e47 )
+	ROM_LOAD( "136002.222",   0xd800, 0x0800, 0x707bd5c3 )
+	ROM_RELOAD(             0xf800, 0x0800 ) /* for reset/interrupt vectors */
+	/* Mathbox ROMs */
+	ROM_LOAD( "136002.123",   0x3000, 0x0800, 0x29f7e937 )
+	ROM_LOAD( "136002.124",   0x3800, 0x0800, 0xc16ec351 )
+ROM_END
+
+ROM_START( temptube )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "136002.113",   0x9000, 0x0800, 0x65d61fe7 )
+	ROM_LOAD( "136002.114",   0x9800, 0x0800, 0x11077375 )
+	ROM_LOAD( "136002.115",   0xa000, 0x0800, 0xf3e2827a )
+	ROM_LOAD( "136002.316",   0xa800, 0x0800, 0xaeb0f7e9 )
+	ROM_LOAD( "136002.217",   0xb000, 0x0800, 0xef2eb645 )
+	ROM_LOAD( "tube.118",     0xb800, 0x0800, 0xcefb03f0 )
+	ROM_LOAD( "136002.119",   0xc000, 0x0800, 0xa4de050f )
+	ROM_LOAD( "136002.120",   0xc800, 0x0800, 0x35619648 )
+	ROM_LOAD( "136002.121",   0xd000, 0x0800, 0x73d38e47 )
+	ROM_LOAD( "136002.222",   0xd800, 0x0800, 0x707bd5c3 )
+	ROM_RELOAD(             0xf800, 0x0800 ) /* for reset/interrupt vectors */
+	/* Mathbox ROMs */
+	ROM_LOAD( "136002.123",   0x3000, 0x0800, 0x29f7e937 )
+	ROM_LOAD( "136002.124",   0x3800, 0x0800, 0xc16ec351 )
+ROM_END
+
+#if 0 /* identical to rom_tempest, only different rom sizes */
+ROM_START( tempest3 )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "tempest.x",    0x9000, 0x1000, 0x0 )
+	ROM_LOAD( "tempest.1",    0xa000, 0x1000, 0x0 )
+	ROM_LOAD( "tempest.3",    0xb000, 0x1000, 0x0 )
+	ROM_LOAD( "tempest.5",    0xc000, 0x1000, 0x0 )
+	ROM_LOAD( "tempest.7",    0xd000, 0x1000, 0x0 )
 	ROM_RELOAD(            0xf000, 0x1000 )	/* for reset/interrupt vectors */
 	/* Mathbox ROMs */
-	ROM_LOAD( "tempest.np3", 0x3000, 0x1000, -1 )
+	ROM_LOAD( "tempest.np3",  0x3000, 0x1000, 0x0 )
 ROM_END
 #endif
 
-struct GameDriver tempest_driver =
-{
-	"Tempest",
-	"tempest",
-	VECTOR_TEAM
-	"Neil Bradley\n  (AVG jsr $0)\n"
-	"Keith Gerdes\n  (Pokey RNG protection)",
 
-	&machine_driver,
 
-	tempest_rom,
-	0, 0,
-	0,
-
-	0/*TBR*/,input_ports, 0/*TBR*/, 0/*TBR*/,0/*TBR*/,
-
-	color_prom, 0, 0,
-	ORIENTATION_DEFAULT,
-
-	atari_vg_earom_load, atari_vg_earom_save
-};
+GAME( 1980, tempest,  0,       tempest, tempest, 0, ROT0, "Atari", "Tempest (rev 3)" )
+GAME( 1980, tempest1, tempest, tempest, tempest, 0, ROT0, "Atari", "Tempest (rev 1)" )
+GAME( 1980, tempest2, tempest, tempest, tempest, 0, ROT0, "Atari", "Tempest (rev 2)" )
+GAME( 1980, temptube, tempest, tempest, tempest, 0, ROT0, "hack", "Tempest Tubes" )

@@ -1,43 +1,44 @@
 #include "driver.h"
-#include "sndhrdw/generic.h"
-#include "sndhrdw/8910intf.h"
 
 
+/* The timer clock which feeds the upper 4 bits of    					*/
+/* AY-3-8910 port A is based on the same clock        					*/
+/* feeding the sound CPU Z80.  It is a divide by      					*/
+/* 5120, formed by a standard divide by 512,        					*/
+/* followed by a divide by 10 using a 4 bit           					*/
+/* bi-quinary count sequence. (See LS90 data sheet    					*/
+/* for an example).                                   					*/
+/*																		*/
+/* Bit 4 comes from the output of the divide by 1024  					*/
+/*       0, 1, 0, 1, 0, 1, 0, 1, 0, 1									*/
+/* Bit 3 comes from the QC output of the LS90 producing a sequence of	*/
+/* 		 0, 0, 1, 1, 0, 0, 1, 1, 1, 0									*/
+/* Bit 6 comes from the QD output of the LS90 producing a sequence of	*/
+/*		 0, 0, 0, 0, 1, 0, 0, 0, 0, 1									*/
+/* Bit 7 comes from the QA output of the LS90 producing a sequence of	*/
+/*		 0, 0, 0, 0, 0, 1, 1, 1, 1, 1			 						*/
 
-static int frogger_portB_r(int offset)
+static int frogger_timer[10] =
 {
-	int clock;
+	0x00, 0x10, 0x08, 0x18, 0x40, 0x90, 0x88, 0x98, 0x88, 0xd0
+};
 
-#define TIMER_RATE 170
+int frogger_portB_r(int offset)
+{
+	/* need to protect from totalcycles overflow */
+	static int last_totalcycles = 0;
 
-	clock = cpu_gettotalcycles() / TIMER_RATE;
+	/* number of Z80 clock cycles to count */
+	static int clock;
 
-#if 0	/* temporarily removed */
-	/* to speed up the emulation, detect when the program is looping waiting */
-	/* for the timer, and skip the necessary CPU cycles in that case */
-	if (cpu_getreturnpc() == 0x0140)
-	{
-		/* wait until clock & 0x08 == 0 */
-		if ((clock & 0x08) != 0)
-		{
-			clock = clock + 0x08;
-			clockticks = clock * TIMER_RATE;
-			cpu_seticount(Z80_IPeriod - clockticks);
-		}
-	}
-	else if (cpu_getreturnpc() == 0x0149)
-	{
-		/* wait until clock & 0x08 != 0 */
-		if ((clock & 0x08) == 0)
-		{
-			clock = (clock + 0x08) & ~0x07;
-			clockticks = clock * TIMER_RATE;
-			cpu_seticount(Z80_IPeriod - clockticks);
-		}
-	}
-#endif
+	int current_totalcycles;
 
-	return clock;
+	current_totalcycles = cpu_gettotalcycles();
+	clock = (clock + (current_totalcycles-last_totalcycles)) % 5120;
+
+	last_totalcycles = current_totalcycles;
+
+	return frogger_timer[clock/512];
 }
 
 
@@ -56,33 +57,16 @@ void frogger_sh_irqtrigger_w(int offset,int data)
 	last = data & 0x08;
 }
 
-
-
-int frogger_sh_interrupt(void)
+void frogger2_sh_irqtrigger_w(int offset,int data)
 {
-	AY8910_update();
-
-	/* interrupts don't happen here, the handler is used only to update the 8910 */
-	return ignore_interrupt();
-}
+	static int last;
 
 
+	if (last == 0 && (data & 0x01) != 0)
+	{
+		/* setting bit 0 low then high triggers IRQ on the sound CPU */
+		cpu_cause_interrupt(1,0xff);
+	}
 
-static struct AY8910interface interface =
-{
-	1,	/* 1 chip */
-	10,	/* 10 updates per video frame (good quality) */
-	1789750000,	/* 1.78975 MHZ ?? */
-	{ 255 },
-	{ soundlatch_r },
-	{ frogger_portB_r },
-	{ 0 },
-	{ 0 }
-};
-
-
-
-int frogger_sh_start(void)
-{
-	return AY8910_sh_start(&interface);
+	last = data & 0x01;
 }

@@ -1,244 +1,568 @@
+/*****************************************************************************
+ *
+ * A (partially wrong) try to emulate Asteroid's analog sound
+ * It's getting better but is still imperfect :/
+ * If you have ideas, corrections, suggestions contact Juergen
+ * Buchmueller <pullmoll@t-online.de>
+ *
+ * Known issues (TODO):
+ * - find out if/why the samples are 'damped', I don't see no
+ *	 low pass filter in the sound output, but the samples sound
+ *	 like there should be one. Maybe in the amplifier..
+ * - better (accurate) way to emulate the low pass on the thrust sound?
+ * - verify the thump_frequency calculation. It's only an approximation now
+ * - the nastiest piece of the circuit is the saucer sound IMO
+ *	 the circuits are almost equal, but there are some strange looking
+ *	 things like the direct coupled op-amps and transistors and I can't
+ *	 calculate the true resistance and thus voltage at the control
+ *	 input (5) of the NE555s.
+ * - saucer sound is not easy either and the calculations might be off, still.
+ *
+ *****************************************************************************/
+
+#include <math.h>
 #include "driver.h"
-#include "sndhrdw/pokyintf.h"
 
-/*
-	Asteroids Voice breakdown:
-	0 - thump
-	1 - saucer
-	2 - player fire
-	3 - saucer fire
-	4 - player thrust
-	5 - extra life
-	6 - explosions
-*/
+#define VMAX    32767
+#define VMIN	0
 
-/* Constants for the sound names in the asteroid sample array */
-/* Move the sounds Astdelux and Asteroid have in common to the */
-/* beginning. BW */
-#define kExplode1	0
-#define kExplode2	1
-#define kExplode3	2
-#define kThrust		3
-#define kHighThump	4
-#define kLowThump	5
-#define kFire		6
-#define kLargeSaucer	7
-#define kSmallSaucer	8
-#define kSaucerFire	9
-#define kLife		10
+#define SAUCEREN    0
+#define SAUCRFIREEN 1
+#define SAUCERSEL   2
+#define THRUSTEN    3
+#define SHIPFIREEN	4
+#define LIFEEN		5
 
-/* A nice macro which saves us a lot of typing */
-#define OSD_PLAY_SAMPLE(channel, soundnum, loop) {			\
-	if (Machine->samples->sample[soundnum] != 0)	 	   	\
-	osd_play_sample(channel,					\
-		Machine->samples->sample[soundnum]->data,      		\
-		Machine->samples->sample[soundnum]->length,    		\
-		Machine->samples->sample[soundnum]->smpfreq,   		\
-		Machine->samples->sample[soundnum]->volume,loop); }
+#define EXPITCH0	(1<<6)
+#define EXPITCH1	(1<<7)
+#define EXPAUDSHIFT 2
+#define EXPAUDMASK	(0x0f<<EXPAUDSHIFT)
 
+#define NE555_T1(Ra,Rb,C)	(VMAX*2/3/(0.639*((Ra)+(Rb))*(C)))
+#define NE555_T2(Ra,Rb,C)	(VMAX*2/3/(0.639*(Rb)*(C)))
+#define NE555_F(Ra,Rb,C)	(1.44/(((Ra)+2*(Rb))*(C)))
+static int channel;
+static int explosion_latch;
+static int thump_latch;
+static int sound_latch[8];
 
-/* Misc sound code */
+static int polynome;
+static int thump_frequency;
 
-static struct POKEYinterface interface =
+static INT16 *discharge;
+static INT16 vol_explosion[16];
+#define EXP(charge,n) (charge ? 0x7fff - discharge[0x7fff-n] : discharge[n])
+
+INLINE int explosion(int samplerate)
 {
-	1,	/* 1 chip */
-	1,	/* 1 update per video frame (low quality) */
-	FREQ_17_APPROX,	/* 1.7 Mhz */
-	255,
-	NO_CLIP,
-	/* The 8 pot handlers */
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	{ 0 },
-	/* The allpot handler */
-	{ input_port_3_r }
-};
+	static int counter, sample_counter;
+	static int out;
 
+	counter -= 12000;
+	while( counter <= 0 )
+	{
+		counter += samplerate;
+		if( ((polynome & 0x4000) == 0) == ((polynome & 0x0040) == 0) )
+			polynome = (polynome << 1) | 1;
+		else
+			polynome <<= 1;
+		if( ++sample_counter == 16 )
+		{
+			sample_counter = 0;
+			if( explosion_latch & EXPITCH0 )
+				sample_counter |= 2 + 8;
+			else
+				sample_counter |= 4;
+			if( explosion_latch & EXPITCH1 )
+				sample_counter |= 1 + 8;
+		}
+		/* ripple count output is high? */
+		if( sample_counter == 15 )
+			out = polynome & 1;
+	}
+	if( out )
+		return vol_explosion[(explosion_latch & EXPAUDMASK) >> EXPAUDSHIFT];
 
-int astdelux_sh_start(void)
-{
-	return pokey_sh_start (&interface);
+    return 0;
 }
 
-void asteroid_explode_w (int offset,int data) {
+INLINE int thrust(int samplerate)
+{
+	static int counter, out, amp;
 
-	static int explosion = -1;
-	int explosion2;
-	int sound = -1;
-
-	if (Machine->samples == 0) return;
-
-	if (data & 0x3c) {
-#ifdef DEBUG
-		if (errorlog) fprintf (errorlog, "data: %02x, old explosion %02x\n",data, explosion);
-#endif
-		explosion2 = data >> 6;
-		if (explosion2 != explosion) {
-			osd_stop_sample (6);
-			switch (explosion2) {
-				case 0:
-				case 1:
-					sound = kExplode1;
-					break;
-				case 2:
-					sound = kExplode2;
-					break;
-				case 3:
-					sound = kExplode3;
-					break;
-				}
-
-				OSD_PLAY_SAMPLE (6,sound,0)
-			}
-		explosion = explosion2;
+    if( sound_latch[THRUSTEN] )
+	{
+		/* SHPSND filter */
+		counter -= 110;
+		while( counter <= 0 )
+		{
+			counter += samplerate;
+			out = polynome & 1;
 		}
-	else explosion = -1;
-	}
-
-void asteroid_thump_w (int offset,int data) {
-
-	if (Machine->samples == 0) return;
-
-	/* is the volume bit on? */
-	if (data & 0x10) {
-		int sound;
-
-		if (data & 0x0f)
-			sound = kHighThump;
+		if( out )
+		{
+			if( amp < VMAX )
+				amp += (VMAX - amp) * 32768 / 32 / samplerate + 1;
+		}
 		else
-			sound = kLowThump;
-		OSD_PLAY_SAMPLE(0,sound,0)
+		{
+			if( amp > VMIN )
+				amp -= amp * 32768 / 32 / samplerate + 1;
 		}
+		return amp;
 	}
+	return 0;
+}
 
-void asteroid_sounds_w (int offset,int data) {
-	static int fire = 0;
-	static int sfire = 0;
-	static int saucer = 0;
-	static int lastsaucer = 0;
-	static int lastthrust = 0;
-	int sound;
-	int fire2;
-	int sfire2;
+INLINE int thump(int samplerate)
+{
+	static int counter, out;
 
-	if (Machine->samples == 0) return;
-
-	switch (offset) {
-		case 0: /* Saucer sounds */
-			if ((data&0x80) && !(lastsaucer&0x80)) {
-				if (saucer)
-					sound = kLargeSaucer;
-				else
-					sound = kSmallSaucer;
-				OSD_PLAY_SAMPLE(1, sound, 1)
-				}
-			if (!(data&0x80) && (lastsaucer&0x80))
-				osd_stop_sample(1);
-			lastsaucer=data;
-			break;
-		case 1: /* Saucer fire */
-			sfire2 = data & 0x80;
-			if (sfire2!=sfire) {
-				osd_stop_sample(3);
-				if (sfire2)
-					OSD_PLAY_SAMPLE(3,kSaucerFire,0);
-				}
-			sfire=sfire2;
-			break;
-		case 2: /* Saucer sound select */
-			saucer = data & 0x80;
-			break;
-		case 3: /* Player thrust */
-			if ((data&0x80) && !(lastthrust&0x80))
-				OSD_PLAY_SAMPLE(4,kThrust,1);
-			if (!(data&0x80) && (lastthrust&0x80))
-				osd_stop_sample(4);
-			lastthrust=data;
-			break;
-		case 4: /* Player fire */
-			fire2 = data & 0x80;
-			if (fire2 != fire) {
-				osd_stop_sample (2);
-				if (fire2)
-					OSD_PLAY_SAMPLE(2,kFire,0);
-				}
-			fire = fire2;
-			break;
-		case 5: /* life sound */
-			if (data & 0x80)
-				OSD_PLAY_SAMPLE(5,kLife,0);
-			break;
+    if( thump_latch & 0x10 )
+	{
+		counter -= thump_frequency;
+		while( counter <= 0 )
+		{
+			counter += samplerate;
+			out ^= 1;
 		}
+		if( out )
+			return VMAX;
 	}
+	return 0;
+}
+
+
+INLINE int saucer(int samplerate)
+{
+	static int vco, vco_charge, vco_counter;
+    static int out, counter;
+	double v5;
+
+    /* saucer sound enabled ? */
+	if( sound_latch[SAUCEREN] )
+	{
+		/* NE555 setup as astable multivibrator:
+		 * C = 10u, Ra = 5.6k, Rb = 10k
+		 * or, with /SAUCERSEL being low:
+		 * C = 10u, Ra = 5.6k, Rb = 6k (10k parallel with 15k)
+		 */
+		if( vco_charge )
+		{
+			if( sound_latch[SAUCERSEL] )
+				vco_counter -= NE555_T1(5600,10000,10e-6);
+			else
+				vco_counter -= NE555_T1(5600,6000,10e-6);
+			if( vco_counter <= 0 )
+			{
+				int steps = (-vco_counter / samplerate) + 1;
+				vco_counter += steps * samplerate;
+				if( (vco += steps) >= VMAX*2/3 )
+				{
+					vco = VMAX*2/3;
+					vco_charge = 0;
+				}
+			}
+		}
+		else
+		{
+			if( sound_latch[SAUCERSEL] )
+				vco_counter -= NE555_T2(5600,10000,10e-6);
+			else
+				vco_counter -= NE555_T2(5600,6000,10e-6);
+			if( vco_counter <= 0 )
+			{
+				int steps = (-vco_counter / samplerate) + 1;
+				vco_counter += steps * samplerate;
+				if( (vco -= steps) <= VMAX*1/3 )
+				{
+					vco = VMIN*1/3;
+					vco_charge = 1;
+				}
+			}
+		}
+		/*
+		 * NE566 voltage controlled oscillator
+		 * Co = 0.047u, Ro = 10k
+		 * to = 2.4 * (Vcc - V5) / (Ro * Co * Vcc)
+		 */
+		if( sound_latch[SAUCERSEL] )
+			v5 = 12.0 - 1.66 - 5.0 * EXP(vco_charge,vco) / 32768;
+		else
+			v5 = 11.3 - 1.66 - 5.0 * EXP(vco_charge,vco) / 32768;
+		counter -= floor(2.4 * (12.0 - v5) / (10000 * 0.047e-6 * 12.0));
+		while( counter <= 0 )
+		{
+			counter += samplerate;
+			out ^= 1;
+		}
+		if( out )
+			return VMAX;
+	}
+	return 0;
+}
+
+INLINE int saucerfire(int samplerate)
+{
+	static int vco, vco_counter;
+	static int amp, amp_counter;
+	static int out, counter;
+
+    if( sound_latch[SAUCRFIREEN] )
+	{
+		if( vco < VMAX*12/5 )
+		{
+			/* charge C38 (10u) through R54 (10K) from 5V to 12V */
+			#define C38_CHARGE_TIME (VMAX)
+			vco_counter -= C38_CHARGE_TIME;
+			while( vco_counter <= 0 )
+			{
+				vco_counter += samplerate;
+				if( ++vco == VMAX*12/5 )
+					break;
+			}
+		}
+		if( amp > VMIN )
+		{
+			/* discharge C39 (10u) through R58 (10K) and diode CR6,
+			 * but only during the time the output of the NE555 is low.
+			 */
+			if( out )
+			{
+				#define C39_DISCHARGE_TIME (int)(VMAX)
+				amp_counter -= C39_DISCHARGE_TIME;
+				while( amp_counter <= 0 )
+				{
+					amp_counter += samplerate;
+					if( --amp == VMIN )
+						break;
+				}
+			}
+		}
+		if( out )
+		{
+			/* C35 = 1u, Ra = 3.3k, Rb = 680
+			 * discharge = 0.693 * 680 * 1e-6 = 4.7124e-4 -> 2122 Hz
+			 */
+			counter -= 2122;
+			if( counter <= 0 )
+			{
+				int n = -counter / samplerate + 1;
+				counter += n * samplerate;
+				out = 0;
+			}
+		}
+		else
+		{
+			/* C35 = 1u, Ra = 3.3k, Rb = 680
+			 * charge 0.693 * (3300+680) * 1e-6 = 2.75814e-3 -> 363Hz
+			 */
+			counter -= 363 * 2 * (VMAX*12/5-vco) / 32768;
+			if( counter <= 0 )
+			{
+				int n = -counter / samplerate + 1;
+				counter += n * samplerate;
+				out = 1;
+			}
+		}
+        if( out )
+			return amp;
+	}
+	else
+	{
+		/* charge C38 and C39 */
+		amp = VMAX;
+		vco = VMAX;
+	}
+	return 0;
+}
+
+INLINE int shipfire(int samplerate)
+{
+	static int vco, vco_counter;
+	static int amp, amp_counter;
+    static int out, counter;
+
+    if( sound_latch[SHIPFIREEN] )
+	{
+		if( vco < VMAX*12/5 )
+		{
+			/* charge C47 (1u) through R52 (33K) and Q3 from 5V to 12V */
+			#define C47_CHARGE_TIME (VMAX * 3)
+			vco_counter -= C47_CHARGE_TIME;
+			while( vco_counter <= 0 )
+			{
+				vco_counter += samplerate;
+				if( ++vco == VMAX*12/5 )
+					break;
+			}
+        }
+		if( amp > VMIN )
+		{
+			/* discharge C48 (10u) through R66 (2.7K) and CR8,
+			 * but only while the output of theNE555 is low.
+			 */
+			if( out )
+			{
+				#define C48_DISCHARGE_TIME (VMAX * 3)
+				amp_counter -= C48_DISCHARGE_TIME;
+				while( amp_counter <= 0 )
+				{
+					amp_counter += samplerate;
+					if( --amp == VMIN )
+						break;
+				}
+			}
+		}
+
+		if( out )
+		{
+			/* C50 = 1u, Ra = 3.3k, Rb = 680
+			 * discharge = 0.693 * 680 * 1e-6 = 4.7124e-4 -> 2122 Hz
+			 */
+			counter -= 2122;
+			if( counter <= 0 )
+			{
+				int n = -counter / samplerate + 1;
+				counter += n * samplerate;
+				out = 0;
+			}
+		}
+		else
+		{
+			/* C50 = 1u, Ra = R65 (3.3k), Rb = R61 (680)
+			 * charge = 0.693 * (3300+680) * 1e-6) = 2.75814e-3 -> 363Hz
+			 */
+			counter -= 363 * 2 * (VMAX*12/5-vco) / 32768;
+			if( counter <= 0 )
+			{
+				int n = -counter / samplerate + 1;
+				counter += n * samplerate;
+				out = 1;
+			}
+		}
+		if( out )
+			return amp;
+	}
+	else
+	{
+		/* charge C47 and C48 */
+		amp = VMAX;
+		vco = VMAX;
+	}
+	return 0;
+}
+
+INLINE int life(int samplerate)
+{
+	static int counter, out;
+    if( sound_latch[LIFEEN] )
+	{
+		counter -= 3000;
+		while( counter <= 0 )
+		{
+			counter += samplerate;
+			out ^= 1;
+		}
+		if( out )
+			return VMAX;
+	}
+	return 0;
+}
+
+
+static void asteroid_sound_update(int param, INT16 *buffer, int length)
+{
+	int samplerate = Machine->sample_rate;
+
+    while( length-- > 0 )
+	{
+		int sum = 0;
+
+		sum += explosion(samplerate) / 7;
+		sum += thrust(samplerate) / 7;
+		sum += thump(samplerate) / 7;
+		sum += saucer(samplerate) / 7;
+		sum += saucerfire(samplerate) / 7;
+		sum += shipfire(samplerate) / 7;
+		sum += life(samplerate) / 7;
+
+        *buffer++ = sum;
+	}
+}
+
+static void explosion_init(void)
+{
+	int i;
+
+    for( i = 0; i < 16; i++ )
+    {
+        /* r0 = open, r1 = open */
+        double r0 = 1.0/1e12, r1 = 1.0/1e12;
+
+        /* R14 */
+        if( i & 1 )
+            r1 += 1.0/47000;
+        else
+            r0 += 1.0/47000;
+        /* R15 */
+        if( i & 2 )
+            r1 += 1.0/22000;
+        else
+            r0 += 1.0/22000;
+        /* R16 */
+        if( i & 4 )
+            r1 += 1.0/12000;
+        else
+            r0 += 1.0/12000;
+        /* R17 */
+        if( i & 8 )
+            r1 += 1.0/5600;
+        else
+            r0 += 1.0/5600;
+        r0 = 1.0/r0;
+        r1 = 1.0/r1;
+        vol_explosion[i] = VMAX * r0 / (r0 + r1);
+    }
+
+}
+
+int asteroid_sh_start(const struct MachineSound *msound)
+{
+    int i;
+
+	discharge = (INT16 *)malloc(32768 * sizeof(INT16));
+	if( !discharge )
+        return 1;
+
+    for( i = 0; i < 0x8000; i++ )
+		discharge[0x7fff-i] = (INT16) (0x7fff/exp(1.0*i/4096));
+
+	/* initialize explosion volume lookup table */
+	explosion_init();
+
+    channel = stream_init("Custom", 100, Machine->sample_rate, 0, asteroid_sound_update);
+    if( channel == -1 )
+        return 1;
+
+    return 0;
+}
+
+void asteroid_sh_stop(void)
+{
+	if( discharge )
+		free(discharge);
+	discharge = NULL;
+}
+
+void asteroid_sh_update(void)
+{
+	stream_update(channel, 0);
+}
+
+
+void asteroid_explode_w (int offset,int data)
+{
+	if( data == explosion_latch )
+		return;
+
+    stream_update(channel, 0);
+	explosion_latch = data;
+}
+
+
+
+void asteroid_thump_w (int offset,int data)
+{
+	double r0 = 1/47000, r1 = 1/1e12;
+
+    if( data == thump_latch )
+		return;
+
+    stream_update(channel, 0);
+	thump_latch = data;
+
+	if( thump_latch & 1 )
+		r1 += 1.0/220000;
+	else
+		r0 += 1.0/220000;
+	if( thump_latch & 2 )
+		r1 += 1.0/100000;
+	else
+		r0 += 1.0/100000;
+	if( thump_latch & 4 )
+		r1 += 1.0/47000;
+	else
+		r0 += 1.0/47000;
+	if( thump_latch & 8 )
+		r1 += 1.0/22000;
+	else
+		r0 += 1.0/22000;
+
+	/* NE555 setup as voltage controlled astable multivibrator
+	 * C = 0.22u, Ra = 22k...???, Rb = 18k
+	 * frequency = 1.44 / ((22k + 2*18k) * 0.22n) = 56Hz .. huh?
+	 */
+	thump_frequency = 56 + 56 * r0 / (r0 + r1);
+}
+
+
+void asteroid_sounds_w (int offset,int data)
+{
+	data &= 0x80;
+    if( data == sound_latch[offset] )
+		return;
+
+    stream_update(channel, 0);
+	sound_latch[offset] = data;
+}
+
+
+
+static void astdelux_sound_update(int param, INT16 *buffer, int length)
+{
+	int samplerate = Machine->sample_rate;
+
+    while( length-- > 0)
+	{
+		int sum = 0;
+
+		sum += explosion(samplerate) / 2;
+		sum += thrust(samplerate) / 2;
+
+		*buffer++ = sum;
+	}
+}
+
+int astdelux_sh_start(const struct MachineSound *msound)
+{
+	/* initialize explosion volume lookup table */
+	explosion_init();
+
+	channel = stream_init("Custom", 50, Machine->sample_rate, 0, astdelux_sound_update);
+    if( channel == -1 )
+        return 1;
+
+    return 0;
+}
+
+void astdelux_sh_stop(void)
+{
+}
+
+void astdelux_sh_update(void)
+{
+	stream_update(channel, 0);
+}
+
 
 void astdelux_sounds_w (int offset,int data)
 {
-	static int lastthrust = 0;
-
-	if (Machine->samples == 0) return;
-
-	if (!(data&0x80) && (lastthrust&0x80))
-		OSD_PLAY_SAMPLE(4,kThrust,1);
-	if ((data&0x80) && !(lastthrust&0x80))
-		osd_stop_sample(4);
-	lastthrust=data;
+	data = ~data & 0x80;
+	if( data == sound_latch[THRUSTEN] )
+		return;
+    stream_update(channel, 0);
+	sound_latch[THRUSTEN] = data;
 }
 
-void asteroid_sh_update (void)
-{
-}
 
-/*
-	Lunar Lander sound breakdown:
-
-	bits 0-2 = volume
-	bit 3 = explosion enable
-	bit 4 = beeper enable
-	If volume > 0 and bits 3 & 4 are off, the thrust noise is played
-*/
-
-/* Constants for the sound samples in the llander sample array */
-#define kLLthrust		0
-#define kLLbeeper		1
-#define kLLexplosion	2
-
-void llander_sounds_w (int offset,int data) {
-
-	static int explosionPlaying = 0;
-	int volume;
-	int beeper;
-	int explosion;
-
-	if (Machine->samples == 0) return;
-
-	volume = data & 0x07;
-	beeper = data & 0x10;
-	explosion = data & 0x08;
-
-//	if (errorlog) fprintf (errorlog,"*** volume %02x   beeper %02x  explosion %02x\n",volume, beeper, explosion);
-
-	if (beeper && volume) {
-		/* Play the beeper sample on voice 1 and loop it */
-		OSD_PLAY_SAMPLE(1, kLLbeeper, 1)
-		}
-	else if (explosion && volume) {
-		if (Machine->samples->sample[kLLexplosion] != 0 && !explosionPlaying) {
-			/* Play the explosion sample on voice 2 */
-			explosionPlaying = 1;
-			OSD_PLAY_SAMPLE(2,kLLexplosion,0);
-			}
-		}
-	/* We cheat for the thrust - during gameplay it's always at least 1 to simulate a very low */
-	/* rumble. By making it only play with a volume >= 3, we avoid always playing the sample. */
-	else if (volume >= 3) {
-		OSD_PLAY_SAMPLE(0,kLLthrust,0);
-		}
-	else {
-		explosionPlaying = 0;
-		}
-	}

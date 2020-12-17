@@ -8,128 +8,102 @@
 ***************************************************************************/
 
 #include "driver.h"
-#include "M6809.h"
+#include "machine/ticket.h"
 
-static unsigned int rom_offset;
+static int currentaddress = 0;
+static int GRHighByte = 0;
+static int GRMidByte  = 0;
+static int GRLowByte = 0;
+
+void capbowl_init_machine(void)
+{
+	/* Initialize the ticket dispenser to 100 milliseconds */
+	/* (I'm not sure what the correct value really is) */
+	ticket_dispenser_init(100, TICKET_MOTOR_ACTIVE_HIGH, TICKET_STATUS_ACTIVE_LOW);
+}
+
 
 void capbowl_rom_select_w(int offset,int data)
 {
-  switch (data & 0x1f)
-  {
-  case 0:
-  default:
-      rom_offset = 0x10000;
-      break;
-  case 1:
-      rom_offset = 0x14000;
-      break;
-  case 4:
-      rom_offset = 0x18000;
-      break;
-  case 5:
-      rom_offset = 0x1c000;
-      break;
-  case 8:
-      rom_offset = 0x20000;
-      break;
-  case 9:
-      rom_offset = 0x24000;
-      break;
-  }
+	int bankaddress = 0x10000 + ((data & 0x0c) << 13) + ((data & 0x01) << 14);
+	unsigned char *RAM = memory_region(REGION_CPU1);
+
+
+	cpu_setbank(1,&RAM[bankaddress]);
 }
 
 
-int capbowl_pagedrom_r(int offset)
+/*
+	Write to GR Address upper word (2 bits)
+*/
+void bowlrama_turbo_w(int offset, int data)
 {
-  return Machine->memory_region[0][offset + rom_offset];
+	switch( offset )
+	{
+		case 0x08:	  /* Write address high byte (only 2 bits used) */
+			GRHighByte = data;
+			break;
+
+		case 0x17:    /* Write address mid byte (8 bits)   */
+			GRMidByte = data;
+			break;
+
+		case 0x18:	  /* Write Address low byte (8 bits)   */
+			GRLowByte = data;
+			break;
+
+		default:
+			if(errorlog)
+				fprintf(errorlog, "PC=%04X Write to unsupported Turbo address %02X Data=%02X\n",cpu_get_pc(),offset, data);
+	}
+
+	currentaddress = ((GRHighByte << 16) | (GRMidByte << 8) | GRLowByte);
 }
 
 
-static int capbowl_service = -1;
-
-int capbowl_service_r(int offset)
+int bowlrama_turbo_r(int offset)
 {
-  if (capbowl_service != -1)
-  {
-    /* This is to pass memory test */
-    int ret = capbowl_service;
-    capbowl_service = -1;
-    return ret;
-  }
+	int ret = 0;
+	int data = memory_region(REGION_GFX1)[currentaddress];
 
-  /* Service key. Hold down during high-score screen */
-  if (osd_key_pressed(OSD_KEY_F1))
-  {
-    return 0x0b;
-  }
-  else
-  {
-    return 0x00;
-  }
+	switch (offset)
+	{
+	case 0:	/* Read Mask */
+
+		/*  Graphics data are 4bpp (2 pixels per byte).
+			This function returns 0's for new pixel data.
+			This allows data to be read as a mask, AND the mask with
+			the screen data, then OR new data read by read data command.
+		*/
+
+		if(!(data & 0xf0))
+		{
+			ret = 0xf0;  /* High nibble is transparent */
+		}
+
+		if(!(data & 0x0f))
+		{
+			ret |= 0x0f;  /* Low nibble is transparent */
+		}
+
+		break;
+
+	case 4: /* Read data and increment address */
+
+		ret	= data;
+
+		currentaddress = (currentaddress + 1) & 0x3ffff;
+
+		GRHighByte = (currentaddress >> 16);
+		GRMidByte  = (currentaddress >> 8) & 0xff;
+		GRLowByte  = (currentaddress & 0xff);
+
+		break;
+
+	default:
+		if(errorlog)
+			fprintf(errorlog, "PC=%04X Read from unsupported Turbo address %02X\n",cpu_get_pc(),offset);
+	}
+
+	return ret;
 }
-
-void capbowl_service_w(int offset, int data)
-{
-  capbowl_service = data;
-}
-
-
-int capbowl_track_y_r(int offset)
-{
-  int ret = input_port_0_r(offset);
-
-  if (!(ret & 0x01))
-  {
-    /* Trackball up */
-    ret = (ret & 0xf0) | 0x07;
-  }
-  else if (!(ret & 0x02))
-  {
-    /* Trackball down */
-    ret = (ret & 0xf0) | 0x0f;
-  }
-  else
-  {
-    ret &= 0xf0;
-  }
-
-  return ret;
-}
-
-
-int capbowl_track_x_r(int offset)
-{
-  int ret = input_port_1_r(offset);
-
-  if (!(ret & 0x01))
-  {
-    /* Trackball left */
-    ret = (ret & 0xf0) | 0x08;
-  }
-  else if (!(ret & 0x02))
-  {
-    /* Trackball right */
-    ret = (ret & 0xf0) | 0x07;
-  }
-  else
-  {
-    ret &= 0xf0;
-  }
-
-  return ret;
-}
-
-
-static int firq_enabled = 0;
-
-void capbowl_firq_enable_w(int offset,int data)
-{
-  firq_enabled = data & 0x04;
-}
-
-void capbowl_interrupt(void)
-{
-  if (firq_enabled) cpu_cause_interrupt(0,M6809_INT_FIRQ);
-  cpu_cause_interrupt(0,M6809_INT_NONE);
-}
-

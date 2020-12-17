@@ -12,150 +12,164 @@
 
 
 
-unsigned char *gottlieb_paletteram;
 unsigned char *gottlieb_characterram;
-static unsigned char dirtycharacter[256];
+#define MAX_CHARS 256
+static unsigned char *dirtycharacter;
 static int background_priority=0;
 static unsigned char hflip=0;
 static unsigned char vflip=0;
-static int currentbank;
-
-int qbert_vh_start(void)
-{
-	int offs;
+static int spritebank;
 
 
-	for (offs = 0;offs < 256;offs++)
-		dirtycharacter[offs] = 0;
 
-	return generic_vh_start();
-}
+/***************************************************************************
 
-int mplanets_vh_start(void)
-{
-	int offs;
+  Gottlieb games dosn't have a color PROM. They use 32 bytes of RAM to
+  dynamically create the palette. Each couple of bytes defines one
+  color (4 bits per pixel; the high 4 bits of the second byte are unused).
 
+  The RAM is conected to the RGB output this way:
 
-	for (offs = 0;offs < 256;offs++)
-		dirtycharacter[offs] = 0;
+  bit 7 -- 240 ohm resistor  -- GREEN
+        -- 470 ohm resistor  -- GREEN
+        -- 1  kohm resistor  -- GREEN
+        -- 2  kohm resistor  -- GREEN
+        -- 240 ohm resistor  -- RED
+        -- 470 ohm resistor  -- RED
+        -- 1  kohm resistor  -- RED
+  bit 0 -- 2  kohm resistor  -- RED
 
-	return generic_vh_start();
-}
+  bit 7 -- unused
+        -- unused
+        -- unused
+        -- unused
+        -- 240 ohm resistor  -- BLUE
+        -- 470 ohm resistor  -- BLUE
+        -- 1  kohm resistor  -- BLUE
+  bit 0 -- 2  kohm resistor  -- BLUE
 
-int reactor_vh_start(void)
-{
-	int offs;
-
-
-	for (offs = 0;offs < 256;offs++)
-		dirtycharacter[offs] = 1;
-
-	return generic_vh_start();
-}
-
-int stooges_vh_start(void)
-{
-	int offs;
-
-
-	for (offs = 0;offs < 256;offs++)
-		dirtycharacter[offs] = 1;
-
-	return generic_vh_start();
-}
-
-int krull_vh_start(void)
-{
-	int offs;
-
-
-	for (offs = 0;offs < 256;offs++)
-		dirtycharacter[offs] = 1;
-
-	return generic_vh_start();
-}
-
-void gottlieb_vh_init_color_palette(unsigned char *palette, unsigned char *colortable,const unsigned char *color_prom)
-{
-	int i;
-	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
-	#define COLOR(gfxn,offs) (colortable[Machine->drv->gfxdecodeinfo[gfxn].color_codes_start + offs])
-
-
-	/* the palette will be initialized by the game. We just set it to some */
-	/* pre-cooked values so the startup copyright notice can be displayed. */
-	for (i = 0;i < Machine->drv->total_colors;i++)
-	{
-		*(palette++) = ((i & 1) >> 0) * 0xff;
-		*(palette++) = ((i & 2) >> 1) * 0xff;
-		*(palette++) = ((i & 4) >> 2) * 0xff;
-	}
-
-	/* characters and sprites use the same palette */
-	for (i = 0;i < TOTAL_COLORS(0);i++)
-		COLOR(0,i) = i;
-}
-
-
-void gottlieb_video_outputs(int data)
-{
-	static int last = 0;
-
-	background_priority = data & 1;
-	hflip = data & 2;
-	vflip = data & 4;
-	currentbank = (data & 0x10) ? 256 : 0;
-
-	if ((data & 6) != (last & 6))
-		memset(dirtybuffer,1,videoram_size);
-	last = data;
-}
-
-
+***************************************************************************/
 void gottlieb_paletteram_w(int offset,int data)
 {
 	int bit0,bit1,bit2,bit3;
 	int r,g,b,val;
 
 
-	gottlieb_paletteram[offset] = data;
+	paletteram[offset] = data;
 
 	/* red component */
-	val = gottlieb_paletteram[offset | 1];
+	val = paletteram[offset | 1];
 	bit0 = (val >> 0) & 0x01;
 	bit1 = (val >> 1) & 0x01;
 	bit2 = (val >> 2) & 0x01;
 	bit3 = (val >> 3) & 0x01;
-	r = 0x0e * bit0 + 0x1f * bit1 + 0x43 * bit2 + 0x8f * bit3;
+	r = 0x10 * bit0 + 0x21 * bit1 + 0x46 * bit2 + 0x88 * bit3;
 
 	/* green component */
-	val = gottlieb_paletteram[offset & ~1];
+	val = paletteram[offset & ~1];
 	bit0 = (val >> 4) & 0x01;
 	bit1 = (val >> 5) & 0x01;
 	bit2 = (val >> 6) & 0x01;
 	bit3 = (val >> 7) & 0x01;
-	g = 0x0e * bit0 + 0x1f * bit1 + 0x43 * bit2 + 0x8f * bit3;
+	g = 0x10 * bit0 + 0x21 * bit1 + 0x46 * bit2 + 0x88 * bit3;
 
 	/* blue component */
-	val = gottlieb_paletteram[offset & ~1];
+	val = paletteram[offset & ~1];
 	bit0 = (val >> 0) & 0x01;
 	bit1 = (val >> 1) & 0x01;
 	bit2 = (val >> 2) & 0x01;
 	bit3 = (val >> 3) & 0x01;
-	b = 0x0e * bit0 + 0x1f * bit1 + 0x43 * bit2 + 0x8f * bit3;
+	b = 0x10 * bit0 + 0x21 * bit1 + 0x46 * bit2 + 0x88 * bit3;
 
-	osd_modify_pen(Machine->gfx[0]->colortable[offset / 2],r,g,b);
+	palette_change_color(offset / 2,r,g,b);
+}
+
+
+
+/***************************************************************************
+
+  Start the video hardware emulation.
+
+***************************************************************************/
+
+int gottlieb_vh_start(void)
+{
+	if (generic_vh_start() != 0)
+		return 1;
+
+	if ((dirtycharacter = malloc(MAX_CHARS)) == 0)
+	{
+		generic_vh_stop();
+		return 1;
+	}
+	/* Some games have character gfx data in ROM, some others in RAM. We don't */
+	/* want to recalculate chars if data is in ROM, so let's start with the array */
+	/* initialized to 0. */
+	memset(dirtycharacter,0,MAX_CHARS);
+
+	return 0;
+}
+
+/***************************************************************************
+
+  Stop the video hardware emulation.
+
+***************************************************************************/
+void gottlieb_vh_stop(void)
+{
+	free(dirtycharacter);
+	generic_vh_stop();
+}
+
+
+
+void gottlieb_video_outputs(int offset,int data)
+{
+	extern void gottlieb_knocker(void);
+	static int last = 0;
+
+
+	background_priority = data & 1;
+
+	hflip = data & 2;
+	vflip = data & 4;
+	if ((data & 6) != (last & 6))
+		memset(dirtybuffer,1,videoram_size);
+
+	/* in Q*Bert Qubes only, bit 4 controls the sprite bank */
+	spritebank = (data & 0x10) >> 4;
+
+	if ((last&0x20) && !(data&0x20)) gottlieb_knocker();
+
+	last = data;
+}
+
+void usvsthem_video_outputs(int offset,int data)
+{
+	background_priority = data & 1;
+
+	/* in most games, bits 1 and 2 flip screen, however in the laser */
+	/* disc games they are different. */
+
+	/* bit 1 controls the sprite bank. */
+	spritebank = (data & 0x02) >> 1;
+
+	/* bit 2 video enable (0 = black screen) */
+
+	/* bit 3 genlock control (1 = show laserdisc image) */
 }
 
 
 
 void gottlieb_characterram_w(int offset,int data)
 {
-	if (gottlieb_characterram[offset]!=data) {
-		dirtycharacter[offset/32]=1;
-		gottlieb_characterram[offset]=data;
+	if (gottlieb_characterram[offset] != data)
+	{
+		dirtycharacter[offset / 32] = 1;
+		gottlieb_characterram[offset] = data;
 	}
 }
+
 
 
 /***************************************************************************
@@ -165,45 +179,54 @@ void gottlieb_characterram_w(int offset,int data)
   the main emulation engine.
 
 ***************************************************************************/
-void gottlieb_vh_screenrefresh(struct osd_bitmap *bitmap)
+void gottlieb_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
     int offs;
 
 
+	/* update palette */
+	if (palette_recalc())
+		memset(dirtybuffer, 1, videoram_size);
+
     /* recompute character graphics */
-    for (offs=0;offs<256;offs++)
-	if (dirtycharacter[offs])
-		decodechar(Machine->gfx[0],offs,gottlieb_characterram,Machine->drv->gfxdecodeinfo[0].gfxlayout);
+    for (offs = 0;offs < Machine->drv->gfxdecodeinfo[0].gfxlayout->total;offs++)
+	{
+		if (dirtycharacter[offs])
+			decodechar(Machine->gfx[0],offs,gottlieb_characterram,Machine->drv->gfxdecodeinfo[0].gfxlayout);
+	}
+
 
     /* for every character in the Video RAM, check if it has been modified */
     /* since last time and update it accordingly. */
-    for (offs = videoram_size - 1;offs >= 0;offs--) {
-	if (dirtybuffer[offs] || dirtycharacter[videoram[offs]]) {
-	    int sx,sy;
+    for (offs = videoram_size - 1;offs >= 0;offs--)
+	{
+		if (dirtybuffer[offs] || dirtycharacter[videoram[offs]])
+		{
+			int sx,sy;
 
-	    dirtybuffer[offs] = 0;
 
-		if (hflip) sx=31-offs%32;
-		else sx=offs%32;
-		if (vflip) sy=29-offs/32;
-		else sy=offs/32;
+			dirtybuffer[offs] = 0;
 
-	    drawgfx(tmpbitmap,Machine->gfx[0],
-			videoram[offs],  /* code */
-			0, /* color tuple */
-			hflip, vflip,
-			sx*8,sy*8,
-			&Machine->drv->visible_area, /* clip */
-			TRANSPARENCY_NONE,
-			0       /* transparent color */
-		   );
-	}
+			sx = offs % 32;
+			sy = offs / 32;
+			if (hflip) sx = 31 - sx;
+			if (vflip) sy = 29 - sy;
+
+			drawgfx(tmpbitmap,Machine->gfx[0],
+					videoram[offs],
+					0,
+					hflip,vflip,
+					8*sx,8*sy,
+					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		}
     }
 
-    for (offs=0;offs<256;offs++) dirtycharacter[offs]=0;
+	memset(dirtycharacter,0,MAX_CHARS);
+
 
 	/* copy the character mapped graphics */
 	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+
 
 	/* Draw the sprites. Note that it is important to draw them exactly in this */
 	/* order, to have the correct priorities. */
@@ -212,20 +235,21 @@ void gottlieb_vh_screenrefresh(struct osd_bitmap *bitmap)
 	    int sx,sy;
 
 
-		sx = (spriteram[offs+1]) - 4;
+		/* coordinates hand tuned to make the position correct in Q*Bert Qubes start */
+		/* of level animation. */
+		sx = (spriteram[offs + 1]) - 4;
 		if (hflip) sx = 233 - sx;
 		sy = (spriteram[offs]) - 13;
 		if (vflip) sy = 228 - sy;
 
-	    if (spriteram[offs] || spriteram[offs+1])
+		if (spriteram[offs] || spriteram[offs + 1])	/* needed to avoid garbage on screen */
 			drawgfx(bitmap,Machine->gfx[1],
-					currentbank+(255^spriteram[offs+2]), /* object # */
-					0, /* color tuple */
-					hflip, vflip,
+					(255 ^ spriteram[offs + 2]) + 256 * spritebank,
+					0,
+					hflip,vflip,
 					sx,sy,
 					&Machine->drv->visible_area,
-			/* the background pen for the game is actually 1, not 0, because we reserved */
-			/* pen 0 for the background black */
-					background_priority ? TRANSPARENCY_THROUGH : TRANSPARENCY_PEN,0);
+					background_priority ? TRANSPARENCY_THROUGH : TRANSPARENCY_PEN,
+					background_priority ? Machine->pens[0]     : 0);
 	}
 }
