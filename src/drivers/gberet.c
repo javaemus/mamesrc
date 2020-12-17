@@ -104,8 +104,7 @@ static WRITE_HANDLER( mrgoemon_bankswitch_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xe03f, MRA_RAM },
 	{ 0xf200, 0xf200, input_port_4_r },	/* DSW1 */
@@ -115,11 +114,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xf602, 0xf602, input_port_0_r },	/* IN0 */
 	{ 0xf603, 0xf603, input_port_2_r },	/* IN2 */
 	{ 0xf800, 0xf800, MRA_NOP },	/* gberetb only - IRQ acknowledge */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, gberet_colorram_w, &gberet_colorram },
 	{ 0xc800, 0xcfff, gberet_videoram_w, &gberet_videoram },
@@ -133,11 +130,9 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xf200, 0xf200, MWA_NOP },		/* Loads the snd command into the snd latch */
 	{ 0xf400, 0xf400, SN76496_0_w },	/* This address triggers the SN chip to read the data port. */
 //	{ 0xf600, 0xf600, MWA_NOP },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress gberetb_writemem[] =
-{
+static MEMORY_WRITE_START( gberetb_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, gberet_colorram_w, &gberet_colorram },
 	{ 0xc800, 0xcfff, gberet_videoram_w, &gberet_videoram },
@@ -152,11 +147,9 @@ static struct MemoryWriteAddress gberetb_writemem[] =
 //	{ 0xe043, 0xe043, MWA_RAM, &gberet_spritebank },
 	{ 0xe044, 0xe044, gberet_e044_w },
 	{ 0xf400, 0xf400, SN76496_0_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress mrgoemon_readmem[] =
-{
+static MEMORY_READ_START( mrgoemon_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xe03f, MRA_RAM },
 	{ 0xf200, 0xf200, input_port_4_r },	/* DSW1 */
@@ -166,11 +159,9 @@ static struct MemoryReadAddress mrgoemon_readmem[] =
 	{ 0xf602, 0xf602, input_port_0_r },	/* IN0 */
 	{ 0xf603, 0xf603, input_port_2_r },	/* IN2 */
 	{ 0xf800, 0xffff, MRA_BANK1 },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress mrgoemon_writemem[] =
-{
+static MEMORY_WRITE_START( mrgoemon_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, gberet_colorram_w, &gberet_colorram },
 	{ 0xc800, 0xcfff, gberet_videoram_w, &gberet_videoram },
@@ -184,8 +175,7 @@ static struct MemoryWriteAddress mrgoemon_writemem[] =
 	{ 0xf200, 0xf200, MWA_NOP },		/* Loads the snd command into the snd latch */
 	{ 0xf400, 0xf400, SN76496_0_w },	/* This address triggers the SN chip to read the data port. */
 	{ 0xf800, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -702,81 +692,81 @@ static const struct MachineDriver machine_driver_mrgoemon =
 ***************************************************************************/
 
 ROM_START( gberet )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "c10_l03.bin",  0x0000, 0x4000, 0xae29e4ff )
 	ROM_LOAD( "c08_l02.bin",  0x4000, 0x4000, 0x240836a5 )
 	ROM_LOAD( "c07_l01.bin",  0x8000, 0x4000, 0x41fa3e1f )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "f03_l07.bin",  0x00000, 0x4000, 0x4da7bd1b )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "e05_l06.bin",  0x00000, 0x4000, 0x0f1cb0ca )
 	ROM_LOAD( "e04_l05.bin",  0x04000, 0x4000, 0x523a8b66 )
 	ROM_LOAD( "f04_l08.bin",  0x08000, 0x4000, 0x883933a4 )
 	ROM_LOAD( "e03_l04.bin",  0x0c000, 0x4000, 0xccecda4c )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "577h09",       0x0000, 0x0020, 0xc15e7c80 ) /* palette */
 	ROM_LOAD( "577h10",       0x0020, 0x0100, 0xe9de1e53 ) /* sprites */
 	ROM_LOAD( "577h11",       0x0120, 0x0100, 0x2a1a992b ) /* characters */
 ROM_END
 
 ROM_START( rushatck )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "rush_h03.10c", 0x0000, 0x4000, 0x4d276b52 )
 	ROM_LOAD( "rush_h02.8c",  0x4000, 0x4000, 0xb5802806 )
 	ROM_LOAD( "rush_h01.7c",  0x8000, 0x4000, 0xda7c8f3d )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rush_h07.3f",  0x00000, 0x4000, 0x03f9815f )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "e05_l06.bin",  0x00000, 0x4000, 0x0f1cb0ca )
 	ROM_LOAD( "rush_h05.4e",  0x04000, 0x4000, 0x9d028e8f )
 	ROM_LOAD( "f04_l08.bin",  0x08000, 0x4000, 0x883933a4 )
 	ROM_LOAD( "e03_l04.bin",  0x0c000, 0x4000, 0xccecda4c )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "577h09",       0x0000, 0x0020, 0xc15e7c80 ) /* palette */
 	ROM_LOAD( "577h10",       0x0020, 0x0100, 0xe9de1e53 ) /* sprites */
 	ROM_LOAD( "577h11",       0x0120, 0x0100, 0x2a1a992b ) /* characters */
 ROM_END
 
 ROM_START( gberetb )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "2-ic82.10g",   0x0000, 0x8000, 0x6d6fb494 )
 	ROM_LOAD( "3-ic81.10f",   0x8000, 0x4000, 0xf1520a0a )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1-ic92.12c",   0x00000, 0x4000, 0xb0189c87 )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "7-1c8.2b",     0x00000, 0x4000, 0x86334522 )
 	ROM_LOAD( "6-ic9.2c",     0x04000, 0x4000, 0xbda50d3e )
 	ROM_LOAD( "5-ic10.2d",    0x08000, 0x4000, 0x6a7b3881 )
 	ROM_LOAD( "4-ic11.2e",    0x0c000, 0x4000, 0x3fb186c9 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "577h09",       0x0000, 0x0020, 0xc15e7c80 ) /* palette */
 	ROM_LOAD( "577h10",       0x0020, 0x0100, 0xe9de1e53 ) /* sprites */
 	ROM_LOAD( "577h11",       0x0120, 0x0100, 0x2a1a992b ) /* characters */
 ROM_END
 
 ROM_START( mrgoemon )
-	ROM_REGION( 0x14000, REGION_CPU1 )	/* 64k for code + banked ROM */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 )	/* 64k for code + banked ROM */
 	ROM_LOAD( "621d01.10c",   0x00000, 0x8000, 0xb2219c56 )
 	ROM_LOAD( "621d02.12c",   0x08000, 0x4000, 0xc3337a97 )
 	ROM_CONTINUE(             0x10000, 0x4000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "621a05.6d",   0x00000, 0x4000, 0xf0a6dfc5 )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "621d03.4d",   0x00000, 0x8000, 0x66f2b973 )
 	ROM_LOAD( "621d04.5d",   0x08000, 0x8000, 0x47df6301 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "621a06.5f",    0x0000, 0x0020, 0x7c90de5f ) /* palette */
 	ROM_LOAD( "621a07.6f",    0x0020, 0x0100, 0x3980acdc ) /* sprites */
 	ROM_LOAD( "621a08.7f",    0x0120, 0x0100, 0x2fb244dd ) /* characters */

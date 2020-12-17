@@ -23,10 +23,8 @@ extern unsigned char    *mnight_scrolly_ram;
 extern unsigned char    *mnight_scrollx_ram;
 extern unsigned char    *mnight_bgenable_ram;
 extern unsigned char    *mnight_spoverdraw_ram;
-extern unsigned char    *mnight_spriteram;
 extern unsigned char    *mnight_background_videoram;
 extern unsigned char    *mnight_foreground_videoram;
-extern size_t mnight_spriteram_size;
 extern size_t mnight_backgroundram_size;
 extern size_t mnight_foregroundram_size;
 
@@ -62,8 +60,7 @@ WRITE_HANDLER( mnight_bankselect_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xf7ff, MRA_RAM },
@@ -79,15 +76,13 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xfa08, 0xfa09, MRA_RAM },
 	{ 0xfa0a, 0xfa0b, MRA_RAM },
 	{ 0xfa0c, 0xfa0c, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xd9ff, MWA_RAM },
-	{ 0xda00, 0xdfff, MWA_RAM, &mnight_spriteram, &mnight_spriteram_size },
+	{ 0xda00, 0xdfff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xe000, 0xe7ff, mnight_bgvideoram_w, &mnight_background_videoram, &mnight_backgroundram_size }, // VFY
 	{ 0xe800, 0xefff, mnight_fgvideoram_w, &mnight_foreground_videoram, &mnight_foregroundram_size }, //VFY
 	{ 0xf000, 0xf5ff, paletteram_RRRRGGGGBBBBxxxx_swap_w, &paletteram },
@@ -99,37 +94,30 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xfa08, 0xfa09, MWA_RAM, &mnight_scrollx_ram },
 	{ 0xfa0a, 0xfa0b, MWA_RAM, &mnight_scrolly_ram },
 	{ 0xfa0c, 0xfa0c, mnight_background_enable_w, &mnight_bgenable_ram },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress snd_readmem[] =
-{
+static MEMORY_READ_START( snd_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xe000, 0xe000, soundlatch_r },
 	{ 0xefee, 0xefee, MRA_NOP },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress snd_writemem[] =
-{
+static MEMORY_WRITE_START( snd_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xeff5, 0xeff6, MWA_NOP },			   /* SAMPLE FREQUENCY ??? */
 	{ 0xefee, 0xefee, MWA_NOP },			   /* CHIP COMMAND ?? */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort snd_writeport[] =
-{
+static PORT_WRITE_START( snd_writeport )
 	{ 0x0000, 0x0000, YM2203_control_port_0_w },
 	{ 0x0001, 0x0001, YM2203_write_port_0_w },
 	{ 0x0080, 0x0080, YM2203_control_port_1_w },
 	{ 0x0081, 0x0081, YM2203_write_port_1_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -180,7 +168,7 @@ INPUT_PORTS_START( mnight )
 	PORT_DIPNAME( 0x10, 0x00, DEF_STR( Cabinet) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Cocktail ) )
-	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Lives ) )
@@ -407,17 +395,17 @@ static const struct MachineDriver machine_driver_mnight =
 
 
 ROM_START( mnight )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "mn6-j19.bin",  0x00000, 0x8000, 0x56678d14 )
 	ROM_LOAD( "mn5-j17.bin",  0x10000, 0x8000, 0x2a73f88e )
 	ROM_LOAD( "mn4-j16.bin",  0x18000, 0x8000, 0xc5e42bb4 )
 	ROM_LOAD( "mn3-j14.bin",  0x20000, 0x8000, 0xdf6a4f7a )
 	ROM_LOAD( "mn2-j12.bin",  0x28000, 0x8000, 0x9c391d1b )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "mn1-j7.bin",   0x00000, 0x10000, 0xa0782a31 )
 
-	ROM_REGION( 0x30000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x30000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mn11-b20.bin", 0x00000, 0x4000, 0x4d37e0f4 )   // background tiles
 	ROM_CONTINUE(             0x18000, 0x4000 )
 	ROM_CONTINUE(             0x04000, 0x4000 )
@@ -431,7 +419,7 @@ ROM_START( mnight )
 	ROM_CONTINUE(             0x14000, 0x4000 )
 	ROM_CONTINUE(             0x2c000, 0x4000 )
 
-	ROM_REGION( 0x30000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x30000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mn7-e11.bin",  0x00000, 0x4000, 0x4883059c )	  // sprites tiles
 	ROM_CONTINUE(             0x18000, 0x4000 )
 	ROM_CONTINUE(             0x04000, 0x4000 )
@@ -445,7 +433,7 @@ ROM_START( mnight )
 	ROM_CONTINUE(             0x14000, 0x4000 )
 	ROM_CONTINUE(             0x2c000, 0x4000 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "mn10-b10.bin", 0x00000, 0x2000, 0x37b8221f )	// foreground tiles OK
 	ROM_CONTINUE(             0x04000, 0x2000 )
 	ROM_CONTINUE(             0x02000, 0x2000 )
@@ -453,17 +441,17 @@ ROM_START( mnight )
 ROM_END
 
 ROM_START( arkarea )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "arkarea.008",  0x00000, 0x8000, 0x1ce1b5b9 )
 	ROM_LOAD( "arkarea.009",  0x10000, 0x8000, 0xdb1c81d1 )
 	ROM_LOAD( "arkarea.010",  0x18000, 0x8000, 0x5a460dae )
 	ROM_LOAD( "arkarea.011",  0x20000, 0x8000, 0x63f022c9 )
 	ROM_LOAD( "arkarea.012",  0x28000, 0x8000, 0x3c4c65d5 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "arkarea.013",  0x00000, 0x8000, 0x2d409d58 )
 
-	ROM_REGION( 0x30000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x30000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "arkarea.003",  0x00000, 0x4000, 0x6f45a308 )   // background tiles
 	ROM_CONTINUE(             0x18000, 0x4000 )
 	ROM_CONTINUE(             0x04000, 0x4000 )
@@ -477,7 +465,7 @@ ROM_START( arkarea )
 	ROM_CONTINUE(             0x14000, 0x4000 )
 	ROM_CONTINUE(             0x2c000, 0x4000 )
 
-	ROM_REGION( 0x30000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x30000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "arkarea.007",  0x00000, 0x4000, 0xd5684a27 )   // sprites tiles
 	ROM_CONTINUE(             0x18000, 0x4000 )
 	ROM_CONTINUE(             0x04000, 0x4000 )
@@ -491,7 +479,7 @@ ROM_START( arkarea )
 	ROM_CONTINUE(             0x14000, 0x4000 )
 	ROM_CONTINUE(             0x2c000, 0x4000 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "arkarea.004",  0x00000, 0x2000, 0x69e36af2 ) // foreground tiles OK
 	ROM_CONTINUE(             0x04000, 0x2000 )
 	ROM_CONTINUE(             0x02000, 0x2000 )

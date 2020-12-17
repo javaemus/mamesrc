@@ -169,11 +169,19 @@ static WRITE_HANDLER( i8039_irqen_and_status_w )
 	i8039_status = (data & 0x70) >> 4;
 }
 
-
-
-
-static struct MemoryReadAddress readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+static WRITE_HANDLER( junofrst_coin_counter_w )
+{
+	coin_counter_w(offset,data);
+}
+
+
+
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_RAM },
 	{ 0x8010, 0x8010, input_port_0_r },	/* DSW2 (inverted bits) */
 	{ 0x801c, 0x801c, watchdog_reset_r },
@@ -184,15 +192,13 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x8100, 0x8fff, MRA_RAM },
 	{ 0x9000, 0x9fff, MRA_BANK1 },
 	{ 0xa000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7fff, tutankhm_videoram_w, &videoram, &videoram_size },
 	{ 0x8000, 0x800f, paletteram_BBGGGRRR_w, &paletteram },
 	{ 0x8030, 0x8030, interrupt_enable_w },
-	{ 0x8031, 0x8032, coin_counter_w },
+	{ 0x8031, 0x8032, junofrst_coin_counter_w },
 	{ 0x8033, 0x8033, MWA_RAM, &tutankhm_scrollx },              /* video x pan hardware reg - Not USED in Juno*/
 	{ 0x8034, 0x8035, flip_screen_w },
 	{ 0x8040, 0x8040, junofrst_sh_irqtrigger_w },
@@ -201,56 +207,43 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x8070, 0x8073, junofrst_blitter_w },
 	{ 0x8100, 0x8fff, MWA_RAM },
 	{ 0x9000, 0xffff, MWA_ROM },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
 	{ 0x2000, 0x23ff, MRA_RAM },
 	{ 0x3000, 0x3000, soundlatch_r },
 	{ 0x4001, 0x4001, AY8910_read_port_0_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
 	{ 0x2000, 0x23ff, MWA_RAM },
 	{ 0x4000, 0x4000, AY8910_control_port_0_w },
 	{ 0x4002, 0x4002, AY8910_write_port_0_w },
 	{ 0x5000, 0x5000, soundlatch2_w },
 	{ 0x6000, 0x6000, junofrst_i8039_irq_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress i8039_readmem[] =
-{
+static MEMORY_READ_START( i8039_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress i8039_writemem[] =
-{
+static MEMORY_WRITE_START( i8039_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort i8039_readport[] =
-{
+static PORT_READ_START( i8039_readport )
 	{ 0x00, 0xff, soundlatch2_r },
 	{ 0x111,0x111, IORP_NOP },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort i8039_writeport[] =
-{
+static PORT_WRITE_START( i8039_writeport )
 	{ I8039_p1, I8039_p1, DAC_0_data_w },
 	{ I8039_p2, I8039_p2, i8039_irqen_and_status_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( junofrst )
@@ -423,7 +416,7 @@ static const struct MachineDriver machine_driver_junofrst =
 
 
 ROM_START( junofrst )
-	ROM_REGION( 2*0x1c000, REGION_CPU1 )	/* code + space for decrypted opcodes */
+	ROM_REGION( 2*0x1c000, REGION_CPU1, 0 )	/* code + space for decrypted opcodes */
 	ROM_LOAD( "jfa_b9.bin",   0x0a000, 0x2000, 0xf5a7ab9d ) /* program ROMs */
 	ROM_LOAD( "jfb_b10.bin",  0x0c000, 0x2000, 0xf20626e0 )
 	ROM_LOAD( "jfc_a10.bin",  0x0e000, 0x2000, 0x1e7744a7 )
@@ -435,20 +428,20 @@ ROM_START( junofrst )
 	ROM_LOAD( "jfc5_a8.bin",  0x18000, 0x2000, 0x0539f328 )
 	ROM_LOAD( "jfc6_a9.bin",  0x1a000, 0x2000, 0x1da2ad6e )
 
-	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for Z80 sound CPU code */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 ) /* 64k for Z80 sound CPU code */
 	ROM_LOAD( "jfs1_j3.bin",  0x0000, 0x1000, 0x235a2893 )
 
-	ROM_REGION( 0x1000, REGION_CPU3 )	/* 8039 */
+	ROM_REGION( 0x1000, REGION_CPU3, 0 )	/* 8039 */
 	ROM_LOAD( "jfs2_p4.bin",  0x0000, 0x1000, 0xd0fa5d5f )
 
-	ROM_REGION( 0x6000, REGION_GFX1 )	/* BLTROM, used at runtime */
+	ROM_REGION( 0x6000, REGION_GFX1, 0 )	/* BLTROM, used at runtime */
 	ROM_LOAD( "jfs3_c7.bin",  0x00000, 0x2000, 0xaeacf6db )
 	ROM_LOAD( "jfs4_d7.bin",  0x02000, 0x2000, 0x206d954c )
 	ROM_LOAD( "jfs5_e7.bin",  0x04000, 0x2000, 0x1eb87a6e )
 ROM_END
 
 ROM_START( junofstg )
-	ROM_REGION( 2*0x1c000, REGION_CPU1 )	/* code + space for decrypted opcodes */
+	ROM_REGION( 2*0x1c000, REGION_CPU1, 0 )	/* code + space for decrypted opcodes */
 	ROM_LOAD( "jfg_a.9b",     0x0a000, 0x2000, 0x8f77d1c5 ) /* program ROMs */
 	ROM_LOAD( "jfg_b.10b",    0x0c000, 0x2000, 0xcd645673 )
 	ROM_LOAD( "jfg_c.10a",    0x0e000, 0x2000, 0x47852761 )
@@ -460,13 +453,13 @@ ROM_START( junofstg )
 	ROM_LOAD( "jfc5_a8.bin",  0x18000, 0x2000, 0x0539f328 )
 	ROM_LOAD( "jfc6_a9.bin",  0x1a000, 0x2000, 0x1da2ad6e )
 
-	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for Z80 sound CPU code */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 ) /* 64k for Z80 sound CPU code */
 	ROM_LOAD( "jfs1_j3.bin",  0x0000, 0x1000, 0x235a2893 )
 
-	ROM_REGION( 0x1000, REGION_CPU3 )	/* 8039 */
+	ROM_REGION( 0x1000, REGION_CPU3, 0 )	/* 8039 */
 	ROM_LOAD( "jfs2_p4.bin",  0x0000, 0x1000, 0xd0fa5d5f )
 
-	ROM_REGION( 0x6000, REGION_GFX1 )	/* BLTROM, used at runtime */
+	ROM_REGION( 0x6000, REGION_GFX1, 0 )	/* BLTROM, used at runtime */
 	ROM_LOAD( "jfs3_c7.bin",  0x00000, 0x2000, 0xaeacf6db )
 	ROM_LOAD( "jfs4_d7.bin",  0x02000, 0x2000, 0x206d954c )
 	ROM_LOAD( "jfs5_e7.bin",  0x04000, 0x2000, 0x1eb87a6e )

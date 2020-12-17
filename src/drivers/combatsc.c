@@ -216,8 +216,7 @@ static WRITE_HANDLER( combasc_portA_w )
 
 /****************************************************************************/
 
-static struct MemoryReadAddress combasc_readmem[] =
-{
+static MEMORY_READ_START( combasc_readmem )
 	{ 0x0020, 0x005f, combasc_scrollram_r },
 	{ 0x0200, 0x0201, protection_r },
 	{ 0x0400, 0x0400, input_port_0_r },
@@ -230,11 +229,9 @@ static struct MemoryReadAddress combasc_readmem[] =
 	{ 0x2000, 0x3fff, combasc_video_r },
 	{ 0x4000, 0x7fff, MRA_BANK1 },				/* banked ROM area */
 	{ 0x8000, 0xffff, MRA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress combasc_writemem[] =
-{
+static MEMORY_WRITE_START( combasc_writemem )
 	{ 0x0000, 0x0007, combasc_pf_control_w },
 	{ 0x0020, 0x005f, combasc_scrollram_w },
 //	{ 0x0060, 0x00ff, MWA_RAM },					/* RAM */
@@ -251,22 +248,18 @@ static struct MemoryWriteAddress combasc_writemem[] =
 	{ 0x2000, 0x3fff, combasc_video_w },
 	{ 0x4000, 0x7fff, MWA_ROM },					/* banked ROM area */
 	{ 0x8000, 0xffff, MWA_ROM },					/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress combascb_readmem[] =
-{
+static MEMORY_READ_START( combascb_readmem )
 	{ 0x0000, 0x04ff, MRA_RAM },
 	{ 0x0600, 0x06ff, MRA_RAM },	/* palette */
 	{ 0x0800, 0x1fff, MRA_RAM },
 	{ 0x2000, 0x3fff, combasc_video_r },
 	{ 0x4000, 0x7fff, MRA_BANK1 },				/* banked ROM/RAM area */
 	{ 0x8000, 0xffff, MRA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress combascb_writemem[] =
-{
+static MEMORY_WRITE_START( combascb_writemem )
 	{ 0x0000, 0x04ff, MWA_RAM },
 	{ 0x0500, 0x0500, combascb_bankselect_w },
 	{ 0x0600, 0x06ff, paletteram_xBBBBBGGGGGRRRRR_w, &paletteram },
@@ -274,12 +267,10 @@ static struct MemoryWriteAddress combascb_writemem[] =
 	{ 0x2000, 0x3fff, combasc_video_w },
 	{ 0x4000, 0x7fff, MWA_BANK1, &banked_area },/* banked ROM/RAM area */
 	{ 0x8000, 0xffff, MWA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
 #if 0
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x7fff, MRA_ROM },					/* ROM */
 	{ 0x8000, 0x87ef, MRA_RAM },					/* RAM */
 	{ 0x87f0, 0x87ff, MRA_RAM },					/* ??? */
@@ -288,11 +279,9 @@ static struct MemoryReadAddress readmem_sound[] =
 	{ 0xa000, 0xa000, soundlatch_r },				/* soundlatch_r? */
 	{ 0x8800, 0xfffb, MRA_ROM },					/* ROM? */
 	{ 0xfffc, 0xffff, MRA_RAM },					/* ??? */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sound[] =
-{
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x7fff, MWA_ROM },				/* ROM */
 	{ 0x8000, 0x87ef, MWA_RAM },				/* RAM */
 	{ 0x87f0, 0x87ff, MWA_RAM },				/* ??? */
@@ -302,22 +291,18 @@ static struct MemoryWriteAddress writemem_sound[] =
 	//{ 0xa800, 0xa800, combasc_unknown_w_2 },	/* OKIM5205? */
 	{ 0x8800, 0xfffb, MWA_ROM },				/* ROM */
 	{ 0xfffc, 0xffff, MWA_RAM },				/* ??? */
-	{ -1 }
-};
+MEMORY_END
 #endif
 
-static struct MemoryReadAddress combasc_readmem_sound[] =
-{
+static MEMORY_READ_START( combasc_readmem_sound )
 	{ 0x0000, 0x7fff, MRA_ROM },					/* ROM */
 	{ 0x8000, 0x87ff, MRA_RAM },					/* RAM */
 	{ 0xb000, 0xb000, UPD7759_0_busy_r },			/* UPD7759 busy? */
 	{ 0xd000, 0xd000, soundlatch_r },				/* soundlatch_r? */
     { 0xe000, 0xe000, YM2203_status_port_0_r },		/* YM 2203 */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress combasc_writemem_sound[] =
-{
+static MEMORY_WRITE_START( combasc_writemem_sound )
 	{ 0x0000, 0x7fff, MWA_ROM },				/* ROM */
 	{ 0x8000, 0x87ff, MWA_RAM },				/* RAM */
 	{ 0x9000, 0x9000, combasc_play_w },			/* uPD7759 play voice */
@@ -325,8 +310,7 @@ static struct MemoryWriteAddress combasc_writemem_sound[] =
 	{ 0xc000, 0xc000, combasc_voice_reset_w },	/* uPD7759 reset? */
  	{ 0xe000, 0xe000, YM2203_control_port_0_w },/* YM 2203 */
 	{ 0xe001, 0xe001, YM2203_write_port_0_w },	/* YM 2203 */
-	{ -1 }
-};
+MEMORY_END
 
 
 #define COINAGE \
@@ -737,130 +721,130 @@ static const struct MachineDriver machine_driver_combascb =
 
 
 ROM_START( combasc )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 6309 code */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 6309 code */
 	ROM_LOAD( "611g01.rom", 0x30000, 0x08000, 0x857ffffe )
 	ROM_CONTINUE(           0x08000, 0x08000 )
 	ROM_LOAD( "611g02.rom", 0x10000, 0x20000, 0x9ba05327 )
 	/* extra 0x8000 for banked RAM */
 
-	ROM_REGION( 0x10000 , REGION_CPU2 ) /* sound CPU */
+	ROM_REGION( 0x10000 , REGION_CPU2, 0 ) /* sound CPU */
 	ROM_LOAD( "611g03.rom", 0x00000, 0x08000, 0x2a544db5 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
-	ROM_LOAD_GFX_ODD ( "611g08.rom",    0x00000, 0x40000, 0x46e7d28c )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
+	ROM_LOAD16_BYTE( "611g08.rom",    0x00001, 0x40000, 0x46e7d28c )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
-	ROM_LOAD_GFX_ODD ( "611g12.rom",    0x00000, 0x40000, 0x9c6bf898 )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
+	ROM_LOAD16_BYTE( "611g12.rom",    0x00001, 0x40000, 0x9c6bf898 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "611g06.h14",  0x0000, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g05.h15",  0x0100, 0x0100, 0x207a7b07 ) /* chars lookup table */
 	ROM_LOAD( "611g10.h6",   0x0200, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g09.h7",   0x0300, 0x0100, 0x207a7b07 ) /* chars lookup table */
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* uPD7759 data */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* uPD7759 data */
 	ROM_LOAD( "611g04.rom",  0x00000, 0x20000, 0x2987e158 )
 ROM_END
 
 ROM_START( combasct )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 6309 code */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 6309 code */
 	ROM_LOAD( "g01.rom",     0x30000, 0x08000, 0x489c132f )
 	ROM_CONTINUE(            0x08000, 0x08000 )
 	ROM_LOAD( "611g02.rom",  0x10000, 0x20000, 0x9ba05327 )
 	/* extra 0x8000 for banked RAM */
 
-	ROM_REGION( 0x10000 , REGION_CPU2 ) /* sound CPU */
+	ROM_REGION( 0x10000 , REGION_CPU2, 0 ) /* sound CPU */
 	ROM_LOAD( "611g03.rom", 0x00000, 0x08000, 0x2a544db5 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
-	ROM_LOAD_GFX_ODD ( "611g08.rom",    0x00000, 0x40000, 0x46e7d28c )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
+	ROM_LOAD16_BYTE( "611g08.rom",    0x00001, 0x40000, 0x46e7d28c )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
-	ROM_LOAD_GFX_ODD ( "611g12.rom",    0x00000, 0x40000, 0x9c6bf898 )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
+	ROM_LOAD16_BYTE( "611g12.rom",    0x00001, 0x40000, 0x9c6bf898 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "611g06.h14",  0x0000, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g05.h15",  0x0100, 0x0100, 0x207a7b07 ) /* chars lookup table */
 	ROM_LOAD( "611g10.h6",   0x0200, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g09.h7",   0x0300, 0x0100, 0x207a7b07 ) /* chars lookup table */
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* uPD7759 data */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* uPD7759 data */
 	ROM_LOAD( "611g04.rom",  0x00000, 0x20000, 0x2987e158 )
 ROM_END
 
 ROM_START( combascj )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 6309 code */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 6309 code */
 	ROM_LOAD( "611p01.a14",  0x30000, 0x08000, 0xd748268e )
 	ROM_CONTINUE(            0x08000, 0x08000 )
 	ROM_LOAD( "611g02.rom",  0x10000, 0x20000, 0x9ba05327 )
 	/* extra 0x8000 for banked RAM */
 
-	ROM_REGION( 0x10000 , REGION_CPU2 ) /* sound CPU */
+	ROM_REGION( 0x10000 , REGION_CPU2, 0 ) /* sound CPU */
 	ROM_LOAD( "611g03.rom", 0x00000, 0x08000, 0x2a544db5 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
-	ROM_LOAD_GFX_ODD ( "611g08.rom",    0x00000, 0x40000, 0x46e7d28c )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
+	ROM_LOAD16_BYTE( "611g08.rom",    0x00001, 0x40000, 0x46e7d28c )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
-	ROM_LOAD_GFX_ODD ( "611g12.rom",    0x00000, 0x40000, 0x9c6bf898 )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
+	ROM_LOAD16_BYTE( "611g12.rom",    0x00001, 0x40000, 0x9c6bf898 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "611g06.h14",  0x0000, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g05.h15",  0x0100, 0x0100, 0x207a7b07 ) /* chars lookup table */
 	ROM_LOAD( "611g10.h6",   0x0200, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g09.h7",   0x0300, 0x0100, 0x207a7b07 ) /* chars lookup table */
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* uPD7759 data */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* uPD7759 data */
 	ROM_LOAD( "611g04.rom",  0x00000, 0x20000, 0x2987e158 )
 ROM_END
 
 ROM_START( bootcamp )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 6309 code */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 6309 code */
 	ROM_LOAD( "xxx-v01.12a", 0x30000, 0x08000, 0xc10dca64 )
 	ROM_CONTINUE(            0x08000, 0x08000 )
 	ROM_LOAD( "611g02.rom",  0x10000, 0x20000, 0x9ba05327 )
 	/* extra 0x8000 for banked RAM */
 
-	ROM_REGION( 0x10000 , REGION_CPU2 ) /* sound CPU */
+	ROM_REGION( 0x10000 , REGION_CPU2, 0 ) /* sound CPU */
 	ROM_LOAD( "611g03.rom", 0x00000, 0x08000, 0x2a544db5 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
-	ROM_LOAD_GFX_ODD ( "611g08.rom",    0x00000, 0x40000, 0x46e7d28c )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g07.rom",    0x00000, 0x40000, 0x73b38720 )
+	ROM_LOAD16_BYTE( "611g08.rom",    0x00001, 0x40000, 0x46e7d28c )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
-	ROM_LOAD_GFX_ODD ( "611g12.rom",    0x00000, 0x40000, 0x9c6bf898 )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "611g11.rom",    0x00000, 0x40000, 0x69687538 )
+	ROM_LOAD16_BYTE( "611g12.rom",    0x00001, 0x40000, 0x9c6bf898 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "611g06.h14",  0x0000, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g05.h15",  0x0100, 0x0100, 0x207a7b07 ) /* chars lookup table */
 	ROM_LOAD( "611g10.h6",   0x0200, 0x0100, 0xf916129a ) /* sprites lookup table */
 	ROM_LOAD( "611g09.h7",   0x0300, 0x0100, 0x207a7b07 ) /* chars lookup table */
 
-    ROM_REGION( 0x20000, REGION_SOUND1 )	/* uPD7759 data */
+    ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* uPD7759 data */
 	ROM_LOAD( "611g04.rom",  0x00000, 0x20000, 0x2987e158 )
 ROM_END
 
 ROM_START( combascb )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 6809 code */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 6809 code */
 	ROM_LOAD( "combat.002",	 0x30000, 0x08000, 0x0996755d )
 	ROM_CONTINUE(            0x08000, 0x08000 )
 	ROM_LOAD( "combat.003",	 0x10000, 0x10000, 0x229c93b2 )
 	ROM_LOAD( "combat.004",	 0x20000, 0x10000, 0xa069cb84 )
 	/* extra 0x8000 for banked RAM */
 
-	ROM_REGION( 0x10000 , REGION_CPU2 ) /* sound CPU */
+	ROM_REGION( 0x10000 , REGION_CPU2, 0 ) /* sound CPU */
 	ROM_LOAD( "combat.001",  0x00000, 0x10000, 0x61456b3b )
 	ROM_LOAD( "611g03.rom",  0x00000, 0x08000, 0x2a544db5 ) /* FAKE - from Konami set! */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "combat.006",  0x00000, 0x10000, 0x8dc29a1f ) /* tiles, bank 0 */
 	ROM_LOAD( "combat.008",  0x10000, 0x10000, 0x61599f46 )
 	ROM_LOAD( "combat.010",  0x20000, 0x10000, 0xd5cda7cd )
@@ -870,7 +854,7 @@ ROM_START( combascb )
 	ROM_LOAD( "combat.009",  0x60000, 0x10000, 0x5ac80383 )
 	ROM_LOAD( "combat.011",  0x70000, 0x10000, 0xcda83114 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "combat.013",  0x00000, 0x10000, 0x4bed2293 ) /* sprites, bank 0 */
 	ROM_LOAD( "combat.015",  0x10000, 0x10000, 0x26c41f31 )
 	ROM_LOAD( "combat.017",  0x20000, 0x10000, 0x6071e6da )
@@ -880,11 +864,11 @@ ROM_START( combascb )
 	ROM_LOAD( "combat.018",  0x60000, 0x10000, 0x575db729 )
 	ROM_LOAD( "combat.020",  0x70000, 0x10000, 0x8d748a1a )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "prom.d10",    0x0000, 0x0100, 0x265f4c97 ) /* sprites lookup table */
 	ROM_LOAD( "prom.c11",    0x0100, 0x0100, 0xa7a5c0b4 ) /* priority? */
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* uPD7759 data */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* uPD7759 data */
 	ROM_LOAD( "611g04.rom",  0x00000, 0x20000, 0x2987e158 )	/* FAKE - from Konami set! */
 ROM_END
 

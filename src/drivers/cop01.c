@@ -68,74 +68,58 @@ static READ_HANDLER( cop01_sound_command_r )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xd000, 0xdfff, MRA_RAM },
 	{ 0xe000, 0xe0ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xd000, 0xd7ff, videoram_w, &videoram, &videoram_size },
 	{ 0xd800, 0xdfff, colorram_w, &colorram },
 	{ 0xe000, 0xe0ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xf000, 0xf3ff, MWA_RAM, &cop01_videoram, &cop01_videoram_size },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, input_port_0_r },
 	{ 0x01, 0x01, input_port_1_r },
 	{ 0x02, 0x02, input_port_2_r },
 	{ 0x03, 0x03, input_port_3_r },
 	{ 0x04, 0x04, input_port_4_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x40, 0x40, cop01_gfxbank_w },
 	{ 0x41, 0x42, cop01_scrollx_w },
 	{ 0x44, 0x44, cop01_sound_command_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x06, 0x06, cop01_sound_command_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, AY8910_control_port_0_w },
 	{ 0x01, 0x01, AY8910_write_port_0_w },
 	{ 0x02, 0x02, AY8910_control_port_1_w },
 	{ 0x03, 0x03, AY8910_write_port_1_w },
 	{ 0x04, 0x04, AY8910_control_port_2_w },
 	{ 0x05, 0x05, AY8910_write_port_2_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -330,23 +314,23 @@ static const struct MachineDriver machine_driver_cop01 =
 
 
 ROM_START( cop01 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "cop01.2b",     0x0000, 0x4000, 0x5c2734ab )
 	ROM_LOAD( "cop02.4b",     0x4000, 0x4000, 0x9c7336ef )
 	ROM_LOAD( "cop03.5b",     0x8000, 0x4000, 0x2566c8bf )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for code */
 	ROM_LOAD( "cop15.17b",    0x0000, 0x4000, 0x6a5f08fa )
 	ROM_LOAD( "cop16.18b",    0x4000, 0x4000, 0x56bf6946 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cop14.15g",    0x00000, 0x2000, 0x066d1c55 )	/* chars */
 
-	ROM_REGION( 0x08000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cop04.15c",    0x00000, 0x4000, 0x622d32e6 )	/* tiles */
 	ROM_LOAD( "cop05.16c",    0x04000, 0x4000, 0xc6ac5a35 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cop10.3e",     0x00000, 0x2000, 0x444cb19d )	/* sprites */
 	ROM_LOAD( "cop11.5e",     0x02000, 0x2000, 0x9078bc04 )
 	ROM_LOAD( "cop12.6e",     0x04000, 0x2000, 0x257a6706 )
@@ -356,7 +340,7 @@ ROM_START( cop01 )
 	ROM_LOAD( "cop08.6g",     0x0c000, 0x2000, 0xa63ddda6 )
 	ROM_LOAD( "cop09.8g",     0x0e000, 0x2000, 0x855a2ec3 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "copproma.13d", 0x0000, 0x0100, 0x97f68a7a )	/* red */
 	ROM_LOAD( "coppromb.14d", 0x0100, 0x0100, 0x39a40b4c )	/* green */
 	ROM_LOAD( "coppromc.15d", 0x0200, 0x0100, 0x8181748b )	/* blue */
@@ -365,23 +349,23 @@ ROM_START( cop01 )
 ROM_END
 
 ROM_START( cop01a )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "cop01alt.001", 0x0000, 0x4000, 0xa13ee0d3 )
 	ROM_LOAD( "cop01alt.002", 0x4000, 0x4000, 0x20bad28e )
 	ROM_LOAD( "cop01alt.003", 0x8000, 0x4000, 0xa7e10b79 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for code */
 	ROM_LOAD( "cop01alt.015", 0x0000, 0x4000, 0x95be9270 )
 	ROM_LOAD( "cop01alt.016", 0x4000, 0x4000, 0xc20bf649 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cop01alt.014", 0x00000, 0x2000, 0xedd8a474 )	/* chars */
 
-	ROM_REGION( 0x08000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cop04.15c",    0x00000, 0x4000, 0x622d32e6 )	/* tiles */
 	ROM_LOAD( "cop05.16c",    0x04000, 0x4000, 0xc6ac5a35 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cop01alt.010", 0x00000, 0x2000, 0x94aee9d6 )	/* sprites */
 	ROM_LOAD( "cop11.5e",     0x02000, 0x2000, 0x9078bc04 )
 	ROM_LOAD( "cop12.6e",     0x04000, 0x2000, 0x257a6706 )
@@ -391,7 +375,7 @@ ROM_START( cop01a )
 	ROM_LOAD( "cop08.6g",     0x0c000, 0x2000, 0xa63ddda6 )
 	ROM_LOAD( "cop09.8g",     0x0e000, 0x2000, 0x855a2ec3 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "copproma.13d", 0x0000, 0x0100, 0x97f68a7a )	/* red */
 	ROM_LOAD( "coppromb.14d", 0x0100, 0x0100, 0x39a40b4c )	/* green */
 	ROM_LOAD( "coppromc.15d", 0x0200, 0x0100, 0x8181748b )	/* blue */

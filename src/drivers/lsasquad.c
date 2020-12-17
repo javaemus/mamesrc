@@ -5,7 +5,8 @@ Land Sea Air Squad / Storming Party  (c) 1986 Taito
 driver by Nicola Salmoria
 
 TODO:
-- Unknown writes to YM2203 output ports (filters?)
+- I think storming is supposed to be a bootleg without mcu, so I should verify
+  if it works with the mcu not hooked up.
 - Wrong sprite/tilemap priority. Sprites can appear above and below the middle
   layer, it's not clear how this is selected since there are no free attribute
   bits.
@@ -19,14 +20,15 @@ TODO:
   (or tilemaps), however I haven't done that because the video circuitry is not
   entirely understood and if other games are found running on this hardware, they
   might not like the optimizations.
+- Unknown writes to YM2203 output ports (filters?)
 
 ***************************************************************************/
 
 #include "driver.h"
+#include "vidhrdw/generic.h"
 
 /* in vidhrdw/lsasquad.c */
-extern unsigned char *lsasquad_scrollram,*lsasquad_videoram,*lsasquad_spriteram;
-extern size_t lsasquad_spriteram_size;
+extern unsigned char *lsasquad_scrollram;
 void lsasquad_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void lsasquad_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
@@ -63,15 +65,14 @@ WRITE_HANDLER( lsasquad_bankswitch_w )
 	/* bit 3 is zeroed on startup, maybe reset sound CPU */
 
 	/* bit 4 flips screen */
-	flip_screen_w(offset,data & 0x10);
+	flip_screen_set(data & 0x10);
 
 	/* other bits unknown */
 }
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x9fff, MRA_BANK1 },
 	{ 0xa000, 0xe5ff, MRA_RAM },
@@ -86,24 +87,20 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xec00, 0xec00, lsasquad_sound_result_r },
 	{ 0xec01, 0xec01, lsasquad_sound_status_r },
 	{ 0xee00, 0xee00, lsasquad_mcu_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x9fff, MWA_ROM },
 	{ 0xa000, 0xbfff, MWA_RAM },	/* SRAM */
-	{ 0xc000, 0xdfff, MWA_RAM, &lsasquad_videoram },	/* SCREEN RAM */
+	{ 0xc000, 0xdfff, MWA_RAM, &videoram, &videoram_size },	/* SCREEN RAM */
 	{ 0xe000, 0xe3ff, MWA_RAM, &lsasquad_scrollram },	/* SCROLL RAM */
-	{ 0xe400, 0xe5ff, MWA_RAM, &lsasquad_spriteram, &lsasquad_spriteram_size },	/* OBJECT RAM */
+	{ 0xe400, 0xe5ff, MWA_RAM, &spriteram, &spriteram_size },	/* OBJECT RAM */
 	{ 0xea00, 0xea00, lsasquad_bankswitch_w },
 	{ 0xec00, 0xec00, lsasquad_sound_command_w },
 	{ 0xee00, 0xee00, lsasquad_mcu_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xa000, 0xa000, YM2203_status_port_0_r },
@@ -111,11 +108,9 @@ static struct MemoryReadAddress sound_readmem[] =
 	{ 0xd000, 0xd000, lsasquad_sh_sound_command_r },
 	{ 0xd800, 0xd800, lsasquad_sound_status_r },
 	{ 0xe000, 0xefff, MRA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0xa000, 0xa000, YM2203_control_port_0_w },
@@ -126,29 +121,24 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0xd400, 0xd400, lsasquad_sh_nmi_disable_w },
 	{ 0xd800, 0xd800, lsasquad_sh_nmi_enable_w },
 	{ 0xe000, 0xefff, MWA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress m68705_readmem[] =
-{
+static MEMORY_READ_START( m68705_readmem )
 	{ 0x0000, 0x0000, lsasquad_68705_portA_r },
 	{ 0x0001, 0x0001, lsasquad_68705_portB_r },
 	{ 0x0002, 0x0002, lsasquad_mcu_status_r },
 	{ 0x0010, 0x007f, MRA_RAM },
 	{ 0x0080, 0x07ff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress m68705_writemem[] =
-{
+static MEMORY_WRITE_START( m68705_writemem )
 	{ 0x0000, 0x0000, lsasquad_68705_portA_w },
 	{ 0x0001, 0x0001, lsasquad_68705_portB_w },
 	{ 0x0004, 0x0004, lsasquad_68705_ddrA_w },
 	{ 0x0005, 0x0005, lsasquad_68705_ddrB_w },
 	{ 0x0010, 0x007f, MWA_RAM },
 	{ 0x0080, 0x07ff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -396,31 +386,31 @@ static const struct MachineDriver machine_driver_lsasquad =
 ***************************************************************************/
 
 ROM_START( lsasquad )
-	ROM_REGION( 0x20000, REGION_CPU1 )
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )
 	ROM_LOAD( "a64-21.4",     0x00000, 0x8000, 0x5ff6b017 )
     /* ROMs banked at 8000-9fff */
 	ROM_LOAD( "a64-20.3",     0x10000, 0x8000, 0x7f8b4979 )
 	ROM_LOAD( "a64-19.2",     0x18000, 0x8000, 0xba31d34a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a64-04.44",    0x0000, 0x8000, 0xc238406a )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "a64-05.35",    0x0000, 0x0800, 0x572677b9 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a64-10.27",    0x00000, 0x8000, 0xbb4f1b37 )
 	ROM_LOAD( "a64-22.28",    0x08000, 0x8000, 0x58e03b89 )
 	ROM_LOAD( "a64-11.40",    0x10000, 0x8000, 0xa3bbc0b3 )
 	ROM_LOAD( "a64-23.41",    0x18000, 0x8000, 0x377a538b )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a64-14.2",     0x00000, 0x8000, 0xa72e2041 )
 	ROM_LOAD( "a64-16.3",     0x08000, 0x8000, 0x05206333 )
 	ROM_LOAD( "a64-15.25",    0x10000, 0x8000, 0x01ed5851 )
 	ROM_LOAD( "a64-17.26",    0x18000, 0x8000, 0x6eaf3735 )
 
-	ROM_REGION( 0x1000, REGION_PROMS )
+	ROM_REGION( 0x1000, REGION_PROMS, 0 )
 	ROM_LOAD( "a64-07.22",    0x0000, 0x0400, 0x82802bbb )	/* red   (bottom half unused) */
 	ROM_LOAD( "a64-08.23",    0x0400, 0x0400, 0xaa9e1dbd )	/* green (bottom half unused) */
 	ROM_LOAD( "a64-09.24",    0x0800, 0x0400, 0xdca86295 )	/* blue  (bottom half unused) */
@@ -428,31 +418,31 @@ ROM_START( lsasquad )
 ROM_END
 
 ROM_START( storming )
-	ROM_REGION( 0x20000, REGION_CPU1 )
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )
 	ROM_LOAD( "stpartyj.001", 0x00000, 0x8000, 0x07e6bc61 )
     /* ROMs banked at 8000-9fff */
 	ROM_LOAD( "stpartyj.002", 0x10000, 0x8000, 0x1c7fe5d5 )
 	ROM_LOAD( "stpartyj.003", 0x18000, 0x8000, 0x159f23a6 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a64-04.44",    0x0000, 0x8000, 0xc238406a )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "a64-05.35",    0x0000, 0x0800, 0x572677b9 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a64-10.27",    0x00000, 0x8000, 0xbb4f1b37 )
 	ROM_LOAD( "stpartyj.009", 0x08000, 0x8000, 0x8ee2443b )
 	ROM_LOAD( "a64-11.40",    0x10000, 0x8000, 0xa3bbc0b3 )
 	ROM_LOAD( "stpartyj.011", 0x18000, 0x8000, 0xf342d42f )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a64-14.2",     0x00000, 0x8000, 0xa72e2041 )
 	ROM_LOAD( "a64-16.3",     0x08000, 0x8000, 0x05206333 )
 	ROM_LOAD( "a64-15.25",    0x10000, 0x8000, 0x01ed5851 )
 	ROM_LOAD( "a64-17.26",    0x18000, 0x8000, 0x6eaf3735 )
 
-	ROM_REGION( 0x1000, REGION_PROMS )
+	ROM_REGION( 0x1000, REGION_PROMS, 0 )
 	ROM_LOAD( "a64-07.22",    0x0000, 0x0400, 0x82802bbb )	/* red   (bottom half unused) */
 	ROM_LOAD( "a64-08.23",    0x0400, 0x0400, 0xaa9e1dbd )	/* green (bottom half unused) */
 	ROM_LOAD( "a64-09.24",    0x0800, 0x0400, 0xdca86295 )	/* blue  (bottom half unused) */

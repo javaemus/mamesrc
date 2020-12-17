@@ -186,8 +186,7 @@ static WRITE_HANDLER( tp84_sh_irqtrigger_w )
 
 
 /* CPU 1 read addresses */
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x2800, 0x2800, input_port_0_r },
 	{ 0x2820, 0x2820, input_port_1_r },
 	{ 0x2840, 0x2840, input_port_2_r },
@@ -196,12 +195,10 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x4000, 0x4fff, MRA_RAM },
 	{ 0x5000, 0x57ff, sharedram_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /* CPU 1 write addresses */
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x2000, 0x2000, MWA_RAM }, /*Watch dog?*/
 	{ 0x2800, 0x2800, tp84_col0_w },
 	{ 0x3000, 0x3000, MWA_RAM },
@@ -216,45 +213,37 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x5000, 0x57ff, sharedram_w, &sharedram },
 	{ 0x5000, 0x5177, MWA_RAM, &spriteram, &spriteram_size },	/* FAKE (see below) */
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 /* CPU 2 read addresses */
-static struct MemoryReadAddress readmem_cpu2[] =
-{
+static MEMORY_READ_START( readmem_cpu2 )
 	{ 0x0000, 0x0000, MRA_RAM },
 	{ 0x2000, 0x2000, tp84_beam_r }, /* beam position */
 	{ 0x6000, 0x67ff, MRA_RAM },
 	{ 0x8000, 0x87ff, sharedram_r },
 	{ 0xe000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /* CPU 2 write addresses */
-static struct MemoryWriteAddress writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x0000, 0x0000, MWA_RAM }, /* Watch dog ?*/
 	{ 0x4000, 0x4000, tp84_catchloop_w }, /* IRQ enable */ /* JB 970829 */
 	{ 0x6000, 0x67ff, MWA_RAM },
 //	{ 0x67a0, 0x67ff, MWA_RAM, &spriteram, &spriteram_size },	/* REAL (multiplexed) */
 	{ 0x8000, 0x87ff, sharedram_w },
 	{ 0xe000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x43ff, MRA_RAM },
 	{ 0x6000, 0x6000, soundlatch_r },
 	{ 0x8000, 0x8000, tp84_sh_timer_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x43ff, MWA_RAM },
 	{ 0xa000, 0xa1ff, tp84_filter_w },
@@ -262,8 +251,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0xc001, 0xc001, SN76496_0_w },
 	{ 0xc003, 0xc003, SN76496_1_w },
 	{ 0xc004, 0xc004, SN76496_2_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -459,29 +447,29 @@ static const struct MachineDriver machine_driver_tp84 =
 ***************************************************************************/
 
 ROM_START( tp84 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "tp84_7j.bin",  0x8000, 0x2000, 0x605f61c7 )
 	ROM_LOAD( "tp84_8j.bin",  0xa000, 0x2000, 0x4b4629a4 )
 	ROM_LOAD( "tp84_9j.bin",  0xc000, 0x2000, 0xdbd5333b )
 	ROM_LOAD( "tp84_10j.bin", 0xe000, 0x2000, 0xa45237c4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "tp84_10d.bin", 0xe000, 0x2000, 0x36462ff1 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for code of sound cpu Z80 */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for code of sound cpu Z80 */
 	ROM_LOAD( "tp84s_6a.bin", 0x0000, 0x2000, 0xc44414da )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tp84_2j.bin",  0x0000, 0x2000, 0x05c7508f ) /* chars */
 	ROM_LOAD( "tp84_1j.bin",  0x2000, 0x2000, 0x498d90b7 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tp84_12a.bin", 0x0000, 0x2000, 0xcd682f30 ) /* sprites */
 	ROM_LOAD( "tp84_13a.bin", 0x2000, 0x2000, 0x888d4bd6 )
 	ROM_LOAD( "tp84_14a.bin", 0x4000, 0x2000, 0x9a220b39 )
 	ROM_LOAD( "tp84_15a.bin", 0x6000, 0x2000, 0xfac98397 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "tp84_2c.bin",  0x0000, 0x0100, 0xd737eaba ) /* palette red component */
 	ROM_LOAD( "tp84_2d.bin",  0x0100, 0x0100, 0x2f6a9a2a ) /* palette green component */
 	ROM_LOAD( "tp84_1e.bin",  0x0200, 0x0100, 0x2e21329b ) /* palette blue component */
@@ -490,29 +478,29 @@ ROM_START( tp84 )
 ROM_END
 
 ROM_START( tp84a )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "tp84_7j.bin",  0x8000, 0x2000, 0x605f61c7 )
 	ROM_LOAD( "f05",          0xa000, 0x2000, 0xe97d5093 )
 	ROM_LOAD( "tp84_9j.bin",  0xc000, 0x2000, 0xdbd5333b )
 	ROM_LOAD( "f07",          0xe000, 0x2000, 0x8fbdb4ef )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "tp84_10d.bin", 0xe000, 0x2000, 0x36462ff1 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for code of sound cpu Z80 */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for code of sound cpu Z80 */
 	ROM_LOAD( "tp84s_6a.bin", 0x0000, 0x2000, 0xc44414da )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tp84_2j.bin",  0x0000, 0x2000, 0x05c7508f ) /* chars */
 	ROM_LOAD( "tp84_1j.bin",  0x2000, 0x2000, 0x498d90b7 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tp84_12a.bin", 0x0000, 0x2000, 0xcd682f30 ) /* sprites */
 	ROM_LOAD( "tp84_13a.bin", 0x2000, 0x2000, 0x888d4bd6 )
 	ROM_LOAD( "tp84_14a.bin", 0x4000, 0x2000, 0x9a220b39 )
 	ROM_LOAD( "tp84_15a.bin", 0x6000, 0x2000, 0xfac98397 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "tp84_2c.bin",  0x0000, 0x0100, 0xd737eaba ) /* palette red component */
 	ROM_LOAD( "tp84_2d.bin",  0x0100, 0x0100, 0x2f6a9a2a ) /* palette green component */
 	ROM_LOAD( "tp84_1e.bin",  0x0200, 0x0100, 0x2e21329b ) /* palette blue component */

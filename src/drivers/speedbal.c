@@ -78,18 +78,15 @@ WRITE_HANDLER( speedbal_sharedram_w )
     speedbal_sharedram[offset] = data;
 }
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xdbff, MRA_ROM },
 	{ 0xdc00, 0xdfff, speedbal_sharedram_r },  // shared with SOUND
 	{ 0xe000, 0xe1ff, speedbal_background_videoram_r },
 	{ 0xe800, 0xefff, speedbal_foreground_videoram_r },
 	{ 0xf000, 0xffff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xdbff, MWA_ROM },
 	{ 0xdc00, 0xdfff, speedbal_sharedram_w, &speedbal_sharedram },  // shared with SOUND
 	{ 0xe000, 0xe1ff, speedbal_background_videoram_w, &speedbal_background_videoram, &speedbal_background_videoram_size },
@@ -97,51 +94,36 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xf000, 0xf5ff, paletteram_RRRRGGGGBBBBxxxx_swap_w, &paletteram },
 	{ 0xf600, 0xfeff, MWA_RAM },
 	{ 0xff00, 0xffff, MWA_RAM, &speedbal_sprites_dataram, &speedbal_sprites_dataram_size },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xdc00, 0xdfff, speedbal_sharedram_r }, // shared with MAIN CPU
 	{ 0xf000, 0xffff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xdc00, 0xdfff, speedbal_sharedram_w }, // shared with MAIN CPU
 	{ 0xf000, 0xffff, MWA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, input_port_0_r },
 	{ 0x10, 0x10, input_port_1_r },
 	{ 0x20, 0x20, input_port_2_r },
 	{ 0x30, 0x30, input_port_3_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
-	{ -1 }  /* end of table */
-};
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x00, 0x00, YM3812_status_port_0_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, YM3812_control_port_0_w },
 	{ 0x01, 0x01, YM3812_write_port_0_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -279,7 +261,7 @@ static const struct MachineDriver machine_driver_speedbal =
 		{
 			CPU_Z80,
 			4000000,	/* 4 MHz ??? */
-			readmem,writemem,readport,writeport,
+			readmem,writemem,readport,0,
 			interrupt,1
 		},
 		{
@@ -324,23 +306,23 @@ static const struct MachineDriver machine_driver_speedbal =
 ***************************************************************************/
 
 ROM_START( speedbal )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64K for code: main */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64K for code: main */
 	ROM_LOAD( "sb1.bin",  0x0000,  0x8000, 0x1c242e34 )
 	ROM_LOAD( "sb3.bin",  0x8000,  0x8000, 0x7682326a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64K for second CPU: sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64K for second CPU: sound */
 	ROM_LOAD( "sb2.bin",  0x0000, 0x8000, 0xe6a6d9b7 )
 
-	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD("sb10.bin",  0x00000, 0x08000, 0x36dea4bf )    /* chars */
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sb9.bin",  0x00000, 0x08000, 0xb567e85e )    /* bg tiles */
 	ROM_LOAD( "sb5.bin",  0x08000, 0x08000, 0xb0eae4ba )
 	ROM_LOAD( "sb8.bin",  0x10000, 0x08000, 0xd2bfbdb6 )
 	ROM_LOAD( "sb4.bin",  0x18000, 0x08000, 0x1d23a130 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sb6.bin",  0x00000, 0x08000, 0x0e2506eb )    /* sprites */
 	ROM_LOAD( "sb7.bin",  0x08000, 0x08000, 0x9f1b33d1 )
 ROM_END

@@ -297,25 +297,21 @@ unsigned char *RAM = memory_region(REGION_CPU1);
 
 /* Memory */
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xcfff, MRA_RAM },
 	{ 0xd000, 0xdfff, MRA_RAM },
 	{ 0xe000, 0xefff, devram_r },
 	{ 0xf000, 0xffff, sharedram_r },
-	{ -1 }
-};
-static struct MemoryWriteAddress writemem[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },	// writing at 0 should cause a reset
 	{ 0xc000, 0xcfff, MWA_RAM, &spriteram },			// RAM 0/1
 	{ 0xd000, 0xdfff, MWA_RAM },						// RAM 2
 	{ 0xe000, 0xefff, devram_w, &devram },				// RAM 3
 	{ 0xf000, 0xffff, sharedram_w, &sharedram },
-	{ -1 }
-};
+MEMORY_END
 
 /* Ports */
 
@@ -324,17 +320,11 @@ static WRITE_HANDLER( cause_nmi_w )
 	cpu_cause_interrupt(1,Z80_NMI_INT);	// cause a nmi to sub cpu
 }
 
-static struct IOReadPort readport[] =
-{
-	{ -1 }
-};
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, bankswitch_w },
 //	{ 0x01, 0x01, IOWP_NOP },	// ?? only 2 (see 378b)
 	{ 0x02, 0x02, cause_nmi_w },	// always 0. Cause a nmi to sub cpu
-	{ -1 }
-};
+PORT_END
 
 
 
@@ -384,18 +374,19 @@ unsigned char *RAM = memory_region(REGION_CPU2);
 
 WRITE_HANDLER( airbustr_paletteram_w )
 {
-int r,g,b;
+	int r,g,b;
+	int val;
 
 	/*	! byte 1 ! ! byte 0 !	*/
 	/*	xGGG GGRR 	RRRB BBBB	*/
 	/*	x432 1043 	2104 3210	*/
 
 	paletteram[offset] = data;
-	data = (paletteram[offset | 1] << 8) | paletteram[offset & ~1];
+	val = (paletteram[offset | 1] << 8) | paletteram[offset & ~1];
 
-	g = (data >> 10) & 0x1f;
-	r = (data >>  5) & 0x1f;
-	b = (data >>  0) & 0x1f;
+	g = (val >> 10) & 0x1f;
+	r = (val >>  5) & 0x1f;
+	b = (val >>  0) & 0x1f;
 
 	palette_change_color(offset/2,	(r * 0xff) / 0x1f,
 									(g * 0xff) / 0x1f,
@@ -405,8 +396,7 @@ int r,g,b;
 
 /* Memory */
 
-static struct MemoryReadAddress readmem2[] =
-{
+static MEMORY_READ_START( readmem2 )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK2 },
 	{ 0xc000, 0xcfff, MRA_RAM },
@@ -414,11 +404,9 @@ static struct MemoryReadAddress readmem2[] =
 	{ 0xd600, 0xdfff, MRA_RAM },
 	{ 0xe000, 0xefff, MRA_RAM },
 	{ 0xf000, 0xffff, sharedram_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem2[] =
-{
+static MEMORY_WRITE_START( writemem2 )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, airbustr_fgram_w, &airbustr_fgram },
 	{ 0xc800, 0xcfff, airbustr_bgram_w, &airbustr_bgram },
@@ -426,8 +414,7 @@ static struct MemoryWriteAddress writemem2[] =
 	{ 0xd600, 0xdfff, MWA_RAM },
 	{ 0xe000, 0xefff, MWA_RAM },
 	{ 0xf000, 0xffff, sharedram_w },
-	{ -1 }
-};
+MEMORY_END
 
 
 /* Ports */
@@ -473,25 +460,21 @@ static WRITE_HANDLER( soundcommand_w )
 WRITE_HANDLER( port_38_w )	{	u4 = data; } // for debug
 
 
-static struct IOReadPort readport2[] =
-{
+static PORT_READ_START( readport2 )
 	{ 0x02, 0x02, soundcommand2_r },		// from sound cpu
 	{ 0x0e, 0x0e, soundcommand_status_r },	// status of the latches ?
 	{ 0x20, 0x20, input_port_0_r },			// player 1
 	{ 0x22, 0x22, input_port_1_r },			// player 2
 	{ 0x24, 0x24, input_port_2_r },			// service
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort writeport2[] =
-{
-	{ 0x00, 0x00, bankswitch2_w },			// bits 2-0 bank; bit 4 (on if dsw1-1 active)? ; bit 5?
+static PORT_WRITE_START( writeport2 )
+	{ 0x00, 0x00, bankswitch2_w },			// bits 2-0 bank, bit 4 (on if dsw1-1 active)?,  bit 5?
 	{ 0x02, 0x02, soundcommand_w },			// to sound cpu
 	{ 0x04, 0x0c, airbustr_scrollregs_w },	// Scroll values
 //	{ 0x28, 0x28, port_38_w },				// ??
 //	{ 0x38, 0x38, IOWP_NOP },				// ?? Followed by EI. Value isn't important
-	{ -1 }
-};
+PORT_END
 
 
 
@@ -524,20 +507,16 @@ unsigned char *RAM = memory_region(REGION_CPU3);
 
 /* Memory */
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK3 },
 	{ 0xc000, 0xdfff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xdfff, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
 
 /* Ports */
@@ -556,24 +535,20 @@ WRITE_HANDLER( soundcommand2_w )
 }
 
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x02, 0x02, YM2203_status_port_0_r },
 	{ 0x03, 0x03, YM2203_read_port_0_r },
 	{ 0x04, 0x04, OKIM6295_status_0_r },
 	{ 0x06, 0x06, soundcommand_r },			// read command from sub cpu
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, sound_bankswitch_w },
 	{ 0x02, 0x02, YM2203_control_port_0_w },
 	{ 0x03, 0x03, YM2203_write_port_0_w },
 	{ 0x04, 0x04, OKIM6295_data_0_w },
 	{ 0x06, 0x06, soundcommand2_w },		// write command result to sub cpu
-	{ -1 }
-};
+PORT_END
 
 
 
@@ -727,7 +702,7 @@ static const struct MachineDriver machine_driver_airbustr =
 		{
 			CPU_Z80,
 			6000000,	/* ?? */
-			readmem,writemem,readport,writeport,
+			readmem,writemem,0,writeport,
 			airbustr_interrupt, 2	/* nmi caused by sub cpu?, ? */
 		},
 		{
@@ -782,26 +757,26 @@ static const struct MachineDriver machine_driver_airbustr =
 ***************************************************************************/
 
 ROM_START( airbustr )
-	ROM_REGION( 0x24000, REGION_CPU1 )
+	ROM_REGION( 0x24000, REGION_CPU1, 0 )
 	ROM_LOAD( "pr-14j.bin", 0x00000, 0x0c000, 0x6b9805bd )
 	ROM_CONTINUE(           0x10000, 0x14000 )
 
-	ROM_REGION( 0x24000, REGION_CPU2 )
+	ROM_REGION( 0x24000, REGION_CPU2, 0 )
 	ROM_LOAD( "pr-11j.bin", 0x00000, 0x0c000, 0x85464124 )
 	ROM_CONTINUE(           0x10000, 0x14000 )
 
-	ROM_REGION( 0x24000, REGION_CPU3 )
+	ROM_REGION( 0x24000, REGION_CPU3, 0 )
 	ROM_LOAD( "pr-21.bin",  0x00000, 0x0c000, 0x6e0a5df0 )
 	ROM_CONTINUE(           0x10000, 0x14000 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pr-000.bin", 0x000000, 0x80000, 0x8ca68f0d ) // scrolling layers
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pr-001.bin", 0x000000, 0x80000, 0x7e6cb377 ) // sprites
 	ROM_LOAD( "pr-02.bin",  0x080000, 0x10000, 0x6bbd5e46 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* OKI-M6295 samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* OKI-M6295 samples */
 	ROM_LOAD( "pr-200.bin", 0x00000, 0x40000, 0xa4dd3390 )
 ROM_END
 

@@ -586,8 +586,7 @@ READ_HANDLER( showdown_pld_select2_r )
  *
  *************************************/
 
-static struct MemoryReadAddress readmem_cpu1[] =
-{
+static MEMORY_READ_START( readmem_cpu1 )
 	{ 0x0000, 0x1fff, MRA_RAM },
 	{ 0x2000, 0x209f, MRA_RAM },
 	{ 0x20a0, 0x29ff, MRA_RAM },
@@ -601,12 +600,10 @@ static struct MemoryReadAddress readmem_cpu1[] =
 	{ 0x3000, 0x3fff, MRA_RAM },
 	{ 0x4000, 0x7fff, MRA_BANK1 },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem_cpu1[] =
-{
+static MEMORY_WRITE_START( writemem_cpu1 )
 	{ 0x0000, 0x1fff, MWA_RAM, &exidy440_imageram },
 	{ 0x2000, 0x209f, MWA_RAM, &spriteram },
 	{ 0x20a0, 0x29ff, MWA_RAM },
@@ -619,8 +616,7 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x3000, 0x3fff, MWA_RAM },
 	{ 0x4000, 0x7fff, bankram_w },
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -630,28 +626,24 @@ static struct MemoryWriteAddress writemem_cpu1[] =
  *
  *************************************/
 
-static struct MemoryReadAddress readmem_cpu2[] =
-{
+static MEMORY_READ_START( readmem_cpu2 )
 	{ 0x8000, 0x8016, exidy440_m6844_r },
 	{ 0x8400, 0x8407, MRA_RAM },
 	{ 0x8800, 0x8800, exidy440_sound_command_r },
 	{ 0x9800, 0x9800, MRA_NOP },
 	{ 0xa000, 0xbfff, MRA_RAM },
 	{ 0xe000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x8000, 0x8016, exidy440_m6844_w, &exidy440_m6844_data },
 	{ 0x8400, 0x8407, exidy440_sound_volume_w, &exidy440_sound_volume },
 	{ 0x9400, 0x9403, MWA_RAM, &exidy440_sound_banks },
 	{ 0x9800, 0x9800, exidy440_sound_interrupt_clear_w },
 	{ 0xa000, 0xbfff, MWA_RAM },
 	{ 0xe000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -1193,7 +1185,7 @@ static void init_showdown(void)
  *************************************/
 
 ROM_START( crossbow )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "xbl-2.1a",   0x08000, 0x2000, 0xbd53ac46 )
 	ROM_LOAD( "xbl-2.3a",   0x0a000, 0x2000, 0x703e1376 )
 	ROM_LOAD( "xbl-2.4a",   0x0c000, 0x2000, 0x52c5daa1 )
@@ -1226,10 +1218,10 @@ ROM_START( crossbow )
 	ROM_LOAD( "xbl-1.3b",   0x42000, 0x2000, 0x4a03c2c9 )
 	ROM_LOAD( "xbl-1.4b",   0x44000, 0x2000, 0x7e21c624 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "xba-11.1h",  0x0e000, 0x2000, 0x1b61d0c1 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "xba-1.2k",   0x00000, 0x2000, 0xb6e57685 )
 	ROM_LOAD( "xba-1.2l",   0x02000, 0x2000, 0x2c24cb35 )
 	ROM_LOAD( "xba-1.2m",   0x04000, 0x2000, 0xf3a4f2be )
@@ -1250,7 +1242,7 @@ ROM_END
 
 
 ROM_START( cheyenne )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "cyl-1.1a",   0x08000, 0x2000, 0x504c3fa6 )
 	ROM_LOAD( "cyl-1.3a",   0x0a000, 0x2000, 0x09b7903b )
 	ROM_LOAD( "cyl-1.4a",   0x0c000, 0x2000, 0xb708646b )
@@ -1282,10 +1274,10 @@ ROM_START( cheyenne )
 	ROM_LOAD( "cyl-1.8b",   0x4a000, 0x2000, 0xc0653d3e )
 	ROM_LOAD( "cyl-1.10b",  0x4c000, 0x2000, 0x7fc67d19 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "cya-1.1h",   0x0e000, 0x2000, 0x5aed3d8c )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "cya-1.2k",   0x00000, 0x2000, 0xdc2b716d )
 	ROM_LOAD( "cya-1.2l",   0x02000, 0x2000, 0x091ad047 )
 	ROM_LOAD( "cya-1.2m",   0x04000, 0x2000, 0x59085362 )
@@ -1304,7 +1296,7 @@ ROM_END
 
 
 ROM_START( combat )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "1a",   0x08000, 0x2000, 0x159a573b )
 	ROM_LOAD( "3a",   0x0a000, 0x2000, 0x59ae51a7 )
 	ROM_LOAD( "4a",   0x0c000, 0x2000, 0x95a1f3d0 )
@@ -1330,10 +1322,10 @@ ROM_START( combat )
 	ROM_LOAD( "8b",   0x4a000, 0x2000, 0xae977f4c )
 	ROM_LOAD( "10b",  0x4c000, 0x2000, 0x502da003 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "1h",  0x0e000, 0x2000, 0x8f3dd350 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "2k", 		 0x00000, 0x2000, 0x1c9df8b5 )
 	ROM_LOAD( "2l", 		 0x02000, 0x2000, 0x6b733306 )
 	ROM_LOAD( "2m", 		 0x04000, 0x2000, 0xdc074733 )
@@ -1352,7 +1344,7 @@ ROM_END
 
 
 ROM_START( cracksht )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "csl2.1a",   0x08000, 0x2000, 0x16fd0171 )
 	ROM_LOAD( "csl2.3a",   0x0a000, 0x2000, 0x906f3209 )
 	ROM_LOAD( "csl2.4a",   0x0c000, 0x2000, 0x9996d2bf )
@@ -1374,10 +1366,10 @@ ROM_START( cracksht )
 	ROM_LOAD( "csl2.8b",   0x4a000, 0x2000, 0xaf1c8cb8 )
 	ROM_LOAD( "csl2.10b",  0x4c000, 0x2000, 0x8a0d6ad0 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "csa3.1h",   0x0e000, 0x2000, 0x5ba8b4ac )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "csa3.2k",   0x00000, 0x2000, 0x067a4f71 )
 	ROM_LOAD( "csa3.2l",   0x02000, 0x2000, 0x5716c59e )
 	ROM_LOAD( "csa3.2m",   0x04000, 0x2000, 0xb3ff659b )
@@ -1398,7 +1390,7 @@ ROM_END
 
 
 ROM_START( claypign )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "claypige.1a",   0x08000, 0x2000, 0x446d7004 )
 	ROM_LOAD( "claypige.3a",   0x0a000, 0x2000, 0xdf39701b )
 	ROM_LOAD( "claypige.4a",   0x0c000, 0x2000, 0xf205afb8 )
@@ -1412,10 +1404,10 @@ ROM_START( claypign )
 	ROM_LOAD( "claypige.7b",   0x48000, 0x2000, 0x6140b026 )
 	ROM_LOAD( "claypige.8b",   0x4a000, 0x2000, 0xd0f9d170 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "claypige.h1",   0x0e000, 0x2000, 0x9eedc68d )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "claypige.k2",   0x00000, 0x2000, 0x0dd93c6c )
 	ROM_LOAD( "claypige.l2",   0x02000, 0x2000, 0xe1d67c42 )
 	ROM_LOAD( "claypige.m2",   0x04000, 0x2000, 0xb56d8bd5 )
@@ -1431,7 +1423,7 @@ ROM_END
 
 
 ROM_START( chiller )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "chl3.1a",   0x08000, 0x2000, 0x996ad02e )
 	ROM_LOAD( "chl3.3a",   0x0a000, 0x2000, 0x17e6f904 )
 	ROM_LOAD( "chl3.4a",   0x0c000, 0x2000, 0xf30d6e32 )
@@ -1460,10 +1452,10 @@ ROM_START( chiller )
 	ROM_LOAD( "chl3.8b",   0x4a000, 0x2000, 0x6172b12f )
 	ROM_LOAD( "chl3.10b",  0x4c000, 0x2000, 0x5d15342a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "cha3.1h",   0x0f000, 0x1000, 0xb195cbba )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "cha3.2k",   0x00000, 0x2000, 0x814a1c6e )
 	ROM_LOAD( "cha3.2l",   0x02000, 0x2000, 0xb326007f )
 	ROM_LOAD( "cha3.2m",   0x04000, 0x2000, 0x11075e8c )
@@ -1484,7 +1476,7 @@ ROM_END
 
 
 ROM_START( topsecex )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "tsl1.a1",   0x08000, 0x2000, 0x30ff2142 )
 	ROM_LOAD( "tsl1.a3",   0x0a000, 0x2000, 0x9295e5b7 )
 	ROM_LOAD( "tsl1.a4",   0x0c000, 0x2000, 0x402abca4 )
@@ -1520,10 +1512,10 @@ ROM_START( topsecex )
 	ROM_LOAD( "tsl1.b8",   0x4a000, 0x2000, 0xcc770802 )
 	ROM_LOAD( "tsl1.b10",  0x4c000, 0x2000, 0x079d0a1d )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "tsa1.1h",   0x0e000, 0x2000, 0x35a1dd40 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "tsa1.2k",   0x00000, 0x2000, 0xc0b7c8f9 )
 	ROM_LOAD( "tsa1.2l",   0x02000, 0x2000, 0xd46f2f23 )
 	ROM_LOAD( "tsa1.2m",   0x04000, 0x2000, 0x04722ee4 )
@@ -1544,7 +1536,7 @@ ROM_END
 
 
 ROM_START( hitnmiss )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "hml3.a1",   0x08000, 0x2000, 0xd79ae18e )
 	ROM_LOAD( "hml3.a3",   0x0a000, 0x2000, 0x61baf38b )
 	ROM_LOAD( "hml3.a4",   0x0c000, 0x2000, 0x60ca260b )
@@ -1570,10 +1562,10 @@ ROM_START( hitnmiss )
 	ROM_LOAD( "hml3.b8",   0x4a000, 0x2000, 0xe0a5a6aa )
 	ROM_LOAD( "hml3.b10",  0x4c000, 0x2000, 0xde65dfdc )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "hma3.1h",  0x0e000, 0x2000, 0xf718da36 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "hm2.2k",   0x00000, 0x2000, 0xd3583b62 )
 	ROM_LOAD( "hm2.2l",   0x02000, 0x2000, 0xc059d51e )
 	ROM_LOAD( "hma.2m",   0x04000, 0x2000, 0x09bb8495 )
@@ -1591,7 +1583,7 @@ ROM_END
 
 
 ROM_START( hitnmis2 )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "hml2.a1",   0x08000, 0x2000, 0x322f7e83 )
 	ROM_LOAD( "hml2.a3",   0x0a000, 0x2000, 0x0e12a721 )
 	ROM_LOAD( "hml2.a4",   0x0c000, 0x2000, 0x6cec8ad2 )
@@ -1618,10 +1610,10 @@ ROM_START( hitnmis2 )
 	ROM_LOAD( "hml2.b8",   0x4a000, 0x2000, 0x9c2db94a )
 	ROM_LOAD( "hml2.b10",  0x4c000, 0x2000, 0xf01bd7d4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "hma2.1h",  0x0e000, 0x2000, 0x9be48f45 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "hm2.2k",   0x00000, 0x2000, 0xd3583b62 )
 	ROM_LOAD( "hm2.2l",   0x02000, 0x2000, 0xc059d51e )
 	ROM_LOAD( "hma.2m",   0x04000, 0x2000, 0x09bb8495 )
@@ -1639,7 +1631,7 @@ ROM_END
 
 
 ROM_START( whodunit )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "wdl8.1a",   0x08000, 0x2000, 0x50658904 )
 	ROM_LOAD( "wdl8.3a",   0x0a000, 0x2000, 0x5d1530f8 )
 	ROM_LOAD( "wdl8.4a",   0x0c000, 0x2000, 0x0323d6b8 )
@@ -1674,10 +1666,10 @@ ROM_START( whodunit )
 	ROM_LOAD( "wdl8.8b",   0x4a000, 0x2000, 0x33792758 )
 	ROM_LOAD( "wdl6.10b",  0x4c000, 0x2000, 0x2f48cfdb )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "wda8.h1",  0x0e000, 0x2000, 0x0090e5a7 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "wda6.k2",   0x00000, 0x2000, 0xd4951375 )
 	ROM_LOAD( "wda6.l2",   0x02000, 0x2000, 0xbe8dcf07 )
 	ROM_LOAD( "wda6.m2",   0x04000, 0x2000, 0xfb389e2d )
@@ -1697,7 +1689,7 @@ ROM_END
 
 
 ROM_START( showdown )
-	ROM_REGION( 0x50000, REGION_CPU1 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus lots of banked ROMs */
 	ROM_LOAD( "showda1.bin",   0x08000, 0x2000, 0xe4031507 )
 	ROM_LOAD( "showd3a.bin",   0x0a000, 0x2000, 0xe7de171e )
 	ROM_LOAD( "showd4a.bin",   0x0c000, 0x2000, 0x5c8683c9 )
@@ -1727,10 +1719,10 @@ ROM_START( showdown )
 	ROM_LOAD( "showd8b.bin",   0x4a000, 0x2000, 0x024fe6ee )
 	ROM_LOAD( "showd10b.bin",  0x4c000, 0x2000, 0x0b318dfe )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "showd1h.bin",  0x0e000, 0x2000, 0x6a10ff47 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "showd2k.bin",   0x00000, 0x2000, 0x67a86f7f )
 	ROM_LOAD( "showd2l.bin",   0x02000, 0x2000, 0x0bb8874b )
 	ROM_LOAD( "showd2m.bin",   0x04000, 0x2000, 0x8b77eac8 )

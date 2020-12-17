@@ -130,8 +130,7 @@ static WRITE_HANDLER( wc90b_sound_command_w )
 	cpu_cause_interrupt(2,/*Z80_NMI_INT*/-1000);
 }
 
-static struct MemoryReadAddress wc90b_readmem1[] =
-{
+static MEMORY_READ_START( wc90b_readmem1 )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x9fff, MRA_RAM }, /* Main RAM */
 	{ 0xa000, 0xa7ff, wc90b_tile_colorram_r }, /* bg 1 color ram */
@@ -147,22 +146,18 @@ static struct MemoryReadAddress wc90b_readmem1[] =
 	{ 0xfd06, 0xfd06, input_port_2_r }, /* DIP Switch A */
 	{ 0xfd08, 0xfd08, input_port_3_r }, /* DIP Switch B */
 	{ 0xfd00, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress wc90b_readmem2[] =
-{
+static MEMORY_READ_START( wc90b_readmem2 )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc1ff, MRA_RAM },
 	{ 0xc200, 0xe1ff, MRA_RAM },
 	{ 0xe000, 0xe7ff, MRA_RAM },
 	{ 0xf000, 0xf7ff, MRA_BANK2 },
 	{ 0xf800, 0xfbff, wc90b_shared_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress wc90b_writemem1[] =
-{
+static MEMORY_WRITE_START( wc90b_writemem1 )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8075, MWA_RAM },
 	{ 0x8076, 0x8076, MWA_RAM, &wc90b_scroll1xlo },
@@ -185,11 +180,9 @@ static struct MemoryWriteAddress wc90b_writemem1[] =
 	{ 0xfc00, 0xfc00, wc90b_bankswitch_w },
 	{ 0xfd00, 0xfd00, wc90b_sound_command_w },
 	/*  */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress wc90b_writemem2[] =
-{
+static MEMORY_WRITE_START( wc90b_writemem2 )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xd000, 0xd7ff, MWA_RAM, &spriteram, &spriteram_size },
@@ -197,11 +190,9 @@ static struct MemoryWriteAddress wc90b_writemem2[] =
 	{ 0xf000, 0xf7ff, MWA_ROM },
 	{ 0xf800, 0xfbff, wc90b_shared_w },
 	{ 0xfc00, 0xfc00, wc90b_bankswitch1_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xe800, 0xe800, YM2203_status_port_0_r },
@@ -209,19 +200,16 @@ static struct MemoryReadAddress sound_readmem[] =
 	{ 0xec00, 0xec00, YM2203_status_port_1_r },
 	{ 0xec01, 0xec01, YM2203_read_port_1_r },
 	{ 0xf800, 0xf800, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xf000, 0xf7ff, MWA_RAM },
 	{ 0xe800, 0xe800, YM2203_control_port_0_w },
 	{ 0xe801, 0xe801, YM2203_write_port_0_w },
 	{ 0xec00, 0xec00, YM2203_control_port_1_w },
 	{ 0xec01, 0xec01, YM2203_write_port_1_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 INPUT_PORTS_START( wc90b )
 	PORT_START	/* IN0 bit 0-5 */
@@ -432,30 +420,30 @@ static const struct MachineDriver machine_driver_wc90b =
 };
 
 ROM_START( wc90b )
-	ROM_REGION( 0x20000, REGION_CPU1 )	/* 128k for code */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )	/* 128k for code */
 	ROM_LOAD( "a02.bin",      0x00000, 0x10000, 0x192a03dd )	/* c000-ffff is not used */
 	ROM_LOAD( "a03.bin",      0x10000, 0x10000, 0xf54ff17a )	/* banked at f000-f7ff */
 
-	ROM_REGION( 0x20000, REGION_CPU2 )	/* 96k for code */  /* Second CPU */
+	ROM_REGION( 0x20000, REGION_CPU2, 0 )	/* 96k for code */  /* Second CPU */
 	ROM_LOAD( "a04.bin",      0x00000, 0x10000, 0x3d535e2f )	/* c000-ffff is not used */
 	ROM_LOAD( "a05.bin",      0x10000, 0x10000, 0x9e421c4b )	/* banked at f000-f7ff */
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 192k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 192k for the audio CPU */
 	ROM_LOAD( "a01.bin",      0x00000, 0x10000, 0x3d317622 )
 
-	ROM_REGION( 0x010000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x010000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a06.bin",      0x000000, 0x04000, 0x3b5387b7 )
 	ROM_LOAD( "a08.bin",      0x004000, 0x04000, 0xc622a5a3 )
 	ROM_LOAD( "a10.bin",      0x008000, 0x04000, 0x0923d9f6 )
 	ROM_LOAD( "a20.bin",      0x00c000, 0x04000, 0xb8dec83e )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a07.bin",      0x000000, 0x20000, 0x38c31817 )
 	ROM_LOAD( "a09.bin",      0x020000, 0x20000, 0x32e39e29 )
 	ROM_LOAD( "a11.bin",      0x040000, 0x20000, 0x5ccec796 )
 	ROM_LOAD( "a21.bin",      0x060000, 0x20000, 0x0c54a091 )
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "146_a12.bin",  0x000000, 0x10000, 0xd5a60096 )
 	ROM_LOAD( "147_a13.bin",  0x010000, 0x10000, 0x36bbf467 )
 	ROM_LOAD( "148_a14.bin",  0x020000, 0x10000, 0x26371c18 )

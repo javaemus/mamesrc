@@ -63,8 +63,8 @@ static struct pia6821_interface pia_1_intf =
 static void zaccaria_init_machine(void)
 {
 	pia_unconfig();
-	pia_config(0, PIA_STANDARD_ORDERING | PIA_8BIT, &pia_0_intf);
-	pia_config(1, PIA_STANDARD_ORDERING | PIA_8BIT, &pia_1_intf);
+	pia_config(0, PIA_STANDARD_ORDERING, &pia_0_intf);
+	pia_config(1, PIA_STANDARD_ORDERING, &pia_1_intf);
 	pia_reset();
 }
 
@@ -145,8 +145,7 @@ READ_HANDLER( zaccaria_dsw_r )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6000, 0x63ff, MRA_RAM },
 	{ 0x6400, 0x6407, zaccaria_prot1_r },
@@ -158,11 +157,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x7802, 0x7802, input_port_5_r },
 	{ 0x7c00, 0x7c00, watchdog_reset_r },   /* not sure */
 	{ 0x8000, 0xdfff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x6000, 0x63ff, videoram_w, &videoram, &videoram_size },
 	{ 0x6400, 0x67ff, colorram_w, &colorram },
@@ -174,40 +171,31 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x7000, 0x77ff, MWA_RAM },
 	{ 0x7802, 0x7802, zaccaria_dsw_sel_w },
 	{ 0x8000, 0xdfff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem1[] =
-{
+static MEMORY_READ_START( sound_readmem1 )
 	{ 0x0000, 0x007f, MRA_RAM },
 	{ 0x500c, 0x500f, pia_0_r },
 	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem1[] =
-{
+static MEMORY_WRITE_START( sound_writemem1 )
 	{ 0x0000, 0x007f, MWA_RAM },
 	{ 0x500c, 0x500f, pia_0_w },
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem2[] =
-{
+static MEMORY_READ_START( sound_readmem2 )
 	{ 0x0000, 0x007f, MRA_RAM },
 	{ 0x0090, 0x0093, pia_1_r },
 	{ 0xe000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem2[] =
-{
+static MEMORY_WRITE_START( sound_writemem2 )
 	{ 0x0000, 0x007f, MWA_RAM },
 	{ 0x0090, 0x0093, pia_1_w },
 	{ 0xe000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -515,7 +503,7 @@ static const struct MachineDriver machine_driver_zaccaria =
 ***************************************************************************/
 
 ROM_START( monymony )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "1a",           0x0000, 0x1000, 0x13c227ca )
 	ROM_CONTINUE(             0x8000, 0x1000 )
 	ROM_LOAD( "1b",           0x1000, 0x1000, 0x87372545 )
@@ -529,31 +517,31 @@ ROM_START( monymony )
 	ROM_LOAD( "2c",           0x5000, 0x1000, 0x31da62b1 )
 	ROM_CONTINUE(             0xd000, 0x1000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for first 6802 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for first 6802 */
 	ROM_LOAD( "1i",           0x7000, 0x1000, 0x94e3858b )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 64k for second 6802 */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 64k for second 6802 */
 	ROM_LOAD( "1h",           0x6000, 0x1000, 0xaad76193 )  /* ?? */
 	ROM_CONTINUE(             0xe000, 0x1000 )
 	ROM_LOAD( "1g",           0x7000, 0x1000, 0x1e8ffe3e )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x6000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "2d",           0x0000, 0x2000, 0x82ab4d1a )
 	ROM_LOAD( "1f",           0x2000, 0x2000, 0x40d4e4d1 )
 	ROM_LOAD( "1e",           0x4000, 0x2000, 0x36980455 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "monymony.9g",  0x0000, 0x0200, 0xfc9a0f21 )
 	ROM_LOAD( "monymony.9f",  0x0200, 0x0200, 0x93106704 )
 
-	ROM_REGION( 0x2000, REGION_SOUND1 )	/* TMS5200 sample data??? */
+	ROM_REGION( 0x2000, REGION_SOUND1, 0 )	/* TMS5200 sample data??? */
 	ROM_LOAD( "2g",           0x0000, 0x2000, 0x78b01b98 )
 ROM_END
 
 ROM_START( jackrabt )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "cpu-01.1a",    0x0000, 0x1000, 0x499efe97 )
 	ROM_CONTINUE(             0x8000, 0x1000 )
 	ROM_LOAD( "cpu-01.2l",    0x1000, 0x1000, 0x4772e557 )
@@ -567,31 +555,31 @@ ROM_START( jackrabt )
 	ROM_LOAD( "cpu-01.5h",    0xc000, 0x1000, 0x785e1a01 )
 	ROM_LOAD( "cpu-01.6h",    0xd000, 0x1000, 0xdd5979cf )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for first 6802 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for first 6802 */
 	ROM_LOAD( "9snd.1i",      0x7000, 0x1000, 0x3dab977f )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 64k for second 6802 */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 64k for second 6802 */
 	ROM_LOAD( "8snd.1h",      0x6000, 0x1000, 0xf4507111 )  /* ?? */
 	ROM_CONTINUE(             0xe000, 0x1000 )
 	ROM_LOAD( "7snd.1g",      0x7000, 0x1000, 0xc722eff8 )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x6000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1bg.2d",       0x0000, 0x2000, 0x9f880ef5 )
 	ROM_LOAD( "2bg.1f",       0x2000, 0x2000, 0xafc04cd7 )
 	ROM_LOAD( "3bg.1e",       0x4000, 0x2000, 0x14f23cdd )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "jr-ic9g",      0x0000, 0x0200, 0x85577107 )
 	ROM_LOAD( "jr-ic9f",      0x0200, 0x0200, 0x085914d1 )
 
-	ROM_REGION( 0x2000, REGION_SOUND1 )	/* TMS5200 sample data??? */
+	ROM_REGION( 0x2000, REGION_SOUND1, 0 )	/* TMS5200 sample data??? */
 	ROM_LOAD( "13snd.2g",     0x0000, 0x2000, 0xfc05654e )
 ROM_END
 
 ROM_START( jackrab2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "1cpu2.1a",     0x0000, 0x1000, 0xf9374113 )
 	ROM_CONTINUE(             0x8000, 0x1000 )
 	ROM_LOAD( "2cpu2.1b",     0x1000, 0x1000, 0x0a0eea4a )
@@ -605,31 +593,31 @@ ROM_START( jackrab2 )
 	ROM_LOAD( "6cpu2.2c",     0x5000, 0x1000, 0x404496eb )
 	ROM_CONTINUE(             0xd000, 0x1000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for first 6802 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for first 6802 */
 	ROM_LOAD( "9snd.1i",      0x7000, 0x1000, 0x3dab977f )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 64k for second 6802 */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 64k for second 6802 */
 	ROM_LOAD( "8snd.1h",      0x6000, 0x1000, 0xf4507111 )  /* ?? */
 	ROM_CONTINUE(             0xe000, 0x1000 )
 	ROM_LOAD( "7snd.1g",      0x7000, 0x1000, 0xc722eff8 )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x6000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1bg.2d",       0x0000, 0x2000, 0x9f880ef5 )
 	ROM_LOAD( "2bg.1f",       0x2000, 0x2000, 0xafc04cd7 )
 	ROM_LOAD( "3bg.1e",       0x4000, 0x2000, 0x14f23cdd )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "jr-ic9g",      0x0000, 0x0200, 0x85577107 )
 	ROM_LOAD( "jr-ic9f",      0x0200, 0x0200, 0x085914d1 )
 
-	ROM_REGION( 0x2000, REGION_SOUND1 )	/* TMS5200 sample data??? */
+	ROM_REGION( 0x2000, REGION_SOUND1, 0 )	/* TMS5200 sample data??? */
 	ROM_LOAD( "13snd.2g",     0x0000, 0x2000, 0xfc05654e )
 ROM_END
 
 ROM_START( jackrabs )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "1cpu.1a",      0x0000, 0x1000, 0x6698dc65 )
 	ROM_CONTINUE(             0x8000, 0x1000 )
 	ROM_LOAD( "2cpu.1b",      0x1000, 0x1000, 0x42b32929 )
@@ -643,26 +631,26 @@ ROM_START( jackrabs )
 	ROM_LOAD( "6cpu.2c",      0x5000, 0x1000, 0xf53d6356 )
 	ROM_CONTINUE(             0xd000, 0x1000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for first 6802 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for first 6802 */
 	ROM_LOAD( "9snd.1i",      0x7000, 0x1000, 0x3dab977f )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 64k for second 6802 */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 64k for second 6802 */
 	ROM_LOAD( "8snd.1h",      0x6000, 0x1000, 0xf4507111 )  /* ?? */
 	ROM_CONTINUE(             0xe000, 0x1000 )
 	ROM_LOAD( "7snd.1g",      0x7000, 0x1000, 0xc722eff8 )  /* ?? */
 	ROM_CONTINUE(             0xf000, 0x1000 )
 
-	ROM_REGION( 0x6000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1bg.2d",       0x0000, 0x2000, 0x9f880ef5 )
 	ROM_LOAD( "2bg.1f",       0x2000, 0x2000, 0xafc04cd7 )
 	ROM_LOAD( "3bg.1e",       0x4000, 0x2000, 0x14f23cdd )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "jr-ic9g",      0x0000, 0x0200, 0x85577107 )
 	ROM_LOAD( "jr-ic9f",      0x0200, 0x0200, 0x085914d1 )
 
-	ROM_REGION( 0x2000, REGION_SOUND1 )	/* TMS5200 sample data??? */
+	ROM_REGION( 0x2000, REGION_SOUND1, 0 )	/* TMS5200 sample data??? */
 	ROM_LOAD( "13snd.2g",     0x0000, 0x2000, 0xfc05654e )
 ROM_END
 

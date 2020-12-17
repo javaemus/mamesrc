@@ -123,8 +123,7 @@ READ_HANDLER( mole_prot_r ){
 	return 0x00;
 }
 
-static struct MemoryReadAddress moleattack_readmem[] =
-{
+static MEMORY_READ_START( moleattack_readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },
 	{ 0x0800, 0x08ff, mole_prot_r },
 	{ 0x5000, 0x7fff, MRA_ROM },
@@ -133,11 +132,9 @@ static struct MemoryReadAddress moleattack_readmem[] =
 	{ 0x8d80, 0x8d80, input_port_2_r },
 	{ 0x8dc0, 0x8dc0, input_port_3_r },
 	{ 0xd000, 0xffff, MRA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress moleattack_writemem[] =
-{
+static MEMORY_WRITE_START( moleattack_writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x5000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x83ff, moleattack_videoram_w },
@@ -146,8 +143,7 @@ static struct MemoryWriteAddress moleattack_writemem[] =
 	{ 0x8c01, 0x8c01, AY8910_control_port_0_w },
 	{ 0x8d00, 0x8d00, MWA_NOP }, /* watchdog? */
 	{ 0xd000, 0xffff, MWA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
 const struct MachineDriver machine_driver_mole =
 {
@@ -181,7 +177,7 @@ const struct MachineDriver machine_driver_mole =
 };
 
 ROM_START( mole ) /* ALL ROMS ARE 2732 */
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for 6502 code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for 6502 code */
 	ROM_LOAD( "m3a.5h",	0x5000, 0x1000, 0x5fbbdfef )
 	ROM_RELOAD(			0xd000, 0x1000)
 	ROM_LOAD( "m2a.7h",	0x6000, 0x1000, 0xf2a90642 )
@@ -189,7 +185,7 @@ ROM_START( mole ) /* ALL ROMS ARE 2732 */
 	ROM_LOAD( "m1a.8h",	0x7000, 0x1000, 0xcff0119a )
 	ROM_RELOAD(			0xf000, 0x1000 )
 
-	ROM_REGION( 0x6000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mea.4a",	0x0000, 0x1000, 0x49d89116 )
 	ROM_LOAD( "mca.6a",	0x1000, 0x1000, 0x04e90300 )
 	ROM_LOAD( "maa.9a",	0x2000, 0x1000, 0x6ce9442b )

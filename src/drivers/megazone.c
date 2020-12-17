@@ -116,17 +116,14 @@ WRITE_HANDLER( i8039_irqen_and_status_w )
 	i8039_status = (data & 0x70) >> 4;
 }
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x2000, 0x2fff, MRA_RAM },
 	{ 0x3000, 0x33ff, MRA_RAM },
 	{ 0x3800, 0x3fff, megazone_sharedram_r },
 	{ 0x4000, 0xffff, MRA_ROM },		/* 4000->5FFF is a debug rom */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0007, 0x0007, interrupt_enable_w },
 	{ 0x0800, 0x0800, watchdog_reset_w },
 	{ 0x1800, 0x1800, MWA_RAM, &megazone_scrollx },
@@ -138,11 +135,9 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3000, 0x33ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x3800, 0x3fff, megazone_sharedram_w, &megazone_sharedram },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x6000, 0x6000, input_port_0_r }, /* IO Coin */
 	{ 0x6001, 0x6001, input_port_1_r }, /* P1 IO */
@@ -151,11 +146,9 @@ static struct MemoryReadAddress sound_readmem[] =
 	{ 0x8000, 0x8000, input_port_4_r }, /* DIP 2 */
 	{ 0x8001, 0x8001, megazone_dip3_r }, /* DIP 3 - Not used */
 	{ 0xe000, 0xe7ff, megazone_sharedram_r },  /* Shared with $3800->3fff of main CPU */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x2000, megazone_i8039_irq_w },	/* START line. Interrupts 8039 */
 	{ 0x4000, 0x4000, soundlatch_w },			/* CODE  line. Command Interrupts 8039 */
@@ -163,47 +156,34 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0xc000, 0xc000, MWA_RAM },				/* INT (Actually is NMI) enable/disable (unused)*/
 	{ 0xc001, 0xc001, watchdog_reset_w },
 	{ 0xe000, 0xe7ff, megazone_sharedram_w },	/* Shared with $3800->3fff of main CPU */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x00, 0x02, AY8910_read_port_0_r },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, AY8910_control_port_0_w },
 	{ 0x02, 0x02, AY8910_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress i8039_readmem[] =
-{
+static MEMORY_READ_START( i8039_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress i8039_writemem[] =
-{
+static MEMORY_WRITE_START( i8039_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort i8039_readport[] =
-{
+static PORT_READ_START( i8039_readport )
 	{ 0x00, 0xff, soundlatch_r },
 	{ 0x111,0x111, IORP_NOP },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort i8039_writeport[] =
-{
+static PORT_WRITE_START( i8039_writeport )
 	{ I8039_p1, I8039_p1, DAC_0_data_w },
 	{ I8039_p2, I8039_p2, i8039_irqen_and_status_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 INPUT_PORTS_START( megazone )
 	PORT_START      /* IN0 */
@@ -293,7 +273,7 @@ INPUT_PORTS_START( megazone )
 	PORT_DIPSETTING(    0x20, "Difficult" )
 	PORT_DIPSETTING(    0x00, "Very Difficult" )
 
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 
@@ -415,30 +395,30 @@ static const struct MachineDriver machine_driver_megazone =
 ***************************************************************************/
 
 ROM_START( megazone )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )     /* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )     /* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "319i07.bin",    0x6000, 0x2000, 0x94b22ea8 )
 	ROM_LOAD( "319i06.bin",    0x8000, 0x2000, 0x0468b619 )
 	ROM_LOAD( "319i05.bin",    0xa000, 0x2000, 0xac59000c )
 	ROM_LOAD( "319i04.bin",    0xc000, 0x2000, 0x1e968603 )
 	ROM_LOAD( "319i03.bin",    0xe000, 0x2000, 0x0888b803 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "319e02.bin",   0x0000, 0x2000, 0xd5d45edb )
 
-	ROM_REGION( 0x1000, REGION_CPU3 )     /* 4k for the 8039 DAC CPU */
+	ROM_REGION( 0x1000, REGION_CPU3, 0 )     /* 4k for the 8039 DAC CPU */
 	ROM_LOAD( "319e01.bin",   0x0000, 0x1000, 0xed5725a0 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "319e12.bin",    0x0000, 0x2000, 0xe0fb7835 )
 	ROM_LOAD( "319e13.bin",    0x2000, 0x2000, 0x3d8f3743 )
 
-	ROM_REGION( 0x08000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "319e11.bin",    0x0000, 0x2000, 0xf36f19c5 )
 	ROM_LOAD( "319e09.bin",    0x2000, 0x2000, 0x5eaa7f3e )
 	ROM_LOAD( "319e10.bin",    0x4000, 0x2000, 0x7bb1aeee )
 	ROM_LOAD( "319e08.bin",    0x6000, 0x2000, 0x6add71b1 )
 
-	ROM_REGION( 0x0260, REGION_PROMS )
+	ROM_REGION( 0x0260, REGION_PROMS, 0 )
 	ROM_LOAD( "319b18.a16",  0x0000, 0x020, 0x23cb02af ) /* palette */
 	ROM_LOAD( "319b16.c6",   0x0020, 0x100, 0x5748e933 ) /* sprite lookup table */
 	ROM_LOAD( "319b17.a11",  0x0120, 0x100, 0x1fbfce73 ) /* character lookup table */
@@ -447,30 +427,30 @@ ROM_START( megazone )
 ROM_END
 
 ROM_START( megaznik )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )     /* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )     /* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "ic59_cpu.bin",  0x6000, 0x2000, 0xf41922a0 )
 	ROM_LOAD( "ic58_cpu.bin",  0x8000, 0x2000, 0x7fd7277b )
 	ROM_LOAD( "ic57_cpu.bin",  0xa000, 0x2000, 0xa4b33b51 )
 	ROM_LOAD( "ic56_cpu.bin",  0xc000, 0x2000, 0x2aabcfbf )
 	ROM_LOAD( "ic55_cpu.bin",  0xe000, 0x2000, 0xb33a3c37 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "319e02.bin",   0x0000, 0x2000, 0xd5d45edb )
 
-	ROM_REGION( 0x1000, REGION_CPU3 )     /* 4k for the 8039 DAC CPU */
+	ROM_REGION( 0x1000, REGION_CPU3, 0 )     /* 4k for the 8039 DAC CPU */
 	ROM_LOAD( "319e01.bin",   0x0000, 0x1000, 0xed5725a0 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic40_vid.bin",  0x0000, 0x2000, 0x07b8b24b )
 	ROM_LOAD( "319e13.bin",    0x2000, 0x2000, 0x3d8f3743 )
 
-	ROM_REGION( 0x08000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic15_vid.bin",  0x0000, 0x2000, 0x965a7ff6 )
 	ROM_LOAD( "319e09.bin",    0x2000, 0x2000, 0x5eaa7f3e )
 	ROM_LOAD( "319e10.bin",    0x4000, 0x2000, 0x7bb1aeee )
 	ROM_LOAD( "319e08.bin",    0x6000, 0x2000, 0x6add71b1 )
 
-	ROM_REGION( 0x0260, REGION_PROMS )
+	ROM_REGION( 0x0260, REGION_PROMS, 0 )
 	ROM_LOAD( "319b18.a16",  0x0000, 0x020, 0x23cb02af ) /* palette */
 	ROM_LOAD( "319b16.c6",   0x0020, 0x100, 0x5748e933 ) /* sprite lookup table */
 	ROM_LOAD( "319b17.a11",  0x0120, 0x100, 0x1fbfce73 ) /* character lookup table */

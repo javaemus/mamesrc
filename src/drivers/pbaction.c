@@ -57,8 +57,7 @@ static WRITE_HANDLER( pbaction_sh_command_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x9fff, MRA_ROM },
 	{ 0xc000, 0xdfff, MRA_RAM },
 	{ 0xe000, 0xe07f, MRA_RAM },
@@ -69,11 +68,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xe604, 0xe604, input_port_3_r },	/* DSW1 */
 	{ 0xe605, 0xe605, input_port_4_r },	/* DSW2 */
 	{ 0xe606, 0xe606, MRA_NOP },	/* ??? */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x9fff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xd000, 0xd3ff, videoram_w, &videoram, &videoram_size },
@@ -86,36 +83,29 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xe604, 0xe604, pbaction_flipscreen_w },
 	{ 0xe606, 0xe606, pbaction_scroll_w },
 	{ 0xe800, 0xe800, pbaction_sh_command_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x4000, 0x47ff, MRA_RAM },
 	{ 0x8000, 0x8000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0xffff, 0xffff, MWA_NOP },	/* watchdog? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x10, 0x10, AY8910_control_port_0_w },
 	{ 0x11, 0x11, AY8910_write_port_0_w },
 	{ 0x20, 0x20, AY8910_control_port_1_w },
 	{ 0x21, 0x21, AY8910_write_port_1_w },
 	{ 0x30, 0x30, AY8910_control_port_2_w },
 	{ 0x31, 0x31, AY8910_write_port_2_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( pbaction )
@@ -331,26 +321,26 @@ static const struct MachineDriver machine_driver_pbaction =
 ***************************************************************************/
 
 ROM_START( pbaction )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "b-p7.bin",     0x0000, 0x4000, 0x8d6dcaae )
 	ROM_LOAD( "b-n7.bin",     0x4000, 0x4000, 0xd54d5402 )
 	ROM_LOAD( "b-l7.bin",     0x8000, 0x2000, 0xe7412d68 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound board */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound board */
 	ROM_LOAD( "a-e3.bin",     0x0000,  0x2000, 0x0e53a91f )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a-s6.bin",     0x00000, 0x2000, 0x9a74a8e1 )
 	ROM_LOAD( "a-s7.bin",     0x02000, 0x2000, 0x5ca6ad3c )
 	ROM_LOAD( "a-s8.bin",     0x04000, 0x2000, 0x9f00b757 )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a-j5.bin",     0x00000, 0x4000, 0x21efe866 )
 	ROM_LOAD( "a-j6.bin",     0x04000, 0x4000, 0x7f984c80 )
 	ROM_LOAD( "a-j7.bin",     0x08000, 0x4000, 0xdf69e51b )
 	ROM_LOAD( "a-j8.bin",     0x0c000, 0x4000, 0x0094cb8b )
 
-	ROM_REGION( 0x06000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "b-c7.bin",     0x00000, 0x2000, 0xd1795ef5 )
 	ROM_LOAD( "b-d7.bin",     0x02000, 0x2000, 0xf28df203 )
 	ROM_LOAD( "b-f7.bin",     0x04000, 0x2000, 0xaf6e9817 )
@@ -358,29 +348,29 @@ ROM_END
 
 
 ROM_START( pbactio2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "pba16.bin",     0x0000, 0x4000, 0x4a239ebd )
 	ROM_LOAD( "pba15.bin",     0x4000, 0x4000, 0x3afef03a )
 	ROM_LOAD( "pba14.bin",     0x8000, 0x2000, 0xc0a98c8a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound board */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound board */
 	ROM_LOAD( "pba1.bin",     0x0000,  0x2000, 0x8b69b933 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for a third Z80 (not emulated) */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for a third Z80 (not emulated) */
 	ROM_LOAD( "pba17.bin",    0x0000,  0x4000, 0x2734ae60 )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a-s6.bin",     0x00000, 0x2000, 0x9a74a8e1 )
 	ROM_LOAD( "a-s7.bin",     0x02000, 0x2000, 0x5ca6ad3c )
 	ROM_LOAD( "a-s8.bin",     0x04000, 0x2000, 0x9f00b757 )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a-j5.bin",     0x00000, 0x4000, 0x21efe866 )
 	ROM_LOAD( "a-j6.bin",     0x04000, 0x4000, 0x7f984c80 )
 	ROM_LOAD( "a-j7.bin",     0x08000, 0x4000, 0xdf69e51b )
 	ROM_LOAD( "a-j8.bin",     0x0c000, 0x4000, 0x0094cb8b )
 
-	ROM_REGION( 0x06000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "b-c7.bin",     0x00000, 0x2000, 0xd1795ef5 )
 	ROM_LOAD( "b-d7.bin",     0x02000, 0x2000, 0xf28df203 )
 	ROM_LOAD( "b-f7.bin",     0x04000, 0x2000, 0xaf6e9817 )

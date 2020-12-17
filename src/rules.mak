@@ -11,6 +11,17 @@ else
 CPUDEFS += -DHAS_Z80=0
 endif
 
+CPU=$(strip $(findstring SH2@,$(CPUS)))
+ifneq ($(CPU),)
+OBJDIRS += $(OBJ)/cpu/sh2
+CPUDEFS += -DHAS_SH2=1
+CPUOBJS += $(OBJ)/cpu/sh2/sh2.o
+DBGOBJS += $(OBJ)/cpu/sh2/sh2dasm.o
+$(OBJ)/cpu/sh2/sh2.o: sh2.c sh2.h
+else
+CPUDEFS += -DHAS_SH2=0
+endif
+
 CPU=$(strip $(findstring Z80GB@,$(CPUS)))
 ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/z80gb
@@ -27,8 +38,8 @@ ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/cdp1802
 CPUDEFS += -DHAS_CDP1802=1
 CPUOBJS += $(OBJ)/cpu/cdp1802/cdp1802.o
-DBGOBJS += $(OBJ)/cpu/cdp1802/disasm.o
-$(OBJ)/cpu/cdp1802/cdp1802.o: table.c
+DBGOBJS += $(OBJ)/cpu/cdp1802/1802dasm.o
+$(OBJ)/cpu/cdp1802/cdp1802.o: 1802tbl.c
 else
 CPUDEFS += -DHAS_CDP1802=0
 endif
@@ -154,16 +165,6 @@ else
 CPUDEFS += -DHAS_M8502=0
 endif
 
-CPU=$(strip $(findstring M4510@,$(CPUS)))
-ifneq ($(CPU),)
-OBJDIRS += $(OBJ)/cpu/m6502
-CPUDEFS += -DHAS_M4510=1
-CPUOBJS += $(OBJ)/cpu/m6502/m4510.o
-DBGOBJS += $(OBJ)/cpu/m6502/6502dasm.o
-else
-CPUDEFS += -DHAS_M4510=0
-endif
-
 CPU=$(strip $(findstring N2A03@,$(CPUS)))
 ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/m6502
@@ -173,6 +174,16 @@ DBGOBJS += $(OBJ)/cpu/m6502/6502dasm.o
 $(OBJ)/cpu/m6502/m6502.o: m6502.c m6502.h ops02.h t6502.c t65c02.c t65sc02.c t6510.c
 else
 CPUDEFS += -DHAS_N2A03=0
+endif
+
+CPU=$(strip $(findstring M4510@,$(CPUS)))
+ifneq ($(CPU),)
+OBJDIRS += $(OBJ)/cpu/m6502
+CPUDEFS += -DHAS_M4510=1
+CPUOBJS += $(OBJ)/cpu/m6502/m4510.o
+DBGOBJS += $(OBJ)/cpu/m6502/6502dasm.o
+else
+CPUDEFS += -DHAS_M4510=0
 endif
 
 CPU=$(strip $(findstring H6280@,$(CPUS)))
@@ -592,6 +603,17 @@ else
 CPUDEFS += -DHAS_TMS34010=0
 endif
 
+CPU=$(strip $(findstring TMS34020@,$(CPUS)))
+ifneq ($(CPU),)
+OBJDIRS += $(OBJ)/cpu/tms34020
+CPUDEFS += -DHAS_TMS34020=1
+CPUOBJS += $(OBJ)/cpu/tms34010/tms34010.o $(OBJ)/cpu/tms34010/34010fld.o
+DBGOBJS += $(OBJ)/cpu/tms34010/34010dsm.o
+$(OBJ)/cpu/tms34010/tms34010.o: tms34010.c tms34010.h 34010ops.c 34010tbl.c
+else
+CPUDEFS += -DHAS_TMS34020=0
+endif
+
 CPU=$(strip $(findstring TMS9900@,$(CPUS)))
 ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/tms9900
@@ -669,6 +691,17 @@ else
 CPUDEFS += -DHAS_TMS99105A=0
 endif
 
+CPU=$(strip $(findstring TMS99110A@,$(CPUS)))
+ifneq ($(CPU),)
+OBJDIRS += $(OBJ)/cpu/tms9900
+CPUDEFS += -DHAS_TMS99110A=1
+CPUOBJS += $(OBJ)/cpu/tms9900/tms9995.o
+DBGOBJS += $(OBJ)/cpu/tms9900/9900dasm.o
+$(OBJ)/cpu/tms9900/tms9995.o: tms9995.c tms9900.h 99xxcore.h 99xxstat.h
+else
+CPUDEFS += -DHAS_TMS99110A=0
+endif
+
 CPU=$(strip $(findstring Z8000@,$(CPUS)))
 ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/z8000
@@ -702,6 +735,17 @@ else
 CPUDEFS += -DHAS_CCPU=0
 endif
 
+CPU=$(strip $(findstring PDP1@,$(CPUS)))
+ifneq ($(CPU),)
+OBJDIRS += $(OBJ)/cpu/pdp1
+CPUDEFS += -DHAS_PDP1=1
+CPUOBJS += $(OBJ)/cpu/pdp1/pdp1.o
+DBGOBJS += $(OBJ)/cpu/pdp1/pdp1dasm.o
+$(OBJ)/cpu/pdp1/pdp1.o: pdp1.c pdp1.h
+else
+CPUDEFS += -DHAS_PDP1=0
+endif
+
 CPU=$(strip $(findstring ADSP2100@,$(CPUS)))
 ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/adsp2100
@@ -724,17 +768,6 @@ else
 CPUDEFS += -DHAS_ADSP2105=0
 endif
 
-CPU=$(strip $(findstring PDP1@,$(CPUS)))
-ifneq ($(CPU),)
-OBJDIRS += $(OBJ)/cpu/pdp1
-CPUDEFS += -DHAS_PDP1=1
-CPUOBJS += $(OBJ)/cpu/pdp1/pdp1.o
-DBGOBJS += $(OBJ)/cpu/pdp1/pdp1dasm.o
-$(OBJ)/cpu/pdp1/pdp1.o: pdp1.c pdp1.h
-else
-CPUDEFS += -DHAS_PDP1=0
-endif
-
 CPU=$(strip $(findstring PSXCPU@,$(CPUS)))
 ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/mips
@@ -751,9 +784,9 @@ ifneq ($(CPU),)
 OBJDIRS += $(OBJ)/cpu/sc61860
 CPUDEFS += -DHAS_SC61860=1
 CPUOBJS += $(OBJ)/cpu/sc61860/sc61860.o
-DBGOBJS += $(OBJ)/cpu/sc61860/disasm.o
+DBGOBJS += $(OBJ)/cpu/sc61860/scdasm.o
 $(OBJ)/cpu/sc61860/sc61860.o: src/cpu/sc61860/sc61860.h \
-	src/cpu/sc61860/sc.h src/cpu/sc61860/ops.c src/cpu/sc61860/table.c
+	src/cpu/sc61860/sc.h src/cpu/sc61860/ops.c src/cpu/sc61860/sctable.c
 else
 CPUDEFS += -DHAS_SC61860=0
 endif
@@ -801,6 +834,17 @@ else
 CPUDEFS += -DHAS_SPC700=0
 endif
 
+CPU=$(strip $(findstring ASAP@,$(CPUS)))
+ifneq ($(CPU),)
+OBJDIRS += $(OBJ)/cpu/asap
+CPUDEFS += -DHAS_ASAP=1
+CPUOBJS += $(OBJ)/cpu/asap/asap.o
+DBGOBJS += $(OBJ)/cpu/asap/asapdasm.o
+$(OBJ)/cpu/asap/asap.o: asap.c asap.h
+else
+CPUDEFS += -DHAS_ASAP=0
+endif
+
 
 SOUND=$(strip $(findstring CUSTOM@,$(SOUNDS)))
 ifneq ($(SOUND),)
@@ -823,6 +867,14 @@ SOUNDDEFS += -DHAS_DAC=1
 SOUNDOBJS += $(OBJ)/sound/dac.o
 else
 SOUNDDEFS += -DHAS_DAC=0
+endif
+
+SOUND=$(strip $(findstring DISCRETE@,$(SOUNDS)))
+ifneq ($(SOUND),)
+SOUNDDEFS += -DHAS_DISCRETE=1
+SOUNDOBJS += $(OBJ)/sound/discrete.o
+else
+SOUNDDEFS += -DHAS_DISCRETE=0
 endif
 
 SOUND=$(strip $(findstring AY8910@,$(SOUNDS)))
@@ -972,7 +1024,11 @@ endif
 SOUND=$(strip $(findstring NES@,$(SOUNDS)))
 ifneq ($(SOUND),)
 SOUNDDEFS += -DHAS_NES=1
+ifndef MESS
 SOUNDOBJS += $(OBJ)/sound/nes_apu.o
+else
+SOUNDOBJS += $(OBJ)/sound/nes_apu2.o $(OBJ)/sound/nesintf.o
+endif
 else
 SOUNDDEFS += -DHAS_NES=0
 endif
@@ -1097,6 +1153,14 @@ else
 SOUNDDEFS += -DHAS_K053260=0
 endif
 
+SOUND=$(strip $(findstring K054539@,$(SOUNDS)))
+ifneq ($(SOUND),)
+SOUNDDEFS += -DHAS_K054539=1
+SOUNDOBJS += $(OBJ)/sound/k054539.o
+else
+SOUNDDEFS += -DHAS_K054539=0
+endif
+
 SOUND=$(strip $(findstring SEGAPCM@,$(SOUNDS)))
 ifneq ($(SOUND),)
 SOUNDDEFS += -DHAS_SEGAPCM=1
@@ -1135,6 +1199,38 @@ SOUNDDEFS += -DHAS_QSOUND=1
 SOUNDOBJS += $(OBJ)/sound/qsound.o
 else
 SOUNDDEFS += -DHAS_QSOUND=0
+endif
+
+SOUND=$(strip $(findstring SAA1099@,$(SOUNDS)))
+ifneq ($(SOUND),)
+SOUNDDEFS += -DHAS_SAA1099=1
+SOUNDOBJS += $(OBJ)/sound/saa1099.o
+else
+SOUNDDEFS += -DHAS_SAA1099=0
+endif
+
+SOUND=$(strip $(findstring IREMGA20@,$(SOUNDS)))
+ifneq ($(SOUND),)
+SOUNDDEFS += -DHAS_IREMGA20=1
+SOUNDOBJS += $(OBJ)/sound/iremga20.o
+else
+SOUNDDEFS += -DHAS_IREMGA20=0
+endif
+
+SOUND=$(strip $(findstring ES5505@,$(SOUNDS)))
+ifneq ($(SOUND),)
+SOUNDDEFS += -DHAS_ES5505=1
+SOUNDOBJS += $(OBJ)/sound/es5506.o
+else
+SOUNDDEFS += -DHAS_ES5505=0
+endif
+
+SOUND=$(strip $(findstring ES5506@,$(SOUNDS)))
+ifneq ($(SOUND),)
+SOUNDDEFS += -DHAS_ES5506=1
+SOUNDOBJS += $(OBJ)/sound/es5506.o
+else
+SOUNDDEFS += -DHAS_ES5506=0
 endif
 
 SOUND=$(strip $(findstring SPEAKER@,$(SOUNDS)))

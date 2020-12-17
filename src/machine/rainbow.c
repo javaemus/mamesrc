@@ -1,10 +1,21 @@
 /*************************************************************************
 
-  Rainbow Island C-Chip Protection
+  Rainbow Islands C-Chip Protection
+
+  2000-Nov-30 re-written by SJ
+
+    - removed a hack that queried main RAM
+    - removed toggling between CROM base $0000 and $4950
+    - added secret room fix
+    - added alternate GOAL IN fix
 
 *************************************************************************/
 
 #include "driver.h"
+
+#ifndef RAINBOW_CROM_BASE
+#define RAINBOW_CROM_BASE 0x4950
+#endif
 
 /*************************************
  *
@@ -23,8 +34,33 @@ int rainbow_interrupt(void)
  *
  *************************************/
 
-static int FrameBank,
-           ChipOffset=0;
+static UINT8 cval[20];
+
+static int current_round = 0;
+static int current_bank = 0;
+
+/*************************************
+ *
+ * Helper for standard c-chip reading
+ *
+ *************************************/
+
+static UINT8 rainbow_helper(int round, int bank, int offset)
+{
+	int cchip_index = RAINBOW_CROM_BASE + 2 * (8 * round + bank);
+
+	UINT8* CROM = memory_region(REGION_USER1);
+
+	int address1 = (CROM[cchip_index + 0] << 8) | CROM[cchip_index + 1];
+	int address2 = (CROM[cchip_index + 2] << 8) | CROM[cchip_index + 3];
+
+	if (offset >= address2 - address1)
+	{
+		logerror("rainbow c-chip: read out of range\n");
+	}
+
+	return CROM[address1 + offset];
+}
 
 /*************************************
  *
@@ -32,19 +68,85 @@ static int FrameBank,
  *
  *************************************/
 
-WRITE_HANDLER( rainbow_c_chip_w )
+WRITE16_HANDLER( rainbow_c_chip_w )
 {
-  switch(offset+1)
-  {
-  	case 0x001: if ((data & 0xff) == 1)	ChipOffset = 0x4950;
-       			break;
+	if (offset == 0x00d)
+	{
+		current_round = data;
+	}
 
-    case 0x01b: ChipOffset = 0;
-       			break;
+	if (offset == 0x600)
+	{
+		current_bank = data;
+	}
 
-    case 0xc01: FrameBank = (data & 0xff) << 1;
-    			break;
-  }
+	if (offset == 0x141)
+	{
+		if (data >= 40)
+		{
+			/* Special processing for secret rooms */
+
+			UINT32 level_data =
+				(rainbow_helper(40, 2, 0x142) << 0x18) |
+				(rainbow_helper(40, 2, 0x143) << 0x10) |
+				(rainbow_helper(40, 2, 0x144) << 0x08) |
+				(rainbow_helper(40, 2, 0x145) << 0x00);
+
+			level_data += (data - 40) * 0xd8;
+
+			cval[0x00] = (UINT8) (level_data >> 0x18);
+			cval[0x01] = (UINT8) (level_data >> 0x10);
+			cval[0x02] = (UINT8) (level_data >> 0x08);
+			cval[0x03] = (UINT8) (level_data >> 0x00);
+			cval[0x04] = 0;
+			cval[0x05] = 0;
+			cval[0x06] = 1;	/* must not be 0 to make exit appear */
+			cval[0x07] = 1;
+		}
+		else
+		{
+			int i;
+
+			for (i = 0; i < 8; i++)
+			{
+				cval[i] = rainbow_helper(data, 1, 0x142 + i);
+			}
+		}
+	}
+
+	if (offset == 0x149)
+	{
+		if (data == 1)
+		{
+
+#if defined(RAINBOW_ALTERNATE_GOALIN)
+
+			int i;
+
+			for (i = 0; i < 10; i++)
+			{
+				cval[0x08 + i] = rainbow_helper(25, 1, 0x14a + i);
+			}
+#else
+			/* this data was taken from a bootleg set */
+
+			cval[0x08] = 0x00; /* G placement */
+			cval[0x09] = 0x00;
+			cval[0x0a] = 0x10; /* O placement */
+			cval[0x0b] = 0x10;
+			cval[0x0c] = 0x20; /* A placement */
+			cval[0x0d] = 0x20;
+			cval[0x0e] = 0x30; /* L placement */
+			cval[0x0f] = 0x38;
+			cval[0x10] = 0x40; /* I placement */
+			cval[0x11] = 0x50;
+			cval[0x12] = 0x50; /* N placement */
+			cval[0x13] = 0x60;
+
+#endif /* defined(RAINBOW_ALTERNATE_GOALIN) */
+
+		}
+	}
 }
 
 /*************************************
@@ -53,112 +155,41 @@ WRITE_HANDLER( rainbow_c_chip_w )
  *
  *************************************/
 
-extern int mrh_bank1(int address);
-
-READ_HANDLER( rainbow_c_chip_r )
+READ16_HANDLER( rainbow_c_chip_r )
 {
-  unsigned char *CROM = memory_region(REGION_USER1);	/* C-Chip Dump */
+	/* Special control registers */
 
-  int Address;
-  int Data1,Data2;
-  int ans;
+	switch (offset)
+	{
+		case 0x000: return 0xff;	/* data ready */
+		case 0x100: return 0xff;	/* data ready */
+		case 0x401: return 0x01;	/* c-chip present */
+	}
 
-  /* Start with standard return from rom image */
+	/* Check for input ports */
 
-  Address = ChipOffset
-          + FrameBank
-          + ((READ_WORD(cpu_bankbase[1] + 0x1048) & 0xFF) << 4);
+	if (current_bank == 0)
+	{
+		switch (offset)
+		{
+			case 0x003: return input_port_2_word_r(offset);
+			case 0x004: return input_port_3_word_r(offset);
+			case 0x005: return input_port_4_word_r(offset);
+			case 0x006: return input_port_5_word_r(offset);
+		}
+	}
 
-  Data2   = (CROM[Address] << 8) + CROM[Address+1];
-  Data1   = ((CROM[Address+2] << 8) + CROM[Address+3]) - Data2;
+	/* Further non-standard offsets */
 
-  if (Data1 == 0)
-  {
-  	ans = 0;
-  }
-  else
-  {
-  	if (Data1 <= (offset >> 1))
-    {
-  	  ans = 0;
-    }
-    else
-    {
-      ans = CROM[(offset >> 1) + Data2];
-    }
-  }
+	if (current_bank == 1)
+	{
+		if (offset >= 0x142 && offset < 0x156)
+		{
+			return cval[offset - 0x142];
+		}
+	}
 
-  /* Overrides for specific locations */
+	/* Standard retrieval */
 
-  switch(offset+1)
-  {
-				/* Input Ports */
-
-  	case 0x007: if (FrameBank==0) ans=input_port_2_r(offset);
-                break;
-
-    case 0x009: if (FrameBank==0) ans=input_port_3_r(offset);
-                break;
-
-    case 0x00b: if (FrameBank==0) ans=input_port_4_r(offset);
-                break;
-
-    case 0x00d: if (FrameBank==0) ans=input_port_5_r(offset);
-                break;
-
-
-			    /* Program expects the following results */
-
-    case 0x001: ans=0xff;					/* Won't draw screen until */
-                break;						/*   this is set to 0xff   */
-                							/*    Countdown Timer ?    */
-
-  	case 0x201: ans=0xff;					/* Level Data Ready */
-                break;
-
-    case 0x803: ans=0x01;					/* C-Chip Check ? */
-                break;
-
-
-                /* These are taken from a lookup table */
-                /* in the bootleg, and not from C-Chip */
-
-    case 0x295: ans=0;						/* G Below */
-			    break;
-
-    case 0x297: ans=0;						/* G Right */
-			    break;
-
-    case 0x299: ans=0x10;					/* O below */
-			    break;
-
-    case 0x29b: ans=0x10;					/* O Right */
-			    break;
-
-    case 0x29d: ans=0x20;					/* A Below */
-			    break;
-
-    case 0x29f: ans=0x20;					/* A Right */
-			    break;
-
-    case 0x2a1: ans=0x30;					/* L Below */
-			    break;
-
-    case 0x2a3: ans=0x38;					/* L Right */
-			    break;
-
-    case 0x2a5: ans=0x40;					/* I Below */
-			    break;
-
-    case 0x2a7: ans=0x50;					/* I Right */
-			    break;
-
-    case 0x2a9: ans=0x50;					/* N Below */
-			    break;
-
-    case 0x2ab: ans=0x60;					/* N Right */
-			    break;
-  }
-
-  return ans;
+	return rainbow_helper(current_round, current_bank, offset);
 }

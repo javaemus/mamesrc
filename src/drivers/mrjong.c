@@ -19,26 +19,22 @@ void mrjong_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
 WRITE_HANDLER( mrjong_flipscreen_w );
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xa000, 0xa7ff, MRA_RAM },
 	{ 0xe000, 0xe3ff, videoram_r },
 	{ 0xe400, 0xe7ff, colorram_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0xa000, 0xa7ff, MWA_RAM },
 	{ 0xe000, 0xe3ff, videoram_w, &videoram, &videoram_size },
 	{ 0xe400, 0xe7ff, colorram_w, &colorram },
 	{ 0xe000, 0xe03f, MWA_RAM, &spriteram, &spriteram_size},	/* here to initialize the pointer */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 WRITE_HANDLER( io_0x00_w )
@@ -51,22 +47,18 @@ READ_HANDLER( io_0x03_r )
 	return 0x00;
 }
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, input_port_0_r },		// Input 1
 	{ 0x01, 0x01, input_port_1_r },		// Input 2
 	{ 0x02, 0x02, input_port_2_r },		// DipSw 1
 	{ 0x03, 0x03, io_0x03_r },		// Unknown
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, io_0x00_w },
 	{ 0x01, 0x01, SN76496_0_w },
 	{ 0x02, 0x02, SN76496_1_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( mrjong )
@@ -200,33 +192,33 @@ static const struct MachineDriver machine_driver_mrjong =
 ***************************************************************************/
 
 ROM_START( mrjong )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* code */
 	ROM_LOAD( "mj00", 0x0000, 0x2000, 0xd211aed3 )
 	ROM_LOAD( "mj01", 0x2000, 0x2000, 0x49a9ca7e )
 	ROM_LOAD( "mj02", 0x4000, 0x2000, 0x4b50ae6a )
 	ROM_LOAD( "mj03", 0x6000, 0x2000, 0x2c375a17 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 )	/* gfx */
+	ROM_REGION( 0x2000, REGION_GFX1, 0 )	/* gfx */
 	ROM_LOAD( "mj21", 0x0000, 0x1000, 0x1ea99dab )
 	ROM_LOAD( "mj20", 0x1000, 0x1000, 0x7eb1d381 )
 
-	ROM_REGION( 0x0120, REGION_PROMS )	/* color */
+	ROM_REGION( 0x0120, REGION_PROMS, 0 )	/* color */
 	ROM_LOAD( "mj61", 0x0000, 0x0020, 0xa85e9b27 )
 	ROM_LOAD( "mj60", 0x0020, 0x0100, 0xdd2b304f )
 ROM_END
 
 ROM_START( crazyblk )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* code */
 	ROM_LOAD( "c1.a6", 0x0000, 0x2000, 0xe2a211a2 )
 	ROM_LOAD( "c2.a7", 0x2000, 0x2000, 0x75070978 )
 	ROM_LOAD( "c3.a7", 0x4000, 0x2000, 0x696ca502 )
 	ROM_LOAD( "c4.a8", 0x6000, 0x2000, 0xc7f5a247 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 )	/* gfx */
+	ROM_REGION( 0x2000, REGION_GFX1, 0 )	/* gfx */
 	ROM_LOAD( "c6.h5", 0x0000, 0x1000, 0x2b2af794 )
 	ROM_LOAD( "c5.h4", 0x1000, 0x1000, 0x98d13915 )
 
-	ROM_REGION( 0x0120, REGION_PROMS )	/* color */
+	ROM_REGION( 0x0120, REGION_PROMS, 0 )	/* color */
 	ROM_LOAD( "clr.j7", 0x0000, 0x0020, 0xee1cf1d5 )
 	ROM_LOAD( "clr.g5", 0x0020, 0x0100, 0xbcb1e2e3 )
 ROM_END

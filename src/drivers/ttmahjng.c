@@ -56,8 +56,7 @@ READ_HANDLER( input_port_matrix_r )
 }
 
 
-static struct MemoryReadAddress cpu1_readmem[] =
-{
+static MEMORY_READ_START( cpu1_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x43ff, ttmahjng_sharedram_r },
 	{ 0x4800, 0x4800, input_port_0_r },
@@ -66,11 +65,9 @@ static struct MemoryReadAddress cpu1_readmem[] =
 	{ 0x7838, 0x7838, MRA_NOP },
 	{ 0x7859, 0x7859, MRA_NOP },
 	{ 0x8000, 0xbfff, ttmahjng_videoram1_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cpu1_writemem[] =
-{
+static MEMORY_WRITE_START( cpu1_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x43ff, ttmahjng_sharedram_w, &ttmahjng_sharedram },
 	{ 0x4800, 0x4800, ttmahjng_out0_w },
@@ -80,24 +77,19 @@ static struct MemoryWriteAddress cpu1_writemem[] =
 	{ 0x6800, 0x6800, AY8910_write_port_0_w },
 	{ 0x6900, 0x6900, AY8910_control_port_0_w },
 	{ 0x8000, 0xbfff, ttmahjng_videoram1_w, &ttmahjng_videoram1, &ttmahjng_videoram_size },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress cpu2_readmem[] =
-{
+static MEMORY_READ_START( cpu2_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x4000, 0x43ff, ttmahjng_sharedram_r },
 	{ 0x8000, 0xbfff, ttmahjng_videoram2_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cpu2_writemem[] =
-{
+static MEMORY_WRITE_START( cpu2_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x4000, 0x43ff, ttmahjng_sharedram_w },
 	{ 0x8000, 0xbfff, ttmahjng_videoram2_w, &ttmahjng_videoram2 },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( ttmahjng )
@@ -161,8 +153,8 @@ INPUT_PORTS_START( ttmahjng )
 	PORT_BITX(0x01, IP_ACTIVE_LOW, 0, "P1 C", KEYCODE_C, IP_JOY_NONE )
 	PORT_BITX(0x02, IP_ACTIVE_LOW, 0, "P1 G", KEYCODE_G, IP_JOY_NONE )
 	PORT_BITX(0x04, IP_ACTIVE_LOW, 0, "P1 K", KEYCODE_K, IP_JOY_NONE )
-	PORT_BITX(0x08, IP_ACTIVE_LOW, 0, "P1 Ron", KEYCODE_SPACE, IP_JOY_NONE )
-	PORT_BITX(0x10, IP_ACTIVE_LOW, 0, "P1 Chi", KEYCODE_Z, IP_JOY_NONE )
+	PORT_BITX(0x08, IP_ACTIVE_LOW, 0, "P1 Chi", KEYCODE_Z, IP_JOY_NONE )
+	PORT_BITX(0x10, IP_ACTIVE_LOW, 0, "P1 Ron", KEYCODE_SPACE, IP_JOY_NONE )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -241,18 +233,18 @@ static const struct MachineDriver machine_driver_ttmahjng =
 ***************************************************************************/
 
 ROM_START( ttmahjng )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "ju04", 0x0000, 0x1000, 0xfe7c693a )
 	ROM_LOAD( "ju05", 0x1000, 0x1000, 0x985723d3 )
 	ROM_LOAD( "ju06", 0x2000, 0x1000, 0x2cd69bc8 )
 	ROM_LOAD( "ju07", 0x3000, 0x1000, 0x30e8ec63 )
 
-	ROM_REGION( 0x0200, REGION_PROMS ) /* color proms */
+	ROM_REGION( 0x0200, REGION_PROMS, 0 ) /* color proms */
 	/* The upper 128 bytes are 0's, used by the hardware to blank the display */
 	ROM_LOAD( "ju03", 0x0000, 0x0100, 0x27d47624 )
 	ROM_LOAD( "ju09", 0x0100, 0x0100, 0x27d47624 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "ju01", 0x0000, 0x0800, 0x0f05ca3c )
 	ROM_LOAD( "ju02", 0x0800, 0x0800, 0xc1ffeceb )
 	ROM_LOAD( "ju08", 0x1000, 0x0800, 0x2dcc76b5 )

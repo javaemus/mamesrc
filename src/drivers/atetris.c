@@ -56,19 +56,16 @@ static void nvram_handler(void *file,int read_or_write)
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x20ff, MRA_RAM },
 	{ 0x2400, 0x25ff, MRA_RAM },
 	{ 0x2800, 0x280f, pokey1_r },
 	{ 0x2810, 0x281f, pokey2_r },
 	{ 0x4000, 0x7fff, atetris_slapstic_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x0fff, MWA_RAM },
 	{ 0x1000, 0x1fff, videoram_w, &videoram, &videoram_size },
 	{ 0x2000, 0x20ff, paletteram_RRRGGGBB_w, &paletteram },
@@ -80,8 +77,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3800, 0x3800, MWA_NOP },  // ???
 	{ 0x3c00, 0x3c00, MWA_NOP },  // ???
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( atetris )
@@ -222,47 +218,47 @@ static const struct MachineDriver machine_driver_atetris =
 ***************************************************************************/
 
 ROM_START( atetris )
-	ROM_REGION( 0x14000, REGION_CPU1 )     /* 80k for code */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 )     /* 80k for code */
 	ROM_LOAD( "1100.45f",     0x0000, 0x10000, 0x2acbdb09 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1101.35a",     0x0000, 0x10000, 0x84a1939f )
 ROM_END
 
 ROM_START( atetrisa )
-	ROM_REGION( 0x14000, REGION_CPU1 )     /* 80k for code */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 )     /* 80k for code */
 	ROM_LOAD( "d1",           0x0000, 0x10000, 0x2bcab107 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1101.35a",     0x0000, 0x10000, 0x84a1939f )
 ROM_END
 
 ROM_START( atetrisb )
-	ROM_REGION( 0x14000, REGION_CPU1 )     /* 80k for code */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 )     /* 80k for code */
 	ROM_LOAD( "tetris.01",    0x0000, 0x10000, 0x944d15f6 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tetris.02",    0x0000, 0x10000, 0x5c4e7258 )
 
 	/* there's an extra EEPROM, maybe used for protection crack, which */
 	/* however doesn't seem to be required to run the game in this driver. */
-	ROM_REGION( 0x0800, REGION_USER1 )
+	ROM_REGION( 0x0800, REGION_USER1, 0 )
 	ROM_LOAD( "tetris.03",    0x0000, 0x0800, 0x26618c0b )
 ROM_END
 
 ROM_START( atetcktl )
-	ROM_REGION( 0x14000, REGION_CPU1 )     /* 80k for code */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 )     /* 80k for code */
 	ROM_LOAD( "tetcktl1.rom", 0x0000, 0x10000, 0x9afd1f4a )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1103.35a",     0x0000, 0x10000, 0xec2a7f93 )
 ROM_END
 
 ROM_START( atetckt2 )
-	ROM_REGION( 0x14000, REGION_CPU1 )     /* 80k for code */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 )     /* 80k for code */
 	ROM_LOAD( "1102.45f",     0x0000, 0x10000, 0x1bd28902 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1103.35a",     0x0000, 0x10000, 0xec2a7f93 )
 ROM_END
 

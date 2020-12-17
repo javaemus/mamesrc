@@ -10,78 +10,65 @@
 #include "machine/z80fmly.h"
 
 /* from machine/cchasm.c */
-READ_HANDLER( cchasm_6840_r );
-WRITE_HANDLER( cchasm_6840_w );
-WRITE_HANDLER( cchasm_led_w );
-WRITE_HANDLER( cchasm_watchdog_w );
+READ16_HANDLER( cchasm_6840_r );
+WRITE16_HANDLER( cchasm_6840_w );
+WRITE16_HANDLER( cchasm_led_w );
 
 /* from vidhrdw/cchasm.c */
-WRITE_HANDLER( cchasm_refresh_control_w );
+WRITE16_HANDLER( cchasm_refresh_control_w );
 void cchasm_init_colors (unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int cchasm_vh_start (void);
 void cchasm_vh_stop (void);
 
-extern UINT8 *cchasm_ram;
+extern data16_t *cchasm_ram;
 
 /* from sndhrdw/cchasm.c */
-WRITE_HANDLER( cchasm_io_w );
-READ_HANDLER( cchasm_io_r );
+WRITE16_HANDLER( cchasm_io_w );
+READ16_HANDLER( cchasm_io_r );
 READ_HANDLER( cchasm_snd_io_r );
 WRITE_HANDLER( cchasm_snd_io_w );
 int cchasm_sh_start(const struct MachineSound *msound);
 void cchasm_sh_update(void);
 
-static struct MemoryReadAddress readmem[] =
-{
-	{ 0x000000, 0x00ffff, MRA_ROM },
+static MEMORY_READ16_START( readmem )
+	{ 0x000000, 0x00ffff, MRA16_ROM },
 	{ 0x040000, 0x04000f, cchasm_6840_r },
-	{ 0x060000, 0x060001, input_port_0_r },
+	{ 0x060000, 0x060001, input_port_0_word_r },
 	{ 0xf80000, 0xf800ff, cchasm_io_r },
-	{ 0xffb000, 0xffffff, MRA_BANK1 },
-	{ -1 }	/* end of table */
-};
+	{ 0xffb000, 0xffffff, MRA16_RAM },
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
-	{ 0x000000, 0x00ffff, MWA_ROM },
+static MEMORY_WRITE16_START( writemem )
+	{ 0x000000, 0x00ffff, MWA16_ROM },
 	{ 0x040000, 0x04000f, cchasm_6840_w },
 	{ 0x050000, 0x050001, cchasm_refresh_control_w },
 	{ 0x060000, 0x060001, cchasm_led_w },
-	{ 0x070000, 0x070001, cchasm_watchdog_w },
+	{ 0x070000, 0x070001, watchdog_reset16_w },
 	{ 0xf80000, 0xf800ff, cchasm_io_w },
-	{ 0xffb000, 0xffffff, MWA_BANK1, &cchasm_ram },
-	{ -1 }	/* end of table */
-};
+	{ 0xffb000, 0xffffff, MWA16_RAM, &cchasm_ram },
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
 	{ 0x4000, 0x43ff, MRA_RAM },
 	{ 0x5000, 0x53ff, MRA_RAM },
 	{ 0x6000, 0x6fff, cchasm_snd_io_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
 	{ 0x4000, 0x43ff, MWA_RAM },
 	{ 0x5000, 0x53ff, MWA_RAM },
 	{ 0x6000, 0x6fff, cchasm_snd_io_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x00, 0x03, z80ctc_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x03, z80ctc_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( cchasm )
@@ -187,7 +174,7 @@ static const struct MachineDriver machine_driver_cchasm =
 	VIDEO_TYPE_VECTOR | VIDEO_SUPPORTS_DIRTY,
 	0,
 	cchasm_vh_start,
-	cchasm_vh_stop,
+	vector_vh_stop,
 	vector_vh_screenrefresh,
 
 	/* sound hardware */
@@ -213,48 +200,48 @@ static const struct MachineDriver machine_driver_cchasm =
 ***************************************************************************/
 
 ROM_START( cchasm )
-	ROM_REGION( 0x010000, REGION_CPU1 )
-    ROM_LOAD_EVEN( "chasm.u4",  0x000000, 0x001000, 0x19244f25 )
-    ROM_LOAD_ODD ( "chasm.u12", 0x000000, 0x001000, 0x5d702c7d )
-    ROM_LOAD_EVEN( "chasm.u8",  0x002000, 0x001000, 0x56a7ce8a )
-    ROM_LOAD_ODD ( "chasm.u16", 0x002000, 0x001000, 0x2e192db0 )
-    ROM_LOAD_EVEN( "chasm.u3",  0x004000, 0x001000, 0x9c71c600 )
-    ROM_LOAD_ODD ( "chasm.u11",  0x004000, 0x001000, 0xa4eb59a5 )
-    ROM_LOAD_EVEN( "chasm.u7",  0x006000, 0x001000, 0x8308dd6e )
-    ROM_LOAD_ODD ( "chasm.u15", 0x006000, 0x001000, 0x9d3abf97 )
-    ROM_LOAD_EVEN( "u2",        0x008000, 0x001000, 0x4e076ae7 )
-    ROM_LOAD_ODD ( "u10",       0x008000, 0x001000, 0xcc9e19ca )
-    ROM_LOAD_EVEN( "chasm.u6",  0x00a000, 0x001000, 0xa96525d2 )
-    ROM_LOAD_ODD ( "chasm.u14", 0x00a000, 0x001000, 0x8e426628 )
-    ROM_LOAD_EVEN( "u1",        0x00c000, 0x001000, 0x88b71027 )
-    ROM_LOAD_ODD ( "chasm.u9",  0x00c000, 0x001000, 0xd90c9773 )
-    ROM_LOAD_EVEN( "chasm.u5",  0x00e000, 0x001000, 0xe4a58b7d )
-    ROM_LOAD_ODD ( "chasm.u13", 0x00e000, 0x001000, 0x877e849c )
+	ROM_REGION( 0x010000, REGION_CPU1, 0 )
+    ROM_LOAD16_BYTE( "chasm.u4",  0x000000, 0x001000, 0x19244f25 )
+    ROM_LOAD16_BYTE( "chasm.u12", 0x000001, 0x001000, 0x5d702c7d )
+    ROM_LOAD16_BYTE( "chasm.u8",  0x002000, 0x001000, 0x56a7ce8a )
+    ROM_LOAD16_BYTE( "chasm.u16", 0x002001, 0x001000, 0x2e192db0 )
+    ROM_LOAD16_BYTE( "chasm.u3",  0x004000, 0x001000, 0x9c71c600 )
+    ROM_LOAD16_BYTE( "chasm.u11", 0x004001, 0x001000, 0xa4eb59a5 )
+    ROM_LOAD16_BYTE( "chasm.u7",  0x006000, 0x001000, 0x8308dd6e )
+    ROM_LOAD16_BYTE( "chasm.u15", 0x006001, 0x001000, 0x9d3abf97 )
+    ROM_LOAD16_BYTE( "u2",        0x008000, 0x001000, 0x4e076ae7 )
+    ROM_LOAD16_BYTE( "u10",       0x008001, 0x001000, 0xcc9e19ca )
+    ROM_LOAD16_BYTE( "chasm.u6",  0x00a000, 0x001000, 0xa96525d2 )
+    ROM_LOAD16_BYTE( "chasm.u14", 0x00a001, 0x001000, 0x8e426628 )
+    ROM_LOAD16_BYTE( "u1",        0x00c000, 0x001000, 0x88b71027 )
+    ROM_LOAD16_BYTE( "chasm.u9",  0x00c001, 0x001000, 0xd90c9773 )
+    ROM_LOAD16_BYTE( "chasm.u5",  0x00e000, 0x001000, 0xe4a58b7d )
+    ROM_LOAD16_BYTE( "chasm.u13", 0x00e001, 0x001000, 0x877e849c )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "2732.bin", 0x0000, 0x1000, 0x715adc4a )
 ROM_END
 
 ROM_START( cchasm1 )
-	ROM_REGION( 0x010000, REGION_CPU1 )
-    ROM_LOAD_EVEN( "chasm.u4",  0x000000, 0x001000, 0x19244f25 )
-    ROM_LOAD_ODD ( "chasm.u12", 0x000000, 0x001000, 0x5d702c7d )
-    ROM_LOAD_EVEN( "chasm.u8",  0x002000, 0x001000, 0x56a7ce8a )
-    ROM_LOAD_ODD ( "chasm.u16", 0x002000, 0x001000, 0x2e192db0 )
-    ROM_LOAD_EVEN( "chasm.u3",  0x004000, 0x001000, 0x9c71c600 )
-    ROM_LOAD_ODD ( "chasm.u11", 0x004000, 0x001000, 0xa4eb59a5 )
-    ROM_LOAD_EVEN( "chasm.u7",  0x006000, 0x001000, 0x8308dd6e )
-    ROM_LOAD_ODD ( "chasm.u15", 0x006000, 0x001000, 0x9d3abf97 )
-    ROM_LOAD_EVEN( "chasm.u2",  0x008000, 0x001000, 0x008b26ef )
-    ROM_LOAD_ODD ( "chasm.u10", 0x008000, 0x001000, 0xc2c532a3 )
-    ROM_LOAD_EVEN( "chasm.u6",  0x00a000, 0x001000, 0xa96525d2 )
-    ROM_LOAD_ODD ( "chasm.u14", 0x00a000, 0x001000, 0x8e426628 )
-    ROM_LOAD_EVEN( "chasm.u1",  0x00c000, 0x001000, 0xe02293f8 )
-    ROM_LOAD_ODD ( "chasm.u9",  0x00c000, 0x001000, 0xd90c9773 )
-    ROM_LOAD_EVEN( "chasm.u5",  0x00e000, 0x001000, 0xe4a58b7d )
-    ROM_LOAD_ODD ( "chasm.u13", 0x00e000, 0x001000, 0x877e849c )
+	ROM_REGION( 0x010000, REGION_CPU1, 0 )
+    ROM_LOAD16_BYTE( "chasm.u4",  0x000000, 0x001000, 0x19244f25 )
+    ROM_LOAD16_BYTE( "chasm.u12", 0x000001, 0x001000, 0x5d702c7d )
+    ROM_LOAD16_BYTE( "chasm.u8",  0x002000, 0x001000, 0x56a7ce8a )
+    ROM_LOAD16_BYTE( "chasm.u16", 0x002001, 0x001000, 0x2e192db0 )
+    ROM_LOAD16_BYTE( "chasm.u3",  0x004000, 0x001000, 0x9c71c600 )
+    ROM_LOAD16_BYTE( "chasm.u11", 0x004001, 0x001000, 0xa4eb59a5 )
+    ROM_LOAD16_BYTE( "chasm.u7",  0x006000, 0x001000, 0x8308dd6e )
+    ROM_LOAD16_BYTE( "chasm.u15", 0x006001, 0x001000, 0x9d3abf97 )
+    ROM_LOAD16_BYTE( "chasm.u2",  0x008000, 0x001000, 0x008b26ef )
+    ROM_LOAD16_BYTE( "chasm.u10", 0x008001, 0x001000, 0xc2c532a3 )
+    ROM_LOAD16_BYTE( "chasm.u6",  0x00a000, 0x001000, 0xa96525d2 )
+    ROM_LOAD16_BYTE( "chasm.u14", 0x00a001, 0x001000, 0x8e426628 )
+    ROM_LOAD16_BYTE( "chasm.u1",  0x00c000, 0x001000, 0xe02293f8 )
+    ROM_LOAD16_BYTE( "chasm.u9",  0x00c001, 0x001000, 0xd90c9773 )
+    ROM_LOAD16_BYTE( "chasm.u5",  0x00e000, 0x001000, 0xe4a58b7d )
+    ROM_LOAD16_BYTE( "chasm.u13", 0x00e001, 0x001000, 0x877e849c )
 
-	ROM_REGION( 0x1000, REGION_CPU2 )	/* 4k for the audio CPU */
+	ROM_REGION( 0x1000, REGION_CPU2, 0 )	/* 4k for the audio CPU */
 	ROM_LOAD( "2732.bin", 0x0000, 0x1000, 0x715adc4a )
 ROM_END
 

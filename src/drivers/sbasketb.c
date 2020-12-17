@@ -20,6 +20,9 @@ MAIN BOARD:
 #include "cpu/m6809/m6809.h"
 
 
+void konami1_decode(void);
+
+
 extern unsigned char *sbasketb_scroll;
 extern unsigned char *sbasketb_palettebank;
 extern unsigned char *sbasketb_spriteram_select;
@@ -40,9 +43,18 @@ WRITE_HANDLER( sbasketb_sh_irqtrigger_w )
 	cpu_cause_interrupt(1,0xff);
 }
 
-
-static struct MemoryReadAddress readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+static WRITE_HANDLER( sbasketb_coin_counter_w )
+{
+	coin_counter_w(offset,data);
+}
+
+
+static MEMORY_READ_START( readmem )
 	{ 0x2000, 0x3bff, MRA_RAM },
 	{ 0x3c10, 0x3c10, MRA_NOP },    /* ???? */
 	{ 0x3e00, 0x3e00, input_port_0_r },
@@ -52,11 +64,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x3e80, 0x3e80, input_port_3_r },
 	{ 0x3f00, 0x3f00, input_port_4_r },
 	{ 0x6000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x2000, 0x2fff, MWA_RAM },
 	{ 0x3000, 0x33ff, colorram_w, &colorram },
 	{ 0x3400, 0x37ff, videoram_w, &videoram, &videoram_size },
@@ -66,33 +76,28 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3c20, 0x3c20, MWA_RAM, &sbasketb_palettebank },
 	{ 0x3c80, 0x3c80, flip_screen_w },
 	{ 0x3c81, 0x3c81, interrupt_enable_w },
-	{ 0x3c83, 0x3c84, coin_counter_w },
+	{ 0x3c83, 0x3c84, sbasketb_coin_counter_w },
 	{ 0x3c85, 0x3c85, MWA_RAM, &sbasketb_spriteram_select },
 	{ 0x3d00, 0x3d00, soundlatch_w },
 	{ 0x3d80, 0x3d80, sbasketb_sh_irqtrigger_w },
 	{ 0x3f80, 0x3f80, MWA_RAM, &sbasketb_scroll },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x4000, 0x43ff, MRA_RAM },
 	{ 0x6000, 0x6000, soundlatch_r },
 	{ 0x8000, 0x8000, hyperspt_sh_timer_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x4000, 0x43ff, MWA_RAM },
 	{ 0xa000, 0xa000, VLM5030_data_w }, /* speech data */
 	{ 0xc000, 0xdfff, hyperspt_sound_w },     /* speech and output controll */
 	{ 0xe000, 0xe000, DAC_0_data_w },
 	{ 0xe001, 0xe001, konami_SN76496_latch_w },  /* Loads the snd command into the snd latch */
 	{ 0xe002, 0xe002, konami_SN76496_0_w },      /* This address triggers the SN chip to read the data port. */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -309,33 +314,75 @@ static const struct MachineDriver machine_driver_sbasketb =
 ***************************************************************************/
 
 ROM_START( sbasketb )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
-	ROM_LOAD( "sbb_j13.bin",  0x6000, 0x2000, 0x263ec36b )
-	ROM_LOAD( "sbb_j11.bin",  0x8000, 0x4000, 0x0a4d7a82 )
-	ROM_LOAD( "sbb_j09.bin",  0xc000, 0x4000, 0x4f9dd9a0 )
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )	/* 64k for code + 64k for the decrypted opcodes */
+	ROM_LOAD( "405e05",  0x6000, 0x2000, 0x32ea5b71 )
+	ROM_LOAD( "405e04",  0x8000, 0x2000, 0x7abf3087 )
+	ROM_LOAD( "405e03",  0xa000, 0x2000, 0x9c6fcdcd )
+	ROM_LOAD( "405e02",  0xc000, 0x2000, 0x0f145648 )
+	ROM_LOAD( "405e01",  0xe000, 0x2000, 0x6a27f1b1 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for audio cpu */
-	ROM_LOAD( "sbb_e13.bin",  0x0000, 0x2000, 0x1ec7458b )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for audio cpu */
+	ROM_LOAD( "405e13",       0x0000, 0x2000, 0x1ec7458b )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "sbb_e12.bin",  0x0000, 0x4000, 0xe02c54da )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "405e12",       0x0000, 0x4000, 0xe02c54da )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "sbb_h06.bin",  0x0000, 0x4000, 0xcfbbff07 )
-	ROM_LOAD( "sbb_h08.bin",  0x4000, 0x4000, 0xc75901b6 )
-	ROM_LOAD( "sbb_h10.bin",  0x8000, 0x4000, 0x95bc5942 )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD( "405e06",       0x0000, 0x2000, 0x7e2f5bb2 )
+	ROM_LOAD( "405e07",       0x2000, 0x2000, 0x963a44f9 )
+	ROM_LOAD( "405e08",       0x4000, 0x2000, 0x63901deb )
+	ROM_LOAD( "405e09",       0x6000, 0x2000, 0xe1873677 )
+	ROM_LOAD( "405e10",       0x8000, 0x2000, 0x824815e8 )
+	ROM_LOAD( "405e11",       0xa000, 0x2000, 0xdca9b447 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "405e17",       0x0000, 0x0100, 0xb4c36d57 ) /* palette red component */
 	ROM_LOAD( "405e16",       0x0100, 0x0100, 0x0b7b03b8 ) /* palette green component */
 	ROM_LOAD( "405e18",       0x0200, 0x0100, 0x9e533bad ) /* palette blue component */
 	ROM_LOAD( "405e20",       0x0300, 0x0100, 0x8ca6de2f ) /* character lookup table */
 	ROM_LOAD( "405e19",       0x0400, 0x0100, 0xe0bc782f ) /* sprite lookup table */
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )     /* 64k for speech rom */
-	ROM_LOAD( "sbb_e15.bin",  0x0000, 0x2000, 0x01bb5ce9 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )     /* 64k for speech rom */
+	ROM_LOAD( "405e15",       0x0000, 0x2000, 0x01bb5ce9 )
+ROM_END
+
+ROM_START( sbasketu )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
+	ROM_LOAD( "sbb_j13.bin",  0x6000, 0x2000, 0x263ec36b )
+	ROM_LOAD( "sbb_j11.bin",  0x8000, 0x4000, 0x0a4d7a82 )
+	ROM_LOAD( "sbb_j09.bin",  0xc000, 0x4000, 0x4f9dd9a0 )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for audio cpu */
+	ROM_LOAD( "405e13",       0x0000, 0x2000, 0x1ec7458b )
+
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "405e12",       0x0000, 0x4000, 0xe02c54da )
+
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD( "405e06",       0x0000, 0x2000, 0x7e2f5bb2 )
+	ROM_LOAD( "405e07",       0x2000, 0x2000, 0x963a44f9 )
+	ROM_LOAD( "405e08",       0x4000, 0x2000, 0x63901deb )
+	ROM_LOAD( "405e09",       0x6000, 0x2000, 0xe1873677 )
+	ROM_LOAD( "405e10",       0x8000, 0x2000, 0x824815e8 )
+	ROM_LOAD( "405e11",       0xa000, 0x2000, 0xdca9b447 )
+
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
+	ROM_LOAD( "405e17",       0x0000, 0x0100, 0xb4c36d57 ) /* palette red component */
+	ROM_LOAD( "405e16",       0x0100, 0x0100, 0x0b7b03b8 ) /* palette green component */
+	ROM_LOAD( "405e18",       0x0200, 0x0100, 0x9e533bad ) /* palette blue component */
+	ROM_LOAD( "405e20",       0x0300, 0x0100, 0x8ca6de2f ) /* character lookup table */
+	ROM_LOAD( "405e19",       0x0400, 0x0100, 0xe0bc782f ) /* sprite lookup table */
+
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )     /* 64k for speech rom */
+	ROM_LOAD( "405e15",       0x0000, 0x2000, 0x01bb5ce9 )
 ROM_END
 
 
+static void init_sbasketb(void)
+{
+	konami1_decode();
+}
 
-GAME( 1984, sbasketb, 0, sbasketb, sbasketb, 0, ROT90, "Konami", "Super Basketball" )
+
+GAME( 1984, sbasketb, 0,        sbasketb, sbasketb, sbasketb, ROT90, "Konami", "Super Basketball" )
+GAME( 1984, sbasketu, sbasketb, sbasketb, sbasketb, 0,        ROT90, "Konami", "Super Basketball (not encrypted)" )

@@ -7,6 +7,7 @@ Based on drivers from Juno First emulator by Chris Hardy (chrish@kcbbs.gen.nz)
 #include "driver.h"
 #include "vidhrdw/generic.h"
 #include "cpu/m6809/m6809.h"
+#include "sndhrdw/timeplt.h"
 
 
 void konami1_decode(void);
@@ -14,12 +15,6 @@ void konami1_decode(void);
 WRITE_HANDLER( rocnrope_flipscreen_w );
 void rocnrope_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void rocnrope_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-
-/* defined in sndhrdw/timeplt.c */
-extern struct MemoryReadAddress timeplt_sound_readmem[];
-extern struct MemoryWriteAddress timeplt_sound_writemem[];
-extern struct AY8910interface timeplt_ay8910_interface;
-WRITE_HANDLER( timeplt_sh_irqtrigger_w );
 
 
 /* Roc'n'Rope has the IRQ vectors in RAM. The rom contains $FFFF at this address! */
@@ -32,8 +27,7 @@ WRITE_HANDLER( rocnrope_interrupt_vector_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x3080, 0x3080, input_port_0_r }, /* IO Coin */
 	{ 0x3081, 0x3081, input_port_1_r }, /* P1 IO */
 	{ 0x3082, 0x3082, input_port_2_r }, /* P2 IO */
@@ -42,11 +36,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x3100, 0x3100, input_port_5_r }, /* DSW 2 */
 	{ 0x4000, 0x5fff, MRA_RAM },
 	{ 0x6000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x4000, 0x403f, MWA_RAM, &spriteram_2 },
 	{ 0x4040, 0x43ff, MWA_RAM },
 	{ 0x4400, 0x443f, MWA_RAM, &spriteram, &spriteram_size },
@@ -64,8 +56,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x8100, 0x8100, soundlatch_w },
 	{ 0x8182, 0x818d, rocnrope_interrupt_vector_w },
 	{ 0x6000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( rocnrope )
@@ -277,56 +268,56 @@ static const struct MachineDriver machine_driver_rocnrope =
 ***************************************************************************/
 
 ROM_START( rocnrope )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )     /* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )     /* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "rr1.1h",       0x6000, 0x2000, 0x83093134 )
 	ROM_LOAD( "rr2.2h",       0x8000, 0x2000, 0x75af8697 )
 	ROM_LOAD( "rr3.3h",       0xa000, 0x2000, 0xb21372b1 )
 	ROM_LOAD( "rr4.4h",       0xc000, 0x2000, 0x7acb2a05 )
 	ROM_LOAD( "rnr_h5.vid",   0xe000, 0x2000, 0x150a6264 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "rnr_7a.snd",   0x0000, 0x1000, 0x75d2c4e2 )
 	ROM_LOAD( "rnr_8a.snd",   0x1000, 0x1000, 0xca4325ae )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rnr_h12.vid",  0x0000, 0x2000, 0xe2114539 )
 	ROM_LOAD( "rnr_h11.vid",  0x2000, 0x2000, 0x169a8f3f )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "rnr_a11.vid",  0x0000, 0x2000, 0xafdaba5e )
 	ROM_LOAD( "rnr_a12.vid",  0x2000, 0x2000, 0x054cafeb )
 	ROM_LOAD( "rnr_a9.vid",   0x4000, 0x2000, 0x9d2166b2 )
 	ROM_LOAD( "rnr_a10.vid",  0x6000, 0x2000, 0xaff6e22f )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "a17_prom.bin", 0x0000, 0x0020, 0x22ad2c3e )
 	ROM_LOAD( "b16_prom.bin", 0x0020, 0x0100, 0x750a9677 )
 	ROM_LOAD( "rocnrope.pr3", 0x0120, 0x0100, 0xb5c75a27 )
 ROM_END
 
 ROM_START( rocnropk )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )     /* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )     /* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "rnr_h1.vid",   0x6000, 0x2000, 0x0fddc1f6 )
 	ROM_LOAD( "rnr_h2.vid",   0x8000, 0x2000, 0xce9db49a )
 	ROM_LOAD( "rnr_h3.vid",   0xa000, 0x2000, 0x6d278459 )
 	ROM_LOAD( "rnr_h4.vid",   0xc000, 0x2000, 0x9b2e5f2a )
 	ROM_LOAD( "rnr_h5.vid",   0xe000, 0x2000, 0x150a6264 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "rnr_7a.snd",   0x0000, 0x1000, 0x75d2c4e2 )
 	ROM_LOAD( "rnr_8a.snd",   0x1000, 0x1000, 0xca4325ae )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rnr_h12.vid",  0x0000, 0x2000, 0xe2114539 )
 	ROM_LOAD( "rnr_h11.vid",  0x2000, 0x2000, 0x169a8f3f )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "rnr_a11.vid",  0x0000, 0x2000, 0xafdaba5e )
 	ROM_LOAD( "rnr_a12.vid",  0x2000, 0x2000, 0x054cafeb )
 	ROM_LOAD( "rnr_a9.vid",   0x4000, 0x2000, 0x9d2166b2 )
 	ROM_LOAD( "rnr_a10.vid",  0x6000, 0x2000, 0xaff6e22f )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "a17_prom.bin", 0x0000, 0x0020, 0x22ad2c3e )
 	ROM_LOAD( "b16_prom.bin", 0x0020, 0x0100, 0x750a9677 )
 	ROM_LOAD( "rocnrope.pr3", 0x0120, 0x0100, 0xb5c75a27 )

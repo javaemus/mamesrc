@@ -32,22 +32,22 @@ Credits:
 
 static UINT8 thief_input_select;
 
-extern READ_HANDLER( thief_context_ram_r );
-extern WRITE_HANDLER( thief_context_ram_w );
-extern WRITE_HANDLER( thief_context_bank_w );
-extern WRITE_HANDLER( thief_video_control_w );
-extern WRITE_HANDLER( thief_vtcsel_w );
-extern WRITE_HANDLER( thief_color_map_w );
-extern WRITE_HANDLER( thief_color_plane_w );
-extern READ_HANDLER( thief_videoram_r );
-extern WRITE_HANDLER( thief_videoram_w );
-extern WRITE_HANDLER( thief_blit_w );
-extern READ_HANDLER( thief_coprocessor_r );
-extern WRITE_HANDLER( thief_coprocessor_w );
+READ_HANDLER( thief_context_ram_r );
+WRITE_HANDLER( thief_context_ram_w );
+WRITE_HANDLER( thief_context_bank_w );
+WRITE_HANDLER( thief_video_control_w );
+WRITE_HANDLER( thief_vtcsel_w );
+WRITE_HANDLER( thief_color_map_w );
+WRITE_HANDLER( thief_color_plane_w );
+READ_HANDLER( thief_videoram_r );
+WRITE_HANDLER( thief_videoram_w );
+WRITE_HANDLER( thief_blit_w );
+READ_HANDLER( thief_coprocessor_r );
+WRITE_HANDLER( thief_coprocessor_w );
 
-extern void thief_vh_stop( void );
-extern int thief_vh_start( void );
-extern void thief_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void thief_vh_stop( void );
+int thief_vh_start( void );
+void thief_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
 static int thief_interrupt( void )
@@ -153,24 +153,19 @@ static READ_HANDLER( thief_io_r )
 	return 0x00;
 }
 
-static struct MemoryReadAddress sharkatt_readmem[] =
-{
+static MEMORY_READ_START( sharkatt_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8fff, MRA_RAM },			/* 2114 (working RAM) */
 	{ 0xc000, 0xdfff, thief_videoram_r },	/* 4116 */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sharkatt_writemem[] =
-{
+static MEMORY_WRITE_START( sharkatt_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8fff, MWA_RAM },			/* 2114 */
 	{ 0xc000, 0xdfff, thief_videoram_w },	/* 4116 */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress thief_readmem[] =
-{
+static MEMORY_READ_START( thief_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8fff, MRA_RAM },			/* 2114 (working RAM) */
 	{ 0xa000, 0xafff, MRA_ROM },			/* NATO Defense diagnostic ROM */
@@ -178,11 +173,9 @@ static struct MemoryReadAddress thief_readmem[] =
 	{ 0xe000, 0xe008, thief_coprocessor_r },
 	{ 0xe010, 0xe02f, MRA_ROM },
 	{ 0xe080, 0xe0bf, thief_context_ram_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress thief_writemem[] =
-{
+static MEMORY_WRITE_START( thief_writemem )
 	{ 0x0000, 0x0000, thief_blit_w },
 	{ 0x0001, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8fff, MWA_RAM },			/* 2114 */
@@ -191,19 +184,15 @@ static struct MemoryWriteAddress thief_writemem[] =
 	{ 0xe010, 0xe02f, MWA_ROM },
 	{ 0xe080, 0xe0bf, thief_context_ram_w },
 	{ 0xe0c0, 0xe0c0, thief_context_bank_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x31, 0x31, thief_io_r }, // 8255
 	{ 0x41, 0x41, AY8910_read_port_0_r },
 	{ 0x43, 0x43, AY8910_read_port_1_r },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, MWA_NOP }, /* watchdog */
 	{ 0x10, 0x10, thief_video_control_w },
 	{ 0x30, 0x30, thief_input_select_w }, // 8255
@@ -215,8 +204,7 @@ static struct IOWritePort writeport[] =
 	{ 0x50, 0x50, thief_color_plane_w },
 	{ 0x60, 0x6f, thief_vtcsel_w },
 	{ 0x70, 0x7f, thief_color_map_w },
-	{ -1 }
-};
+PORT_END
 
 
 
@@ -483,7 +471,7 @@ static const struct MachineDriver machine_driver_sharkatt =
 	{
 		{
 			CPU_Z80,
-			4000000,        /* 4 Mhz? */
+			4000000,        /* 4 MHz? */
 			sharkatt_readmem,sharkatt_writemem,readport,writeport,
 			thief_interrupt,1
 		}
@@ -523,7 +511,7 @@ static const struct MachineDriver machine_driver_thief =
 	{
 		{
 			CPU_Z80,
-			4000000, /* 4 Mhz? */
+			4000000, /* 4 MHz? */
 			thief_readmem,thief_writemem,readport,writeport,
 			thief_interrupt,1
 		},
@@ -564,7 +552,7 @@ static const struct MachineDriver machine_driver_natodef =
 	{
 		{
 			CPU_Z80,
-			4000000, /* 4 Mhz? */
+			4000000, /* 4 MHz? */
 			thief_readmem,thief_writemem,readport,writeport,
 			thief_interrupt,1
 		},
@@ -602,7 +590,7 @@ static const struct MachineDriver machine_driver_natodef =
 /**********************************************************/
 
 ROM_START( sharkatt )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "sharkatt.0",   0x0000, 0x800, 0xc71505e9 )
 	ROM_LOAD( "sharkatt.1",   0x0800, 0x800, 0x3e3abf70 )
 	ROM_LOAD( "sharkatt.2",   0x1000, 0x800, 0x96ded944 )
@@ -619,7 +607,7 @@ ROM_START( sharkatt )
 ROM_END
 
 ROM_START( thief )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* Z80 code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* Z80 code */
 	ROM_LOAD( "t8a0ah0a",	0x0000, 0x1000, 0xedbbf71c )
 	ROM_LOAD( "t2662h2",	0x1000, 0x1000, 0x85b4f6ff )
 	ROM_LOAD( "tc162h4",	0x2000, 0x1000, 0x70478a82 )
@@ -629,20 +617,20 @@ ROM_START( thief )
 	ROM_LOAD( "t606bh12",	0x6000, 0x1000, 0x4ca2748b )
 	ROM_LOAD( "tae4bh14",	0x7000, 0x1000, 0x22e7dcc3 ) /* diagnostics ROM */
 
-	ROM_REGION( 0x400, REGION_CPU2 ) /* coprocessor */
+	ROM_REGION( 0x400, REGION_CPU2, 0 ) /* coprocessor */
 	ROM_LOAD( "b8",			0x000, 0x0200, 0xfe865b2a )
 	/* B8 is a function dispatch table for the coprocessor (unused) */
 	ROM_LOAD( "c8", 		0x200, 0x0200, 0x7ed5c923 )
 	/* C8 is mapped (banked) in CPU1's address space; it contains Z80 code */
 
-	ROM_REGION( 0x6000, REGION_GFX1 ) /* image ROMs for coprocessor */
-	ROM_LOAD_GFX_ODD(  "t079ahd4" ,  0x0000, 0x1000, 0x928bd8ef )
-	ROM_LOAD_GFX_EVEN( "tdda7hh4" ,  0x0000, 0x1000, 0xb48f0862 )
+	ROM_REGION( 0x6000, REGION_GFX1, 0 ) /* image ROMs for coprocessor */
+	ROM_LOAD16_BYTE( "t079ahd4" ,  0x0001, 0x1000, 0x928bd8ef )
+	ROM_LOAD16_BYTE( "tdda7hh4" ,  0x0000, 0x1000, 0xb48f0862 )
 	/* next 0x4000 bytes are unmapped (used by Nato Defense) */
 ROM_END
 
 ROM_START( natodef )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* Z80 code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* Z80 code */
 	ROM_LOAD( "natodef.cp0",	0x0000, 0x1000, 0x8397c787 )
 	ROM_LOAD( "natodef.cp2",	0x1000, 0x1000, 0x8cfbf26f )
 	ROM_LOAD( "natodef.cp4",	0x2000, 0x1000, 0xb4c90fb2 )
@@ -653,22 +641,49 @@ ROM_START( natodef )
 	ROM_LOAD( "natodef.cpe",	0x7000, 0x1000, 0x4eef6bf4 )
 	ROM_LOAD( "natodef.cp5",	0xa000, 0x1000, 0x65c3601b )	/* diagnostics ROM */
 
-	ROM_REGION( 0x400, REGION_CPU2 ) /* coprocessor */
+	ROM_REGION( 0x400, REGION_CPU2, 0 ) /* coprocessor */
 	ROM_LOAD( "b8",			0x000, 0x0200, 0xfe865b2a )
 	ROM_LOAD( "c8", 		0x200, 0x0200, 0x7ed5c923 )
 	/* C8 is mapped (banked) in CPU1's address space; it contains Z80 code */
 
-	ROM_REGION( 0x6000, REGION_GFX1 ) /* image ROMs for coprocessor */
-	ROM_LOAD_GFX_ODD(  "natodef.o4",	0x0000, 0x1000, 0x39a868f8 )
-	ROM_LOAD_GFX_EVEN( "natodef.e1",	0x0000, 0x1000, 0xb6d1623d )
-	ROM_LOAD_GFX_ODD(  "natodef.o3",	0x2000, 0x1000, 0xb217909a ) /* ? */
-	ROM_LOAD_GFX_EVEN( "natodef.e2",	0x2000, 0x1000, 0x886c3f05 ) /* ? */
-	ROM_LOAD_GFX_ODD(  "natodef.o2",	0x4000, 0x1000, 0x77cc9cfd ) /* ? */
-	ROM_LOAD_GFX_EVEN( "natodef.e3",	0x4000, 0x1000, 0x5302410d ) /* ? */
+	ROM_REGION( 0x6000, REGION_GFX1, 0 ) /* image ROMs for coprocessor */
+	ROM_LOAD16_BYTE( "natodef.o4",	0x0001, 0x1000, 0x39a868f8 )
+	ROM_LOAD16_BYTE( "natodef.e1",	0x0000, 0x1000, 0xb6d1623d )
+	ROM_LOAD16_BYTE( "natodef.o2",	0x2001, 0x1000, 0x77cc9cfd )
+	ROM_LOAD16_BYTE( "natodef.e3",	0x2000, 0x1000, 0x5302410d )
+	ROM_LOAD16_BYTE( "natodef.o3",	0x4001, 0x1000, 0xb217909a )
+	ROM_LOAD16_BYTE( "natodef.e2",	0x4000, 0x1000, 0x886c3f05 )
+ROM_END
+
+ROM_START( natodefa )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* Z80 code */
+	ROM_LOAD( "natodef.cp0",	0x0000, 0x1000, 0x8397c787 )
+	ROM_LOAD( "natodef.cp2",	0x1000, 0x1000, 0x8cfbf26f )
+	ROM_LOAD( "natodef.cp4",	0x2000, 0x1000, 0xb4c90fb2 )
+	ROM_LOAD( "natodef.cp6",	0x3000, 0x1000, 0xc6d0d35e )
+	ROM_LOAD( "natodef.cp8",	0x4000, 0x1000, 0xe4b6c21e )
+	ROM_LOAD( "natodef.cpa",	0x5000, 0x1000, 0x888ecd42 )
+	ROM_LOAD( "natodef.cpc",	0x6000, 0x1000, 0xcf713bc9 )
+	ROM_LOAD( "natodef.cpe",	0x7000, 0x1000, 0x4eef6bf4 )
+	ROM_LOAD( "natodef.cp5",	0xa000, 0x1000, 0x65c3601b )	/* diagnostics ROM */
+
+	ROM_REGION( 0x400, REGION_CPU2, 0 ) /* coprocessor */
+	ROM_LOAD( "b8",			0x000, 0x0200, 0xfe865b2a )
+	ROM_LOAD( "c8", 		0x200, 0x0200, 0x7ed5c923 )
+	/* C8 is mapped (banked) in CPU1's address space; it contains Z80 code */
+
+	ROM_REGION( 0x6000, REGION_GFX1, 0 ) /* image ROMs for coprocessor */
+	ROM_LOAD16_BYTE( "natodef.o4",	0x0001, 0x1000, 0x39a868f8 )
+	ROM_LOAD16_BYTE( "natodef.e1",	0x0000, 0x1000, 0xb6d1623d )
+	ROM_LOAD16_BYTE( "natodef.o3",	0x2001, 0x1000, 0xb217909a ) /* same ROMs as natodef, */
+	ROM_LOAD16_BYTE( "natodef.e2",	0x2000, 0x1000, 0x886c3f05 ) /* but in a different */
+	ROM_LOAD16_BYTE( "natodef.o2",	0x4001, 0x1000, 0x77cc9cfd ) /* order to give */
+	ROM_LOAD16_BYTE( "natodef.e3",	0x4000, 0x1000, 0x5302410d ) /* different mazes */
 ROM_END
 
 
 
-GAME( 1980, sharkatt, 0, sharkatt, sharkatt, 0, ROT0, "Pacific Novelty", "Shark Attack" )
-GAME( 1981, thief,    0, thief,    thief,    0, ROT0, "Pacific Novelty", "Thief" )
-GAME( 1982, natodef,  0, natodef,  natodef,  0, ROT0, "Pacific Novelty", "NATO Defense"  )
+GAME( 1980, sharkatt, 0,       sharkatt, sharkatt, 0, ROT0, "Pacific Novelty", "Shark Attack" )
+GAME( 1981, thief,    0,       thief,    thief,    0, ROT0, "Pacific Novelty", "Thief" )
+GAME( 1982, natodef,  0,       natodef,  natodef,  0, ROT0, "Pacific Novelty", "NATO Defense"  )
+GAME( 1982, natodefa, natodef, natodef,  natodef,  0, ROT0, "Pacific Novelty", "NATO Defense (alternate mazes)"  )

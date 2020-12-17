@@ -47,8 +47,7 @@ static WRITE_HANDLER( aeroboto_3000_w )
 	/* there's probably a flip screen here as well */
 }
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x07ff, MRA_RAM },
 	{ 0x0800, 0x08ff, MRA_RAM },	/* ? copied to 2000 */
 	{ 0x1000, 0x17ff, MRA_RAM },
@@ -60,11 +59,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x3004, 0x3004, aeroboto_201_r },
 	{ 0x3800, 0x3800, watchdog_reset_r },	/* or IRQ acknowledge */
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x07ff, MWA_RAM },
 	{ 0x0800, 0x08ff, MWA_RAM },	/* ? initialized on startup */
 	{ 0x0900, 0x09ff, MWA_RAM },	/* ? initialized on startup (same as 0800) */
@@ -78,28 +75,23 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3001, 0x3001, soundlatch_w },	/* ? */
 	{ 0x3002, 0x3002, soundlatch2_w },	/* ? */
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x0fff, MRA_RAM },
 	{ 0x9002, 0x9002, AY8910_read_port_0_r },
 	{ 0xa002, 0xa002, AY8910_read_port_1_r },
 	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sound[] =
-{
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x0fff, MWA_RAM },
 	{ 0x9000, 0x9000, AY8910_control_port_0_w },
 	{ 0x9001, 0x9001, AY8910_write_port_0_w },
 	{ 0xa000, 0xa000, AY8910_control_port_1_w },
 	{ 0xa001, 0xa001, AY8910_write_port_1_w },
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -270,52 +262,52 @@ static const struct MachineDriver machine_driver_formatz =
 ***************************************************************************/
 
 ROM_START( formatz )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for main CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for main CPU */
 	ROM_LOAD( "format_z.8",   0x4000, 0x4000, 0x81a2416c )
 	ROM_LOAD( "format_z.7",   0x8000, 0x4000, 0x986e6052 )
 	ROM_LOAD( "format_z.6",   0xc000, 0x4000, 0xbaa0d745 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for sound CPU */
 	ROM_LOAD( "format_z.9",   0xf000, 0x1000, 0x6b9215ad )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "format_z.5",   0x0000, 0x2000, 0xba50be57 )	/* characters */
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "format_z.4",   0x0000, 0x2000, 0x910375a0 )	/* characters */
 
-	ROM_REGION( 0x3000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x3000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "format_z.1",   0x0000, 0x1000, 0x5739afd2 )	/* sprites */
 	ROM_LOAD( "format_z.2",   0x1000, 0x1000, 0x3a821391 )	/* sprites */
 	ROM_LOAD( "format_z.3",   0x2000, 0x1000, 0x7d1aec79 )	/* sprites */
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "10a",          0x0000, 0x0100, 0x00000000 )
 	ROM_LOAD( "10b",          0x0100, 0x0100, 0x00000000 )
 	ROM_LOAD( "10c",          0x0200, 0x0100, 0x00000000 )
 ROM_END
 
 ROM_START( aeroboto )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for main CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for main CPU */
 	ROM_LOAD( "aeroboto.8",   0x4000, 0x4000, 0x4d3fc049 )
 	ROM_LOAD( "aeroboto.7",   0x8000, 0x4000, 0x522f51c1 )
 	ROM_LOAD( "aeroboto.6",   0xc000, 0x4000, 0x1a295ffb )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for sound CPU */
 	ROM_LOAD( "format_z.9",   0xf000, 0x1000, 0x6b9215ad )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "aeroboto.5",   0x0000, 0x2000, 0x32fc00f9 )	/* characters */
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "format_z.4",   0x0000, 0x2000, 0x910375a0 )	/* characters */
 
-	ROM_REGION( 0x3000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x3000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "aeroboto.1",   0x0000, 0x1000, 0x7820eeaf )	/* sprites */
 	ROM_LOAD( "aeroboto.2",   0x1000, 0x1000, 0xc7f81a3c )	/* sprites */
 	ROM_LOAD( "aeroboto.3",   0x2000, 0x1000, 0x5203ad04 )	/* sprites */
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "10a",          0x0000, 0x0100, 0x00000000 )
 	ROM_LOAD( "10b",          0x0100, 0x0100, 0x00000000 )
 	ROM_LOAD( "10c",          0x0200, 0x0100, 0x00000000 )

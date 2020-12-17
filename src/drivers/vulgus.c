@@ -43,8 +43,6 @@ c001      YM2203 #2 write
 #include "vidhrdw/generic.h"
 
 
-int c1942_interrupt(void);
-
 extern unsigned char *vulgus_fgvideoram;
 extern unsigned char *vulgus_bgvideoram;
 extern unsigned char *vulgus_scroll_low,*vulgus_scroll_high;
@@ -67,8 +65,7 @@ static int vulgus_interrupt(void)
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x9fff, MRA_ROM },
 	{ 0xc000, 0xc000, input_port_0_r },
 	{ 0xc001, 0xc001, input_port_1_r },
@@ -76,11 +73,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xc003, 0xc003, input_port_3_r },
 	{ 0xc004, 0xc004, input_port_4_r },
 	{ 0xd000, 0xefff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x9fff, MWA_ROM },
 	{ 0xc800, 0xc800, soundlatch_w },
 	{ 0xc802, 0xc803, MWA_RAM, &vulgus_scroll_low },
@@ -91,28 +86,23 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xd000, 0xd7ff, vulgus_fgvideoram_w, &vulgus_fgvideoram },
 	{ 0xd800, 0xdfff, vulgus_bgvideoram_w, &vulgus_bgvideoram },
 	{ 0xe000, 0xefff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x4000, 0x47ff, MRA_RAM },
 	{ 0x6000, 0x6000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x8000, 0x8000, AY8910_control_port_0_w },
 	{ 0x8001, 0x8001, AY8910_write_port_0_w },
 	{ 0xc000, 0xc000, AY8910_control_port_1_w },
 	{ 0xc001, 0xc001, AY8910_write_port_1_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -316,20 +306,20 @@ static const struct MachineDriver machine_driver_vulgus =
 ***************************************************************************/
 
 ROM_START( vulgus )
-	ROM_REGION( 0x1c000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x1c000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "v2",           0x0000, 0x2000, 0x3e18ff62 )
 	ROM_LOAD( "v3",           0x2000, 0x2000, 0xb4650d82 )
 	ROM_LOAD( "v4",           0x4000, 0x2000, 0x5b26355c )
 	ROM_LOAD( "v5",           0x6000, 0x2000, 0x4ca7f10e )
 	ROM_LOAD( "1-8n.bin",     0x8000, 0x2000, 0x6ca5ca41 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "1-11c.bin",    0x0000, 0x2000, 0x3bd2acf4 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1-3d.bin",     0x00000, 0x2000, 0x8bc5d7a5 )	/* characters */
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "2-2a.bin",     0x00000, 0x2000, 0xe10aaca1 )	/* tiles */
 	ROM_LOAD( "2-3a.bin",     0x02000, 0x2000, 0x8da520da )
 	ROM_LOAD( "2-4a.bin",     0x04000, 0x2000, 0x206a13f1 )
@@ -337,13 +327,13 @@ ROM_START( vulgus )
 	ROM_LOAD( "2-6a.bin",     0x08000, 0x2000, 0x5a26b38f )
 	ROM_LOAD( "2-7a.bin",     0x0a000, 0x2000, 0x1e1ca773 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "2-2n.bin",     0x00000, 0x2000, 0x6db1b10d )	/* sprites */
 	ROM_LOAD( "2-3n.bin",     0x02000, 0x2000, 0x5d8c34ec )
 	ROM_LOAD( "2-4n.bin",     0x04000, 0x2000, 0x0071a2e3 )
 	ROM_LOAD( "2-5n.bin",     0x06000, 0x2000, 0x4023a1ec )
 
-	ROM_REGION( 0x0800, REGION_PROMS )
+	ROM_REGION( 0x0800, REGION_PROMS, 0 )
 	ROM_LOAD( "e8.bin",       0x0000, 0x0100, 0x06a83606 )	/* red component */
 	ROM_LOAD( "e9.bin",       0x0100, 0x0100, 0xbeacf13c )	/* green component */
 	ROM_LOAD( "e10.bin",      0x0200, 0x0100, 0xde1fb621 )	/* blue component */
@@ -355,20 +345,20 @@ ROM_START( vulgus )
 ROM_END
 
 ROM_START( vulgus2 )
-	ROM_REGION( 0x1c000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x1c000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "vulgus.002",   0x0000, 0x2000, 0xe49d6c5d )
 	ROM_LOAD( "vulgus.003",   0x2000, 0x2000, 0x51acef76 )
 	ROM_LOAD( "vulgus.004",   0x4000, 0x2000, 0x489e7f60 )
 	ROM_LOAD( "vulgus.005",   0x6000, 0x2000, 0xde3a24a8 )
 	ROM_LOAD( "1-8n.bin",     0x8000, 0x2000, 0x6ca5ca41 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "1-11c.bin",    0x0000, 0x2000, 0x3bd2acf4 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1-3d.bin",     0x00000, 0x2000, 0x8bc5d7a5 )	/* characters */
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "2-2a.bin",     0x00000, 0x2000, 0xe10aaca1 )	/* tiles */
 	ROM_LOAD( "2-3a.bin",     0x02000, 0x2000, 0x8da520da )
 	ROM_LOAD( "2-4a.bin",     0x04000, 0x2000, 0x206a13f1 )
@@ -376,13 +366,13 @@ ROM_START( vulgus2 )
 	ROM_LOAD( "2-6a.bin",     0x08000, 0x2000, 0x5a26b38f )
 	ROM_LOAD( "2-7a.bin",     0x0a000, 0x2000, 0x1e1ca773 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "2-2n.bin",     0x00000, 0x2000, 0x6db1b10d )	/* sprites */
 	ROM_LOAD( "2-3n.bin",     0x02000, 0x2000, 0x5d8c34ec )
 	ROM_LOAD( "2-4n.bin",     0x04000, 0x2000, 0x0071a2e3 )
 	ROM_LOAD( "2-5n.bin",     0x06000, 0x2000, 0x4023a1ec )
 
-	ROM_REGION( 0x0800, REGION_PROMS )
+	ROM_REGION( 0x0800, REGION_PROMS, 0 )
 	ROM_LOAD( "e8.bin",       0x0000, 0x0100, 0x06a83606 )	/* red component */
 	ROM_LOAD( "e9.bin",       0x0100, 0x0100, 0xbeacf13c )	/* green component */
 	ROM_LOAD( "e10.bin",      0x0200, 0x0100, 0xde1fb621 )	/* blue component */
@@ -394,20 +384,20 @@ ROM_START( vulgus2 )
 ROM_END
 
 ROM_START( vulgusj )
-	ROM_REGION( 0x1c000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x1c000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "1-4n.bin",     0x0000, 0x2000, 0xfe5a5ca5 )
 	ROM_LOAD( "1-5n.bin",     0x2000, 0x2000, 0x847e437f )
 	ROM_LOAD( "1-6n.bin",     0x4000, 0x2000, 0x4666c436 )
 	ROM_LOAD( "1-7n.bin",     0x6000, 0x2000, 0xff2097f9 )
 	ROM_LOAD( "1-8n.bin",     0x8000, 0x2000, 0x6ca5ca41 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "1-11c.bin",    0x0000, 0x2000, 0x3bd2acf4 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "1-3d.bin",     0x00000, 0x2000, 0x8bc5d7a5 )	/* characters */
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "2-2a.bin",     0x00000, 0x2000, 0xe10aaca1 )	/* tiles */
 	ROM_LOAD( "2-3a.bin",     0x02000, 0x2000, 0x8da520da )
 	ROM_LOAD( "2-4a.bin",     0x04000, 0x2000, 0x206a13f1 )
@@ -415,13 +405,13 @@ ROM_START( vulgusj )
 	ROM_LOAD( "2-6a.bin",     0x08000, 0x2000, 0x5a26b38f )
 	ROM_LOAD( "2-7a.bin",     0x0a000, 0x2000, 0x1e1ca773 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "2-2n.bin",     0x00000, 0x2000, 0x6db1b10d )	/* sprites */
 	ROM_LOAD( "2-3n.bin",     0x02000, 0x2000, 0x5d8c34ec )
 	ROM_LOAD( "2-4n.bin",     0x04000, 0x2000, 0x0071a2e3 )
 	ROM_LOAD( "2-5n.bin",     0x06000, 0x2000, 0x4023a1ec )
 
-	ROM_REGION( 0x0800, REGION_PROMS )
+	ROM_REGION( 0x0800, REGION_PROMS, 0 )
 	ROM_LOAD( "e8.bin",       0x0000, 0x0100, 0x06a83606 )	/* red component */
 	ROM_LOAD( "e9.bin",       0x0100, 0x0100, 0xbeacf13c )	/* green component */
 	ROM_LOAD( "e10.bin",      0x0200, 0x0100, 0xde1fb621 )	/* blue component */

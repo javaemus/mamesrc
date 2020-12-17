@@ -145,8 +145,7 @@ static WRITE_HANDLER( kangaroo_coin_counter_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0xc000, 0xdfff, MRA_BANK1 },
 	{ 0xe000, 0xe3ff, MRA_RAM },
@@ -155,11 +154,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xed00, 0xed00, input_port_1_r },
 	{ 0xee00, 0xee00, input_port_2_r },
 	{ 0xef00, 0xef00, kangaroo_sec_chip_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x8000, 0xbfff, kangaroo_videoram_w },
 	{ 0xc000, 0xdfff, MWA_ROM },
@@ -172,30 +169,23 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xec00, 0xec00, soundlatch_w },
 	{ 0xed00, 0xed00, kangaroo_coin_counter_w },
 	{ 0xef00, 0xefff, kangaroo_sec_chip_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
 	{ 0x4000, 0x43ff, MRA_RAM },
 	{ 0x6000, 0x6000, soundlatch_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
 	{ 0x4000, 0x43ff, MWA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x7000, 0x7000, AY8910_write_port_0_w },
 	{ 0x8000, 0x8000, AY8910_control_port_0_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -392,7 +382,7 @@ static const struct MachineDriver machine_driver_kangaroo =
 ***************************************************************************/
 
 ROM_START( fnkyfish )
-	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 ) /* 64k for code + 16k for banked ROMs */
 	ROM_LOAD( "tvg_64.0",    0x0000,  0x1000, 0xaf728803 )
 	ROM_LOAD( "tvg_65.1",    0x1000,  0x1000, 0x71959e6b )
 	ROM_LOAD( "tvg_66.2",    0x2000,  0x1000, 0x5ccf68d4 )
@@ -403,12 +393,12 @@ ROM_START( fnkyfish )
 	ROM_LOAD( "tvg_70.v1",   0x12000, 0x1000, 0xfd308ef1 )
 	ROM_LOAD( "tvg_72.v3",   0x13000, 0x1000, 0x6ae9b584 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sound */
 	ROM_LOAD( "tvg_68.8",    0x0000,  0x1000, 0xd36bb2be )
 ROM_END
 
 ROM_START( kangaroo )
-	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 ) /* 64k for code + 16k for banked ROMs */
 	ROM_LOAD( "tvg_75.0",    0x0000,  0x1000, 0x0d18c581 )
 	ROM_LOAD( "tvg_76.1",    0x1000,  0x1000, 0x5978d37a )
 	ROM_LOAD( "tvg_77.2",    0x2000,  0x1000, 0x522d1097 )
@@ -421,15 +411,15 @@ ROM_START( kangaroo )
 	ROM_LOAD( "tvg_84.v1",   0x12000, 0x1000, 0xe4cb26c2 )
 	ROM_LOAD( "tvg_86.v3",   0x13000, 0x1000, 0x9e6a599f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sound */
 	ROM_LOAD( "tvg_81.8",    0x0000,  0x1000, 0xfb449bfd )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )  /* 8k for the MB8841 custom microcontroller (currently not emulated) */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )  /* 8k for the MB8841 custom microcontroller (currently not emulated) */
 	ROM_LOAD( "tvg_82.12",   0x0000,  0x0800, 0x57766f69 )
 ROM_END
 
 ROM_START( kangaroa )
-	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 ) /* 64k for code + 16k for banked ROMs */
 	ROM_LOAD( "tvg_75.0",    0x0000,  0x1000, 0x0d18c581 )
 	ROM_LOAD( "tvg_76.1",    0x1000,  0x1000, 0x5978d37a )
 	ROM_LOAD( "tvg_77.2",    0x2000,  0x1000, 0x522d1097 )
@@ -442,15 +432,15 @@ ROM_START( kangaroa )
 	ROM_LOAD( "tvg_84.v1",   0x12000, 0x1000, 0xe4cb26c2 )
 	ROM_LOAD( "tvg_86.v3",   0x13000, 0x1000, 0x9e6a599f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sound */
 	ROM_LOAD( "tvg_81.8",    0x0000,  0x1000, 0xfb449bfd )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )  /* 8k for the MB8841 custom microcontroller (currently not emulated) */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )  /* 8k for the MB8841 custom microcontroller (currently not emulated) */
 	ROM_LOAD( "tvg_82.12",   0x0000,  0x0800, 0x57766f69 )
 ROM_END
 
 ROM_START( kangarob )
-	ROM_REGION( 0x14000, REGION_CPU1 ) /* 64k for code + 16k for banked ROMs */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 ) /* 64k for code + 16k for banked ROMs */
 	ROM_LOAD( "tvg_75.0",    0x0000,  0x1000, 0x0d18c581 )
 	ROM_LOAD( "tvg_76.1",    0x1000,  0x1000, 0x5978d37a )
 	ROM_LOAD( "tvg_77.2",    0x2000,  0x1000, 0x522d1097 )
@@ -463,7 +453,7 @@ ROM_START( kangarob )
 	ROM_LOAD( "tvg_84.v1",   0x12000, 0x1000, 0xe4cb26c2 )
 	ROM_LOAD( "tvg_86.v3",   0x13000, 0x1000, 0x9e6a599f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sound */
 	ROM_LOAD( "tvg_81.8",    0x0000,  0x1000, 0xfb449bfd )
 ROM_END
 

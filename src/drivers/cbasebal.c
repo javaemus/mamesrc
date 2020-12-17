@@ -146,34 +146,27 @@ static WRITE_HANDLER( eeprom_serial_w )
 
 
 
-static struct MemoryReadAddress cbasebal_readmem[] =
-{
+static MEMORY_READ_START( cbasebal_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xcfff, bankedram_r },
 	{ 0xe000, 0xffff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cbasebal_writemem[] =
-{
+static MEMORY_WRITE_START( cbasebal_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, bankedram_w, &paletteram },	/* palette + vram + scrollram */
 	{ 0xe000, 0xfdff, MWA_RAM },			/* work RAM */
 	{ 0xfe00, 0xffff, MWA_RAM, &spriteram, &spriteram_size },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort cbasebal_readport[] =
-{
+static PORT_READ_START( cbasebal_readport )
 	{ 0x10, 0x10, input_port_0_r },
 	{ 0x11, 0x11, input_port_1_r },
 	{ 0x12, 0x12, eeprom_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort cbasebal_writeport[] =
-{
+static PORT_WRITE_START( cbasebal_writeport )
 	{ 0x00, 0x00, cbasebal_bankswitch_w },
 	{ 0x01, 0x01, eeprom_cs_w },
 	{ 0x02, 0x02, eeprom_clock_w },
@@ -185,8 +178,7 @@ static struct IOWritePort cbasebal_writeport[] =
 	{ 0x0a, 0x0b, cbasebal_scrolly_w },
 	{ 0x13, 0x13, cbasebal_gfxctrl_w },
 	{ 0x14, 0x14, cbasebal_coinctrl_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( cbasebal )
@@ -329,29 +321,29 @@ static const struct MachineDriver machine_driver_cbasebal =
 
 
 ROM_START( cbasebal )
-	ROM_REGION( 2*0x90000, REGION_CPU1 )	/* 576k for code + 576k for decrypted opcodes */
+	ROM_REGION( 2*0x90000, REGION_CPU1, 0 )	/* 576k for code + 576k for decrypted opcodes */
 	ROM_LOAD( "cbj10.11j",    0x00000, 0x08000, 0xbbff0acc )
 	ROM_LOAD( "cbj07.16f",    0x10000, 0x20000, 0x8111d13f )
 	ROM_LOAD( "cbj06.14f",    0x30000, 0x20000, 0x9aaa0e37 )
 	ROM_LOAD( "cbj05.13f",    0x50000, 0x20000, 0xd0089f37 )
 	/* 0x70000-0x8ffff empty (space for 04) */
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cbj13.16m",    0x00000, 0x10000, 0x2359fa0a )	/* text */
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cbj02.1f",     0x00000, 0x20000, 0xd6740535 )	/* tiles */
 	ROM_LOAD( "cbj03.2f",     0x20000, 0x20000, 0x88098dcd )
 	ROM_LOAD( "cbj08.1j",     0x40000, 0x20000, 0x5f3344bf )
 	ROM_LOAD( "cbj09.2j",     0x60000, 0x20000, 0xaafffdae )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cbj11.1m",     0x00000, 0x20000, 0xbdc1507d )	/* sprites */
 	ROM_LOAD( "cbj12.2m",     0x20000, 0x20000, 0x973f3efe )
 	ROM_LOAD( "cbj14.1n",     0x40000, 0x20000, 0x765dabaa )
 	ROM_LOAD( "cbj15.2n",     0x60000, 0x20000, 0x74756de5 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "cbj01.1e",     0x00000, 0x20000, 0x1d8968bd )
 ROM_END
 

@@ -64,8 +64,7 @@ static READ_HANDLER( speedup_r )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0020, 0x003f, MRA_RAM },
 	{ 0x0220, 0x023f, MRA_RAM },
 	{ 0x0410, 0x0410, input_port_0_r },
@@ -80,11 +79,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x0700, 0x5fff, MRA_RAM },
 	{ 0x6000, 0x7fff, MRA_BANK1 },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x0007, hcastle_pf1_control_w },
 	{ 0x0020, 0x003f, MWA_RAM },	/* rowscroll? */
 	{ 0x0200, 0x0207, hcastle_pf2_control_w },
@@ -102,8 +99,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x4000, 0x4fff, hcastle_pf2_video_w, &hcastle_pf2_videoram },
 	{ 0x5000, 0x5fff, MWA_RAM, &spriteram_2, &spriteram_2_size },
  	{ 0x6000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /*****************************************************************************/
 
@@ -116,18 +112,15 @@ static WRITE_HANDLER( sound_bank_w )
 	K007232_bankswitch(0,RAM+bank_A,RAM+bank_B);
 }
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xa000, 0xa000, YM3812_status_port_0_r },
 	{ 0xb000, 0xb00d, K007232_read_port_0_r },
 	{ 0xd000, 0xd000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0x9800, 0x987f, K051649_waveform_w },
@@ -138,8 +131,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0xa001, 0xa001, YM3812_write_port_0_w },
 	{ 0xb000, 0xb00d, K007232_write_port_0_w },
 	{ 0xc000, 0xc000, sound_bank_w }, /* 7232 bankswitch */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /*****************************************************************************/
 
@@ -359,83 +351,83 @@ static const struct MachineDriver machine_driver_hcastle =
 /***************************************************************************/
 
 ROM_START( hcastle )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "768.k03",      0x08000, 0x08000, 0x40ce4f38 )
 	ROM_LOAD( "768.g06",      0x10000, 0x20000, 0xcdade920 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "768.e01",      0x00000, 0x08000, 0xb9fff184 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "d95.g21",      0x000000, 0x80000, 0xe3be3fdd )
 	ROM_LOAD( "d94.g19",      0x080000, 0x80000, 0x9633db8b )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "d91.j5",       0x000000, 0x80000, 0x2960680e )
 	ROM_LOAD( "d92.j6",       0x080000, 0x80000, 0x65a2f227 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "768c13.j21",   0x0000, 0x0100, 0xf5de80cb )	/* 007121 #0 sprite lookup table */
 	ROM_LOAD( "768c14.j22",   0x0100, 0x0100, 0xb32071b7 )	/* 007121 #0 char lookup table */
 	ROM_LOAD( "768c11.i4",    0x0200, 0x0100, 0xf5de80cb )	/* 007121 #1 sprite lookup table (same) */
 	ROM_LOAD( "768c10.i3",    0x0300, 0x0100, 0xb32071b7 )	/* 007121 #1 char lookup table (same) */
 	ROM_LOAD( "768b12.d20",   0x0400, 0x0100, 0x362544b8 )	/* priority encoder (not used) */
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* 512k for the samples */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* 512k for the samples */
 	ROM_LOAD( "d93.e17",      0x00000, 0x80000, 0x01f9889c )
 ROM_END
 
 ROM_START( hcastlea )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "m03.k12",      0x08000, 0x08000, 0xd85e743d )
 	ROM_LOAD( "b06.k8",       0x10000, 0x20000, 0xabd07866 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "768.e01",      0x00000, 0x08000, 0xb9fff184 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "d95.g21",      0x000000, 0x80000, 0xe3be3fdd )
 	ROM_LOAD( "d94.g19",      0x080000, 0x80000, 0x9633db8b )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "d91.j5",       0x000000, 0x80000, 0x2960680e )
 	ROM_LOAD( "d92.j6",       0x080000, 0x80000, 0x65a2f227 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "768c13.j21",   0x0000, 0x0100, 0xf5de80cb )	/* 007121 #0 sprite lookup table */
 	ROM_LOAD( "768c14.j22",   0x0100, 0x0100, 0xb32071b7 )	/* 007121 #0 char lookup table */
 	ROM_LOAD( "768c11.i4",    0x0200, 0x0100, 0xf5de80cb )	/* 007121 #1 sprite lookup table (same) */
 	ROM_LOAD( "768c10.i3",    0x0300, 0x0100, 0xb32071b7 )	/* 007121 #1 char lookup table (same) */
 	ROM_LOAD( "768b12.d20",   0x0400, 0x0100, 0x362544b8 )	/* priority encoder (not used) */
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* 512k for the samples */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* 512k for the samples */
 	ROM_LOAD( "d93.e17",      0x00000, 0x80000, 0x01f9889c )
 ROM_END
 
 ROM_START( hcastlej )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "768p03.k12",0x08000, 0x08000, 0xd509e340 )
 	ROM_LOAD( "768j06.k8", 0x10000, 0x20000, 0x42283c3e )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "768.e01",   0x00000, 0x08000, 0xb9fff184 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "d95.g21",      0x000000, 0x80000, 0xe3be3fdd )
 	ROM_LOAD( "d94.g19",      0x080000, 0x80000, 0x9633db8b )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "d91.j5",       0x000000, 0x80000, 0x2960680e )
 	ROM_LOAD( "d92.j6",       0x080000, 0x80000, 0x65a2f227 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "768c13.j21",   0x0000, 0x0100, 0xf5de80cb )	/* 007121 #0 sprite lookup table */
 	ROM_LOAD( "768c14.j22",   0x0100, 0x0100, 0xb32071b7 )	/* 007121 #0 char lookup table */
 	ROM_LOAD( "768c11.i4",    0x0200, 0x0100, 0xf5de80cb )	/* 007121 #1 sprite lookup table (same) */
 	ROM_LOAD( "768c10.i3",    0x0300, 0x0100, 0xb32071b7 )	/* 007121 #1 char lookup table (same) */
 	ROM_LOAD( "768b12.d20",   0x0400, 0x0100, 0x362544b8 )	/* priority encoder (not used) */
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* 512k for the samples */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* 512k for the samples */
 	ROM_LOAD( "d93.e17",  0x00000, 0x80000, 0x01f9889c )
 ROM_END
 

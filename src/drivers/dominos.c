@@ -33,8 +33,7 @@ WRITE_HANDLER( dominos_lamp1_w );
 /* vidhrdw/dominos.c */
 extern void dominos_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x03ff, MRA_RAM }, /* RAM */
 	{ 0x0400, 0x07ff, MRA_RAM }, /* RAM */
 	{ 0x0800, 0x083f, dominos_port_r }, /* SWITCH */
@@ -48,11 +47,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x0c00, 0x0fff, dominos_sync_r }, /* SYNC */
 	{ 0x3000, 0x3fff, MRA_ROM }, /* ROM1-ROM2 */
 	{ 0xfff0, 0xffff, MRA_ROM }, /* ROM2 for 6502 vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x0400, 0x07ff, videoram_w, &videoram, &videoram_size }, /* DISPLAY */
 	{ 0x0c00, 0x0c0f, dominos_attract_w }, /* ATTRACT */
@@ -61,8 +58,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x0c40, 0x0c4f, dominos_lamp1_w }, /* LAMP1 */
 	{ 0x0c80, 0x0cff, MWA_NOP }, /* TIMER RESET */
 	{ 0x3000, 0x3fff, MWA_ROM }, /* ROM1-ROM2 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 INPUT_PORTS_START( dominos )
 		PORT_START		/* DSW - fake port, gets mapped to Dominos ports */
@@ -149,7 +145,7 @@ static const struct MachineDriver machine_driver_dominos =
 	{
 		{
 			CPU_M6502,
-			750000, 	   /* 750 Khz ???? */
+			750000, 	   /* 750 kHz ???? */
 			readmem,writemem,0,0,
 			interrupt,1
 		}
@@ -186,12 +182,12 @@ static const struct MachineDriver machine_driver_dominos =
 ***************************************************************************/
 
 ROM_START( dominos )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "7352-02.d1",   0x3000, 0x0800, 0x738b4413 )
 	ROM_LOAD( "7438-02.e1",   0x3800, 0x0800, 0xc84e54e2 )
 	ROM_RELOAD( 			  0xf800, 0x0800 )
 
-	ROM_REGION( 0x800, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x800, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "7439-01.p4",   0x0000, 0x0200, 0x4f42fdd6 )
 	ROM_LOAD( "7440-01.r4",   0x0200, 0x0200, 0x957dd8df )
 ROM_END

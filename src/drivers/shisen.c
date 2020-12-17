@@ -45,73 +45,57 @@ static WRITE_HANDLER( sichuan2_coin_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc800, 0xcaff, MRA_RAM },
 	{ 0xd000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc800, 0xcaff, sichuan2_paletteram_w, &paletteram },
 	{ 0xd000, 0xdfff, videoram_w, &videoram, &videoram_size },
 	{ 0xe000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, sichuan2_dsw1_r },
 	{ 0x01, 0x01, input_port_4_r },
 	{ 0x02, 0x02, input_port_0_r },
 	{ 0x03, 0x03, input_port_1_r },
 	{ 0x04, 0x04, input_port_2_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, sichuan2_coin_w },
 	{ 0x01, 0x01, m72_sound_command_w },
 	{ 0x02, 0x02, sichuan2_bankswitch_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0xfd00, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0xfd00, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x01, 0x01, YM2151_status_port_0_r },
 	{ 0x80, 0x80, soundlatch_r },
 	{ 0x84, 0x84, m72_sample_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, YM2151_register_port_0_w },
 	{ 0x01, 0x01, YM2151_data_port_0_w },
 	{ 0x80, 0x81, shisen_sample_addr_w },
 	{ 0x82, 0x82, m72_sample_w },
 	{ 0x83, 0x83, m72_sound_irq_ack_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -311,15 +295,15 @@ static const struct MachineDriver machine_driver_shisen =
 ***************************************************************************/
 
 ROM_START( sichuan2 )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k+128k for main CPU */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k+128k for main CPU */
 	ROM_LOAD( "ic06.06",      0x00000, 0x10000, 0x98a2459b )
 	ROM_RELOAD(               0x10000, 0x10000 )
 	ROM_LOAD( "ic07.03",      0x20000, 0x10000, 0x0350f6e2 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic01.01",      0x00000, 0x10000, 0x51b0a26c )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic08.04",      0x00000, 0x10000, 0x1c0e221c )
 	ROM_LOAD( "ic09.05",      0x10000, 0x10000, 0x8a7d8284 )
 	ROM_LOAD( "ic12.08",      0x20000, 0x10000, 0x48e1d043 )
@@ -337,7 +321,7 @@ ROM_START( sichuan2 )
 	ROM_LOAD( "ic10.06",      0xe0000, 0x10000, 0x473b349a )
 	ROM_LOAD( "ic11.07",      0xf0000, 0x10000, 0xd9a60285 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ic02.02",      0x00000, 0x10000, 0x92f0093d )
 	ROM_LOAD( "ic03.03",      0x10000, 0x10000, 0x116a049c )
 	ROM_LOAD( "ic04.04",      0x20000, 0x10000, 0x6840692b )
@@ -345,15 +329,15 @@ ROM_START( sichuan2 )
 ROM_END
 
 ROM_START( sichuana )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k+128k for main CPU */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k+128k for main CPU */
 	ROM_LOAD( "sichuan.a6",   0x00000, 0x10000, 0xf8ac05ef )
 	ROM_RELOAD(               0x10000, 0x10000 )
 	ROM_LOAD( "ic07.03",      0x20000, 0x10000, 0x0350f6e2 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic01.01",      0x00000, 0x10000, 0x51b0a26c )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic08.04",      0x00000, 0x10000, 0x1c0e221c )
 	ROM_LOAD( "ic09.05",      0x10000, 0x10000, 0x8a7d8284 )
 	ROM_LOAD( "ic12.08",      0x20000, 0x10000, 0x48e1d043 )
@@ -371,7 +355,7 @@ ROM_START( sichuana )
 	ROM_LOAD( "ic10.06",      0xe0000, 0x10000, 0x473b349a )
 	ROM_LOAD( "ic11.07",      0xf0000, 0x10000, 0xd9a60285 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ic02.02",      0x00000, 0x10000, 0x92f0093d )
 	ROM_LOAD( "ic03.03",      0x10000, 0x10000, 0x116a049c )
 	ROM_LOAD( "ic04.04",      0x20000, 0x10000, 0x6840692b )
@@ -379,14 +363,14 @@ ROM_START( sichuana )
 ROM_END
 
 ROM_START( shisen )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k+128k for main CPU */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k+128k for main CPU */
 	ROM_LOAD( "a-27-a.rom",   0x00000, 0x20000, 0xde2ecf05 )
 	ROM_RELOAD(               0x10000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic01.01",      0x00000, 0x10000, 0x51b0a26c )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic08.04",      0x00000, 0x10000, 0x1c0e221c )
 	ROM_LOAD( "ic09.05",      0x10000, 0x10000, 0x8a7d8284 )
 	ROM_LOAD( "ic12.08",      0x20000, 0x10000, 0x48e1d043 )
@@ -404,7 +388,7 @@ ROM_START( shisen )
 	ROM_LOAD( "ic10.06",      0xe0000, 0x10000, 0x473b349a )
 	ROM_LOAD( "ic11.07",      0xf0000, 0x10000, 0xd9a60285 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ic02.02",      0x00000, 0x10000, 0x92f0093d )
 	ROM_LOAD( "ic03.03",      0x10000, 0x10000, 0x116a049c )
 	ROM_LOAD( "ic04.04",      0x20000, 0x10000, 0x6840692b )

@@ -30,38 +30,31 @@ void superqix_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xe000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xe000, 0xe0ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xe100, 0xe7ff, MWA_RAM },
 	{ 0xe800, 0xebff, videoram_w, &videoram, &videoram_size },
 	{ 0xec00, 0xefff, colorram_w, &colorram },
 	{ 0xf000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x0000, 0x00ff, paletteram_r },
 	{ 0x0401, 0x0401, AY8910_read_port_0_r },
 	{ 0x0405, 0x0405, AY8910_read_port_1_r },
 	{ 0x0418, 0x0418, input_port_4_r },
 	{ 0x0800, 0x77ff, superqix_bitmapram_r },
 	{ 0x8800, 0xf7ff, superqix_bitmapram2_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x0000, 0x00ff, paletteram_BBGGRRII_w },
 	{ 0x0402, 0x0402, AY8910_write_port_0_w },
 	{ 0x0403, 0x0403, AY8910_control_port_0_w },
@@ -70,8 +63,7 @@ static struct IOWritePort writeport[] =
 	{ 0x0410, 0x0410, superqix_0410_w },	/* ROM bank, NMI enable, tile bank */
 	{ 0x0800, 0x77ff, superqix_bitmapram_w },
 	{ 0x8800, 0xf7ff, superqix_bitmapram2_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -267,37 +259,37 @@ static const struct MachineDriver machine_driver_superqix =
 ***************************************************************************/
 
 ROM_START( superqix )
-	ROM_REGION( 0x20000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "sq01.97",      0x00000, 0x08000, 0x0888b7de )
 	ROM_LOAD( "sq02.96",      0x10000, 0x10000, 0x9c23cb64 )
 
-	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sq04.2",       0x00000, 0x08000, 0xf815ef45 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sq03.3",       0x00000, 0x10000, 0x6e8b6a67 )
 	ROM_LOAD( "sq06.14",      0x10000, 0x10000, 0x38154517 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sq05.1",       0x00000, 0x10000, 0xdf326540 )
 
-	ROM_REGION( 0x1000, REGION_USER1 )	/* Unknown (protection related?) */
+	ROM_REGION( 0x1000, REGION_USER1, 0 )	/* Unknown (protection related?) */
 	ROM_LOAD( "sq07.108",     0x00000, 0x1000, 0x071a598c )
 ROM_END
 
 ROM_START( sqixbl )
-	ROM_REGION( 0x20000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "cpu.2",        0x00000, 0x08000, 0x682e28e3 )
 	ROM_LOAD( "sq02.96",      0x10000, 0x10000, 0x9c23cb64 )
 
-	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sq04.2",       0x00000, 0x08000, 0xf815ef45 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sq03.3",       0x00000, 0x10000, 0x6e8b6a67 )
 	ROM_LOAD( "sq06.14",      0x10000, 0x10000, 0x38154517 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sq05.1",       0x00000, 0x10000, 0xdf326540 )
 ROM_END
 

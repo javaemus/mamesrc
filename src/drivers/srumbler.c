@@ -69,8 +69,7 @@ static int srumbler_interrupt(void)
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x3fff, MRA_RAM },   /* RAM (of 1 sort or another) */
 	{ 0x4008, 0x4008, input_port_0_r },
 	{ 0x4009, 0x4009, input_port_1_r },
@@ -88,8 +87,7 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xd000, 0xdfff, MRA_BANK14 },	/* Banked ROM */
 	{ 0xe000, 0xefff, MRA_BANK15 },	/* Banked ROM */
 	{ 0xf000, 0xffff, MRA_BANK16 },	/* Banked ROM */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 /*
 The "scroll test" routine on the test screen appears to overflow and write
@@ -101,8 +99,7 @@ to the page register.
 Ignore the warnings about writing to unmapped memory.
 */
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x1dff, MWA_RAM },
 	{ 0x1e00, 0x1fff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x2000, 0x3fff, srumbler_background_w, &srumbler_backgroundram },
@@ -114,27 +111,22 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x6000, 0x6fff, MWA_RAM }, /* Video RAM 2 ??? (not used) */
 	{ 0x7000, 0x73ff, paletteram_RRRRGGGGBBBBxxxx_swap_w, &paletteram },
 	{ 0x7400, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0xe000, 0xe000, soundlatch_r },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0x0000, 0x7fff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0x8000, 0x8000, YM2203_control_port_0_w },
 	{ 0x8001, 0x8001, YM2203_write_port_0_w },
 	{ 0xa000, 0xa000, YM2203_control_port_1_w },
 	{ 0xa001, 0xa001, YM2203_write_port_1_w },
 	{ 0x0000, 0x7fff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( srumbler )
@@ -331,10 +323,10 @@ static const struct MachineDriver machine_driver_srumbler =
 ***************************************************************************/
 
 ROM_START( srumbler )
-	ROM_REGION( 0x10000, REGION_CPU1 )  /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )  /* 64k for code */
 	/* empty, will be filled later */
 
-	ROM_REGION( 0x40000, REGION_USER1 ) /* Paged ROMs */
+	ROM_REGION( 0x40000, REGION_USER1, 0 ) /* Paged ROMs */
 	ROM_LOAD( "14e_sr04.bin", 0x00000, 0x08000, 0xa68ce89c )  /* RC4 */
 	ROM_LOAD( "13e_sr03.bin", 0x08000, 0x08000, 0x87bda812 )  /* RC3 */
 	ROM_LOAD( "12e_sr02.bin", 0x10000, 0x08000, 0xd8609cca )  /* RC2 */
@@ -344,13 +336,13 @@ ROM_START( srumbler )
 	ROM_LOAD( "12f_sr07.bin", 0x30000, 0x08000, 0xde785076 )  /* RC7 */
 	ROM_LOAD( "11f_sr06.bin", 0x38000, 0x08000, 0xa70f4fd4 )  /* RC6 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the audio CPU */
 	ROM_LOAD( "2f_sr05.bin",  0x0000, 0x8000, 0x0177cebe )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "6g_sr10.bin",  0x00000, 0x4000, 0xadabe271 ) /* characters */
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "11a_sr11.bin", 0x00000, 0x8000, 0x5fa042ba ) /* tiles */
 	ROM_LOAD( "13a_sr12.bin", 0x08000, 0x8000, 0xa2db64af )
 	ROM_LOAD( "14a_sr13.bin", 0x10000, 0x8000, 0xf1df5499 )
@@ -360,7 +352,7 @@ ROM_START( srumbler )
 	ROM_LOAD( "14c_sr17.bin", 0x30000, 0x8000, 0xaa80aaab )
 	ROM_LOAD( "15c_sr18.bin", 0x38000, 0x8000, 0xce67868e )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "15e_sr20.bin", 0x00000, 0x8000, 0x3924c861 ) /* sprites */
 	ROM_LOAD( "14e_sr19.bin", 0x08000, 0x8000, 0xff8f9129 )
 	ROM_LOAD( "15f_sr22.bin", 0x10000, 0x8000, 0xab64161c )
@@ -370,17 +362,17 @@ ROM_START( srumbler )
 	ROM_LOAD( "15j_sr26.bin", 0x30000, 0x8000, 0xd4f1732f )
 	ROM_LOAD( "14j_sr25.bin", 0x38000, 0x8000, 0xd2a4ea4f )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "63s141.12a",   0x0000, 0x0100, 0x8421786f )	/* ROM banking */
 	ROM_LOAD( "63s141.13a",   0x0100, 0x0100, 0x6048583f )	/* ROM banking */
 	ROM_LOAD( "63s141.8j",    0x0200, 0x0100, 0x1a89a7ff )	/* priority (not used) */
 ROM_END
 
 ROM_START( srumblr2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )  /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )  /* 64k for code */
 	/* empty, will be filled later */
 
-	ROM_REGION( 0x40000, REGION_USER1 ) /* Paged ROMs */
+	ROM_REGION( 0x40000, REGION_USER1, 0 ) /* Paged ROMs */
 	ROM_LOAD( "14e_sr04.bin", 0x00000, 0x08000, 0xa68ce89c )  /* RC4 */
 	ROM_LOAD( "rc03.13e",     0x08000, 0x08000, 0xe82f78d4 )  /* RC3 (different) */
 	ROM_LOAD( "rc02.12e",     0x10000, 0x08000, 0x009a62d8 )  /* RC2 (different) */
@@ -390,13 +382,13 @@ ROM_START( srumblr2 )
 	ROM_LOAD( "12f_sr07.bin", 0x30000, 0x08000, 0xde785076 )  /* RC7 */
 	ROM_LOAD( "11f_sr06.bin", 0x38000, 0x08000, 0xa70f4fd4 )  /* RC6 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the audio CPU */
 	ROM_LOAD( "rc05.2f",      0x0000, 0x8000, 0xea04fa07 )  /* AUDIO (different) */
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "6g_sr10.bin",  0x00000, 0x4000, 0xadabe271 ) /* characters */
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "11a_sr11.bin", 0x00000, 0x8000, 0x5fa042ba ) /* tiles */
 	ROM_LOAD( "13a_sr12.bin", 0x08000, 0x8000, 0xa2db64af )
 	ROM_LOAD( "14a_sr13.bin", 0x10000, 0x8000, 0xf1df5499 )
@@ -406,7 +398,7 @@ ROM_START( srumblr2 )
 	ROM_LOAD( "14c_sr17.bin", 0x30000, 0x8000, 0xaa80aaab )
 	ROM_LOAD( "15c_sr18.bin", 0x38000, 0x8000, 0xce67868e )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "15e_sr20.bin", 0x00000, 0x8000, 0x3924c861 ) /* sprites */
 	ROM_LOAD( "14e_sr19.bin", 0x08000, 0x8000, 0xff8f9129 )
 	ROM_LOAD( "15f_sr22.bin", 0x10000, 0x8000, 0xab64161c )
@@ -416,17 +408,17 @@ ROM_START( srumblr2 )
 	ROM_LOAD( "15j_sr26.bin", 0x30000, 0x8000, 0xd4f1732f )
 	ROM_LOAD( "14j_sr25.bin", 0x38000, 0x8000, 0xd2a4ea4f )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "63s141.12a",   0x0000, 0x0100, 0x8421786f )	/* ROM banking */
 	ROM_LOAD( "63s141.13a",   0x0100, 0x0100, 0x6048583f )	/* ROM banking */
 	ROM_LOAD( "63s141.8j",    0x0200, 0x0100, 0x1a89a7ff )	/* priority (not used) */
 ROM_END
 
 ROM_START( rushcrsh )
-	ROM_REGION( 0x10000, REGION_CPU1 )  /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )  /* 64k for code */
 	/* empty, will be filled later */
 
-	ROM_REGION( 0x40000, REGION_USER1 ) /* Paged ROMs */
+	ROM_REGION( 0x40000, REGION_USER1, 0 ) /* Paged ROMs */
 	ROM_LOAD( "14e_sr04.bin", 0x00000, 0x08000, 0xa68ce89c )  /* RC4 */
 	ROM_LOAD( "rc03.bin",     0x08000, 0x08000, 0xa49c9be0 )  /* RC3 (different) */
 	ROM_LOAD( "rc02.12e",     0x10000, 0x08000, 0x009a62d8 )  /* RC2 (different) */
@@ -436,13 +428,13 @@ ROM_START( rushcrsh )
 	ROM_LOAD( "12f_sr07.bin", 0x30000, 0x08000, 0xde785076 )  /* RC7 */
 	ROM_LOAD( "11f_sr06.bin", 0x38000, 0x08000, 0xa70f4fd4 )  /* RC6 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the audio CPU */
 	ROM_LOAD( "rc05.2f",      0x0000, 0x8000, 0xea04fa07 )  /* AUDIO (different) */
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rc10.bin",     0x00000, 0x4000, 0x0a3c0b0d ) /* characters */
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "11a_sr11.bin", 0x00000, 0x8000, 0x5fa042ba ) /* tiles */
 	ROM_LOAD( "13a_sr12.bin", 0x08000, 0x8000, 0xa2db64af )
 	ROM_LOAD( "14a_sr13.bin", 0x10000, 0x8000, 0xf1df5499 )
@@ -452,7 +444,7 @@ ROM_START( rushcrsh )
 	ROM_LOAD( "14c_sr17.bin", 0x30000, 0x8000, 0xaa80aaab )
 	ROM_LOAD( "15c_sr18.bin", 0x38000, 0x8000, 0xce67868e )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "15e_sr20.bin", 0x00000, 0x8000, 0x3924c861 ) /* sprites */
 	ROM_LOAD( "14e_sr19.bin", 0x08000, 0x8000, 0xff8f9129 )
 	ROM_LOAD( "15f_sr22.bin", 0x10000, 0x8000, 0xab64161c )
@@ -462,7 +454,7 @@ ROM_START( rushcrsh )
 	ROM_LOAD( "15j_sr26.bin", 0x30000, 0x8000, 0xd4f1732f )
 	ROM_LOAD( "14j_sr25.bin", 0x38000, 0x8000, 0xd2a4ea4f )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "63s141.12a",   0x0000, 0x0100, 0x8421786f )	/* ROM banking */
 	ROM_LOAD( "63s141.13a",   0x0100, 0x0100, 0x6048583f )	/* ROM banking */
 	ROM_LOAD( "63s141.8j",    0x0200, 0x0100, 0x1a89a7ff )	/* priority (not used) */

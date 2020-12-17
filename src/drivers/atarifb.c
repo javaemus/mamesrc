@@ -218,8 +218,7 @@ static WRITE_HANDLER( atarifb_out3_w )
 //	logerror("out3_w, %02x:%02x\n", loop, data);
 }
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },
 	{ 0x1000, 0x13bf, MRA_RAM },
 	{ 0x13c0, 0x13ff, MRA_RAM },
@@ -228,11 +227,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x4002, 0x4002, atarifb_in2_r },
 	{ 0x6000, 0x7fff, MRA_ROM }, /* PROM */
 	{ 0xfff0, 0xffff, MRA_ROM }, /* PROM for 6502 vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x0200, 0x025f, atarifb_alphap1_vram_w, &atarifb_alphap1_vram, &atarifb_alphap1_vram_size },
 	{ 0x0260, 0x039f, MWA_RAM },
@@ -246,11 +243,9 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3000, 0x3000, MWA_NOP }, /* Interrupt Acknowledge */
 	{ 0x5000, 0x5000, watchdog_reset_w },
 	{ 0x6000, 0x7fff, MWA_ROM }, /* PROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress atarifb4_readmem[] =
-{
+static MEMORY_READ_START( atarifb4_readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },
 	{ 0x1000, 0x13bf, MRA_RAM },
 	{ 0x13c0, 0x13ff, MRA_RAM },
@@ -260,11 +255,9 @@ static struct MemoryReadAddress atarifb4_readmem[] =
 	{ 0x4002, 0x4002, atarifb4_in2_r },
 	{ 0x6000, 0x7fff, MRA_ROM }, /* PROM */
 	{ 0xfff0, 0xffff, MRA_ROM }, /* PROM for 6502 vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress atarifb4_writemem[] =
-{
+static MEMORY_WRITE_START( atarifb4_writemem )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x0200, 0x025f, atarifb_alphap1_vram_w, &atarifb_alphap1_vram, &atarifb_alphap1_vram_size },
 	{ 0x0260, 0x039f, MWA_RAM },
@@ -278,11 +271,9 @@ static struct MemoryWriteAddress atarifb4_writemem[] =
 	{ 0x3000, 0x3000, MWA_NOP }, /* Interrupt Acknowledge */
 	{ 0x5000, 0x5000, watchdog_reset_w },
 	{ 0x6000, 0x7fff, MWA_ROM }, /* PROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress soccer_readmem[] =
-{
+static MEMORY_READ_START( soccer_readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },
 	{ 0x0800, 0x0bff, MRA_RAM },	/* playfield/object RAM */
 	{ 0x2000, 0x3fff, MRA_ROM }, /* PROM */
@@ -291,11 +282,9 @@ static struct MemoryReadAddress soccer_readmem[] =
 	{ 0x1802, 0x1802, atarifb4_in2_r },
 	{ 0x1803, 0x1803, input_port_11_r },
 	{ 0xfff0, 0xffff, MRA_ROM }, /* PROM for 6502 vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress soccer_writemem[] =
-{
+static MEMORY_WRITE_START( soccer_writemem )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x0200, 0x025f, atarifb_alphap1_vram_w, &atarifb_alphap1_vram, &atarifb_alphap1_vram_size },
 	{ 0x0260, 0x039f, MWA_RAM },
@@ -308,8 +297,7 @@ static struct MemoryWriteAddress soccer_writemem[] =
 	{ 0x1004, 0x1004, MWA_NOP }, /* Interrupt Acknowledge */
 	{ 0x1005, 0x1005, watchdog_reset_w },
 	{ 0x2000, 0x3fff, MWA_ROM }, /* PROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( atarifb )
@@ -772,37 +760,37 @@ static const struct MachineDriver machine_driver_soccer =
 ***************************************************************************/
 
 ROM_START( atarifb )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "03302602.m1", 0x6800, 0x0800, 0x352e35db )
 	ROM_LOAD( "03302801.p1", 0x7000, 0x0800, 0xa79c79ca )
 	ROM_LOAD( "03302702.n1", 0x7800, 0x0800, 0xe7e916ae )
 	ROM_RELOAD( 			    0xf800, 0x0800 )
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "033029.n7", 0x0000, 0x0400, 0x12f43dca )
 
-	ROM_REGION( 0x0200, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0200, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "033030.c5", 0x0000, 0x0200, 0xeac9ef90 )
 	ROM_LOAD_NIB_HIGH( "033031.d5", 0x0000, 0x0200, 0x89d619b8 )
 ROM_END
 
 ROM_START( atarifb1 )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "03302601.m1", 0x6800, 0x0800, 0xf8ce7ed8 )
 	ROM_LOAD( "03302801.p1", 0x7000, 0x0800, 0xa79c79ca )
 	ROM_LOAD( "03302701.n1", 0x7800, 0x0800, 0x7740be51 )
 	ROM_RELOAD( 			    0xf800, 0x0800 )
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "033029.n7", 0x0000, 0x0400, 0x12f43dca )
 
-	ROM_REGION( 0x0200, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0200, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "033030.c5", 0x0000, 0x0200, 0xeac9ef90 )
 	ROM_LOAD_NIB_HIGH( "033031.d5", 0x0000, 0x0200, 0x89d619b8 )
 ROM_END
 
 ROM_START( atarifb4 )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code, the ROMs are nibble-wide */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code, the ROMs are nibble-wide */
 	ROM_LOAD_NIB_LOW ( "34889.m1", 0x6000, 0x0400, 0x5c63974a )
 	ROM_LOAD_NIB_HIGH( "34891.m2", 0x6000, 0x0400, 0x9d03baa1 )
 	ROM_LOAD_NIB_LOW ( "34890.n1", 0x6400, 0x0400, 0x2deb5844 )
@@ -818,36 +806,36 @@ ROM_START( atarifb4 )
 	ROM_LOAD_NIB_LOW ( "34881.h1", 0x7800, 0x0400, 0xd9055541 )
 	ROM_LOAD_NIB_HIGH( "34883.h2", 0x7800, 0x0400, 0x8a912448 )
 	ROM_LOAD_NIB_LOW ( "34882.j1", 0x7c00, 0x0400, 0x060c9cdb )
-	ROM_RELOAD_NIB_LOW (           0xfc00, 0x0400 ) /* for 6502 vectors */
+	ROM_RELOAD(                    0xfc00, 0x0400 ) /* for 6502 vectors */
 	ROM_LOAD_NIB_HIGH( "34884.j2", 0x7c00, 0x0400, 0xaa699a3a )
-	ROM_RELOAD_NIB_HIGH(           0xfc00, 0x0400 ) /* for 6502 vectors */
+	ROM_RELOAD(                    0xfc00, 0x0400 ) /* for 6502 vectors */
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "033029.n7", 0x0000, 0x0400, 0x12f43dca )
 
-	ROM_REGION( 0x0200, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0200, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "033030.c5", 0x0000, 0x0200, 0xeac9ef90 )
 	ROM_LOAD_NIB_HIGH( "033031.d5", 0x0000, 0x0200, 0x89d619b8 )
 ROM_END
 
 ROM_START( abaseb )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "34738-01.n0", 0x6000, 0x0800, 0xedcfffe8 )
 	ROM_LOAD( "34737-03.m1", 0x6800, 0x0800, 0x7250863f )
 	ROM_LOAD( "34735-01.p1", 0x7000, 0x0800, 0x54854d7c )
 	ROM_LOAD( "34736-01.n1", 0x7800, 0x0800, 0xaf444eb0 )
 	ROM_RELOAD( 			 0xf800, 0x0800 )
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "034710.d5", 0x0000, 0x0400, 0x31275d86 )
 
-	ROM_REGION( 0x0200, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0200, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "034708.n7", 0x0000, 0x0200, 0x8a0f971b )
 	ROM_LOAD_NIB_HIGH( "034709.c5", 0x0000, 0x0200, 0x021d1067 )
 ROM_END
 
 ROM_START( abaseb2 )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code, the ROMs are nibble-wide */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code, the ROMs are nibble-wide */
 	ROM_LOAD_NIB_LOW ( "034725.c0", 0x6000, 0x0400, 0x95912c58 )
 	ROM_LOAD_NIB_HIGH( "034723.m0", 0x6000, 0x0400, 0x5eb1597f )
 	ROM_LOAD_NIB_LOW ( "034726.b0", 0x6400, 0x0400, 0x1f8d506c )
@@ -863,20 +851,20 @@ ROM_START( abaseb2 )
 	ROM_LOAD_NIB_LOW ( "034719.h1", 0x7800, 0x0400, 0x85046ee5 )
 	ROM_LOAD_NIB_HIGH( "034713.f1", 0x7800, 0x0400, 0x0c67c48d )
 	ROM_LOAD_NIB_LOW ( "034720.h0", 0x7c00, 0x0400, 0x37c5f149 )
-	ROM_RELOAD_NIB_LOW (            0xfc00, 0x0400 ) /* for 6502 vectors */
+	ROM_RELOAD(                     0xfc00, 0x0400 ) /* for 6502 vectors */
 	ROM_LOAD_NIB_HIGH( "034714.f0", 0x7c00, 0x0400, 0x920979ea )
-	ROM_RELOAD_NIB_HIGH(            0xfc00, 0x0400 ) /* for 6502 vectors */
+	ROM_RELOAD(                     0xfc00, 0x0400 ) /* for 6502 vectors */
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "034710.d5", 0x0000, 0x0400, 0x31275d86 )
 
-	ROM_REGION( 0x0200, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0200, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "034708.n7", 0x0000, 0x0200, 0x8a0f971b )
 	ROM_LOAD_NIB_HIGH( "034709.c5", 0x0000, 0x0200, 0x021d1067 )
 ROM_END
 
 ROM_START( soccer )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code, the ROMs are nibble-wide */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code, the ROMs are nibble-wide */
 	ROM_LOAD_NIB_LOW ( "035222.e1", 0x2000, 0x0400, 0x03ec6bce )
 	ROM_LOAD_NIB_HIGH( "035224.e2", 0x2000, 0x0400, 0xa1aeaa70 )
 	ROM_LOAD_NIB_LOW ( "035223.f1", 0x2400, 0x0400, 0x9c600726 )
@@ -893,18 +881,18 @@ ROM_START( soccer )
 	ROM_LOAD_NIB_LOW ( "035234.m1", 0x3800, 0x0400, 0x83524bb7 )
 	ROM_LOAD_NIB_HIGH( "035236.m2", 0x3800, 0x0400, 0xc53f4d13 )
 	ROM_LOAD_NIB_LOW ( "035235.n1", 0x3c00, 0x0400, 0xd6855b0e )
-	ROM_RELOAD_NIB_LOW (            0xfc00, 0x0400 ) /* for 6502 vectors */
+	ROM_RELOAD(                     0xfc00, 0x0400 ) /* for 6502 vectors */
 	ROM_LOAD_NIB_HIGH( "035237.n2", 0x3c00, 0x0400, 0x1d01b054 )
-	ROM_RELOAD_NIB_HIGH(            0xfc00, 0x0400 ) /* for 6502 vectors */
+	ROM_RELOAD(                     0xfc00, 0x0400 ) /* for 6502 vectors */
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "035250.r2", 0x0000, 0x0400, 0x12f43dca ) /* characters */
 
-	ROM_REGION( 0x0800, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD_NIB_LOW ( "035247.n7", 0x0000, 0x0400, 0x3adb5f4e ) /* sprites */
 	ROM_LOAD_NIB_HIGH( "035248.m7", 0x0000, 0x0400, 0xa890cd48 )
 
-	ROM_REGION( 0x0800, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "035246.r6", 0x0000, 0x0800, 0x4a996136 ) /* spritemask - playfield */
 ROM_END
 

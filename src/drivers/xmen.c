@@ -8,31 +8,12 @@ driver by Nicola Salmoria
 #include "driver.h"
 #include "vidhrdw/konamiic.h"
 #include "machine/eeprom.h"
-
+#include "cpu/z80/z80.h"
 
 
 int xmen_vh_start(void);
 void xmen_vh_stop(void);
 void xmen_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-
-
-static READ_HANDLER( K052109_halfword_r )
-{
-	return K052109_r(offset >> 1);
-}
-
-static WRITE_HANDLER( K052109_halfword_w )
-{
-	if ((data & 0x00ff0000) == 0)
-		K052109_w(offset >> 1,data & 0xff);
-}
-
-static WRITE_HANDLER( K053251_halfword_w )
-{
-	if ((data & 0x00ff0000) == 0)
-		K053251_w(offset >> 1,data & 0xff);
-}
-
 
 
 /***************************************************************************
@@ -73,7 +54,7 @@ static void nvram_handler(void *file,int read_or_write)
 	}
 }
 
-static READ_HANDLER( eeprom_r )
+static READ16_HANDLER( eeprom_r )
 {
 	int res;
 
@@ -81,7 +62,7 @@ logerror("%06x eeprom_r\n",cpu_get_pc());
 	/* bit 6 is EEPROM data */
 	/* bit 7 is EEPROM ready */
 	/* bit 14 is service button */
-	res = (EEPROM_read_bit() << 6) | input_port_2_r(0);
+	res = (EEPROM_read_bit() << 6) | input_port_2_word_r(0);
 	if (init_eeprom_count)
 	{
 		init_eeprom_count--;
@@ -90,10 +71,10 @@ logerror("%06x eeprom_r\n",cpu_get_pc());
 	return res;
 }
 
-static WRITE_HANDLER( eeprom_w )
+static WRITE16_HANDLER( eeprom_w )
 {
 logerror("%06x: write %04x to 108000\n",cpu_get_pc(),data);
-	if ((data & 0x00ff0000) == 0)
+	if (ACCESSING_LSB)
 	{
 		/* bit 0 = coin counter */
 		coin_counter_w(0,data & 0x01);
@@ -105,7 +86,7 @@ logerror("%06x: write %04x to 108000\n",cpu_get_pc(),data);
 		EEPROM_set_cs_line((data & 0x10) ? CLEAR_LINE : ASSERT_LINE);
 		EEPROM_set_clock_line((data & 0x08) ? ASSERT_LINE : CLEAR_LINE);
 	}
-	else
+	if (ACCESSING_MSB)
 	{
 		/* bit 8 = enable sprite ROM reading */
 		K053246_set_OBJCHA_line((data & 0x0100) ? ASSERT_LINE : CLEAR_LINE);
@@ -114,26 +95,33 @@ logerror("%06x: write %04x to 108000\n",cpu_get_pc(),data);
 	}
 }
 
-static READ_HANDLER( xmen_sound_r )
+static READ16_HANDLER( sound_status_r )
 {
-	/* fake self test pass until we emulate the sound chip */
-	return 0x000f;
+	return soundlatch2_r(0);
 }
 
-static WRITE_HANDLER( xmen_sound_w )
+static WRITE16_HANDLER( sound_cmd_w )
 {
-	if (offset == 0)
-	{
-		if ((data & 0x00ff0000) == 0)
-			soundlatch_w(0,data & 0xff);
+	if (ACCESSING_LSB) {
+		data &= 0xff;
+		soundlatch_w(0, data);
+		if(!Machine->sample_rate)
+			if(data == 0xfc || data == 0xfe)
+				soundlatch2_w(0, 0x7f);
 	}
-	if (offset == 2) cpu_cause_interrupt(1,0xff);
 }
 
-static WRITE_HANDLER( xmen_18fa00_w )
+static WRITE16_HANDLER( sound_irq_w )
 {
-	/* bit 2 is interrupt enable */
-	interrupt_enable_w(0,data & 0x04);
+	cpu_set_irq_line(1, Z80_IRQ_INT, HOLD_LINE);
+}
+
+static WRITE16_HANDLER( xmen_18fa00_w )
+{
+	if(ACCESSING_LSB) {
+		/* bit 2 is interrupt enable */
+		interrupt_enable_w(0,data & 0x04);
+	}
 }
 
 static WRITE_HANDLER( sound_bankswitch_w )
@@ -148,61 +136,56 @@ static WRITE_HANDLER( sound_bankswitch_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
-	{ 0x000000, 0x03ffff, MRA_ROM },
-	{ 0x080000, 0x0fffff, MRA_ROM },
+static MEMORY_READ16_START( readmem )
+	{ 0x000000, 0x03ffff, MRA16_ROM },
+	{ 0x080000, 0x0fffff, MRA16_ROM },
 	{ 0x100000, 0x100fff, K053247_word_r },
-	{ 0x101000, 0x101fff, MRA_BANK2 },
-	{ 0x104000, 0x104fff, paletteram_word_r },
-	{ 0x108054, 0x108055, xmen_sound_r },
-	{ 0x10a000, 0x10a001, input_port_0_r },
-	{ 0x10a002, 0x10a003, input_port_1_r },
+	{ 0x101000, 0x101fff, MRA16_RAM },
+	{ 0x104000, 0x104fff, MRA16_RAM },
+	{ 0x108054, 0x108055, sound_status_r },
+	{ 0x10a000, 0x10a001, input_port_0_word_r },
+	{ 0x10a002, 0x10a003, input_port_1_word_r },
 	{ 0x10a004, 0x10a005, eeprom_r },
 	{ 0x10a00c, 0x10a00d, K053246_word_r },
-	{ 0x110000, 0x113fff, MRA_BANK1 },	/* main RAM */
-	{ 0x18c000, 0x197fff, K052109_halfword_r },
-	{ -1 }	/* end of table */
-};
+	{ 0x110000, 0x113fff, MRA16_RAM },	/* main RAM */
+	{ 0x18c000, 0x197fff, K052109_lsb_r },
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
-	{ 0x000000, 0x03ffff, MWA_ROM },
-	{ 0x080000, 0x0fffff, MWA_ROM },
+static MEMORY_WRITE16_START( writemem )
+	{ 0x000000, 0x03ffff, MWA16_ROM },
+	{ 0x080000, 0x0fffff, MWA16_ROM },
 	{ 0x100000, 0x100fff, K053247_word_w },
-	{ 0x101000, 0x101fff, MWA_BANK2 },
-	{ 0x104000, 0x104fff, paletteram_xBBBBBGGGGGRRRRR_word_w, &paletteram },
+	{ 0x101000, 0x101fff, MWA16_RAM },
+	{ 0x104000, 0x104fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
 	{ 0x108000, 0x108001, eeprom_w },
 	{ 0x108020, 0x108027, K053246_word_w },
-	{ 0x10804c, 0x10804f, xmen_sound_w },
-	{ 0x108060, 0x10807f, K053251_halfword_w },
-	{ 0x10a000, 0x10a001, watchdog_reset_w },
-	{ 0x110000, 0x113fff, MWA_BANK1 },	/* main RAM */
+	{ 0x10804c, 0x10804d, sound_cmd_w },
+	{ 0x10804e, 0x10804f, sound_irq_w },
+	{ 0x108060, 0x10807f, K053251_lsb_w },
+	{ 0x10a000, 0x10a001, watchdog_reset16_w },
+	{ 0x110000, 0x113fff, MWA16_RAM },	/* main RAM */
 	{ 0x18fa00, 0x18fa01, xmen_18fa00_w },
-	{ 0x18c000, 0x197fff, K052109_halfword_w },
-	{ -1 }	/* end of table */
-};
+	{ 0x18c000, 0x197fff, K052109_lsb_w },
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK4 },
 	{ 0xc000, 0xdfff, MRA_RAM },
+	{ 0xe000, 0xe22f, K054539_0_r },
 	{ 0xec01, 0xec01, YM2151_status_port_0_r },
 	{ 0xf002, 0xf002, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xdfff, MWA_RAM },
+	{ 0xe000, 0xe22f, K054539_0_w },
 	{ 0xe800, 0xe800, YM2151_register_port_0_w },
 	{ 0xec01, 0xec01, YM2151_data_port_0_w },
-//	{ 0xf000, 0xf000, soundlatch2_w },	/* to main cpu */
+	{ 0xf000, 0xf000, soundlatch2_w },
 	{ 0xf800, 0xf800, sound_bankswitch_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -322,6 +305,13 @@ static struct YM2151interface ym2151_interface =
 	{ 0 }
 };
 
+static struct K054539interface k054539_interface =
+{
+	1,			/* 1 chip */
+	48000,
+	REGION_SOUND1
+};
+
 
 
 static int xmen_interrupt(void)
@@ -369,6 +359,10 @@ static const struct MachineDriver machine_driver_xmen =
 		{
 			SOUND_YM2151,
 			&ym2151_interface
+		},
+		{
+			SOUND_K054539,
+			&k054539_interface
 		}
 	},
 
@@ -384,77 +378,77 @@ static const struct MachineDriver machine_driver_xmen =
 ***************************************************************************/
 
 ROM_START( xmen )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "065ubb04.10d",  0x00000, 0x20000, 0xf896c93b )
-	ROM_LOAD_ODD ( "065ubb05.10f",  0x00000, 0x20000, 0xe02e5d64 )
-	ROM_LOAD_EVEN( "xmen17g.bin",   0x80000, 0x40000, 0xb31dc44c )
-	ROM_LOAD_ODD ( "xmen17j.bin",   0x80000, 0x40000, 0x13842fe6 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "065ubb04.10d",  0x00000, 0x20000, 0xf896c93b )
+	ROM_LOAD16_BYTE( "065ubb05.10f",  0x00001, 0x20000, 0xe02e5d64 )
+	ROM_LOAD16_BYTE( "xmen17g.bin",   0x80000, 0x40000, 0xb31dc44c )
+	ROM_LOAD16_BYTE( "xmen17j.bin",   0x80001, 0x40000, 0x13842fe6 )
 
-	ROM_REGION( 0x30000, REGION_CPU2 )		/* 64k+128k fpr sound cpu */
+	ROM_REGION( 0x30000, REGION_CPU2, 0 )		/* 64k+128k fpr sound cpu */
 	ROM_LOAD( "065-a01.6f",   0x00000, 0x20000, 0x147d3a4d )
 	ROM_RELOAD(               0x10000, 0x20000 )
 
-	ROM_REGION( 0x200000, REGION_GFX1 )	/* graphics (addressable by the main CPU) */
+	ROM_REGION( 0x200000, REGION_GFX1, 0 )	/* graphics (addressable by the main CPU) */
 	ROM_LOAD( "xmen1l.bin",   0x000000, 0x100000, 0x6b649aca )	/* tiles */
 	ROM_LOAD( "xmen1h.bin",   0x100000, 0x100000, 0xc5dc8fc4 )
 
-	ROM_REGION( 0x400000, REGION_GFX2 )	/* graphics (addressable by the main CPU) */
+	ROM_REGION( 0x400000, REGION_GFX2, 0 )	/* graphics (addressable by the main CPU) */
 	ROM_LOAD( "xmen12l.bin",  0x000000, 0x100000, 0xea05d52f )	/* sprites */
 	ROM_LOAD( "xmen17l.bin",  0x100000, 0x100000, 0x96b91802 )
 	ROM_LOAD( "xmen22h.bin",  0x200000, 0x100000, 0x321ed07a )
 	ROM_LOAD( "xmen22l.bin",  0x300000, 0x100000, 0x46da948e )
 
-	ROM_REGION( 0x200000, REGION_SOUND1 )	/* samples for the 054544 */
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054544 */
 	ROM_LOAD( "xmenc25.bin",  0x000000, 0x200000, 0x5adbcee0 )
 ROM_END
 
 ROM_START( xmen6p )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "xmenb04.bin",   0x00000, 0x20000, 0x0f09b8e0 )
-	ROM_LOAD_ODD ( "xmenb05.bin",   0x00000, 0x20000, 0x867becbf )
-	ROM_LOAD_EVEN( "xmen17g.bin",   0x80000, 0x40000, 0xb31dc44c )
-	ROM_LOAD_ODD ( "xmen17j.bin",   0x80000, 0x40000, 0x13842fe6 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "xmenb04.bin",   0x00000, 0x20000, 0x0f09b8e0 )
+	ROM_LOAD16_BYTE( "xmenb05.bin",   0x00001, 0x20000, 0x867becbf )
+	ROM_LOAD16_BYTE( "xmen17g.bin",   0x80000, 0x40000, 0xb31dc44c )
+	ROM_LOAD16_BYTE( "xmen17j.bin",   0x80001, 0x40000, 0x13842fe6 )
 
-	ROM_REGION( 0x30000, REGION_CPU2 )		/* 64k+128k fpr sound cpu */
+	ROM_REGION( 0x30000, REGION_CPU2, 0 )		/* 64k+128k fpr sound cpu */
 	ROM_LOAD( "065-a01.6f",   0x00000, 0x20000, 0x147d3a4d )
 	ROM_RELOAD(               0x10000, 0x20000 )
 
-	ROM_REGION( 0x200000, REGION_GFX1 )	/* graphics (addressable by the main CPU) */
+	ROM_REGION( 0x200000, REGION_GFX1, 0 )	/* graphics (addressable by the main CPU) */
 	ROM_LOAD( "xmen1l.bin",   0x000000, 0x100000, 0x6b649aca )	/* tiles */
 	ROM_LOAD( "xmen1h.bin",   0x100000, 0x100000, 0xc5dc8fc4 )
 
-	ROM_REGION( 0x400000, REGION_GFX2 )	/* graphics (addressable by the main CPU) */
+	ROM_REGION( 0x400000, REGION_GFX2, 0 )	/* graphics (addressable by the main CPU) */
 	ROM_LOAD( "xmen12l.bin",  0x000000, 0x100000, 0xea05d52f )	/* sprites */
 	ROM_LOAD( "xmen17l.bin",  0x100000, 0x100000, 0x96b91802 )
 	ROM_LOAD( "xmen22h.bin",  0x200000, 0x100000, 0x321ed07a )
 	ROM_LOAD( "xmen22l.bin",  0x300000, 0x100000, 0x46da948e )
 
-	ROM_REGION( 0x200000, REGION_SOUND1 )	/* samples for the 054544 */
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054544 */
 	ROM_LOAD( "xmenc25.bin",  0x000000, 0x200000, 0x5adbcee0 )
 ROM_END
 
 ROM_START( xmen2pj )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "065jaa04.10d",  0x00000, 0x20000, 0x66746339 )
-	ROM_LOAD_ODD ( "065jaa05.10f",  0x00000, 0x20000, 0x1215b706 )
-	ROM_LOAD_EVEN( "xmen17g.bin",   0x80000, 0x40000, 0xb31dc44c )
-	ROM_LOAD_ODD ( "xmen17j.bin",   0x80000, 0x40000, 0x13842fe6 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "065jaa04.10d",  0x00000, 0x20000, 0x66746339 )
+	ROM_LOAD16_BYTE( "065jaa05.10f",  0x00001, 0x20000, 0x1215b706 )
+	ROM_LOAD16_BYTE( "xmen17g.bin",   0x80000, 0x40000, 0xb31dc44c )
+	ROM_LOAD16_BYTE( "xmen17j.bin",   0x80001, 0x40000, 0x13842fe6 )
 
-	ROM_REGION( 0x30000, REGION_CPU2 )		/* 64k+128k fpr sound cpu */
+	ROM_REGION( 0x30000, REGION_CPU2, 0 )		/* 64k+128k fpr sound cpu */
 	ROM_LOAD( "065-a01.6f",   0x00000, 0x20000, 0x147d3a4d )
 	ROM_RELOAD(               0x10000, 0x20000 )
 
-	ROM_REGION( 0x200000, REGION_GFX1 )	/* graphics (addressable by the main CPU) */
+	ROM_REGION( 0x200000, REGION_GFX1, 0 )	/* graphics (addressable by the main CPU) */
 	ROM_LOAD( "xmen1l.bin",   0x000000, 0x100000, 0x6b649aca )	/* tiles */
 	ROM_LOAD( "xmen1h.bin",   0x100000, 0x100000, 0xc5dc8fc4 )
 
-	ROM_REGION( 0x400000, REGION_GFX2 )	/* graphics (addressable by the main CPU) */
+	ROM_REGION( 0x400000, REGION_GFX2, 0 )	/* graphics (addressable by the main CPU) */
 	ROM_LOAD( "xmen12l.bin",  0x000000, 0x100000, 0xea05d52f )	/* sprites */
 	ROM_LOAD( "xmen17l.bin",  0x100000, 0x100000, 0x96b91802 )
 	ROM_LOAD( "xmen22h.bin",  0x200000, 0x100000, 0x321ed07a )
 	ROM_LOAD( "xmen22l.bin",  0x300000, 0x100000, 0x46da948e )
 
-	ROM_REGION( 0x200000, REGION_SOUND1 )	/* samples for the 054544 */
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054544 */
 	ROM_LOAD( "xmenc25.bin",  0x000000, 0x200000, 0x5adbcee0 )
 ROM_END
 

@@ -170,8 +170,7 @@ void tehkanwc_adpcm_int (int data)
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xc800, 0xcfff, shared_r },
@@ -193,11 +192,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xf850, 0xf850, input_port_1_r },	/* DSW2 */
 	{ 0xf860, 0xf860, watchdog_reset_r },
 	{ 0xf870, 0xf870, input_port_2_r }, /* DSW3 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xc800, 0xcfff, shared_w, &shared_ram },
@@ -215,11 +212,9 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xf812, 0xf812, gridiron_led1_w },
 	{ 0xf820, 0xf820, sound_command_w },
 	{ 0xf840, 0xf840, sub_cpu_halt_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_sub[] =
-{
+static MEMORY_READ_START( readmem_sub )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xc7ff, MRA_RAM },
 	{ 0xc800, 0xcfff, shared_r },
@@ -232,11 +227,9 @@ static struct MemoryReadAddress readmem_sub[] =
 	{ 0xec00, 0xec01, tehkanwc_scroll_x_r },
 	{ 0xec02, 0xec02, tehkanwc_scroll_y_r },
 	{ 0xf860, 0xf860, watchdog_reset_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sub[] =
-{
+static MEMORY_WRITE_START( writemem_sub )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xc800, 0xcfff, shared_w },
@@ -248,43 +241,34 @@ static struct MemoryWriteAddress writemem_sub[] =
 	{ 0xe800, 0xebff, spriteram_w }, /* sprites */
 	{ 0xec00, 0xec01, tehkanwc_scroll_x_w },
 	{ 0xec02, 0xec02, tehkanwc_scroll_y_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x47ff, MRA_RAM },
 	{ 0xc000, 0xc000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sound[] =
-{
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x8001, 0x8001, msm_reset_w },/* MSM51xx reset */
 	{ 0x8002, 0x8002, MWA_NOP },	/* ?? written in the IRQ handler */
 	{ 0x8003, 0x8003, MWA_NOP },	/* ?? written in the NMI handler */
 	{ 0xc000, 0xc000, sound_answer_w },	/* answer for main CPU */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x00, 0x00, AY8910_read_port_0_r },
 	{ 0x02, 0x02, AY8910_read_port_1_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, AY8910_write_port_0_w },
 	{ 0x01, 0x01, AY8910_control_port_0_w },
 	{ 0x02, 0x02, AY8910_write_port_1_w },
 	{ 0x03, 0x03, AY8910_control_port_1_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -713,86 +697,86 @@ static const struct MachineDriver machine_driver_tehkanwc =
 ***************************************************************************/
 
 ROM_START( tehkanwc )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "twc-1.bin",    0x0000, 0x4000, 0x34d6d5ff )
 	ROM_LOAD( "twc-2.bin",    0x4000, 0x4000, 0x7017a221 )
 	ROM_LOAD( "twc-3.bin",    0x8000, 0x4000, 0x8b662902 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for code */
 	ROM_LOAD( "twc-4.bin",    0x0000, 0x8000, 0x70a9f883 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for code */
 	ROM_LOAD( "twc-6.bin",    0x0000, 0x4000, 0xe3112be2 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "twc-12.bin",   0x00000, 0x4000, 0xa9e274f8 )	/* fg tiles */
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "twc-8.bin",    0x00000, 0x8000, 0x055a5264 )	/* sprites */
 	ROM_LOAD( "twc-7.bin",    0x08000, 0x8000, 0x59faebe7 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "twc-11.bin",   0x00000, 0x8000, 0x669389fc )	/* bg tiles */
 	ROM_LOAD( "twc-9.bin",    0x08000, 0x8000, 0x347ef108 )
 
-	ROM_REGION( 0x8000, REGION_SOUND1 )	/* ADPCM samples */
+	ROM_REGION( 0x8000, REGION_SOUND1, 0 )	/* ADPCM samples */
 	ROM_LOAD( "twc-5.bin",    0x0000, 0x4000, 0x444b5544 )
 ROM_END
 
 ROM_START( gridiron )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "gfight1.bin",  0x0000, 0x4000, 0x51612741 )
 	ROM_LOAD( "gfight2.bin",  0x4000, 0x4000, 0xa678db48 )
 	ROM_LOAD( "gfight3.bin",  0x8000, 0x4000, 0x8c227c33 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for code */
 	ROM_LOAD( "gfight4.bin",  0x0000, 0x4000, 0x8821415f )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for code */
 	ROM_LOAD( "gfight5.bin",  0x0000, 0x4000, 0x92ca3c07 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gfight7.bin",  0x00000, 0x4000, 0x04390cca )	/* fg tiles */
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gfight8.bin",  0x00000, 0x4000, 0x5de6a70f )	/* sprites */
 	ROM_LOAD( "gfight9.bin",  0x04000, 0x4000, 0xeac9dc16 )
 	ROM_LOAD( "gfight10.bin", 0x08000, 0x4000, 0x61d0690f )
 	/* 0c000-0ffff empty */
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "gfight11.bin", 0x00000, 0x4000, 0x80b09c03 )	/* bg tiles */
 	ROM_LOAD( "gfight12.bin", 0x04000, 0x4000, 0x1b615eae )
 	/* 08000-0ffff empty */
 
-	ROM_REGION( 0x8000, REGION_SOUND1 )	/* ADPCM samples */
+	ROM_REGION( 0x8000, REGION_SOUND1, 0 )	/* ADPCM samples */
 	ROM_LOAD( "gfight6.bin",  0x0000, 0x4000, 0xd05d463d )
 ROM_END
 
 ROM_START( teedoff )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "to-1.bin",     0x0000, 0x4000, 0xcc2aebc5 )
 	ROM_LOAD( "to-2.bin",     0x4000, 0x4000, 0xf7c9f138 )
 	ROM_LOAD( "to-3.bin",     0x8000, 0x4000, 0xa0f0a6da )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for code */
 	ROM_LOAD( "to-4.bin",     0x0000, 0x8000, 0xe922cbd2 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for code */
 	ROM_LOAD( "to-6.bin",     0x0000, 0x4000, 0xd8dfe1c8 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "to-12.bin",    0x00000, 0x4000, 0x4f44622c )	/* fg tiles */
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "to-8.bin",     0x00000, 0x8000, 0x363bd1ba )	/* sprites */
 	ROM_LOAD( "to-7.bin",     0x08000, 0x8000, 0x6583fa5b )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "to-11.bin",    0x00000, 0x8000, 0x1ec00cb5 )	/* bg tiles */
 	ROM_LOAD( "to-9.bin",     0x08000, 0x8000, 0xa14347f0 )
 
-	ROM_REGION( 0x8000, REGION_SOUND1 )	/* ADPCM samples */
+	ROM_REGION( 0x8000, REGION_SOUND1, 0 )	/* ADPCM samples */
 	ROM_LOAD( "to-5.bin",     0x0000, 0x8000, 0xe5e4246b )
 ROM_END
 

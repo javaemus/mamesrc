@@ -188,8 +188,7 @@ static READ_HANDLER( liberatr_input_port_0_r )
 
 
 
-static struct MemoryReadAddress liberatr_readmem[] =
-{
+static MEMORY_READ_START( liberatr_readmem )
 	{ 0x0002, 0x0002, liberatr_bitmap_xy_r },
 	{ 0x0000, 0x3fff, MRA_RAM },	/* overlapping for my convenience */
 	{ 0x4000, 0x403f, atari_vg_earom_r },
@@ -199,11 +198,9 @@ static struct MemoryReadAddress liberatr_readmem[] =
 	{ 0x7800, 0x781f, pokey1_r },
 	{ 0x8000, 0xefff, MRA_ROM },
 	{ 0xfffa, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress liberat2_readmem[] =
-{
+static MEMORY_READ_START( liberat2_readmem )
 	{ 0x0002, 0x0002, liberatr_bitmap_xy_r },
 	{ 0x0000, 0x3fff, MRA_RAM },	/* overlapping for my convenience */
 	{ 0x4000, 0x4000, liberatr_input_port_0_r },
@@ -213,12 +210,10 @@ static struct MemoryReadAddress liberat2_readmem[] =
 	{ 0x5800, 0x581f, pokey1_r },
 	{ 0x6000, 0xbfff, MRA_ROM },
 	{ 0xfffa, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress liberatr_writemem[] =
-{
+static MEMORY_WRITE_START( liberatr_writemem )
 	{ 0x0002, 0x0002, liberatr_bitmap_xy_w },
 	{ 0x0000, 0x3fff, liberatr_bitmap_w, &liberatr_bitmapram },	/* overlapping for my convenience */
 	{ 0x6000, 0x600f, MWA_RAM, &liberatr_base_ram },
@@ -239,11 +234,9 @@ static struct MemoryWriteAddress liberatr_writemem[] =
 
 	{ 0x0000, 0x0000, MWA_RAM, &liberatr_x },	/* just here to assign pointer */
 	{ 0x0001, 0x0001, MWA_RAM, &liberatr_y },	/* just here to assign pointer */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress liberat2_writemem[] =
-{
+static MEMORY_WRITE_START( liberat2_writemem )
 	{ 0x0002, 0x0002, liberatr_bitmap_xy_w },
 	{ 0x0000, 0x3fff, liberatr_bitmap_w, &liberatr_bitmapram },	/* overlapping for my convenience */
 	{ 0x4000, 0x400f, MWA_RAM, &liberatr_base_ram },
@@ -265,8 +258,7 @@ static struct MemoryWriteAddress liberat2_writemem[] =
 
 	{ 0x0000, 0x0000, MWA_RAM, &liberatr_x },	/* just here to assign pointer */
 	{ 0x0001, 0x0001, MWA_RAM, &liberatr_y },	/* just here to assign pointer */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -420,7 +412,7 @@ MACHINE_DRIVER(liberat2)
 ***************************************************************************/
 
 ROM_START( liberatr )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code and data  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code and data  */
 	ROM_LOAD( "136012.206",   0x8000, 0x1000, 0x1a0cb4a0 )
 	ROM_LOAD( "136012.205",   0x9000, 0x1000, 0x2f071920 )
 	ROM_LOAD( "136012.204",   0xa000, 0x1000, 0xbcc91827 )
@@ -430,7 +422,7 @@ ROM_START( liberatr )
 	ROM_LOAD( "136012.200",   0xe000, 0x1000, 0x1e98d21a )
 	ROM_RELOAD(				  0xf000, 0x1000 )		/* for interrupt/reset vectors  */
 
-	ROM_REGION( 0x4000, REGION_GFX1 )	/* planet image, used at runtime */
+	ROM_REGION( 0x4000, REGION_GFX1, 0 )	/* planet image, used at runtime */
 	ROM_LOAD( "136012.110",   0x0000, 0x1000, 0x6eb11221 )
 	ROM_LOAD( "136012.107",   0x1000, 0x1000, 0x8a616a63 )
 	ROM_LOAD( "136012.108",   0x2000, 0x1000, 0x3f8e4cf6 )
@@ -438,7 +430,7 @@ ROM_START( liberatr )
 ROM_END
 
 ROM_START( liberat2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code and data  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code and data  */
 	ROM_LOAD( "l6.bin",       0x6000, 0x1000, 0x78093d06 )
 	ROM_LOAD( "l5.bin",       0x7000, 0x1000, 0x988db636 )
 	ROM_LOAD( "l4.bin",       0x8000, 0x1000, 0xec114540 )
@@ -447,7 +439,7 @@ ROM_START( liberat2 )
 	ROM_LOAD( "l1.bin",       0xb000, 0x1000, 0xef6e9f9e )
 	ROM_RELOAD(				  0xf000, 0x1000 )		/* for interrupt/reset vectors  */
 
-	ROM_REGION( 0x4000, REGION_GFX1 )	/* planet image, used at runtime */
+	ROM_REGION( 0x4000, REGION_GFX1, 0 )	/* planet image, used at runtime */
 	ROM_LOAD( "136012.110",   0x0000, 0x1000, 0x6eb11221 )
 	ROM_LOAD( "136012.107",   0x1000, 0x1000, 0x8a616a63 )
 	ROM_LOAD( "136012.108",   0x2000, 0x1000, 0x3f8e4cf6 )

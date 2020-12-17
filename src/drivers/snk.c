@@ -131,26 +131,37 @@ static int snk_rot8( int which ){
 
 static int snk_rot12( int which ){
 /*
-	This routine converts a 4 bit (16 directional) analog input to the 12 directional input
-	that many SNK games require.
+	This routine converts a 4 bit (16 directional) analog input to the 12
+	directional input that many SNK games require.
 */
-	const int dial_12[12] = { 0xb0,0xa0,0x90,0x80,0x70,0x60,0x50,0x40,0x30,0x20,0x10,0x00 };
+	const int dial_12[13] = {
+	0xb0,0xa0,0x90,0x80,0x70,0x60,
+	0xf0,
+	/* 0xf0 isn't a valid direction, but avoids the "joystick error"
+	protection
+	** in Guerilla War which happens when direction changes directly from
+	** 0x50<->0x60 8 times.
+	*/
+	0x50,0x40,0x30,0x20,0x10,0x00
+	};
 	int value = readinputport(which+1);
-	int joypos16 = value>>4;
+	int joydir = value>>4;
+	static int old_joydir[2];
+	static int dial_select[2];
 
-	static int old_joypos16[2];
-	static int joypos12[2];
-	int delta = joypos16 - old_joypos16[which];
+	int delta = (joydir - old_joydir[which])&0xf;
+	old_joydir[which] = joydir;
 
-	old_joypos16[which] = joypos16;
+	if( delta<=7 && delta>=1 ){
+		if( dial_select[which]==12 ) dial_select[which] = 0;
+		else dial_select[which]++;
+	}
+	else if( delta > 8 ){
+		if( dial_select[which]==0 ) dial_select[which] = 12;
+		else dial_select[which]--;
+	}
 
-	if( delta>8 ) delta -= 16; else if( delta<-8 ) delta += 16;
-
-	joypos12[which] += delta;
-	while( joypos12[which]<0 ) joypos12[which] += 12;
-	while( joypos12[which]>=12 ) joypos12[which] -= 12;
-
-	return (value&0x0f) | dial_12[joypos12[which]];
+	return (value&0xf) | dial_12[dial_select[which]];
 }
 
 static int snk_input_port_r( int which ){
@@ -260,34 +271,31 @@ static READ_HANDLER( snk_soundlatch_clear_r ){ /* TNK3 */
 
 /*********************************************************************/
 
-static struct MemoryReadAddress YM3526_readmem_sound[] = {
+static MEMORY_READ_START( YM3526_readmem_sound )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xa000, 0xa000, soundlatch_r },
 	{ 0xc000, 0xc000, snk_soundlatch_clear_r },
 	{ 0xe000, 0xe000, YM3526_status_port_0_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress YM3526_writemem_sound[] = {
+static MEMORY_WRITE_START( YM3526_writemem_sound )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0xe000, 0xe000, YM3526_control_port_0_w },
 	{ 0xe001, 0xe001, YM3526_write_port_0_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress YM3526_YM3526_readmem_sound[] = {
+static MEMORY_READ_START( YM3526_YM3526_readmem_sound )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, MRA_RAM },
 	{ 0xe000, 0xe000, soundlatch_r },
 	{ 0xe800, 0xe800, YM3526_status_port_0_r },
 	{ 0xf000, 0xf000, YM3526_status_port_1_r },
 	{ 0xf800, 0xf800, snk_sound_register_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress YM3526_YM3526_writemem_sound[] = {
+static MEMORY_WRITE_START( YM3526_YM3526_writemem_sound )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xe800, 0xe800, YM3526_control_port_0_w },
@@ -295,20 +303,18 @@ static struct MemoryWriteAddress YM3526_YM3526_writemem_sound[] = {
 	{ 0xf000, 0xf000, YM3526_control_port_1_w },
 	{ 0xf400, 0xf400, YM3526_write_port_1_w },
 	{ 0xf800, 0xf800, snk_sound_register_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress YM3526_Y8950_readmem_sound[] = {
+static MEMORY_READ_START( YM3526_Y8950_readmem_sound )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, MRA_RAM },
 	{ 0xe000, 0xe000, soundlatch_r },
 	{ 0xe800, 0xe800, Y8950_status_port_0_r }, // YM3526_status_port_0_r
 	{ 0xf000, 0xf000, Y8950_status_port_1_r },
 	{ 0xf800, 0xf800, snk_sound_register_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress YM3526_Y8950_writemem_sound[] = {
+static MEMORY_WRITE_START( YM3526_Y8950_writemem_sound )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xe800, 0xe800, Y8950_control_port_0_w }, // YM3526_control_port_0_w
@@ -316,20 +322,18 @@ static struct MemoryWriteAddress YM3526_Y8950_writemem_sound[] = {
 	{ 0xf000, 0xf000, Y8950_control_port_1_w },
 	{ 0xf400, 0xf400, Y8950_write_port_1_w },
 	{ 0xf800, 0xf800, snk_sound_register_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress YM3812_Y8950_readmem_sound[] = {
+static MEMORY_READ_START( YM3812_Y8950_readmem_sound )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, MRA_RAM },
 	{ 0xe000, 0xe000, soundlatch_r },
 	{ 0xe800, 0xe800, YM3812_status_port_0_r },
 	{ 0xf000, 0xf000, Y8950_status_port_0_r },
 	{ 0xf800, 0xf800, snk_sound_register_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress YM3812_Y8950_writemem_sound[] = {
+static MEMORY_WRITE_START( YM3812_Y8950_writemem_sound )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xe800, 0xe800, YM3812_control_port_0_w },
@@ -337,20 +341,18 @@ static struct MemoryWriteAddress YM3812_Y8950_writemem_sound[] = {
 	{ 0xf000, 0xf000, Y8950_control_port_0_w },
 	{ 0xf400, 0xf400, Y8950_write_port_0_w },
 	{ 0xf800, 0xf800, snk_sound_register_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress Y8950_readmem_sound[] = {
+static MEMORY_READ_START( Y8950_readmem_sound )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, MRA_RAM },
 	{ 0xe000, 0xe000, soundlatch_r },
 	{ 0xf000, 0xf000, YM3526_status_port_0_r },
 //	{ 0xf000, 0xf000, Y8950_status_port_0_r },
 	{ 0xf800, 0xf800, snk_sound_register_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress Y8950_writemem_sound[] = {
+static MEMORY_WRITE_START( Y8950_writemem_sound )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xf000, 0xf000, YM3526_control_port_0_w },
@@ -358,8 +360,7 @@ static struct MemoryWriteAddress Y8950_writemem_sound[] = {
 //	{ 0xf000, 0xf000, Y8950_control_port_0_w },
 //	{ 0xf400, 0xf400, Y8950_write_port_0_w },
 	{ 0xf800, 0xf800, snk_sound_register_w },
-	{ -1 }
-};
+MEMORY_END
 
 /**********************  Tnk3, Athena, Fighting Golf ********************/
 
@@ -481,74 +482,58 @@ static WRITE_HANDLER( cpuB_io_w ){
 
 /**********************  Tnk3, Athena, Fighting Golf ********************/
 
-static struct MemoryReadAddress tnk3_readmem_cpuA[] =
-{
+static MEMORY_READ_START( tnk3_readmem_cpuA )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, cpuA_io_r },
 	{ 0xd000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xffff, MRA_RAM },
-	{ -1 }
-};
-static struct MemoryWriteAddress tnk3_writemem_cpuA[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( tnk3_writemem_cpuA )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, cpuA_io_w, &io_ram },
 	{ 0xd000, 0xf7ff, MWA_RAM, &shared_ram2 },
 	{ 0xf800, 0xffff, MWA_RAM, &shared_ram },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress tnk3_readmem_cpuB[] =
-{
+static MEMORY_READ_START( tnk3_readmem_cpuB )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc7ff, cpuB_io_r },
 	{ 0xc800, 0xefff, shared_ram2_r },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xffff, shared_ram_r },
-	{ -1 }
-};
-static struct MemoryWriteAddress tnk3_writemem_cpuB[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( tnk3_writemem_cpuB )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, cpuB_io_w },
 	{ 0xc800, 0xefff, shared_ram2_w },
 	{ 0xf000, 0xf7ff, MWA_RAM },
 	{ 0xf800, 0xffff, shared_ram_w },
-	{ -1 }
-};
+MEMORY_END
 
 
 /* Chopper I, T.D.Fever, Psycho S., Bermuda T. */
 
-static struct MemoryReadAddress readmem_cpuA[] =
-{
+static MEMORY_READ_START( readmem_cpuA )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, cpuA_io_r },
 	{ 0xd000, 0xffff, MRA_RAM },
-	{ -1 }
-};
-static struct MemoryWriteAddress writemem_cpuA[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( writemem_cpuA )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, cpuA_io_w, &io_ram },
 	{ 0xd000, 0xffff, MWA_RAM, &shared_ram },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_cpuB[] =
-{
+static MEMORY_READ_START( readmem_cpuB )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, cpuB_io_r },
 	{ 0xd000, 0xffff, shared_ram_r },
-	{ -1 }
-};
-static struct MemoryWriteAddress writemem_cpuB[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( writemem_cpuB )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, cpuB_io_w },
 	{ 0xd000, 0xffff, shared_ram_w },
-	{ -1 }
-};
+MEMORY_END
 
 /*********************************************************************/
 
@@ -1305,68 +1290,68 @@ static const struct MachineDriver machine_driver_ftsoccer =
 /***********************************************************************/
 
 ROM_START( tnk3 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "tnk3-p1.bin",  0x0000, 0x4000, 0x0d2a8ca9 )
 	ROM_LOAD( "tnk3-p2.bin",  0x4000, 0x4000, 0x0ae0a483 )
 	ROM_LOAD( "tnk3-p3.bin",  0x8000, 0x4000, 0xd16dd4db )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "tnk3-p4.bin",  0x0000, 0x4000, 0x01b45a90 )
 	ROM_LOAD( "tnk3-p5.bin",  0x4000, 0x4000, 0x60db6667 )
 	ROM_LOAD( "tnk3-p6.bin",  0x8000, 0x4000, 0x4761fde7 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "tnk3-p10.bin",  0x0000, 0x4000, 0x7bf0a517 )
 	ROM_LOAD( "tnk3-p11.bin",  0x4000, 0x4000, 0x0569ce27 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "7122.2",  0x000, 0x400, 0x34c06bc6 )
 	ROM_LOAD( "7122.1",  0x400, 0x400, 0x6d0ac66a )
 	ROM_LOAD( "7122.0",  0x800, 0x400, 0x4662b4c8 )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "tnk3-p14.bin", 0x0000, 0x2000, 0x1fd18c43 )
 	ROM_RELOAD(               0x2000, 0x2000 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* background tiles */
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "tnk3-p12.bin", 0x0000, 0x4000, 0xff495a16 )
 	ROM_LOAD( "tnk3-p13.bin", 0x4000, 0x4000, 0xf8344843 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "tnk3-p7.bin", 0x00000, 0x4000, 0x06b92c88 )
 	ROM_LOAD( "tnk3-p8.bin", 0x08000, 0x4000, 0x63d0e2eb )
 	ROM_LOAD( "tnk3-p9.bin", 0x10000, 0x4000, 0x872e3fac )
 ROM_END
 
 ROM_START( tnk3j )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "p1.4e",  0x0000, 0x4000, 0x03aca147 )
 	ROM_LOAD( "tnk3-p2.bin",  0x4000, 0x4000, 0x0ae0a483 )
 	ROM_LOAD( "tnk3-p3.bin",  0x8000, 0x4000, 0xd16dd4db )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "tnk3-p4.bin",  0x0000, 0x4000, 0x01b45a90 )
 	ROM_LOAD( "tnk3-p5.bin",  0x4000, 0x4000, 0x60db6667 )
 	ROM_LOAD( "tnk3-p6.bin",  0x8000, 0x4000, 0x4761fde7 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "tnk3-p10.bin",  0x0000, 0x4000, 0x7bf0a517 )
 	ROM_LOAD( "tnk3-p11.bin",  0x4000, 0x4000, 0x0569ce27 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "7122.2",  0x000, 0x400, 0x34c06bc6 )
 	ROM_LOAD( "7122.1",  0x400, 0x400, 0x6d0ac66a )
 	ROM_LOAD( "7122.0",  0x800, 0x400, 0x4662b4c8 )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "p14.1e", 0x0000, 0x2000, 0x6bd575ca )
 	ROM_RELOAD(         0x2000, 0x2000 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* background tiles */
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "tnk3-p12.bin", 0x0000, 0x4000, 0xff495a16 )
 	ROM_LOAD( "tnk3-p13.bin", 0x4000, 0x4000, 0xf8344843 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "tnk3-p7.bin", 0x00000, 0x4000, 0x06b92c88 )
 	ROM_LOAD( "tnk3-p8.bin", 0x08000, 0x4000, 0x63d0e2eb )
 	ROM_LOAD( "tnk3-p9.bin", 0x10000, 0x4000, 0x872e3fac )
@@ -1375,30 +1360,30 @@ ROM_END
 /***********************************************************************/
 
 ROM_START( athena )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for cpuA code */
 	ROM_LOAD( "up02_p4.rom",  0x0000, 0x4000,  0x900a113c )
 	ROM_LOAD( "up02_m4.rom",  0x4000, 0x8000,  0x61c69474 )
 
-	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for cpuB code */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 ) /* 64k for cpuB code */
 	ROM_LOAD( "up02_p8.rom",  0x0000, 0x4000, 0xdf50af7e )
 	ROM_LOAD( "up02_m8.rom",  0x4000, 0x8000, 0xf3c933df )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 64k for sound code */
 	ROM_LOAD( "up02_g6.rom",  0x0000, 0x4000, 0x42dbe029 )
 	ROM_LOAD( "up02_k6.rom",  0x4000, 0x8000, 0x596f1c8a )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "up02_c2.rom",  0x000, 0x400, 0x294279ae )
 	ROM_LOAD( "up02_b1.rom",  0x400, 0x400, 0xd25c9099 )
 	ROM_LOAD( "up02_c1.rom",  0x800, 0x400, 0xa4a4e7dc )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "up01_d2.rom",  0x0000, 0x4000,  0x18b4bcca )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* background tiles */
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "up01_b2.rom",  0x0000, 0x8000,  0xf269c0eb )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "up01_p2.rom",  0x00000, 0x8000, 0xc63a871f )
 	ROM_LOAD( "up01_s2.rom",  0x08000, 0x8000, 0x760568d8 )
 	ROM_LOAD( "up01_t2.rom",  0x10000, 0x8000, 0x57b35c73 )
@@ -1407,30 +1392,30 @@ ROM_END
 /***********************************************************************/
 
 ROM_START( fitegolf )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "gu2",    0x0000, 0x4000, 0x19be7ad6 )
 	ROM_LOAD( "gu1",    0x4000, 0x8000, 0xbc32568f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "gu6",    0x0000, 0x4000, 0x2b9978c5 )
 	ROM_LOAD( "gu5",    0x4000, 0x8000, 0xea3d138c )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "gu3",    0x0000, 0x4000, 0x811b87d7 )
 	ROM_LOAD( "gu4",    0x4000, 0x8000, 0x2d998e2b )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "82s137.2c",  0x00000, 0x00400, 0x6e4c7836 )
 	ROM_LOAD( "82s137.1b",  0x00400, 0x00400, 0x29e7986f )
 	ROM_LOAD( "82s137.1c",  0x00800, 0x00400, 0x27ba9ff9 )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "gu8",   0x0000, 0x4000, 0xf1628dcf )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "gu7",  0x0000, 0x8000, 0x4655f94e )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* sprites */
 	ROM_LOAD( "gu9",   0x00000, 0x8000, 0xd4957ec5 )
 	ROM_LOAD( "gu10",  0x08000, 0x8000, 0xb3acdac2 )
 	ROM_LOAD( "gu11",  0x10000, 0x8000, 0xb99cf73b )
@@ -1439,35 +1424,35 @@ ROM_END
 /***********************************************************************/
 
 ROM_START( ikari )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* CPU A */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* CPU A */
 	ROM_LOAD( "1.rom",  0x0000, 0x10000, 0x52a8b2dd )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* CPU B */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* CPU B */
 	ROM_LOAD( "2.rom",  0x0000, 0x10000, 0x45364d55 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* Sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* Sound CPU */
 	ROM_LOAD( "3.rom",  0x0000, 0x10000, 0x56a26699 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "7122er.prm",  0x000, 0x400, 0xb9bf2c2c )
 	ROM_LOAD( "7122eg.prm",  0x400, 0x400, 0x0703a770 )
 	ROM_LOAD( "7122eb.prm",  0x800, 0x400, 0x0a11cdde )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "7.rom",    0x00000, 0x4000, 0xa7eb4917 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "17.rom", 0x00000, 0x8000, 0xe0dba976 )
 	ROM_LOAD( "18.rom", 0x08000, 0x8000, 0x24947d5f )
 	ROM_LOAD( "19.rom", 0x10000, 0x8000, 0x9ee59e91 )
 	ROM_LOAD( "20.rom", 0x18000, 0x8000, 0x5da7ec1a )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "8.rom",  0x00000, 0x8000, 0x9827c14a )
 	ROM_LOAD( "9.rom",  0x08000, 0x8000, 0x545c790c )
 	ROM_LOAD( "10.rom", 0x10000, 0x8000, 0xec9ba07e )
 
-	ROM_REGION( 0x30000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x30000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "11.rom", 0x00000, 0x8000, 0x5c75ea8f )
 	ROM_LOAD( "14.rom", 0x08000, 0x8000, 0x3293fde4 )
 	ROM_LOAD( "12.rom", 0x10000, 0x8000, 0x95138498 )
@@ -1477,38 +1462,38 @@ ROM_START( ikari )
 ROM_END
 
 ROM_START( ikarijp )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "up03_l4.rom",  0x0000, 0x4000, 0xcde006be )
 	ROM_LOAD( "up03_k4.rom",  0x4000, 0x8000, 0x26948850 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "ik3",  0x0000, 0x4000, 0x9bb385f8 )
 	ROM_LOAD( "ik4",  0x4000, 0x8000, 0x3a144bca )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "ik5",  0x0000, 0x4000, 0x863448fa )
 	ROM_LOAD( "ik6",  0x4000, 0x8000, 0x9b16aa57 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "7122er.prm",  0x000, 0x400, 0xb9bf2c2c )
 	ROM_LOAD( "7122eg.prm",  0x400, 0x400, 0x0703a770 )
 	ROM_LOAD( "7122eb.prm",  0x800, 0x400, 0x0a11cdde )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "ik7",    0x00000, 0x4000, 0x9e88f536 )	/* characters */
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "17.rom", 0x00000, 0x8000, 0xe0dba976 )
 	ROM_LOAD( "18.rom", 0x08000, 0x8000, 0x24947d5f )
 	ROM_LOAD( "ik19", 0x10000, 0x8000, 0x566242ec )
 	ROM_LOAD( "20.rom", 0x18000, 0x8000, 0x5da7ec1a )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "ik8",  0x00000, 0x8000, 0x75d796d0 )
 	ROM_LOAD( "ik9",  0x08000, 0x8000, 0x2c34903b )
 	ROM_LOAD( "ik10", 0x10000, 0x8000, 0xda9ccc94 )
 
-	ROM_REGION( 0x30000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x30000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "11.rom", 0x00000, 0x8000, 0x5c75ea8f )
 	ROM_LOAD( "14.rom", 0x08000, 0x8000, 0x3293fde4 )
 	ROM_LOAD( "12.rom", 0x10000, 0x8000, 0x95138498 )
@@ -1518,38 +1503,38 @@ ROM_START( ikarijp )
 ROM_END
 
 ROM_START( ikarijpb )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* CPU A */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* CPU A */
 	ROM_LOAD( "ik1",	  0x00000, 0x4000, 0x2ef87dce )
 	ROM_LOAD( "up03_k4.rom",  0x04000, 0x8000, 0x26948850 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* CPU B code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* CPU B code */
 	ROM_LOAD( "ik3",    0x0000, 0x4000, 0x9bb385f8 )
 	ROM_LOAD( "ik4",    0x4000, 0x8000, 0x3a144bca )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "ik5",    0x0000, 0x4000, 0x863448fa )
 	ROM_LOAD( "ik6",    0x4000, 0x8000, 0x9b16aa57 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "7122er.prm", 0x000, 0x400, 0xb9bf2c2c )
 	ROM_LOAD( "7122eg.prm", 0x400, 0x400, 0x0703a770 )
 	ROM_LOAD( "7122eb.prm", 0x800, 0x400, 0x0a11cdde )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "ik7", 0x0000, 0x4000, 0x9e88f536 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "17.rom", 0x00000, 0x8000, 0xe0dba976 )
 	ROM_LOAD( "18.rom", 0x08000, 0x8000, 0x24947d5f )
 	ROM_LOAD( "ik19",   0x10000, 0x8000, 0x566242ec )
 	ROM_LOAD( "20.rom", 0x18000, 0x8000, 0x5da7ec1a )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "ik8",    0x00000, 0x8000, 0x75d796d0 )
 	ROM_LOAD( "ik9",    0x08000, 0x8000, 0x2c34903b )
 	ROM_LOAD( "ik10",   0x10000, 0x8000, 0xda9ccc94 )
 
-	ROM_REGION( 0x30000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x30000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "11.rom", 0x00000, 0x8000, 0x5c75ea8f )
 	ROM_LOAD( "14.rom", 0x08000, 0x8000, 0x3293fde4 )
 	ROM_LOAD( "12.rom", 0x10000, 0x8000, 0x95138498 )
@@ -1561,35 +1546,35 @@ ROM_END
 /***********************************************************************/
 
 ROM_START( victroad )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* CPU A code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* CPU A code */
 	ROM_LOAD( "p1",  0x0000, 0x10000,  0xe334acef )
 
-	ROM_REGION(  0x10000 , REGION_CPU2 )	/* CPU B code */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 )	/* CPU B code */
 	ROM_LOAD( "p2",  0x00000, 0x10000, 0x907fac83 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* sound code */
 	ROM_LOAD( "p3",  0x00000, 0x10000, 0xbac745f6 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "mb7122e.1k", 0x000, 0x400, 0x491ab831 )
 	ROM_LOAD( "mb7122e.2l", 0x400, 0x400, 0x8feca424 )
 	ROM_LOAD( "mb7122e.1l", 0x800, 0x400, 0x220076ca )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "p7",  0x0000, 0x4000,  0x2b6ed95b )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "p17",  0x00000, 0x8000, 0x19d4518c )
 	ROM_LOAD( "p18",  0x08000, 0x8000, 0xd818be43 )
 	ROM_LOAD( "p19",  0x10000, 0x8000, 0xd64e0f89 )
 	ROM_LOAD( "p20",  0x18000, 0x8000, 0xedba0f31 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "p8",  0x00000, 0x8000, 0xdf7f252a )
 	ROM_LOAD( "p9",  0x08000, 0x8000, 0x9897bc05 )
 	ROM_LOAD( "p10", 0x10000, 0x8000, 0xecd3c0ea )
 
-	ROM_REGION( 0x40000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x40000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "p11", 0x00000, 0x8000, 0x668b25a4 )
 	ROM_LOAD( "p14", 0x08000, 0x8000, 0xa7031d4a )
 	ROM_LOAD( "p12", 0x10000, 0x8000, 0xf44e95fa )
@@ -1597,41 +1582,41 @@ ROM_START( victroad )
 	ROM_LOAD( "p13", 0x20000, 0x8000, 0x980ca3d8 )
 	ROM_LOAD( "p16", 0x28000, 0x8000, 0x9f820e8a )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "p4",  0x00000, 0x10000, 0xe10fb8cc )
 	ROM_LOAD( "p5",  0x10000, 0x10000, 0x93e5f110 )
 ROM_END
 
 ROM_START( dogosoke ) /* Victory Road Japan */
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* CPU A code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* CPU A code */
 	ROM_LOAD( "up03_p4.rom",  0x0000, 0x10000,  0x37867ad2 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* CPU B code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* CPU B code */
 	ROM_LOAD( "p2",  0x00000, 0x10000, 0x907fac83 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* sound code */
 	ROM_LOAD( "up03_k7.rom",  0x00000, 0x10000, 0x173fa571 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "up03_k1.rom",  0x000, 0x400, 0x10a2ce2b )
 	ROM_LOAD( "up03_l2.rom",  0x400, 0x400, 0x99dc9792 )
 	ROM_LOAD( "up03_l1.rom",  0x800, 0x400, 0xe7213160 )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "up02_b3.rom",  0x0000, 0x4000,  0x51a4ec83 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "p17",  0x00000, 0x8000, 0x19d4518c )
 	ROM_LOAD( "p18",  0x08000, 0x8000, 0xd818be43 )
 	ROM_LOAD( "p19",  0x10000, 0x8000, 0xd64e0f89 )
 	ROM_LOAD( "p20",  0x18000, 0x8000, 0xedba0f31 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "up02_d3.rom",  0x00000, 0x8000, 0xd43044f8 )
 	ROM_LOAD( "up02_e3.rom",  0x08000, 0x8000, 0x365ed2d8 )
 	ROM_LOAD( "up02_g3.rom",  0x10000, 0x8000, 0x92579bf3 )
 
-	ROM_REGION( 0x30000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x30000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "p11", 0x00000, 0x8000, 0x668b25a4 )
 	ROM_LOAD( "p14", 0x08000, 0x8000, 0xa7031d4a )
 	ROM_LOAD( "p12", 0x10000, 0x8000, 0xf44e95fa )
@@ -1639,7 +1624,7 @@ ROM_START( dogosoke ) /* Victory Road Japan */
 	ROM_LOAD( "p13", 0x20000, 0x8000, 0x980ca3d8 )
 	ROM_LOAD( "p16", 0x28000, 0x8000, 0x9f820e8a )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "up03_f5.rom", 0x00000, 0x10000, 0x5b43fe9f )
 	ROM_LOAD( "up03_g5.rom", 0x10000, 0x10000, 0xaae30cd6 )
 ROM_END
@@ -1647,36 +1632,36 @@ ROM_END
 /***********************************************************************/
 
 ROM_START( gwar )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "7g",  0x00000, 0x10000, 0x5bcfa7dc )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "g02",  0x00000, 0x10000, 0x86d931bf )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )
 	ROM_LOAD( "g03",  0x00000, 0x10000, 0xeb544ab9 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "guprom.3", 0x000, 0x400, 0x090236a3 ) /* red */
 	ROM_LOAD( "guprom.2", 0x400, 0x400, 0x9147de69 ) /* green */
 	ROM_LOAD( "guprom.1", 0x800, 0x400, 0x7f9c839e ) /* blue */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "g05",  0x0000, 0x08000, 0x80f73e2e )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "g06",  0x00000, 0x10000, 0xf1dcdaef )
 	ROM_LOAD( "g07",  0x10000, 0x10000, 0x326e4e5e )
 	ROM_LOAD( "g08",  0x20000, 0x10000, 0x0aa70967 )
 	ROM_LOAD( "g09",  0x30000, 0x10000, 0xb7686336 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "g10",  0x00000, 0x10000, 0x58600f7d )
 	ROM_LOAD( "g11",  0x10000, 0x10000, 0xa3f9b463 )
 	ROM_LOAD( "g12",  0x20000, 0x10000, 0x092501be )
 	ROM_LOAD( "g13",  0x30000, 0x10000, 0x25801ea6 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "g20",  0x00000, 0x10000, 0x2b46edff )
 	ROM_LOAD( "g21",  0x10000, 0x10000, 0xbe19888d )
 	ROM_LOAD( "g18",  0x20000, 0x10000, 0x2d653f0c )
@@ -1686,41 +1671,41 @@ ROM_START( gwar )
 	ROM_LOAD( "g14",  0x60000, 0x10000, 0x8dfc7b87 )
 	ROM_LOAD( "g15",  0x70000, 0x10000, 0x06822aac )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )
 	ROM_LOAD( "g04",  0x00000, 0x10000, 0x2255f8dd )
 ROM_END
 
 ROM_START( gwara )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "gv3",  0x00000, 0x10000, 0x24936d83 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "gv4",  0x00000, 0x10000, 0x26335a55 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )
 	ROM_LOAD( "gv2",  0x00000, 0x10000, 0x896682dd )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "guprom.3", 0x000, 0x400, 0x090236a3 ) /* red */
 	ROM_LOAD( "guprom.2", 0x400, 0x400, 0x9147de69 ) /* green */
 	ROM_LOAD( "guprom.1", 0x800, 0x400, 0x7f9c839e ) /* blue */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "g05",  0x0000, 0x08000, 0x80f73e2e )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "g06",  0x00000, 0x10000, 0xf1dcdaef )
 	ROM_LOAD( "g07",  0x10000, 0x10000, 0x326e4e5e )
 	ROM_LOAD( "g08",  0x20000, 0x10000, 0x0aa70967 )
 	ROM_LOAD( "g09",  0x30000, 0x10000, 0xb7686336 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "g10",  0x00000, 0x10000, 0x58600f7d )
 	ROM_LOAD( "g11",  0x10000, 0x10000, 0xa3f9b463 )
 	ROM_LOAD( "g12",  0x20000, 0x10000, 0x092501be )
 	ROM_LOAD( "g13",  0x30000, 0x10000, 0x25801ea6 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "g20",  0x00000, 0x10000, 0x2b46edff )
 	ROM_LOAD( "g21",  0x10000, 0x10000, 0xbe19888d )
 	ROM_LOAD( "g18",  0x20000, 0x10000, 0x2d653f0c )
@@ -1730,41 +1715,41 @@ ROM_START( gwara )
 	ROM_LOAD( "g14",  0x60000, 0x10000, 0x8dfc7b87 )
 	ROM_LOAD( "g15",  0x70000, 0x10000, 0x06822aac )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )
 	ROM_LOAD( "g04",  0x00000, 0x10000, 0x2255f8dd )
 ROM_END
 
 ROM_START( gwarj )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "7y3047",  0x00000, 0x10000, 0x7f8a880c )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "g02",  0x00000, 0x10000, 0x86d931bf )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )
 	ROM_LOAD( "g03",  0x00000, 0x10000, 0xeb544ab9 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "guprom.3", 0x000, 0x400, 0x090236a3 ) /* red */
 	ROM_LOAD( "guprom.2", 0x400, 0x400, 0x9147de69 ) /* green */
 	ROM_LOAD( "guprom.1", 0x800, 0x400, 0x7f9c839e ) /* blue */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "792001",  0x0000, 0x08000, 0x99d7ddf3 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "g06",  0x00000, 0x10000, 0xf1dcdaef )
 	ROM_LOAD( "g07",  0x10000, 0x10000, 0x326e4e5e )
 	ROM_LOAD( "g08",  0x20000, 0x10000, 0x0aa70967 )
 	ROM_LOAD( "g09",  0x30000, 0x10000, 0xb7686336 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "g10",  0x00000, 0x10000, 0x58600f7d )
 	ROM_LOAD( "g11",  0x10000, 0x10000, 0xa3f9b463 )
 	ROM_LOAD( "g12",  0x20000, 0x10000, 0x092501be )
 	ROM_LOAD( "g13",  0x30000, 0x10000, 0x25801ea6 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "g20",  0x00000, 0x10000, 0x2b46edff )
 	ROM_LOAD( "g21",  0x10000, 0x10000, 0xbe19888d )
 	ROM_LOAD( "g18",  0x20000, 0x10000, 0x2d653f0c )
@@ -1774,41 +1759,41 @@ ROM_START( gwarj )
 	ROM_LOAD( "g14",  0x60000, 0x10000, 0x8dfc7b87 )
 	ROM_LOAD( "g15",  0x70000, 0x10000, 0x06822aac )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )
 	ROM_LOAD( "g04",  0x00000, 0x10000, 0x2255f8dd )
 ROM_END
 
 ROM_START( gwarb )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "g01",  0x00000, 0x10000, 0xce1d3c80 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "g02",  0x00000, 0x10000, 0x86d931bf )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "g03",  0x00000, 0x10000, 0xeb544ab9 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "guprom.3", 0x000, 0x400, 0x090236a3 ) /* red */ // up03_k1.rom
 	ROM_LOAD( "guprom.2", 0x400, 0x400, 0x9147de69 ) /* green */ // up03_l1.rom
 	ROM_LOAD( "guprom.1", 0x800, 0x400, 0x7f9c839e ) /* blue */ // up03_k2.rom
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "g05",  0x0000, 0x08000, 0x80f73e2e )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* background tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "g06",  0x00000, 0x10000, 0xf1dcdaef )
 	ROM_LOAD( "g07",  0x10000, 0x10000, 0x326e4e5e )
 	ROM_LOAD( "g08",  0x20000, 0x10000, 0x0aa70967 )
 	ROM_LOAD( "g09",  0x30000, 0x10000, 0xb7686336 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "g10",  0x00000, 0x10000, 0x58600f7d )
 	ROM_LOAD( "g11",  0x10000, 0x10000, 0xa3f9b463 )
 	ROM_LOAD( "g12",  0x20000, 0x10000, 0x092501be )
 	ROM_LOAD( "g13",  0x30000, 0x10000, 0x25801ea6 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "g20",  0x00000, 0x10000, 0x2b46edff )
 	ROM_LOAD( "g21",  0x10000, 0x10000, 0xbe19888d )
 	ROM_LOAD( "g18",  0x20000, 0x10000, 0x2d653f0c )
@@ -1818,45 +1803,45 @@ ROM_START( gwarb )
 	ROM_LOAD( "g14",  0x60000, 0x10000, 0x8dfc7b87 )
 	ROM_LOAD( "g15",  0x70000, 0x10000, 0x06822aac )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )
 	ROM_LOAD( "g04",  0x00000, 0x10000, 0x2255f8dd )
 ROM_END
 
 /***********************************************************************/
 
 ROM_START( bermudat )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "bt_p1.rom",  0x0000, 0x10000,  0x43dec5e9 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "bt_p2.rom",  0x00000, 0x10000, 0x0e193265 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "bt_p3.rom",  0x00000, 0x10000, 0x53a82e50 )    /* YM3526 */
 
-	ROM_REGION( 0x1400, REGION_PROMS )
+	ROM_REGION( 0x1400, REGION_PROMS, 0 )
 	ROM_LOAD( "btj_01r.prm", 0x0000, 0x0400, 0xf4b54d06 ) /* red */
 	ROM_LOAD( "btj_02g.prm", 0x0400, 0x0400, 0xbaac139e ) /* green */
 	ROM_LOAD( "btj_03b.prm", 0x0800, 0x0400, 0x2edf2e0b ) /* blue */
 	ROM_LOAD( "btj_h.prm",   0x0c00, 0x0400, 0xc20b197b ) /* ? */
 	ROM_LOAD( "btj_v.prm",   0x1000, 0x0400, 0x5d0c617f ) /* ? */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "bt_p10.rom", 0x0000, 0x8000,  0xd3650211 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "bt_p22.rom", 0x00000, 0x10000, 0x8daf7df4 )
 	ROM_LOAD( "bt_p21.rom", 0x10000, 0x10000, 0xb7689599 )
 	ROM_LOAD( "bt_p20.rom", 0x20000, 0x10000, 0xab6217b7 )
 	ROM_LOAD( "bt_p19.rom", 0x30000, 0x10000, 0x8ed759a0 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "bt_p6.rom",  0x00000, 0x8000, 0x8ffdf969 )
 	ROM_LOAD( "bt_p7.rom",  0x10000, 0x8000, 0x268d10df )
 	ROM_LOAD( "bt_p8.rom",  0x20000, 0x8000, 0x3e39e9dd )
 	ROM_LOAD( "bt_p9.rom",  0x30000, 0x8000, 0xbf56da61 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "bt_p11.rom", 0x00000, 0x10000, 0xaae7410e )
 	ROM_LOAD( "bt_p12.rom", 0x10000, 0x10000, 0x18914f70 )
 	ROM_LOAD( "bt_p13.rom", 0x20000, 0x10000, 0xcd79ce81 )
@@ -1866,44 +1851,44 @@ ROM_START( bermudat )
 	ROM_LOAD( "bt_p17.rom", 0x60000, 0x10000, 0xb5462139 )
 	ROM_LOAD( "bt_p18.rom", 0x70000, 0x10000, 0xcb416227 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "bt_p4.rom",  0x00000, 0x10000, 0x4bc83229 )
 	ROM_LOAD( "bt_p5.rom",  0x10000, 0x10000, 0x817bd62c )
 ROM_END
 
 ROM_START( bermudaj )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "btj_p01.bin", 0x0000, 0x10000,  0xeda75f36 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "bt_p2.rom",   0x00000, 0x10000, 0x0e193265 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "btj_p03.bin", 0x00000, 0x10000, 0xfea8a096 )    /* YM3526 */
 
-	ROM_REGION( 0x1400, REGION_PROMS )
+	ROM_REGION( 0x1400, REGION_PROMS, 0 )
 	ROM_LOAD( "btj_01r.prm", 0x0000, 0x0400, 0xf4b54d06 ) /* red */
 	ROM_LOAD( "btj_02g.prm", 0x0400, 0x0400, 0xbaac139e ) /* green */
 	ROM_LOAD( "btj_03b.prm", 0x0800, 0x0400, 0x2edf2e0b ) /* blue */
 	ROM_LOAD( "btj_h.prm",   0x0c00, 0x0400, 0xc20b197b ) /* ? */
 	ROM_LOAD( "btj_v.prm",   0x1000, 0x0400, 0x5d0c617f ) /* ? */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "bt_p10.rom",  0x0000, 0x8000,  0xd3650211 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "bt_p22.rom",  0x00000, 0x10000, 0x8daf7df4 )
 	ROM_LOAD( "bt_p21.rom",  0x10000, 0x10000, 0xb7689599 )
 	ROM_LOAD( "bt_p20.rom",  0x20000, 0x10000, 0xab6217b7 )
 	ROM_LOAD( "bt_p19.rom",  0x30000, 0x10000, 0x8ed759a0 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "bt_p6.rom",   0x00000, 0x8000, 0x8ffdf969 )
 	ROM_LOAD( "bt_p7.rom",   0x10000, 0x8000, 0x268d10df )
 	ROM_LOAD( "bt_p8.rom",   0x20000, 0x8000, 0x3e39e9dd )
 	ROM_LOAD( "bt_p9.rom",   0x30000, 0x8000, 0xbf56da61 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "bt_p11.rom",  0x00000, 0x10000, 0xaae7410e )
 	ROM_LOAD( "bt_p12.rom",  0x10000, 0x10000, 0x18914f70 )
 	ROM_LOAD( "bt_p13.rom",  0x20000, 0x10000, 0xcd79ce81 )
@@ -1913,44 +1898,44 @@ ROM_START( bermudaj )
 	ROM_LOAD( "bt_p17.rom",  0x60000, 0x10000, 0xb5462139 )
 	ROM_LOAD( "bt_p18.rom",  0x70000, 0x10000, 0xcb416227 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "btj_p04.bin", 0x00000, 0x10000, 0xb2e01129 )
 	ROM_LOAD( "btj_p05.bin", 0x10000, 0x10000, 0x924c24f7 )
 ROM_END
 
 ROM_START( worldwar )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "ww4.bin",  0x0000, 0x10000,  0xbc29d09f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "ww5.bin",  0x00000, 0x10000, 0x8dc15909 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "ww3.bin",  0x00000, 0x10000, 0x8b74c951 )
 
-	ROM_REGION( 0x1400, REGION_PROMS )
+	ROM_REGION( 0x1400, REGION_PROMS, 0 )
 	ROM_LOAD( "ww_r.bin",    0x0000, 0x0400, 0xb88e95f0 ) /* red */
 	ROM_LOAD( "ww_g.bin",    0x0400, 0x0400, 0x5e1616b2 ) /* green */
 	ROM_LOAD( "ww_b.bin",    0x0800, 0x0400, 0xe9770796 ) /* blue */
 	ROM_LOAD( "btj_h.prm",   0x0c00, 0x0400, 0xc20b197b ) /* ? */
 	ROM_LOAD( "btj_v.prm",   0x1000, 0x0400, 0x5d0c617f ) /* ? */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "ww6.bin", 0x0000, 0x8000,  0xd57570ab )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "ww11.bin", 0x00000, 0x10000, 0x603ddcb5 )
 	ROM_LOAD( "ww14.bin", 0x10000, 0x10000, 0x04c784be )
 	ROM_LOAD( "ww13.bin", 0x20000, 0x10000, 0x83a7ef62 )
 	ROM_LOAD( "ww12.bin", 0x30000, 0x10000, 0x388093ff )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "ww7.bin",  0x30000, 0x08000, 0x53c4b24e )
 	ROM_LOAD( "ww8.bin",  0x20000, 0x08000, 0x0ec15086 )
 	ROM_LOAD( "ww9.bin",  0x10000, 0x08000, 0xd9d35911 )
 	ROM_LOAD( "ww10.bin", 0x00000, 0x08000, 0xf68a2d51 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "ww15.bin", 0x40000, 0x10000, 0xd55ce063 )
 	ROM_LOAD( "ww16.bin", 0x50000, 0x10000, 0xa2d19ce5 )
 	ROM_LOAD( "ww17.bin", 0x60000, 0x10000, 0xa9a6b128 )
@@ -1960,44 +1945,44 @@ ROM_START( worldwar )
 	ROM_LOAD( "ww21.bin", 0x00000, 0x10000, 0xbe974fbe )
 	ROM_LOAD( "ww22.bin", 0x10000, 0x10000, 0x9914972a )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* ADPCM samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* ADPCM samples */
 	ROM_LOAD( "bt_p4.rom",  0x00000, 0x10000, 0x4bc83229 )
 	ROM_LOAD( "bt_p5.rom",  0x10000, 0x10000, 0x817bd62c )
 ROM_END
 
 ROM_START( bermudaa )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "4",  0x0000, 0x10000,  0x4de39d01 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "5",  0x00000, 0x10000, 0x76158e94 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "3",  0x00000, 0x10000, 0xc79134a8 )
 
-	ROM_REGION( 0x1400, REGION_PROMS )
+	ROM_REGION( 0x1400, REGION_PROMS, 0 )
 	ROM_LOAD( "mb7122e.1k",  0x0000, 0x0400, 0x1e8fc4c3 ) /* red */
 	ROM_LOAD( "mb7122e.2l",  0x0400, 0x0400, 0x23ce9707 ) /* green */
 	ROM_LOAD( "mb7122e.1l",  0x0800, 0x0400, 0x26caf985 ) /* blue */
 	ROM_LOAD( "btj_h.prm",   0x0c00, 0x0400, 0xc20b197b ) /* ? */
 	ROM_LOAD( "btj_v.prm",   0x1000, 0x0400, 0x5d0c617f ) /* ? */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "6", 0x0000, 0x8000,  0xa0e6710c )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "ww11.bin", 0x00000, 0x10000, 0x603ddcb5 )
 	ROM_LOAD( "ww14.bin", 0x10000, 0x10000, 0x04c784be )
 	ROM_LOAD( "ww13.bin", 0x20000, 0x10000, 0x83a7ef62 )
 	ROM_LOAD( "ww12.bin", 0x30000, 0x10000, 0x388093ff )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "ww7.bin",  0x30000, 0x08000, 0x53c4b24e )
 	ROM_LOAD( "ww8.bin",  0x20000, 0x08000, 0x0ec15086 )
 	ROM_LOAD( "ww9.bin",  0x10000, 0x08000, 0xd9d35911 )
 	ROM_LOAD( "ww10.bin", 0x00000, 0x08000, 0xf68a2d51 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "ww15.bin", 0x40000, 0x10000, 0xd55ce063 )
 	ROM_LOAD( "ww16.bin", 0x50000, 0x10000, 0xa2d19ce5 )
 	ROM_LOAD( "ww17.bin", 0x60000, 0x10000, 0xa9a6b128 )
@@ -2007,7 +1992,7 @@ ROM_START( bermudaa )
 	ROM_LOAD( "ww21.bin", 0x00000, 0x10000, 0xbe974fbe )
 	ROM_LOAD( "ww22.bin", 0x10000, 0x10000, 0x9914972a )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* ADPCM samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* ADPCM samples */
 	ROM_LOAD( "bt_p4.rom",  0x00000, 0x10000, 0x4bc83229 )
 	ROM_LOAD( "bt_p5.rom",  0x10000, 0x10000, 0x817bd62c )
 ROM_END
@@ -2015,38 +2000,38 @@ ROM_END
 /***********************************************************************/
 
 ROM_START( psychos )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "p7",  0x00000, 0x10000, 0x562809f4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "up03_m8.rom",  0x00000, 0x10000, 0x5f426ddb )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "p5",  0x0000, 0x10000,  0x64503283 )
 
-	ROM_REGION( 0x1400, REGION_PROMS )
+	ROM_REGION( 0x1400, REGION_PROMS, 0 )
 	ROM_LOAD( "up03_k1.rom",  0x00000, 0x00400, 0x27b8ca8c ) /* red */
 	ROM_LOAD( "up03_l1.rom",  0x00400, 0x00400, 0x40e78c9e ) /* green */
 	ROM_LOAD( "up03_k2.rom",  0x00800, 0x00400, 0xd845d5ac ) /* blue */
 	ROM_LOAD( "mb7122e.8j",   0x0c00, 0x400, 0xc20b197b ) /* ? */
 	ROM_LOAD( "mb7122e.8k",   0x1000, 0x400, 0x5d0c617f ) /* ? */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "up02_a3.rom",  0x0000, 0x8000,  0x11a71919 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "up01_f1.rom",  0x00000, 0x10000, 0x167e5765 )
 	ROM_LOAD( "up01_d1.rom",  0x10000, 0x10000, 0x8b0fe8d0 )
 	ROM_LOAD( "up01_c1.rom",  0x20000, 0x10000, 0xf4361c50 )
 	ROM_LOAD( "up01_a1.rom",  0x30000, 0x10000, 0xe4b0b95e )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "up02_f3.rom",  0x00000, 0x8000, 0xf96f82db )
 	ROM_LOAD( "up02_e3.rom",  0x10000, 0x8000, 0x2b007733 )
 	ROM_LOAD( "up02_c3.rom",  0x20000, 0x8000, 0xefa830e1 )
 	ROM_LOAD( "up02_b3.rom",  0x30000, 0x8000, 0x24559ee1 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "up01_f10.rom",  0x00000, 0x10000, 0x2bac250e )
 	ROM_LOAD( "up01_h10.rom",  0x10000, 0x10000, 0x5e1ba353 )
 	ROM_LOAD( "up01_j10.rom",  0x20000, 0x10000, 0x9ff91a97 )
@@ -2056,7 +2041,7 @@ ROM_START( psychos )
 	ROM_LOAD( "up01_r10.rom",  0x60000, 0x10000, 0xc4488472 )
 	ROM_LOAD( "up01_s10.rom",  0x70000, 0x10000, 0x8ec7fe18 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )
 	ROM_LOAD( "p1",  0x00000, 0x10000, 0x58f1683f )
 	ROM_LOAD( "p2",  0x10000, 0x10000, 0xda3abda1 )
 	ROM_LOAD( "p3",  0x20000, 0x10000, 0xf3683ae8 )
@@ -2064,38 +2049,38 @@ ROM_START( psychos )
 ROM_END
 
 ROM_START( psychosj )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "up03_m4.rom",  0x0000, 0x10000,  0x05dfb409 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "up03_m8.rom",  0x00000, 0x10000, 0x5f426ddb )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "up03_j6.rom",  0x00000, 0x10000, 0xbbd0a8e3 )
 
-	ROM_REGION( 0x1400, REGION_PROMS )
+	ROM_REGION( 0x1400, REGION_PROMS, 0 )
 	ROM_LOAD( "up03_k1.rom",  0x00000, 0x00400, 0x27b8ca8c ) /* red */
 	ROM_LOAD( "up03_l1.rom",  0x00400, 0x00400, 0x40e78c9e ) /* green */
 	ROM_LOAD( "up03_k2.rom",  0x00800, 0x00400, 0xd845d5ac ) /* blue */
 	ROM_LOAD( "mb7122e.8j",   0x0c00, 0x400, 0xc20b197b ) /* ? */
 	ROM_LOAD( "mb7122e.8k",   0x1000, 0x400, 0x5d0c617f ) /* ? */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "up02_a3.rom",  0x0000, 0x8000,  0x11a71919 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "up01_f1.rom",  0x00000, 0x10000, 0x167e5765 )
 	ROM_LOAD( "up01_d1.rom",  0x10000, 0x10000, 0x8b0fe8d0 )
 	ROM_LOAD( "up01_c1.rom",  0x20000, 0x10000, 0xf4361c50 )
 	ROM_LOAD( "up01_a1.rom",  0x30000, 0x10000, 0xe4b0b95e )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "up02_f3.rom",  0x00000, 0x8000, 0xf96f82db )
 	ROM_LOAD( "up02_e3.rom",  0x10000, 0x8000, 0x2b007733 )
 	ROM_LOAD( "up02_c3.rom",  0x20000, 0x8000, 0xefa830e1 )
 	ROM_LOAD( "up02_b3.rom",  0x30000, 0x8000, 0x24559ee1 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "up01_f10.rom",  0x00000, 0x10000, 0x2bac250e )
 	ROM_LOAD( "up01_h10.rom",  0x10000, 0x10000, 0x5e1ba353 )
 	ROM_LOAD( "up01_j10.rom",  0x20000, 0x10000, 0x9ff91a97 )
@@ -2105,7 +2090,7 @@ ROM_START( psychosj )
 	ROM_LOAD( "up01_r10.rom",  0x60000, 0x10000, 0xc4488472 )
 	ROM_LOAD( "up01_s10.rom",  0x70000, 0x10000, 0x8ec7fe18 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )
 	ROM_LOAD( "up03_b5.rom",  0x00000, 0x10000, 0x0f8e8276 )
 	ROM_LOAD( "up03_c5.rom",  0x10000, 0x10000, 0x34e41dfb )
 	ROM_LOAD( "up03_d5.rom",  0x20000, 0x10000, 0xaa583c5e )
@@ -2115,36 +2100,36 @@ ROM_END
 /***********************************************************************/
 
 ROM_START( chopper )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "kk_01.rom",  0x0000, 0x10000,  0x8fa2f839 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "kk_04.rom",  0x00000, 0x10000, 0x004f7d9a )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "kk_03.rom",  0x00000, 0x10000, 0xdbaafb87 )   /* YM3526 */
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "up03_k1.rom",  0x0000, 0x0400, 0x7f07a45c ) /* red */
 	ROM_LOAD( "up03_l1.rom",  0x0400, 0x0400, 0x15359fc3 ) /* green */
 	ROM_LOAD( "up03_k2.rom",  0x0800, 0x0400, 0x79b50f7d ) /* blue */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "kk_05.rom",  0x0000, 0x8000, 0xdefc0987 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "kk_10.rom",  0x00000, 0x10000, 0x5cf4d22b )
 	ROM_LOAD( "kk_11.rom",  0x10000, 0x10000, 0x9af4cad0 )
 	ROM_LOAD( "kk_12.rom",  0x20000, 0x10000, 0x02fec778 )
 	ROM_LOAD( "kk_13.rom",  0x30000, 0x10000, 0x2756817d )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "kk_09.rom",  0x00000, 0x08000, 0x653c4342 )
 	ROM_LOAD( "kk_08.rom",  0x10000, 0x08000, 0x2da45894 )
 	ROM_LOAD( "kk_07.rom",  0x20000, 0x08000, 0xa0ebebdf )
 	ROM_LOAD( "kk_06.rom",  0x30000, 0x08000, 0x284fad9e )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "kk_18.rom",  0x00000, 0x10000, 0x6abbff36 )
 	ROM_LOAD( "kk_19.rom",  0x10000, 0x10000, 0x5283b4d3 )
 	ROM_LOAD( "kk_20.rom",  0x20000, 0x10000, 0x6403ddf2 )
@@ -2154,41 +2139,41 @@ ROM_START( chopper )
 	ROM_LOAD( "kk_16.rom",  0x60000, 0x10000, 0xefb1fb6c )
 	ROM_LOAD( "kk_17.rom",  0x70000, 0x10000, 0x6b7fb0a5 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )
 	ROM_LOAD( "kk_02.rom",  0x00000, 0x10000, 0x06169ae0 )
 ROM_END
 
 ROM_START( legofair ) /* ChopperI (Japan) */
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "up03_m4.rom",  0x0000, 0x10000,  0x79a485c0 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "up03_m8.rom",  0x00000, 0x10000, 0x96d3a4d9 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "kk_03.rom",  0x00000, 0x10000, 0xdbaafb87 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "up03_k1.rom",  0x0000, 0x0400, 0x7f07a45c ) /* red */
 	ROM_LOAD( "up03_l1.rom",  0x0400, 0x0400, 0x15359fc3 ) /* green */
 	ROM_LOAD( "up03_k2.rom",  0x0800, 0x0400, 0x79b50f7d ) /* blue */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "kk_05.rom",  0x0000, 0x8000, 0xdefc0987 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "kk_10.rom",  0x00000, 0x10000, 0x5cf4d22b )
 	ROM_LOAD( "kk_11.rom",  0x10000, 0x10000, 0x9af4cad0 )
 	ROM_LOAD( "kk_12.rom",  0x20000, 0x10000, 0x02fec778 )
 	ROM_LOAD( "kk_13.rom",  0x30000, 0x10000, 0x2756817d )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "kk_09.rom",  0x00000, 0x08000, 0x653c4342 )
 	ROM_LOAD( "kk_08.rom",  0x10000, 0x08000, 0x2da45894 )
 	ROM_LOAD( "kk_07.rom",  0x20000, 0x08000, 0xa0ebebdf )
 	ROM_LOAD( "kk_06.rom",  0x30000, 0x08000, 0x284fad9e )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "kk_18.rom",  0x00000, 0x10000, 0x6abbff36 )
 	ROM_LOAD( "kk_19.rom",  0x10000, 0x10000, 0x5283b4d3 )
 	ROM_LOAD( "kk_20.rom",  0x20000, 0x10000, 0x6403ddf2 )
@@ -2198,37 +2183,37 @@ ROM_START( legofair ) /* ChopperI (Japan) */
 	ROM_LOAD( "kk_16.rom",  0x60000, 0x10000, 0xefb1fb6c )
 	ROM_LOAD( "kk_17.rom",  0x70000, 0x10000, 0x6b7fb0a5 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )
 	ROM_LOAD( "kk_02.rom",  0x00000, 0x10000, 0x06169ae0 )
 ROM_END
 
 /***********************************************************************/
 
 ROM_START( ftsoccer )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for cpuA code */
 	ROM_LOAD( "ft-003.bin",  0x00000, 0x10000, 0x649d4448 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for cpuB code */
 	ROM_LOAD( "ft-001.bin",  0x00000, 0x10000, 0x2f68e38b )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for sound code */
 	ROM_LOAD( "ft-002.bin",  0x00000, 0x10000, 0x9ee54ea1 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "prom2.bin", 0x000, 0x400, 0xbf4ac706 ) /* red */
 	ROM_LOAD( "prom1.bin", 0x400, 0x400, 0x1bac8010 ) /* green */
 	ROM_LOAD( "prom3.bin", 0x800, 0x400, 0xdbeddb14 ) /* blue */
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "ft-013.bin",  0x0000, 0x08000, 0x0de7b7ad )
 
-	ROM_REGION( 0x50000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* background tiles */
+	ROM_REGION( 0x50000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "ft-014.bin",  0x00000, 0x10000, 0x38c38b40 )
 	ROM_LOAD( "ft-015.bin",  0x10000, 0x10000, 0xa614834f )
 
-//	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 16x16 sprites */
+//	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "ft-005.bin",  0x10000, 0x10000, 0xdef2f1d8 )
 	ROM_LOAD( "ft-006.bin",  0x00000, 0x10000, 0x588d14b3 )
 
@@ -2241,38 +2226,38 @@ ROM_START( ftsoccer )
 	ROM_LOAD( "ft-011.bin",  0x70000, 0x10000, 0x022f3e96 )
 	ROM_LOAD( "ft-012.bin",  0x60000, 0x10000, 0xb2442c30 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )
 	ROM_LOAD( "ft-004.bin",  0x00000, 0x10000, 0x435c3716 )
 ROM_END
 
 /***********************************************************************/
 
 ROM_START( tdfever ) /* USA set */
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "td2-ver3.6c",  0x0000, 0x10000,  0x92138fe4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "td1-ver3.2c",  0x00000, 0x10000, 0x798711f5 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "td3-ver3.3j",  0x00000, 0x10000, 0x5d13e0b1 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "up03_e8.rom",  0x000, 0x00400, 0x67bdf8a0 )
 	ROM_LOAD( "up03_d8.rom",  0x400, 0x00400, 0x9c4a9198 )
 	ROM_LOAD( "up03_e9.rom",  0x800, 0x00400, 0xc93c18e8 )
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "td14ver3.4n",  0x0000, 0x8000,  0xe841bf1a )
 
-	ROM_REGION( 0x50000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x50000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "up01_d8.rom",  0x00000, 0x10000, 0xad6e0927 )
 	ROM_LOAD( "up01_e8.rom",  0x10000, 0x10000, 0x181db036 )
 	ROM_LOAD( "up01_f8.rom",  0x20000, 0x10000, 0xc5decca3 )
 	ROM_LOAD( "td18ver2.8gh", 0x30000, 0x10000, 0x3924da37 )
 	ROM_LOAD( "up01_j8.rom",  0x40000, 0x10000, 0xbc17ea7f )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "up01_k2.rom",  0x00000, 0x10000, 0x72a5590d )
 	ROM_LOAD( "up01_l2.rom",  0x30000, 0x10000, 0x28f49182 )
 	ROM_LOAD( "up01_n2.rom",  0x20000, 0x10000, 0xa8979657 )
@@ -2282,37 +2267,37 @@ ROM_START( tdfever ) /* USA set */
 	ROM_LOAD( "up01_t2.rom",  0x60000, 0x10000, 0x88e2e819 )
 	ROM_LOAD( "up01_s2.rom",  0x70000, 0x10000, 0xf6f83d63 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "up02_n6.rom",  0x00000, 0x10000, 0x155e472e )
 	ROM_LOAD( "up02_p6.rom",  0x10000, 0x10000, 0x04794557 )
 ROM_END
 
 ROM_START( tdfeverj )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "up02_c6.rom",  0x0000, 0x10000,  0x88d88ec4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "up02_c2.rom",  0x00000, 0x10000, 0x191e6442 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "up02_j3.rom",  0x00000, 0x10000, 0x4e4d71c7 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "up03_e8.rom",  0x000, 0x00400, 0x67bdf8a0 )
 	ROM_LOAD( "up03_d8.rom",  0x400, 0x00400, 0x9c4a9198 )
 	ROM_LOAD( "up03_e9.rom",  0x800, 0x00400, 0xc93c18e8 )
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "up01_n4.rom",  0x0000, 0x8000,  0xaf9bced5 )
 
-	ROM_REGION( 0x50000, REGION_GFX2 | REGIONFLAG_DISPOSE ) /* tiles */
+	ROM_REGION( 0x50000, REGION_GFX2, ROMREGION_DISPOSE ) /* tiles */
 	ROM_LOAD( "up01_d8.rom",  0x00000, 0x10000, 0xad6e0927 )
 	ROM_LOAD( "up01_e8.rom",  0x10000, 0x10000, 0x181db036 )
 	ROM_LOAD( "up01_f8.rom",  0x20000, 0x10000, 0xc5decca3 )
 	ROM_LOAD( "up01_g8.rom",  0x30000, 0x10000, 0x4512cdfb )
 	ROM_LOAD( "up01_j8.rom",  0x40000, 0x10000, 0xbc17ea7f )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE ) /* 32x32 sprites */
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE ) /* 32x32 sprites */
 	ROM_LOAD( "up01_k2.rom",  0x00000, 0x10000, 0x72a5590d )
 	ROM_LOAD( "up01_l2.rom",  0x30000, 0x10000, 0x28f49182 )
 	ROM_LOAD( "up01_n2.rom",  0x20000, 0x10000, 0xa8979657 )
@@ -2322,7 +2307,7 @@ ROM_START( tdfeverj )
 	ROM_LOAD( "up01_r2.rom",  0x60000, 0x10000, 0xa0d53fbd )
 	ROM_LOAD( "up01_p2.rom",  0x70000, 0x10000, 0xc8c71c7b )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "up02_n6.rom",  0x00000, 0x10000, 0x155e472e )
 	ROM_LOAD( "up02_p6.rom",  0x10000, 0x10000, 0x04794557 )
 ROM_END

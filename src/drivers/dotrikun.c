@@ -33,31 +33,23 @@ void dotrikun_vh_stop(void);
 WRITE_HANDLER( dotrikun_color_w );
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x8000, 0x87ff, dotrikun_videoram_w, &videoram, &videoram_size },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, input_port_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, dotrikun_color_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( dotrikun )
@@ -112,12 +104,12 @@ static const struct MachineDriver machine_driver_dotrikun =
 ***************************************************************************/
 
 ROM_START( dotrikun )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "14479a.mpr",	0x0000, 0x4000, 0xb77a50db )
 ROM_END
 
 ROM_START( dotriku2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "14479.mpr",	0x0000, 0x4000, 0xa6aa7fa5 )
 ROM_END
 

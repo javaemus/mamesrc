@@ -94,8 +94,7 @@ WRITE_HANDLER( gyruss_sharedram_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0x9000, 0x9fff, MRA_RAM },
@@ -110,11 +109,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xc0c0, 0xc0c0, input_port_2_r },	/* IN2 */
 	{ 0xc0e0, 0xc0e0, input_port_3_r },	/* DSW0 */
 	{ 0xc100, 0xc100, input_port_5_r },	/* DSW2 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },                 /* rom space+1        */
 	{ 0x8000, 0x83ff, colorram_w, &colorram },
 	{ 0x8400, 0x87ff, videoram_w, &videoram, &videoram_size },
@@ -135,38 +132,30 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xc100, 0xc100, soundlatch_w },         /* command to soundb  */
 	{ 0xc180, 0xc180, interrupt_enable_w },      /* NMI enable         */
 	{ 0xc185, 0xc185, gyruss_flipscreen_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },                 /* rom soundboard     */
 	{ 0x6000, 0x63ff, MRA_RAM },                 /* ram soundboard     */
 	{ 0x8000, 0x8000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },                 /* rom soundboard     */
 	{ 0x6000, 0x63ff, MWA_RAM },                 /* ram soundboard     */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x01, 0x01, AY8910_read_port_0_r },
   	{ 0x05, 0x05, AY8910_read_port_1_r },
 	{ 0x09, 0x09, AY8910_read_port_2_r },
   	{ 0x0d, 0x0d, AY8910_read_port_3_r },
   	{ 0x11, 0x11, AY8910_read_port_4_r },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, AY8910_control_port_0_w },
 	{ 0x02, 0x02, AY8910_write_port_0_w },
 	{ 0x04, 0x04, AY8910_control_port_1_w },
@@ -179,55 +168,42 @@ static struct IOWritePort sound_writeport[] =
 	{ 0x12, 0x12, AY8910_write_port_4_w },
 	{ 0x14, 0x14, gyruss_i8039_irq_w },
 	{ 0x18, 0x18, soundlatch2_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 #ifdef EMULATE_6809
-static struct MemoryReadAddress m6809_readmem[] =
-{
+static MEMORY_READ_START( m6809_readmem )
 	{ 0x0000, 0x0000, gyruss_scanline_r },
 	{ 0x4000, 0x47ff, MRA_RAM },
 	{ 0x6000, 0x67ff, gyruss_sharedram_r },
 	{ 0xe000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress m6809_writemem[] =
-{
+static MEMORY_WRITE_START( m6809_writemem )
 	{ 0x2000, 0x2000, interrupt_enable_w },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x4040, 0x40ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x6000, 0x67ff, gyruss_sharedram_w },
 	{ 0xe000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 #endif
 
-static struct MemoryReadAddress i8039_readmem[] =
-{
+static MEMORY_READ_START( i8039_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress i8039_writemem[] =
-{
+static MEMORY_WRITE_START( i8039_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort i8039_readport[] =
-{
+static PORT_READ_START( i8039_readport )
 	{ 0x00, 0xff, soundlatch2_r },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort i8039_writeport[] =
-{
+static PORT_WRITE_START( i8039_writeport )
 	{ I8039_p1, I8039_p1, DAC_0_data_w },
 	{ I8039_p2, I8039_p2, IOWP_NOP },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -574,99 +550,99 @@ static const struct MachineDriver machine_driver_gyruss =
 ***************************************************************************/
 
 ROM_START( gyruss )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "gyrussk.1",    0x0000, 0x2000, 0xc673b43d )
 	ROM_LOAD( "gyrussk.2",    0x2000, 0x2000, 0xa4ec03e4 )
 	ROM_LOAD( "gyrussk.3",    0x4000, 0x2000, 0x27454a98 )
 	/* the diagnostics ROM would go here */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "gyrussk.1a",   0x0000, 0x2000, 0xf4ae1c17 )
 	ROM_LOAD( "gyrussk.2a",   0x2000, 0x2000, 0xba498115 )
 	/* the diagnostics ROM would go here */
 
-	ROM_REGION( 0x1000, REGION_CPU3 )	/* 8039 */
+	ROM_REGION( 0x1000, REGION_CPU3, 0 )	/* 8039 */
 	ROM_LOAD( "gyrussk.3a",   0x0000, 0x1000, 0x3f9b5dea )
 
-	ROM_REGION( 2*0x10000, REGION_CPU4 )	/* 64k for code + 64k for the decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU4, 0 )	/* 64k for code + 64k for the decrypted opcodes */
 	ROM_LOAD( "gyrussk.9",    0xe000, 0x2000, 0x822bf27e )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gyrussk.4",    0x0000, 0x2000, 0x27d8329b )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gyrussk.6",    0x0000, 0x2000, 0xc949db10 )
 	ROM_LOAD( "gyrussk.5",    0x2000, 0x2000, 0x4f22411a )
 	ROM_LOAD( "gyrussk.8",    0x4000, 0x2000, 0x47cd1fbc )
 	ROM_LOAD( "gyrussk.7",    0x6000, 0x2000, 0x8e8d388c )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "gyrussk.pr3",  0x0000, 0x0020, 0x98782db3 )	/* palette */
 	ROM_LOAD( "gyrussk.pr1",  0x0020, 0x0100, 0x7ed057de )	/* sprite lookup table */
 	ROM_LOAD( "gyrussk.pr2",  0x0120, 0x0100, 0xde823a81 )	/* character lookup table */
 ROM_END
 
 ROM_START( gyrussce )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "gya-1.bin",    0x0000, 0x2000, 0x85f8b7c2 )
 	ROM_LOAD( "gya-2.bin",    0x2000, 0x2000, 0x1e1a970f )
 	ROM_LOAD( "gya-3.bin",    0x4000, 0x2000, 0xf6dbb33b )
 	/* the diagnostics ROM would go here */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "gyrussk.1a",   0x0000, 0x2000, 0xf4ae1c17 )
 	ROM_LOAD( "gyrussk.2a",   0x2000, 0x2000, 0xba498115 )
 	/* the diagnostics ROM would go here */
 
-	ROM_REGION( 0x1000, REGION_CPU3 )	/* 8039 */
+	ROM_REGION( 0x1000, REGION_CPU3, 0 )	/* 8039 */
 	ROM_LOAD( "gyrussk.3a",   0x0000, 0x1000, 0x3f9b5dea )
 
-	ROM_REGION( 2*0x10000, REGION_CPU4 )	/* 64k for code + 64k for the decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU4, 0 )	/* 64k for code + 64k for the decrypted opcodes */
 	ROM_LOAD( "gyrussk.9",    0xe000, 0x2000, 0x822bf27e )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gyrussk.4",    0x0000, 0x2000, 0x27d8329b )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gyrussk.6",    0x0000, 0x2000, 0xc949db10 )
 	ROM_LOAD( "gyrussk.5",    0x2000, 0x2000, 0x4f22411a )
 	ROM_LOAD( "gyrussk.8",    0x4000, 0x2000, 0x47cd1fbc )
 	ROM_LOAD( "gyrussk.7",    0x6000, 0x2000, 0x8e8d388c )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "gyrussk.pr3",  0x0000, 0x0020, 0x98782db3 )	/* palette */
 	ROM_LOAD( "gyrussk.pr1",  0x0020, 0x0100, 0x7ed057de )	/* sprite lookup table */
 	ROM_LOAD( "gyrussk.pr2",  0x0120, 0x0100, 0xde823a81 )	/* character lookup table */
 ROM_END
 
 ROM_START( venus )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "r1",           0x0000, 0x2000, 0xd030abb1 )
 	ROM_LOAD( "r2",           0x2000, 0x2000, 0xdbf65d4d )
 	ROM_LOAD( "r3",           0x4000, 0x2000, 0xdb246fcd )
 	/* the diagnostics ROM would go here */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "gyrussk.1a",   0x0000, 0x2000, 0xf4ae1c17 )
 	ROM_LOAD( "gyrussk.2a",   0x2000, 0x2000, 0xba498115 )
 	/* the diagnostics ROM would go here */
 
-	ROM_REGION( 0x1000, REGION_CPU3 )	/* 8039 */
+	ROM_REGION( 0x1000, REGION_CPU3, 0 )	/* 8039 */
 	ROM_LOAD( "gyrussk.3a",   0x0000, 0x1000, 0x3f9b5dea )
 
-	ROM_REGION( 2*0x10000, REGION_CPU4 )	/* 64k for code + 64k for the decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU4, 0 )	/* 64k for code + 64k for the decrypted opcodes */
 	ROM_LOAD( "gyrussk.9",    0xe000, 0x2000, 0x822bf27e )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gyrussk.4",    0x0000, 0x2000, 0x27d8329b )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gyrussk.6",    0x0000, 0x2000, 0xc949db10 )
 	ROM_LOAD( "gyrussk.5",    0x2000, 0x2000, 0x4f22411a )
 	ROM_LOAD( "gyrussk.8",    0x4000, 0x2000, 0x47cd1fbc )
 	ROM_LOAD( "gyrussk.7",    0x6000, 0x2000, 0x8e8d388c )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "gyrussk.pr3",  0x0000, 0x0020, 0x98782db3 )	/* palette */
 	ROM_LOAD( "gyrussk.pr1",  0x0020, 0x0100, 0x7ed057de )	/* sprite lookup table */
 	ROM_LOAD( "gyrussk.pr2",  0x0120, 0x0100, 0xde823a81 )	/* character lookup table */

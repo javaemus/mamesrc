@@ -53,21 +53,36 @@
 #include "vidhrdw/generic.h"
 
 
+
+/*************************************
+ *
+ *	Externals
+ *
+ *************************************/
+
 extern UINT8 mcr68_sprite_clip;
 extern INT8 mcr68_sprite_xoffset;
 
-static UINT8 *control_word;
 
-
-WRITE_HANDLER( mcr68_videoram_w );
-WRITE_HANDLER( mcr68_paletteram_w );
+WRITE16_HANDLER( mcr68_videoram_w );
+WRITE16_HANDLER( mcr68_paletteram_w );
 void mcr68_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
 
-WRITE_HANDLER( zwackery_videoram_w );
-WRITE_HANDLER( zwackery_paletteram_w );
-WRITE_HANDLER( zwackery_spriteram_w );
+WRITE16_HANDLER( zwackery_videoram_w );
+WRITE16_HANDLER( zwackery_paletteram_w );
+WRITE16_HANDLER( zwackery_spriteram_w );
 void zwackery_convert_color_prom(unsigned char *palette, unsigned short *colortable, const unsigned char *color_prom);
 void zwackery_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
+
+
+
+/*************************************
+ *
+ *	Statics
+ *
+ *************************************/
+
+static data16_t control_word;
 
 
 
@@ -77,16 +92,16 @@ void zwackery_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
  *
  *************************************/
 
-READ_HANDLER( zwackery_port_2_r )
+READ16_HANDLER( zwackery_port_2_r )
 {
-	int result = input_port_2_r(offset);
-	int wheel = input_port_5_r(offset);
+	int result = readinputport(2);
+	int wheel = readinputport(5);
 
 	return result | ((wheel >> 2) & 0x3e);
 }
 
 
-static READ_HANDLER( zwackery_6840_r )
+static READ16_HANDLER( zwackery_6840_r )
 {
 	/* Zwackery does a timer test:                          */
 	/* It loads $1388 into one of the timers clocked by E   */
@@ -108,14 +123,11 @@ static READ_HANDLER( zwackery_6840_r )
  *
  *************************************/
 
-static WRITE_HANDLER( xenophobe_control_w )
+static WRITE16_HANDLER( xenophobe_control_w )
 {
-	int oldword = READ_WORD(&control_word[offset]);
-	int newword = COMBINE_WORD(oldword, data);
-	WRITE_WORD(&control_word[offset], newword);
-
-/*	soundsgood_reset_w(~newword & 0x0020);*/
-	soundsgood_data_w(offset, ((newword & 0x000f) << 1) | ((newword & 0x0010) >> 4));
+	COMBINE_DATA(&control_word);
+/*	soundsgood_reset_w(~control_word & 0x0020);*/
+	soundsgood_data_w(offset, ((control_word & 0x000f) << 1) | ((control_word & 0x0010) >> 4));
 }
 
 
@@ -126,14 +138,11 @@ static WRITE_HANDLER( xenophobe_control_w )
  *
  *************************************/
 
-static WRITE_HANDLER( blasted_control_w )
+static WRITE16_HANDLER( blasted_control_w )
 {
-	int oldword = READ_WORD(&control_word[offset]);
-	int newword = COMBINE_WORD(oldword, data);
-	WRITE_WORD(&control_word[offset], newword);
-
-/*	soundsgood_reset_w(~newword & 0x0020);*/
-	soundsgood_data_w(offset, (newword >> 8) & 0x1f);
+	COMBINE_DATA(&control_word);
+/*	soundsgood_reset_w(~control_word & 0x0020);*/
+	soundsgood_data_w(offset, (control_word >> 8) & 0x1f);
 }
 
 
@@ -144,33 +153,31 @@ static WRITE_HANDLER( blasted_control_w )
  *
  *************************************/
 
-static READ_HANDLER( spyhunt2_port_0_r )
+static READ16_HANDLER( spyhunt2_port_0_r )
 {
-	int result = input_port_0_r(offset);
-	int which = (READ_WORD(control_word) >> 3) & 3;
+	int result = readinputport(0);
+	int which = (control_word >> 3) & 3;
 	int analog = readinputport(3 + which);
 	return result | ((soundsgood_status_r(0) & 1) << 5) | (analog << 8);
 }
 
 
-static READ_HANDLER( spyhunt2_port_1_r )
+static READ16_HANDLER( spyhunt2_port_1_r )
 {
-	int result = input_port_1_r(offset);
+	int result = readinputport(1);
 	return result | ((turbocs_status_r(0) & 1) << 7);
 }
 
 
-static WRITE_HANDLER( spyhunt2_control_w )
+static WRITE16_HANDLER( spyhunt2_control_w )
 {
-	int oldword = READ_WORD(&control_word[offset]);
-	int newword = COMBINE_WORD(oldword, data);
-	WRITE_WORD(&control_word[offset], newword);
+	COMBINE_DATA(&control_word);
 
-/* 	turbocs_reset_w(~newword & 0x0080);*/
-	turbocs_data_w(offset, (newword >> 8) & 0x001f);
+/* 	turbocs_reset_w(~control_word & 0x0080);*/
+	turbocs_data_w(offset, (control_word >> 8) & 0x001f);
 
-/*	soundsgood_reset_w(~newword & 0x2000);*/
-	soundsgood_data_w(offset, (newword >> 8) & 0x001f);
+/*	soundsgood_reset_w(~control_word & 0x2000);*/
+	soundsgood_data_w(offset, (control_word >> 8) & 0x001f);
 }
 
 
@@ -181,9 +188,9 @@ static WRITE_HANDLER( spyhunt2_control_w )
  *
  *************************************/
 
-static READ_HANDLER( archrivl_port_1_r )
+static READ16_HANDLER( archrivl_port_1_r )
 {
-	int joystick = input_port_3_r(offset);
+	int joystick = readinputport(3);
 	int result = 0;
 
 	/* each axis of the 49-way joystick is mapped like this:*/
@@ -211,14 +218,11 @@ static READ_HANDLER( archrivl_port_1_r )
 }
 
 
-static WRITE_HANDLER( archrivl_control_w )
+static WRITE16_HANDLER( archrivl_control_w )
 {
-	int oldword = READ_WORD(&control_word[offset]);
-	int newword = COMBINE_WORD(oldword, data);
-	WRITE_WORD(&control_word[offset], newword);
-
-	williams_cvsd_reset_w(~newword & 0x0400);
-	williams_cvsd_data_w(offset, newword & 0x3ff);
+	COMBINE_DATA(&control_word);
+	williams_cvsd_reset_w(~control_word & 0x0400);
+	williams_cvsd_data_w(control_word & 0x3ff);
 }
 
 
@@ -230,23 +234,24 @@ static WRITE_HANDLER( archrivl_control_w )
  *************************************/
 
 static UINT8 protection_data[5];
-static WRITE_HANDLER( pigskin_protection_w )
+static WRITE16_HANDLER( pigskin_protection_w )
 {
 	/* ignore upper-byte only */
-	if (data & 0x00ff0000) return;
+	if (ACCESSING_LSB)
+	{
+		/* track the last 5 bytes */
+		protection_data[0] = protection_data[1];
+		protection_data[1] = protection_data[2];
+		protection_data[2] = protection_data[3];
+		protection_data[3] = protection_data[4];
+		protection_data[4] = data & 0xff;
 
-	/* track the last 5 bytes */
-	protection_data[0] = protection_data[1];
-	protection_data[1] = protection_data[2];
-	protection_data[2] = protection_data[3];
-	protection_data[3] = protection_data[4];
-	protection_data[4] = data;
-
-	logerror("%06X:protection_w=%02X\n", cpu_getpreviouspc(), data & 0xff);
+		logerror("%06X:protection_w=%02X\n", cpu_getpreviouspc(), data & 0xff);
+	}
 }
 
 
-static READ_HANDLER( pigskin_protection_r )
+static READ16_HANDLER( pigskin_protection_r )
 {
 	/* based on the last 5 bytes return a value */
 	if (protection_data[4] == 0xe3 && protection_data[3] == 0x94)
@@ -266,10 +271,10 @@ static READ_HANDLER( pigskin_protection_r )
 }
 
 
-static READ_HANDLER( pigskin_port_1_r )
+static READ16_HANDLER( pigskin_port_1_r )
 {
-	int joystick = input_port_3_r(offset);
-	int result = input_port_1_r(offset);
+	int joystick = readinputport(3);
+	int result = readinputport(1);
 
 	/* see archrivl_port_1_r for 49-way joystick description */
 
@@ -283,10 +288,10 @@ static READ_HANDLER( pigskin_port_1_r )
 }
 
 
-static READ_HANDLER( pigskin_port_2_r )
+static READ16_HANDLER( pigskin_port_2_r )
 {
-	int joystick = input_port_3_r(offset);
-	int result = input_port_2_r(offset);
+	int joystick = readinputport(3);
+	int result = readinputport(2);
 
 	/* see archrivl_port_1_r for 49-way joystick description */
 
@@ -307,11 +312,11 @@ static READ_HANDLER( pigskin_port_2_r )
  *
  *************************************/
 
-static READ_HANDLER( trisport_port_1_r )
+static READ16_HANDLER( trisport_port_1_r )
 {
-	int xaxis = (INT8)input_port_3_r(offset);
-	int yaxis = (INT8)input_port_4_r(offset);
-	int result = input_port_1_r(offset);
+	int xaxis = (INT8)readinputport(3);
+	int yaxis = (INT8)readinputport(4);
+	int result = readinputport(1);
 
 	result |= (xaxis & 0x3c) << 6;
 	result |= (yaxis & 0x3c) << 10;
@@ -327,34 +332,29 @@ static READ_HANDLER( trisport_port_1_r )
  *
  *************************************/
 
-static struct MemoryReadAddress mcr68_readmem[] =
-{
-	{ 0x000000, 0x03ffff, MRA_ROM },
-	{ 0x060000, 0x063fff, MRA_BANK2 },
-	{ 0x070000, 0x070fff, MRA_BANK3 },
-	{ 0x071000, 0x071fff, MRA_BANK4 },
-	{ 0x080000, 0x080fff, MRA_BANK5 },
+static MEMORY_READ16_START( mcr68_readmem )
+	{ 0x000000, 0x03ffff, MRA16_ROM },
+	{ 0x060000, 0x063fff, MRA16_RAM },
+	{ 0x070000, 0x070fff, MRA16_RAM },
+	{ 0x071000, 0x071fff, MRA16_RAM },
+	{ 0x080000, 0x080fff, MRA16_RAM },
 	{ 0x0a0000, 0x0a000f, mcr68_6840_upper_r },
-	{ 0x0d0000, 0x0dffff, input_port_0_r },
-	{ 0x0e0000, 0x0effff, input_port_1_r },
-	{ 0x0f0000, 0x0fffff, input_port_2_r },
-	{ -1 }  /* end of table */
-};
+	{ 0x0d0000, 0x0dffff, input_port_0_word_r },
+	{ 0x0e0000, 0x0effff, input_port_1_word_r },
+	{ 0x0f0000, 0x0fffff, input_port_2_word_r },
+MEMORY_END
 
 
-static struct MemoryWriteAddress mcr68_writemem[] =
-{
-	{ 0x000000, 0x03ffff, MWA_ROM },
-	{ 0x060000, 0x063fff, MWA_BANK2 },
-	{ 0x070000, 0x070fff, mcr68_videoram_w, &videoram, &videoram_size },
-	{ 0x071000, 0x071fff, MWA_BANK4 },
-	{ 0x080000, 0x080fff, MWA_BANK5, &spriteram, &spriteram_size },
-	{ 0x090000, 0x09007f, mcr68_paletteram_w, &paletteram },
+static MEMORY_WRITE16_START( mcr68_writemem )
+	{ 0x000000, 0x03ffff, MWA16_ROM },
+	{ 0x060000, 0x063fff, MWA16_RAM },
+	{ 0x070000, 0x070fff, mcr68_videoram_w, &videoram16, &videoram_size },
+	{ 0x071000, 0x071fff, MWA16_RAM },
+	{ 0x080000, 0x080fff, MWA16_RAM, &spriteram16, &spriteram_size },
+	{ 0x090000, 0x09007f, mcr68_paletteram_w, &paletteram16 },
 	{ 0x0a0000, 0x0a000f, mcr68_6840_upper_w },
-	{ 0x0b0000, 0x0bffff, watchdog_reset_w },
-	{ 0x0c0000, 0x0cffff, MWA_NOP, &control_word },
-	{ -1 }  /* end of table */
-};
+	{ 0x0b0000, 0x0bffff, watchdog_reset16_w },
+MEMORY_END
 
 
 
@@ -364,36 +364,32 @@ static struct MemoryWriteAddress mcr68_writemem[] =
  *
  *************************************/
 
-static struct MemoryReadAddress zwackery_readmem[] =
-{
-	{ 0x000000, 0x037fff, MRA_ROM },
-	{ 0x080000, 0x080fff, MRA_BANK2 },
-	{ 0x084000, 0x084fff, MRA_BANK3 },
+static MEMORY_READ16_START( zwackery_readmem )
+	{ 0x000000, 0x037fff, MRA16_ROM },
+	{ 0x080000, 0x080fff, MRA16_RAM },
+	{ 0x084000, 0x084fff, MRA16_RAM },
 	{ 0x100000, 0x10000f, zwackery_6840_r },
-	{ 0x104000, 0x104007, pia_2_r },
-	{ 0x108000, 0x108007, pia_3_r },
-	{ 0x10c000, 0x10c007, pia_4_r },
-	{ 0x800000, 0x800fff, MRA_BANK4 },
-	{ 0x802000, 0x803fff, paletteram_word_r },
-	{ 0xc00000, 0xc00fff, MRA_BANK5 },
-	{ -1 }  /* end of table */
-};
+	{ 0x104000, 0x104007, pia_2_msb_r },
+	{ 0x108000, 0x108007, pia_3_lsb_r },
+	{ 0x10c000, 0x10c007, pia_4_lsb_r },
+	{ 0x800000, 0x800fff, MRA16_RAM },
+	{ 0x802000, 0x803fff, MRA16_RAM },
+	{ 0xc00000, 0xc00fff, MRA16_RAM },
+MEMORY_END
 
 
-static struct MemoryWriteAddress zwackery_writemem[] =
-{
-	{ 0x000000, 0x037fff, MWA_ROM },
-	{ 0x080000, 0x080fff, MWA_BANK2 },
-	{ 0x084000, 0x084fff, MWA_BANK3 },
+static MEMORY_WRITE16_START( zwackery_writemem )
+	{ 0x000000, 0x037fff, MWA16_ROM },
+	{ 0x080000, 0x080fff, MWA16_RAM },
+	{ 0x084000, 0x084fff, MWA16_RAM },
 	{ 0x100000, 0x10000f, mcr68_6840_upper_w },
-	{ 0x104000, 0x104007, pia_2_w },
-	{ 0x108000, 0x108007, pia_3_w },
-	{ 0x10c000, 0x10c007, pia_4_w },
-	{ 0x800000, 0x800fff, zwackery_videoram_w, &videoram, &videoram_size },
-	{ 0x802000, 0x803fff, zwackery_paletteram_w, &paletteram },
-	{ 0xc00000, 0xc00fff, zwackery_spriteram_w, &spriteram, &spriteram_size },
-	{ -1 }  /* end of table */
-};
+	{ 0x104000, 0x104007, pia_2_msb_w },
+	{ 0x108000, 0x108007, pia_3_lsb_w },
+	{ 0x10c000, 0x10c007, pia_4_lsb_w },
+	{ 0x800000, 0x800fff, zwackery_videoram_w, &videoram16, &videoram_size },
+	{ 0x802000, 0x803fff, zwackery_paletteram_w, &paletteram16 },
+	{ 0xc00000, 0xc00fff, zwackery_spriteram_w, &spriteram16, &spriteram_size },
+MEMORY_END
 
 
 
@@ -403,34 +399,30 @@ static struct MemoryWriteAddress zwackery_writemem[] =
  *
  *************************************/
 
-static struct MemoryReadAddress pigskin_readmem[] =
-{
-	{ 0x000000, 0x03ffff, MRA_ROM },
+static MEMORY_READ16_START( pigskin_readmem )
+	{ 0x000000, 0x03ffff, MRA16_ROM },
 	{ 0x080000, 0x08ffff, pigskin_port_1_r },
 	{ 0x0a0000, 0x0affff, pigskin_port_2_r },
-	{ 0x100000, 0x100fff, MRA_BANK2 },
+	{ 0x100000, 0x100fff, MRA16_RAM },
 	{ 0x120000, 0x120001, pigskin_protection_r },
-	{ 0x140000, 0x143fff, MRA_BANK3 },
-	{ 0x160000, 0x1607ff, MRA_BANK4 },
+	{ 0x140000, 0x143fff, MRA16_RAM },
+	{ 0x160000, 0x1607ff, MRA16_RAM },
 	{ 0x180000, 0x18000f, mcr68_6840_upper_r },
-	{ 0x1e0000, 0x1effff, input_port_0_r },
-	{ -1 }  /* end of table */
-};
+	{ 0x1e0000, 0x1effff, input_port_0_word_r },
+MEMORY_END
 
 
-static struct MemoryWriteAddress pigskin_writemem[] =
-{
-	{ 0x000000, 0x03ffff, MWA_ROM },
-	{ 0x0c0000, 0x0c007f, mcr68_paletteram_w, &paletteram },
-	{ 0x0e0000, 0x0effff, watchdog_reset_w },
-	{ 0x100000, 0x100fff, mcr68_videoram_w, &videoram, &videoram_size },
+static MEMORY_WRITE16_START( pigskin_writemem )
+	{ 0x000000, 0x03ffff, MWA16_ROM },
+	{ 0x0c0000, 0x0c007f, mcr68_paletteram_w, &paletteram16 },
+	{ 0x0e0000, 0x0effff, watchdog_reset16_w },
+	{ 0x100000, 0x100fff, mcr68_videoram_w, &videoram16, &videoram_size },
 	{ 0x120000, 0x120001, pigskin_protection_w },
-	{ 0x140000, 0x143fff, MWA_BANK3 },
-	{ 0x160000, 0x1607ff, MWA_BANK4, &spriteram, &spriteram_size },
+	{ 0x140000, 0x143fff, MWA16_RAM },
+	{ 0x160000, 0x1607ff, MWA16_RAM, &spriteram16, &spriteram_size },
 	{ 0x180000, 0x18000f, mcr68_6840_upper_w },
-	{ 0x1a0000, 0x1affff, MWA_NOP, &control_word },
-	{ -1 }  /* end of table */
-};
+	{ 0x1a0000, 0x1affff, archrivl_control_w },
+MEMORY_END
 
 
 
@@ -440,32 +432,28 @@ static struct MemoryWriteAddress pigskin_writemem[] =
  *
  *************************************/
 
-static struct MemoryReadAddress trisport_readmem[] =
-{
-	{ 0x000000, 0x03ffff, MRA_ROM },
+static MEMORY_READ16_START( trisport_readmem )
+	{ 0x000000, 0x03ffff, MRA16_ROM },
 	{ 0x080000, 0x08ffff, trisport_port_1_r },
-	{ 0x0a0000, 0x0affff, input_port_2_r },
-	{ 0x100000, 0x103fff, MRA_BANK2 },
-	{ 0x140000, 0x1407ff, MRA_BANK3 },
-	{ 0x160000, 0x160fff, MRA_BANK4 },
+	{ 0x0a0000, 0x0affff, input_port_2_word_r },
+	{ 0x100000, 0x103fff, MRA16_RAM },
+	{ 0x140000, 0x1407ff, MRA16_RAM },
+	{ 0x160000, 0x160fff, MRA16_RAM },
 	{ 0x180000, 0x18000f, mcr68_6840_upper_r },
-	{ 0x1e0000, 0x1effff, input_port_0_r },
-	{ -1 }  /* end of table */
-};
+	{ 0x1e0000, 0x1effff, input_port_0_word_r },
+MEMORY_END
 
 
-static struct MemoryWriteAddress trisport_writemem[] =
-{
-	{ 0x000000, 0x03ffff, MWA_ROM },
-	{ 0x100000, 0x103fff, MWA_BANK2 },
-	{ 0x120000, 0x12007f, mcr68_paletteram_w, &paletteram },
-	{ 0x140000, 0x1407ff, MWA_BANK3, &spriteram, &spriteram_size },
-	{ 0x160000, 0x160fff, mcr68_videoram_w, &videoram, &videoram_size },
+static MEMORY_WRITE16_START( trisport_writemem )
+	{ 0x000000, 0x03ffff, MWA16_ROM },
+	{ 0x100000, 0x103fff, MWA16_RAM },
+	{ 0x120000, 0x12007f, mcr68_paletteram_w, &paletteram16 },
+	{ 0x140000, 0x1407ff, MWA16_RAM, &spriteram16, &spriteram_size },
+	{ 0x160000, 0x160fff, mcr68_videoram_w, &videoram16, &videoram_size },
 	{ 0x180000, 0x18000f, mcr68_6840_upper_w },
-	{ 0x1a0000, 0x1affff, MWA_NOP, &control_word },
-	{ 0x1c0000, 0x1cffff, watchdog_reset_w },
-	{ -1 }  /* end of table */
-};
+	{ 0x1a0000, 0x1affff, archrivl_control_w },
+	{ 0x1c0000, 0x1cffff, watchdog_reset16_w },
+MEMORY_END
 
 
 
@@ -1063,33 +1051,33 @@ static void rom_decode(void)
  *************************************/
 
 ROM_START( zwackery )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "pro0.bin",   0x00000, 0x4000, 0x6fb9731c )
-	ROM_LOAD_ODD ( "pro1.bin",   0x00000, 0x4000, 0x84b92555 )
-	ROM_LOAD_EVEN( "pro2.bin",   0x08000, 0x4000, 0xe6977a2a )
-	ROM_LOAD_ODD ( "pro3.bin",   0x08000, 0x4000, 0xf5d0a60e )
-	ROM_LOAD_EVEN( "pro4.bin",   0x10000, 0x4000, 0xec5841d9 )
-	ROM_LOAD_ODD ( "pro5.bin",   0x10000, 0x4000, 0xd7d99ce0 )
-	ROM_LOAD_EVEN( "pro6.bin",   0x18000, 0x4000, 0xb9fe7bf5 )
-	ROM_LOAD_ODD ( "pro7.bin",   0x18000, 0x4000, 0x5e261b3b )
-	ROM_LOAD_EVEN( "pro8.bin",   0x20000, 0x4000, 0x55e380a5 )
-	ROM_LOAD_ODD ( "pro9.bin",   0x20000, 0x4000, 0x12249dca )
-	ROM_LOAD_EVEN( "pro10.bin",  0x28000, 0x4000, 0x6a39a8ca )
-	ROM_LOAD_ODD ( "pro11.bin",  0x28000, 0x4000, 0xad6b45bc )
-	ROM_LOAD_EVEN( "pro12.bin",  0x30000, 0x4000, 0xe2d25e1f )
-	ROM_LOAD_ODD ( "pro13.bin",  0x30000, 0x4000, 0xe131f9b8 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "pro0.bin",   0x00000, 0x4000, 0x6fb9731c )
+	ROM_LOAD16_BYTE( "pro1.bin",   0x00001, 0x4000, 0x84b92555 )
+	ROM_LOAD16_BYTE( "pro2.bin",   0x08000, 0x4000, 0xe6977a2a )
+	ROM_LOAD16_BYTE( "pro3.bin",   0x08001, 0x4000, 0xf5d0a60e )
+	ROM_LOAD16_BYTE( "pro4.bin",   0x10000, 0x4000, 0xec5841d9 )
+	ROM_LOAD16_BYTE( "pro5.bin",   0x10001, 0x4000, 0xd7d99ce0 )
+	ROM_LOAD16_BYTE( "pro6.bin",   0x18000, 0x4000, 0xb9fe7bf5 )
+	ROM_LOAD16_BYTE( "pro7.bin",   0x18001, 0x4000, 0x5e261b3b )
+	ROM_LOAD16_BYTE( "pro8.bin",   0x20000, 0x4000, 0x55e380a5 )
+	ROM_LOAD16_BYTE( "pro9.bin",   0x20001, 0x4000, 0x12249dca )
+	ROM_LOAD16_BYTE( "pro10.bin",  0x28000, 0x4000, 0x6a39a8ca )
+	ROM_LOAD16_BYTE( "pro11.bin",  0x28001, 0x4000, 0xad6b45bc )
+	ROM_LOAD16_BYTE( "pro12.bin",  0x30000, 0x4000, 0xe2d25e1f )
+	ROM_LOAD16_BYTE( "pro13.bin",  0x30001, 0x4000, 0xe131f9b8 )
 
-	ROM_REGION( 0x20000, REGION_CPU2 )
-	ROM_LOAD_EVEN( "csd7.bin",  0x00000, 0x2000, 0x5501f54b )
-	ROM_LOAD_ODD ( "csd17.bin", 0x00000, 0x2000, 0x2e482580 )
-	ROM_LOAD_EVEN( "csd8.bin",  0x04000, 0x2000, 0x13366575 )
-	ROM_LOAD_ODD ( "csd18.bin", 0x04000, 0x2000, 0xbcfe5820 )
+	ROM_REGION( 0x20000, REGION_CPU2, 0 )
+	ROM_LOAD16_BYTE( "csd7.bin",  0x00000, 0x2000, 0x5501f54b )
+	ROM_LOAD16_BYTE( "csd17.bin", 0x00001, 0x2000, 0x2e482580 )
+	ROM_LOAD16_BYTE( "csd8.bin",  0x04000, 0x2000, 0x13366575 )
+	ROM_LOAD16_BYTE( "csd18.bin", 0x04001, 0x2000, 0xbcfe5820 )
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tileh.bin",    0x00000, 0x4000, 0xa7237eb1 )
 	ROM_LOAD( "tileg.bin",    0x04000, 0x4000, 0x626cc69b )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "spr6h.bin",    0x00000, 0x4000, 0xa51158dc )
 	ROM_LOAD( "spr7h.bin",    0x04000, 0x4000, 0x941feecf )
 	ROM_LOAD( "spr6j.bin",    0x08000, 0x4000, 0xf3eef316 )
@@ -1099,29 +1087,29 @@ ROM_START( zwackery )
 	ROM_LOAD( "spr10j.bin",   0x18000, 0x4000, 0x4dd04376 )
 	ROM_LOAD( "spr11j.bin",   0x1c000, 0x4000, 0xe8c6a880 )
 
-	ROM_REGION( 0x8000, REGION_GFX3 )	/* bg color maps */
-	ROM_LOAD_GFX_EVEN( "tilef.bin",  0x0000, 0x4000, 0xa0dfcd7e )
-	ROM_LOAD_GFX_ODD ( "tilee.bin",  0x0000, 0x4000, 0xab504dc8 )
+	ROM_REGION( 0x8000, REGION_GFX3, 0 )	/* bg color maps */
+	ROM_LOAD16_BYTE( "tilef.bin",  0x0000, 0x4000, 0xa0dfcd7e )
+	ROM_LOAD16_BYTE( "tilee.bin",  0x0001, 0x4000, 0xab504dc8 )
 ROM_END
 
 ROM_START( xenophob )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "xeno_pro.3c",  0x00000, 0x10000, 0xf44c2e60 )
-	ROM_LOAD_ODD ( "xeno_pro.3b",  0x00000, 0x10000, 0x01609a3b )
-	ROM_LOAD_EVEN( "xeno_pro.2c",  0x20000, 0x10000, 0xe45bf669 )
-	ROM_LOAD_ODD ( "xeno_pro.2b",  0x20000, 0x10000, 0xda5d39d5 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "xeno_pro.3c",  0x00000, 0x10000, 0xf44c2e60 )
+	ROM_LOAD16_BYTE( "xeno_pro.3b",  0x00001, 0x10000, 0x01609a3b )
+	ROM_LOAD16_BYTE( "xeno_pro.2c",  0x20000, 0x10000, 0xe45bf669 )
+	ROM_LOAD16_BYTE( "xeno_pro.2b",  0x20001, 0x10000, 0xda5d39d5 )
 
-	ROM_REGION( 0x40000, REGION_CPU2 )  /* Sounds Good board */
-	ROM_LOAD_EVEN( "xeno_snd.u7",  0x00000, 0x10000, 0x77561d15 )
-	ROM_LOAD_ODD ( "xeno_snd.u17", 0x00000, 0x10000, 0x837a1a71 )
-	ROM_LOAD_EVEN( "xeno_snd.u8",  0x20000, 0x10000, 0x6e2915c7 )
-	ROM_LOAD_ODD ( "xeno_snd.u18", 0x20000, 0x10000, 0x12492145 )
+	ROM_REGION( 0x40000, REGION_CPU2, 0 )  /* Sounds Good board */
+	ROM_LOAD16_BYTE( "xeno_snd.u7",  0x00000, 0x10000, 0x77561d15 )
+	ROM_LOAD16_BYTE( "xeno_snd.u17", 0x00001, 0x10000, 0x837a1a71 )
+	ROM_LOAD16_BYTE( "xeno_snd.u8",  0x20000, 0x10000, 0x6e2915c7 )
+	ROM_LOAD16_BYTE( "xeno_snd.u18", 0x20001, 0x10000, 0x12492145 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "xeno_bg.11d",  0x00000, 0x08000, 0x3d2cf284 )
 	ROM_LOAD( "xeno_bg.12d",  0x08000, 0x08000, 0xc32288b1 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "xeno_fg.7j",   0x00000, 0x10000, 0xb12eddb2 )
 	ROM_LOAD( "xeno_fg.8j",   0x10000, 0x10000, 0x20e682f5 )
 	ROM_LOAD( "xeno_fg.9j",   0x20000, 0x10000, 0x82fb3e09 )
@@ -1129,25 +1117,25 @@ ROM_START( xenophob )
 ROM_END
 
 ROM_START( spyhunt2 )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "sh23c.bin",  0x00000, 0x10000, 0x30b91c90 )
-	ROM_LOAD_ODD ( "sh23b.bin",  0x00000, 0x10000, 0xf64513c6 )
-	ROM_LOAD_EVEN( "sh22c.bin",  0x20000, 0x10000, 0x8ee65009 )
-	ROM_LOAD_ODD ( "sh22b.bin",  0x20000, 0x10000, 0x850c21ad )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "sh23c.bin",  0x00000, 0x10000, 0x30b91c90 )
+	ROM_LOAD16_BYTE( "sh23b.bin",  0x00001, 0x10000, 0xf64513c6 )
+	ROM_LOAD16_BYTE( "sh22c.bin",  0x20000, 0x10000, 0x8ee65009 )
+	ROM_LOAD16_BYTE( "sh22b.bin",  0x20001, 0x10000, 0x850c21ad )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )  /* 64k for the Turbo Cheap Squeak */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )  /* 64k for the Turbo Cheap Squeak */
 	ROM_LOAD( "turbo-cs.u5", 0x08000, 0x4000, 0x4b1d8a66 )
 	ROM_LOAD( "turbo-cs.u4", 0x0c000, 0x4000, 0x3722ce48 )
 
-	ROM_REGION( 0x40000, REGION_CPU3 )  /* Sounds Good board */
-	ROM_LOAD_EVEN( "sh2u7.bin",  0x00000, 0x10000, 0x02362ea4 )
-	ROM_LOAD_ODD ( "sh2u17.bin", 0x00000, 0x10000, 0xe29a2c37 )
+	ROM_REGION( 0x40000, REGION_CPU3, 0 )  /* Sounds Good board */
+	ROM_LOAD16_BYTE( "sh2u7.bin",  0x00000, 0x10000, 0x02362ea4 )
+	ROM_LOAD16_BYTE( "sh2u17.bin", 0x00001, 0x10000, 0xe29a2c37 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sh2bg0.bin",  0x00000, 0x08000, 0xcb3c3d8e )
 	ROM_LOAD( "sh2bg1.bin",  0x08000, 0x08000, 0x029d4af1 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "fg0.7j",   0x00000, 0x20000, 0x55ce12ea )
 	ROM_LOAD( "fg1.8j",   0x20000, 0x20000, 0x692afb67 )
 	ROM_LOAD( "fg2.9j",   0x40000, 0x20000, 0xf1aba383 )
@@ -1155,25 +1143,25 @@ ROM_START( spyhunt2 )
 ROM_END
 
 ROM_START( spyhnt2a )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "3c",  0x00000, 0x10000, 0x5b92aadf )
-	ROM_LOAD_ODD ( "3b",  0x00000, 0x10000, 0x6ed0a25f )
-	ROM_LOAD_EVEN( "2c",  0x20000, 0x10000, 0xbc834f3f )
-	ROM_LOAD_ODD ( "2b",  0x20000, 0x10000, 0x8a9f7ef3 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "3c",  0x00000, 0x10000, 0x5b92aadf )
+	ROM_LOAD16_BYTE( "3b",  0x00001, 0x10000, 0x6ed0a25f )
+	ROM_LOAD16_BYTE( "2c",  0x20000, 0x10000, 0xbc834f3f )
+	ROM_LOAD16_BYTE( "2b",  0x20001, 0x10000, 0x8a9f7ef3 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )  /* 64k for the Turbo Cheap Squeak */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )  /* 64k for the Turbo Cheap Squeak */
 	ROM_LOAD( "turbo-cs.u5", 0x08000, 0x4000, 0x4b1d8a66 )
 	ROM_LOAD( "turbo-cs.u4", 0x0c000, 0x4000, 0x3722ce48 )
 
-	ROM_REGION( 0x40000, REGION_CPU3 )  /* Sounds Good board */
-	ROM_LOAD_EVEN( "sh2u7.bin",  0x00000, 0x10000, 0x02362ea4 )
-	ROM_LOAD_ODD ( "sh2u17.bin", 0x00000, 0x10000, 0xe29a2c37 )
+	ROM_REGION( 0x40000, REGION_CPU3, 0 )  /* Sounds Good board */
+	ROM_LOAD16_BYTE( "sh2u7.bin",  0x00000, 0x10000, 0x02362ea4 )
+	ROM_LOAD16_BYTE( "sh2u17.bin", 0x00001, 0x10000, 0xe29a2c37 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "bg0.11d",  0x00000, 0x08000, 0x81efef7a )
 	ROM_LOAD( "bg1.12d",  0x08000, 0x08000, 0x6a902e4d )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "fg0.7j",   0x00000, 0x20000, 0x55ce12ea )
 	ROM_LOAD( "fg1.8j",   0x20000, 0x20000, 0x692afb67 )
 	ROM_LOAD( "fg2.9j",   0x40000, 0x20000, 0xf1aba383 )
@@ -1181,23 +1169,23 @@ ROM_START( spyhnt2a )
 ROM_END
 
 ROM_START( blasted )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "3c",  0x00000, 0x10000, 0xb243b7df )
-	ROM_LOAD_ODD ( "3b",  0x00000, 0x10000, 0x627e30d3 )
-	ROM_LOAD_EVEN( "2c",  0x20000, 0x10000, 0x026f30bf )
-	ROM_LOAD_ODD ( "2b",  0x20000, 0x10000, 0x8e0e91a9 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "3c",  0x00000, 0x10000, 0xb243b7df )
+	ROM_LOAD16_BYTE( "3b",  0x00001, 0x10000, 0x627e30d3 )
+	ROM_LOAD16_BYTE( "2c",  0x20000, 0x10000, 0x026f30bf )
+	ROM_LOAD16_BYTE( "2b",  0x20001, 0x10000, 0x8e0e91a9 )
 
-	ROM_REGION( 0x40000, REGION_CPU2 )  /* Sounds Good board */
-	ROM_LOAD_EVEN( "blasted.u7",  0x00000, 0x10000, 0x8d7c8ef6 )
-	ROM_LOAD_ODD ( "blasted.u17", 0x00000, 0x10000, 0xc79040b9 )
-	ROM_LOAD_EVEN( "blasted.u8",  0x20000, 0x10000, 0xc53094c0 )
-	ROM_LOAD_ODD ( "blasted.u18", 0x20000, 0x10000, 0x85688160 )
+	ROM_REGION( 0x40000, REGION_CPU2, 0 )  /* Sounds Good board */
+	ROM_LOAD16_BYTE( "blasted.u7",  0x00000, 0x10000, 0x8d7c8ef6 )
+	ROM_LOAD16_BYTE( "blasted.u17", 0x00001, 0x10000, 0xc79040b9 )
+	ROM_LOAD16_BYTE( "blasted.u8",  0x20000, 0x10000, 0xc53094c0 )
+	ROM_LOAD16_BYTE( "blasted.u18", 0x20001, 0x10000, 0x85688160 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "11d",  0x00000, 0x08000, 0xd8ed5cbc )
 	ROM_LOAD( "12d",  0x08000, 0x08000, 0x60d00c69 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "fg0",  0x00000, 0x20000, 0x5034ae8a )
 	ROM_LOAD( "fg1",  0x20000, 0x20000, 0x4fbdba58 )
 	ROM_LOAD( "fg2",  0x40000, 0x20000, 0x8891f6f8 )
@@ -1205,22 +1193,22 @@ ROM_START( blasted )
 ROM_END
 
 ROM_START( archrivl )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "3c-rev2",  0x00000, 0x10000, 0x60d4b760 )
-	ROM_LOAD_ODD ( "3b-rev2",  0x00000, 0x10000, 0xe0c07a8d )
-	ROM_LOAD_EVEN( "2c-rev2",  0x20000, 0x10000, 0xcc2893f7 )
-	ROM_LOAD_ODD ( "2b-rev2",  0x20000, 0x10000, 0xfa977050 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "3c-rev2",  0x00000, 0x10000, 0x60d4b760 )
+	ROM_LOAD16_BYTE( "3b-rev2",  0x00001, 0x10000, 0xe0c07a8d )
+	ROM_LOAD16_BYTE( "2c-rev2",  0x20000, 0x10000, 0xcc2893f7 )
+	ROM_LOAD16_BYTE( "2b-rev2",  0x20001, 0x10000, 0xfa977050 )
 
-	ROM_REGION( 0x70000, REGION_CPU2 )  /* Audio System board */
+	ROM_REGION( 0x70000, REGION_CPU2, 0 )  /* Audio System board */
 	ROM_LOAD( "u4.snd",  0x10000, 0x08000, 0x96b3c652 )
 	ROM_LOAD( "u19.snd", 0x30000, 0x08000, 0xc4b3dc23 )
 	ROM_LOAD( "u20.snd", 0x50000, 0x08000, 0xf7907a02 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "11d-rev1",  0x00000, 0x10000, 0x7eb3d7c6 )
 	ROM_LOAD( "12d-rev1",  0x10000, 0x10000, 0x31e68050 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "7j-rev1",   0x00000, 0x20000, 0x148ce28c )
 	ROM_LOAD( "8j-rev1",   0x20000, 0x20000, 0x58187ac2 )
 	ROM_LOAD( "9j-rev1",   0x40000, 0x20000, 0x0dd1204e )
@@ -1228,22 +1216,22 @@ ROM_START( archrivl )
 ROM_END
 
 ROM_START( archriv2 )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "archrivl.4",  0x00000, 0x10000, 0x3c545740 )
-	ROM_LOAD_ODD ( "archrivl.2",  0x00000, 0x10000, 0xbc4df2b9 )
-	ROM_LOAD_EVEN( "archrivl.3",  0x20000, 0x10000, 0xd6d08ff7 )
-	ROM_LOAD_ODD ( "archrivl.1",  0x20000, 0x10000, 0x92f3a43d )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "archrivl.4",  0x00000, 0x10000, 0x3c545740 )
+	ROM_LOAD16_BYTE( "archrivl.2",  0x00001, 0x10000, 0xbc4df2b9 )
+	ROM_LOAD16_BYTE( "archrivl.3",  0x20000, 0x10000, 0xd6d08ff7 )
+	ROM_LOAD16_BYTE( "archrivl.1",  0x20001, 0x10000, 0x92f3a43d )
 
-	ROM_REGION( 0x70000, REGION_CPU2 )  /* Audio System board */
+	ROM_REGION( 0x70000, REGION_CPU2, 0 )  /* Audio System board */
 	ROM_LOAD( "u4.snd",  0x10000, 0x08000, 0x96b3c652 )
 	ROM_LOAD( "u19.snd", 0x30000, 0x08000, 0xc4b3dc23 )
 	ROM_LOAD( "u20.snd", 0x50000, 0x08000, 0xf7907a02 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "11d-rev1",  0x00000, 0x10000, 0x7eb3d7c6 )
 	ROM_LOAD( "12d-rev1",  0x10000, 0x10000, 0x31e68050 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "7j-rev1",   0x00000, 0x20000, 0x148ce28c )
 	ROM_LOAD( "8j-rev1",   0x20000, 0x20000, 0x58187ac2 )
 	ROM_LOAD( "9j-rev1",   0x40000, 0x20000, 0x0dd1204e )
@@ -1251,22 +1239,22 @@ ROM_START( archriv2 )
 ROM_END
 
 ROM_START( pigskin )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "pigskin.a5",  0x00000, 0x10000, 0xab61c29b )
-	ROM_LOAD_ODD ( "pigskin.b5",  0x00000, 0x10000, 0x55a802aa )
-	ROM_LOAD_EVEN( "pigskin.a6",  0x20000, 0x10000, 0x4d8b7e50 )
-	ROM_LOAD_ODD ( "pigskin.b6",  0x20000, 0x10000, 0x1194f187 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "pigskin.a5",  0x00000, 0x10000, 0xab61c29b )
+	ROM_LOAD16_BYTE( "pigskin.b5",  0x00001, 0x10000, 0x55a802aa )
+	ROM_LOAD16_BYTE( "pigskin.a6",  0x20000, 0x10000, 0x4d8b7e50 )
+	ROM_LOAD16_BYTE( "pigskin.b6",  0x20001, 0x10000, 0x1194f187 )
 
-	ROM_REGION( 0x70000, REGION_CPU2 )  /* Audio System board */
+	ROM_REGION( 0x70000, REGION_CPU2, 0 )  /* Audio System board */
 	ROM_LOAD( "pigskin.u4",  0x10000, 0x10000, 0x6daf2d37 )
 	ROM_LOAD( "pigskin.u19", 0x30000, 0x10000, 0x56fd16a3 )
 	ROM_LOAD( "pigskin.u20", 0x50000, 0x10000, 0x5d032fb8 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pigskin.e2",  0x00000, 0x10000, 0x12d5737b )
 	ROM_LOAD( "pigskin.e1",  0x10000, 0x10000, 0x460202a9 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pigskin.h15", 0x00000, 0x20000, 0x2655d03f )
 	ROM_LOAD( "pigskin.h17", 0x20000, 0x20000, 0x31c52ea7 )
 	ROM_LOAD( "pigskin.h18", 0x40000, 0x20000, 0xb36c4109 )
@@ -1274,22 +1262,22 @@ ROM_START( pigskin )
 ROM_END
 
 ROM_START( trisport )
-	ROM_REGION( 0x40000, REGION_CPU1 )
-	ROM_LOAD_EVEN( "la3.a5",  0x00000, 0x10000, 0xfe1e9e37 )
-	ROM_LOAD_ODD ( "la3.b5",  0x00000, 0x10000, 0xf352ec81 )
-	ROM_LOAD_EVEN( "la3.a6",  0x20000, 0x10000, 0x9c6a1398 )
-	ROM_LOAD_ODD ( "la3.b6",  0x20000, 0x10000, 0x597b564c )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "la3.a5",  0x00000, 0x10000, 0xfe1e9e37 )
+	ROM_LOAD16_BYTE( "la3.b5",  0x00001, 0x10000, 0xf352ec81 )
+	ROM_LOAD16_BYTE( "la3.a6",  0x20000, 0x10000, 0x9c6a1398 )
+	ROM_LOAD16_BYTE( "la3.b6",  0x20001, 0x10000, 0x597b564c )
 
-	ROM_REGION( 0x70000, REGION_CPU2 )  /* Audio System board */
+	ROM_REGION( 0x70000, REGION_CPU2, 0 )  /* Audio System board */
 	ROM_LOAD( "sl1-snd.u4",  0x10000, 0x10000, 0x0ed8c904 )
 	ROM_LOAD( "sl1-snd.u19", 0x30000, 0x10000, 0xb57d7d7e )
 	ROM_LOAD( "sl1-snd.u20", 0x50000, 0x08000, 0x3ae15c08 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "la2.e2",  0x00000, 0x10000, 0xf61149a0 )
 	ROM_LOAD( "la2.e1",  0x10000, 0x10000, 0xcf753497 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "la2.h15", 0x00000, 0x20000, 0x18a44d43 )
 	ROM_LOAD( "la2.h17", 0x20000, 0x20000, 0x874cd237 )
 	ROM_LOAD( "la2.h18", 0x40000, 0x20000, 0xf7637a18 )
@@ -1326,7 +1314,7 @@ static void init_xenophob(void)
 	mcr68_timing_factor = (256.0 + 16.0) / (double)(Machine->drv->cpu[0].cpu_clock / 10);
 
 	/* install control port handler */
-	install_mem_write_handler(0, 0x0c0000, 0x0cffff, xenophobe_control_w);
+	install_mem_write16_handler(0, 0x0c0000, 0x0cffff, xenophobe_control_w);
 
 	rom_decode();
 }
@@ -1343,9 +1331,9 @@ static void init_spyhunt2(void)
 	mcr68_timing_factor = (256.0 + 16.0) / (double)(Machine->drv->cpu[0].cpu_clock / 10);
 
 	/* analog port handling is a bit tricky */
-	install_mem_write_handler(0, 0x0c0000, 0x0cffff, spyhunt2_control_w);
-	install_mem_read_handler(0, 0x0d0000, 0x0dffff, spyhunt2_port_0_r);
-	install_mem_read_handler(0, 0x0e0000, 0x0effff, spyhunt2_port_1_r);
+	install_mem_write16_handler(0, 0x0c0000, 0x0cffff, spyhunt2_control_w);
+	install_mem_read16_handler(0, 0x0d0000, 0x0dffff, spyhunt2_port_0_r);
+	install_mem_read16_handler(0, 0x0e0000, 0x0effff, spyhunt2_port_1_r);
 
 	rom_decode();
 }
@@ -1364,11 +1352,11 @@ static void init_blasted(void)
 	mcr68_timing_factor = (256.0 + 16.0) / (double)(Machine->drv->cpu[0].cpu_clock / 10);
 
 	/* handle control writes */
-	install_mem_write_handler(0, 0x0c0000, 0x0cffff, blasted_control_w);
+	install_mem_write16_handler(0, 0x0c0000, 0x0cffff, blasted_control_w);
 
 	/* 6840 is mapped to the lower 8 bits */
-	install_mem_write_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_w);
-	install_mem_read_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_r);
+	install_mem_write16_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_w);
+	install_mem_read16_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_r);
 
 	rom_decode();
 }
@@ -1385,14 +1373,14 @@ static void init_archrivl(void)
 	mcr68_timing_factor = (256.0 + 16.0) / (double)(Machine->drv->cpu[0].cpu_clock / 10);
 
 	/* handle control writes */
-	install_mem_write_handler(0, 0x0c0000, 0x0cffff, archrivl_control_w);
+	install_mem_write16_handler(0, 0x0c0000, 0x0cffff, archrivl_control_w);
 
 	/* 49-way joystick handling is a bit tricky */
-	install_mem_read_handler(0, 0x0e0000, 0x0effff, archrivl_port_1_r);
+	install_mem_read16_handler(0, 0x0e0000, 0x0effff, archrivl_port_1_r);
 
 	/* 6840 is mapped to the lower 8 bits */
-	install_mem_write_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_w);
-	install_mem_read_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_r);
+	install_mem_write16_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_w);
+	install_mem_read16_handler(0, 0x0a0000, 0x0a000f, mcr68_6840_lower_r);
 
 	/* expand the sound ROMs */
 	memcpy(&memory_region(REGION_CPU2)[0x18000], &memory_region(REGION_CPU2)[0x10000], 0x08000);
@@ -1409,9 +1397,6 @@ static void init_archrivl(void)
 static void init_pigskin(void)
 {
 	MCR_CONFIGURE_SOUND(MCR_WILLIAMS_SOUND);
-
-	/* handle control writes */
-	install_mem_write_handler(0, 0x1a0000, 0x1affff, archrivl_control_w);
 
 	/* Pigskin doesn't care too much about this value; currently taken from Tri-Sports */
 	mcr68_timing_factor = 115.0 / (double)(Machine->drv->cpu[0].cpu_clock / 10);
@@ -1436,9 +1421,6 @@ static void init_trisport(void)
 	/* VBLANK is required to come within 87-119 E clocks (i.e., 870-1190 CPU clocks) */
 	/* after the 493 */
 	mcr68_timing_factor = 115.0 / (double)(Machine->drv->cpu[0].cpu_clock / 10);
-
-	/* handle control writes */
-	install_mem_write_handler(0, 0x1a0000, 0x1affff, archrivl_control_w);
 
 	mcr68_sprite_clip = 0;
 	mcr68_sprite_xoffset = 0;

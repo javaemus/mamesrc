@@ -95,51 +95,42 @@ WRITE_HANDLER( mappy_sound_enable_w );
 
 
 /* CPU 1 read addresses */
-static struct MemoryReadAddress mappy_readmem_cpu1[] =
-{
+static MEMORY_READ_START( mappy_readmem_cpu1 )
 	{ 0x4040, 0x43ff, MRA_RAM },			/* shared RAM with the sound CPU */
 	{ 0x4800, 0x480f, mappy_customio_1_r },	/* custom I/O chip #1 interface */
 	{ 0x4810, 0x481f, mappy_customio_2_r },	/* custom I/O chip #2 interface */
 	{ 0x0000, 0x9fff, MRA_RAM },			/* RAM everywhere else */
 	{ 0xa000, 0xffff, MRA_ROM },			/* ROM code */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress digdug2_readmem_cpu1[] =
-{
+static MEMORY_READ_START( digdug2_readmem_cpu1 )
 	{ 0x4040, 0x43ff, MRA_RAM },				/* shared RAM with the sound CPU */
 	{ 0x4800, 0x480f, digdug2_customio_1_r },	/* custom I/O chip #1 interface */
 	{ 0x4810, 0x481f, digdug2_customio_2_r },	/* custom I/O chip #2 interface */
 	{ 0x4820, 0x4bff, MRA_RAM },				/* extra RAM for Dig Dug 2 */
 	{ 0x0000, 0x7fff, MRA_RAM },				/* RAM everywhere else */
 	{ 0x8000, 0xffff, MRA_ROM },				/* ROM code */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress motos_readmem_cpu1[] =
-{
+static MEMORY_READ_START( motos_readmem_cpu1 )
 	{ 0x4040, 0x43ff, MRA_RAM },			/* shared RAM with the sound CPU */
 	{ 0x4800, 0x480f, motos_customio_1_r },	/* custom I/O chip #1 interface */
 	{ 0x4810, 0x481f, motos_customio_2_r },	/* custom I/O chip #2 interface */
 	{ 0x0000, 0x7fff, MRA_RAM },			/* RAM everywhere else */
 	{ 0x8000, 0xffff, MRA_ROM },			/* ROM code */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress todruaga_readmem_cpu1[] =
-{
+static MEMORY_READ_START( todruaga_readmem_cpu1 )
 	{ 0x4040, 0x43ff, MRA_RAM },				/* shared RAM with the sound CPU */
 	{ 0x4800, 0x480f, todruaga_customio_1_r },	/* custom I/O chip #1 interface */
 	{ 0x4810, 0x481f, todruaga_customio_2_r },	/* custom I/O chip #2 interface */
 	{ 0x0000, 0x7fff, MRA_RAM },				/* RAM everywhere else */
 	{ 0x8000, 0xffff, MRA_ROM },				/* ROM code */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 /* CPU 1 write addresses */
-static struct MemoryWriteAddress writemem_cpu1[] =
-{
+static MEMORY_WRITE_START( writemem_cpu1 )
 	{ 0x1000, 0x177f, MWA_RAM },                                 /* general RAM, area 1 */
 	{ 0x1800, 0x1f7f, MWA_RAM },                                 /* general RAM, area 2 */
 	{ 0x2000, 0x277f, MWA_RAM },                                 /* general RAM, area 3 */
@@ -161,55 +152,44 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x8000, 0x8000, MWA_NOP },                                 /* watchdog timer */
 	{ 0x8000, 0xffff, MWA_ROM },                                 /* ROM code */
 
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 /* CPU 2 read addresses */
-static struct MemoryReadAddress mappy_readmem_cpu2[] =
-{
+static MEMORY_READ_START( mappy_readmem_cpu2 )
 	{ 0xe000, 0xffff, MRA_ROM },                                 /* ROM code */
 	{ 0x0040, 0x03ff, mappy_sharedram_r },                      /* shared RAM with the main CPU */
 
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress digdug2_readmem_cpu2[] =
-{
+static MEMORY_READ_START( digdug2_readmem_cpu2 )
 	{ 0xe000, 0xffff, MRA_ROM },                                 /* ROM code */
 	{ 0x0040, 0x03ff, mappy_sharedram_r },                    /* shared RAM with the main CPU */
 
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress motos_readmem_cpu2[] =
-{
+static MEMORY_READ_START( motos_readmem_cpu2 )
 	{ 0xe000, 0xffff, MRA_ROM },                                 /* ROM code */
 	{ 0x0040, 0x03ff, mappy_sharedram_r },						 /* shared RAM with the main CPU */
 
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress todruaga_readmem_cpu2[] =
-{
+static MEMORY_READ_START( todruaga_readmem_cpu2 )
 	{ 0xe000, 0xffff, MRA_ROM },                                 /* ROM code */
 	{ 0x0040, 0x03ff, mappy_sharedram_r },						 /* shared RAM with the main CPU */
 
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 /* CPU 2 write addresses */
-static struct MemoryWriteAddress writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x0040, 0x03ff, mappy_sharedram_w },                       /* shared RAM with the main CPU */
 	{ 0x0000, 0x003f, mappy_sound_w, &mappy_soundregs },         /* sound control registers */
 	{ 0x2000, 0x2001, mappy_interrupt_enable_2_w },              /* interrupt enable */
 	{ 0x2006, 0x2007, mappy_sound_enable_w },                    /* sound enable */
 	{ 0xe000, 0xffff, MWA_ROM },                                 /* ROM code */
 
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 /* input from the outside world */
@@ -801,144 +781,144 @@ static const struct MachineDriver machine_driver_todruaga =
 
 
 ROM_START( mappy )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "mappy1d.64",   0xa000, 0x2000, 0x52e6c708 )
 	ROM_LOAD( "mappy1c.64",   0xc000, 0x2000, 0xa958a61c )
 	ROM_LOAD( "mappy1b.64",   0xe000, 0x2000, 0x203766d4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "mappy1k.64",   0xe000, 0x2000, 0x8182dd5b )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mappy3b.32",   0x0000, 0x1000, 0x16498b9f )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mappy3m.64",   0x0000, 0x2000, 0xf2d9647a )
 	ROM_LOAD( "mappy3n.64",   0x2000, 0x2000, 0x757cf2b6 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "mappy.pr1",    0x0000, 0x0020, 0x56531268 ) /* palette */
 	ROM_LOAD( "mappy.pr2",    0x0020, 0x0100, 0x50765082 ) /* characters */
 	ROM_LOAD( "mappy.pr3",    0x0120, 0x0100, 0x5396bd78 ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "mappy.spr",    0x0000, 0x0100, 0x16a9166a )
 ROM_END
 
 ROM_START( mappyjp )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "mappy3.bin",   0xa000, 0x2000, 0xdb9d5ab5 )
 	ROM_LOAD( "mappy1c.64",   0xc000, 0x2000, 0xa958a61c )
 	ROM_LOAD( "mappy1.bin",   0xe000, 0x2000, 0x77c0b492 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "mappy1k.64",   0xe000, 0x2000, 0x8182dd5b )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mappy3b.32",   0x0000, 0x1000, 0x16498b9f )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mappy3m.64",   0x0000, 0x2000, 0xf2d9647a )
 	ROM_LOAD( "mappy3n.64",   0x2000, 0x2000, 0x757cf2b6 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "mappy.pr1",    0x0000, 0x0020, 0x56531268 ) /* palette */
 	ROM_LOAD( "mappy.pr2",    0x0020, 0x0100, 0x50765082 ) /* characters */
 	ROM_LOAD( "mappy.pr3",    0x0120, 0x0100, 0x5396bd78 ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "mappy.spr",    0x0000, 0x0100, 0x16a9166a )
 ROM_END
 
 ROM_START( digdug2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "ddug2-3.bin",  0x8000, 0x4000, 0xbe7ec80b )
 	ROM_LOAD( "ddug2-1.bin",  0xc000, 0x4000, 0x5c77c0d4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "ddug2-4.bin",  0xe000, 0x2000, 0x737443b1 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ddug2-3b.bin", 0x0000, 0x1000, 0xafcb4509 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ddug2-3m.bin", 0x0000, 0x4000, 0xdf1f4ad8 )
 	ROM_LOAD( "ddug2-3n.bin", 0x4000, 0x4000, 0xccadb3ea )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "ddclr-5b.bin", 0x0000, 0x0020, 0x9b169db5 ) /* palette */
 	ROM_LOAD( "ddclr-4c.bin", 0x0020, 0x0100, 0x55a88695 ) /* characters */
 	ROM_LOAD( "ddclr-5k.bin", 0x0120, 0x0100, 0x1525a4d1 ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "ddsnd.bin",    0x0000, 0x0100, 0xe0074ee2 )
 ROM_END
 
 ROM_START( digdug2a )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "ddug2a_3.bin",  0x8000, 0x4000, 0xcc155338 )
 	ROM_LOAD( "ddug2a_1.bin",  0xc000, 0x4000, 0x40e46af8 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "ddug2-4.bin",  0xe000, 0x2000, 0x737443b1 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ddug2-3b.bin", 0x0000, 0x1000, 0xafcb4509 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ddug2-3m.bin", 0x0000, 0x4000, 0xdf1f4ad8 )
 	ROM_LOAD( "ddug2-3n.bin", 0x4000, 0x4000, 0xccadb3ea )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "ddclr-5b.bin", 0x0000, 0x0020, 0x9b169db5 ) /* palette */
 	ROM_LOAD( "ddclr-4c.bin", 0x0020, 0x0100, 0x55a88695 ) /* characters */
 	ROM_LOAD( "ddclr_5k.bin", 0x0120, 0x0100, 0x9c55feda ) /* sprites */
 	/* Can't see the difference on screen, but CRC differs. */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "ddsnd.bin",    0x0000, 0x0100, 0xe0074ee2 )
 ROM_END
 
 ROM_START( motos )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "mts_1d.bin",   0x8000, 0x4000, 0x1104abb2 )
 	ROM_LOAD( "mts_1b.bin",   0xc000, 0x4000, 0x57b157e2 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "mts_1k.bin",   0xe000, 0x2000, 0x55e45d21 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mts_3b.bin",   0x0000, 0x1000, 0x5d4a2a22 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mts_3m.bin",   0x0000, 0x4000, 0x2f0e396e )
 	ROM_LOAD( "mts_3n.bin",   0x4000, 0x4000, 0xcf8a3b86 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "motos.pr1",    0x0000, 0x0020, 0x71972383 ) /* palette */
 	ROM_LOAD( "motos.pr2",    0x0020, 0x0100, 0x730ba7fb ) /* characters */
 	ROM_LOAD( "motos.pr3",    0x0120, 0x0100, 0x7721275d ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "motos.spr",    0x0000, 0x0100, 0x2accdfb4 )
 ROM_END
 
 ROM_START( todruaga )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "druaga3.bin",  0x8000, 0x4000, 0x7ab4f5b2 )
 	ROM_LOAD( "druaga1.bin",  0xc000, 0x4000, 0x8c20ef10 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "druaga4.bin",  0xe000, 0x2000, 0xae9d06d9 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "druaga3b.bin", 0x0000, 0x1000, 0xd32b249f )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "druaga3m.bin", 0x0000, 0x2000, 0xe827e787 )
 	ROM_LOAD( "druaga3n.bin", 0x2000, 0x2000, 0x962bd060 )
 
-	ROM_REGION( 0x0520, REGION_PROMS )
+	ROM_REGION( 0x0520, REGION_PROMS, 0 )
 	ROM_LOAD( "todruaga.pr1", 0x0000, 0x0020, 0x122cc395 ) /* palette */
 	ROM_LOAD( "todruaga.pr2", 0x0020, 0x0100, 0x8c661d6a ) /* characters */
 	ROM_LOAD( "todruaga.pr3", 0x0120, 0x0100, 0x5bcec186 ) /* sprites */
@@ -946,26 +926,26 @@ ROM_START( todruaga )
 	ROM_LOAD( "todruaga.pr5", 0x0320, 0x0100, 0xecdc206c ) /* sprites */
 	ROM_LOAD( "todruaga.pr6", 0x0420, 0x0100, 0x57b5ad6d ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "todruaga.spr", 0x0000, 0x0100, 0x07104c40 )
 ROM_END
 
 ROM_START( todruagb )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "druaga3a.bin", 0x8000, 0x4000, 0xfbf16299 )
 	ROM_LOAD( "druaga1a.bin", 0xc000, 0x4000, 0xb238d723 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "druaga4.bin",  0xe000, 0x2000, 0xae9d06d9 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "druaga3b.bin", 0x0000, 0x1000, 0xd32b249f )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "druaga3m.bin", 0x0000, 0x2000, 0xe827e787 )
 	ROM_LOAD( "druaga3n.bin", 0x2000, 0x2000, 0x962bd060 )
 
-	ROM_REGION( 0x0520, REGION_PROMS )
+	ROM_REGION( 0x0520, REGION_PROMS, 0 )
 	ROM_LOAD( "todruaga.pr1", 0x0000, 0x0020, 0x122cc395 ) /* palette */
 	ROM_LOAD( "todruaga.pr2", 0x0020, 0x0100, 0x8c661d6a ) /* characters */
 	ROM_LOAD( "todruaga.pr3", 0x0120, 0x0100, 0x5bcec186 ) /* sprites */
@@ -973,7 +953,7 @@ ROM_START( todruagb )
 	ROM_LOAD( "todruaga.pr5", 0x0320, 0x0100, 0xecdc206c ) /* sprites */
 	ROM_LOAD( "todruaga.pr6", 0x0420, 0x0100, 0x57b5ad6d ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "todruaga.spr", 0x0000, 0x0100, 0x07104c40 )
 ROM_END
 

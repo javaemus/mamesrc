@@ -54,36 +54,28 @@ void init_spaceint(void);
 extern struct Samplesinterface astinvad_samples_interface;
 
 
-static struct MemoryReadAddress astinvad_readmem[] =
-{
+static MEMORY_READ_START( astinvad_readmem )
 	{ 0x0000, 0x1bff, MRA_ROM },
 	{ 0x1c00, 0x3fff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress astinvad_writemem[] =
-{
+static MEMORY_WRITE_START( astinvad_writemem )
 	{ 0x0000, 0x1bff, MWA_ROM },
 	{ 0x1c00, 0x23ff, MWA_RAM },
 	{ 0x2400, 0x3fff, invaders_videoram_w, &videoram, &videoram_size },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct IOReadPort astinvad_readport[] =
-{
+static PORT_READ_START( astinvad_readport )
 	{ 0x08, 0x08, input_port_0_r },
 	{ 0x09, 0x09, input_port_1_r },
 	{ 0x0a, 0x0a, input_port_2_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort astinvad_writeport[] =
-{
+static PORT_WRITE_START( astinvad_writeport )
 	{ 0x04, 0x04, astinvad_sh_port_4_w },
 	{ 0x05, 0x05, astinvad_sh_port_5_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( astinvad )
@@ -232,35 +224,24 @@ static int spaceint_interrupt(void)
 }
 
 
-static struct MemoryReadAddress spaceint_readmem[] =
-{
+static MEMORY_READ_START( spaceint_readmem )
 	{ 0x0000, 0x17ff, MRA_ROM },
 	{ 0x2000, 0x23ff, MRA_RAM },
 	{ 0x4000, 0x5fff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress spaceint_writemem[] =
-{
+static MEMORY_WRITE_START( spaceint_writemem )
 	{ 0x0000, 0x17ff, MWA_ROM },
 	{ 0x2000, 0x23ff, MWA_RAM },
 	{ 0x4000, 0x40ff, MWA_RAM },
 	{ 0x4100, 0x5fff, invaders_videoram_w, &videoram, &videoram_size },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct IOReadPort spaceint_readport[] =
-{
+static PORT_READ_START( spaceint_readport )
 	{ 0x00, 0x00, input_port_0_r },
 	{ 0x01, 0x01, input_port_1_r },
-	{ -1 }  /* end of table */
-};
-
-static struct IOWritePort spaceint_writeport[] =
-{
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( spaceint )
@@ -322,7 +303,7 @@ static const struct MachineDriver machine_driver_spaceint =
 		{
 			CPU_Z80,
 			2000000,        /* 2 MHz? */
-			spaceint_readmem,spaceint_writemem,spaceint_readport,spaceint_writeport,
+			spaceint_readmem,spaceint_writemem,spaceint_readport,0,
 			spaceint_interrupt,1
 		}
 	},
@@ -359,7 +340,7 @@ static const struct MachineDriver machine_driver_spaceint =
 
 
 ROM_START( astinvad )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "ai_cpu_1.rom", 0x0000, 0x0400, 0x20e3ec41 )
 	ROM_LOAD( "ai_cpu_2.rom", 0x0400, 0x0400, 0xe8f1ab55 )
 	ROM_LOAD( "ai_cpu_3.rom", 0x0800, 0x0400, 0xa0092553 )
@@ -368,23 +349,23 @@ ROM_START( astinvad )
 	ROM_LOAD( "ai_cpu_6.rom", 0x1400, 0x0400, 0xeb338863 )
 	ROM_LOAD( "ai_cpu_7.rom", 0x1800, 0x0400, 0x16dcfea4 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "ai_vid_c.rom", 0x0000, 0x0400, 0xb45287ff )
 ROM_END
 
 ROM_START( kamikaze )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "km01",         0x0000, 0x0800, 0x8aae7414 )
 	ROM_LOAD( "km02",         0x0800, 0x0800, 0x6c7a2beb )
 	ROM_LOAD( "km03",         0x1000, 0x0800, 0x3e8dedb6 )
 	ROM_LOAD( "km04",         0x1800, 0x0800, 0x494e1f6d )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "ai_vid_c.rom", 0x0000, 0x0400, BADCRC(0xb45287ff) )
 ROM_END
 
 ROM_START( spaceint )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "1",	 0x0000, 0x0400, 0x184314d2 )
 	ROM_LOAD( "2",	 0x0400, 0x0400, 0x55459aa1 )
 	ROM_LOAD( "3",	 0x0800, 0x0400, 0x9d6819be )
@@ -392,7 +373,7 @@ ROM_START( spaceint )
 	ROM_LOAD( "5",	 0x1000, 0x0400, 0xc6cfa650 )
 	ROM_LOAD( "6",	 0x1400, 0x0400, 0xc7ccf40f )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "clr", 0x0000, 0x0100, 0x13c1803f )
 ROM_END
 

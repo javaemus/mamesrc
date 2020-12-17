@@ -158,7 +158,7 @@ void cinemat_init_colors (unsigned char *palette, unsigned short *colortable,con
 					overlay_load(filename, nextcol, Machine->drv->total_colors-nextcol);
 				}
 
-				if ((Machine->scrbitmap->depth == 8) || (artwork_backdrop == 0))
+				if (artwork_overlay != NULL)
 					overlay_set_palette (palette, (Machine->drv->total_colors > 256 ? 256 : Machine->drv->total_colors) - nextcol);
 			}
 			break;
@@ -353,8 +353,7 @@ void spacewar_vh_screenrefresh (struct osd_bitmap *bitmap, int full_refresh)
 						   0, vector_bitmap.height, &rect,TRANSPARENCY_NONE,0);
             }
 
-			osd_mark_dirty (rect.min_x, rect.min_y,
-                            rect.max_x, rect.max_y, 0);
+			osd_mark_dirty(rect.min_x,rect.min_y,rect.max_x,rect.max_y);
 		}
 	}
     sw_option_change = sw_option;

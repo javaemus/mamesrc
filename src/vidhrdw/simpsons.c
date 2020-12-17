@@ -95,24 +95,24 @@ void simpsons_video_banking(int bank)
 {
 	if (bank & 1)
 	{
-		cpu_setbankhandler_r(3,paletteram_r);
-		cpu_setbankhandler_w(3,paletteram_xBBBBBGGGGGRRRRR_swap_w);
+		memory_set_bankhandler_r(3,0,paletteram_r);
+		memory_set_bankhandler_w(3,0,paletteram_xBBBBBGGGGGRRRRR_swap_w);
 	}
 	else
 	{
-		cpu_setbankhandler_r(3,K052109_r);
-		cpu_setbankhandler_w(3,K052109_w);
+		memory_set_bankhandler_r(3,0,K052109_r);
+		memory_set_bankhandler_w(3,0,K052109_w);
 	}
 
 	if (bank & 2)
 	{
-		cpu_setbankhandler_r(4,simpsons_K053247_r);
-		cpu_setbankhandler_w(4,simpsons_K053247_w);
+		memory_set_bankhandler_r(4,0,simpsons_K053247_r);
+		memory_set_bankhandler_w(4,0,simpsons_K053247_w);
 	}
 	else
 	{
-		cpu_setbankhandler_r(4,simpsons_K052109_r);
-		cpu_setbankhandler_w(4,simpsons_K052109_w);
+		memory_set_bankhandler_r(4,0,simpsons_K052109_r);
+		memory_set_bankhandler_w(4,0,simpsons_K052109_w);
 	}
 }
 
@@ -156,10 +156,7 @@ void simpsons_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	palette_init_used_colors();
 	K053247_mark_sprites_colors();
 	palette_used_colors[16 * bg_colorbase] |= PALETTE_COLOR_VISIBLE;
-	if (palette_recalc())
-		tilemap_mark_all_pixels_dirty(ALL_TILEMAPS);
-
-	tilemap_render(ALL_TILEMAPS);
+	palette_recalc();
 
 	layer[0] = 0;
 	layerpri[0] = K053251_get_priority(K053251_CI2);
@@ -172,9 +169,9 @@ void simpsons_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	fillbitmap(priority_bitmap,0,NULL);
 	fillbitmap(bitmap,Machine->pens[16 * bg_colorbase],&Machine->visible_area);
-	K052109_tilemap_draw(bitmap,layer[0],1<<16);
-	K052109_tilemap_draw(bitmap,layer[1],2<<16);
-	K052109_tilemap_draw(bitmap,layer[2],4<<16);
+	K052109_tilemap_draw(bitmap,layer[0],0,1);
+	K052109_tilemap_draw(bitmap,layer[1],0,2);
+	K052109_tilemap_draw(bitmap,layer[2],0,4);
 
 	K053247_sprites_draw(bitmap);
 }

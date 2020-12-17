@@ -411,24 +411,27 @@ static READ_HANDLER( cosmicg_videoram_r )
 	return (videoram[offset] << 8) | videoram[offset+1];
 }
 
-#define COSMICG_ROM_LOAD ROM_LOAD_WIDE
+
+#define COSMICG_ROM_LOAD ROM_LOAD16_WORD
 
 #endif
 
-
-static struct MemoryReadAddress panic_readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+
+static MEMORY_READ_START( panic_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x5fff, MRA_RAM },
 	{ 0x6800, 0x6800, input_port_0_r }, /* IN1 */
 	{ 0x6801, 0x6801, input_port_1_r }, /* IN2 */
 	{ 0x6802, 0x6802, input_port_2_r }, /* DSW */
 	{ 0x6803, 0x6803, input_port_3_r }, /* IN0 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress panic_writemem[] =
-{
+static MEMORY_WRITE_START( panic_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x5fff, cosmica_videoram_w, &videoram, &videoram_size },
 	{ 0x6000, 0x601f, MWA_RAM, &spriteram, &spriteram_size },
@@ -436,61 +439,47 @@ static struct MemoryWriteAddress panic_writemem[] =
 	{ 0x700c, 0x700e, panic_color_register_w },
 	{ 0x700f, 0x700f, flip_screen_w },
     { 0x7800, 0x7801, panic_sound_output2_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress cosmica_readmem[] =
-{
+static MEMORY_READ_START( cosmica_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x5fff, MRA_RAM },
 	{ 0x6800, 0x6800, input_port_0_r }, /* IN1 */
 	{ 0x6801, 0x6801, input_port_1_r }, /* IN2 */
 	{ 0x6802, 0x6802, input_port_2_r }, /* DSW */
 	{ 0x6803, 0x6803, cosmica_pixel_clock_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cosmica_writemem[] =
-{
+static MEMORY_WRITE_START( cosmica_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x5fff, cosmica_videoram_w, &videoram, &videoram_size },
 	{ 0x6000, 0x601f, MWA_RAM ,&spriteram, &spriteram_size },
 	{ 0x7000, 0x700b, MWA_RAM },   			/* Sound Triggers */
 	{ 0x700c, 0x700e, panic_color_register_w },
 	{ 0x700f, 0x700f, flip_screen_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress cosmicg_readmem[] =
-{
+static MEMORY_READ_START( cosmicg_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x3fff, cosmicg_videoram_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cosmicg_writemem[] =
-{
+static MEMORY_WRITE_START( cosmicg_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x3fff, cosmicg_videoram_w, &videoram, &videoram_size },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort cosmicg_readport[] =
-{
+static PORT_READ_START( cosmicg_readport )
 	{ 0x00, 0x00, cosmicg_pixel_clock_r },
 	{ 0x01, 0x01, input_port_1_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort cosmicg_writeport[] =
-{
+static PORT_WRITE_START( cosmicg_writeport )
 	{ 0x00, 0x15, cosmicg_output_w },
     { 0x16, 0x17, cosmicg_color_register_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress magspot2_readmem[] =
-{
+static MEMORY_READ_START( magspot2_readmem )
 	{ 0x0000, 0x2fff, MRA_ROM },
 	{ 0x3800, 0x3807, magspot2_coinage_dip_r },
 	{ 0x5000, 0x5000, input_port_0_r },
@@ -498,33 +487,27 @@ static struct MemoryReadAddress magspot2_readmem[] =
 	{ 0x5002, 0x5002, input_port_2_r },
 	{ 0x5003, 0x5003, input_port_3_r },
 	{ 0x6000, 0x7fff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress magspot2_writemem[] =
-{
+static MEMORY_WRITE_START( magspot2_writemem )
 	{ 0x0000, 0x2fff, MWA_ROM },
 	{ 0x4000, 0x401f, MWA_RAM, &spriteram, &spriteram_size},
 	{ 0x4800, 0x4800, DAC_0_data_w },
 	{ 0x480c, 0x480e, panic_color_register_w },
 	{ 0x480f, 0x480f, flip_screen_w },
 	{ 0x6000, 0x7fff, cosmica_videoram_w, &videoram, &videoram_size},
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress nomnlnd_readmem[] =
-{
+static MEMORY_READ_START( nomnlnd_readmem )
 	{ 0x0000, 0x2fff, MRA_ROM },
 	{ 0x3800, 0x3807, magspot2_coinage_dip_r },
 	{ 0x5000, 0x5001, nomnlnd_port_r },
 	{ 0x5002, 0x5002, input_port_2_r },
 	{ 0x5003, 0x5003, input_port_3_r },
 	{ 0x6000, 0x7fff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress nomnlnd_writemem[] =
-{
+static MEMORY_WRITE_START( nomnlnd_writemem )
 	{ 0x0000, 0x2fff, MWA_ROM },
 	{ 0x4000, 0x401f, MWA_RAM, &spriteram, &spriteram_size},
 	{ 0x4807, 0x4807, nomnlnd_background_w },
@@ -532,8 +515,7 @@ static struct MemoryWriteAddress nomnlnd_writemem[] =
 	{ 0x480c, 0x480e, panic_color_register_w },
 	{ 0x480f, 0x480f, flip_screen_w },
 	{ 0x6000, 0x7fff, cosmica_videoram_w, &videoram, &videoram_size},
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( panic )
@@ -1326,7 +1308,7 @@ static void init_cosmicg(void)
 
 
 ROM_START( panic )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "spcpanic.1",   0x0000, 0x0800, 0x405ae6f9 )
 	ROM_LOAD( "spcpanic.2",   0x0800, 0x0800, 0xb6a286c5 )
 	ROM_LOAD( "spcpanic.3",   0x1000, 0x0800, 0x85ae8b2e )
@@ -1335,21 +1317,21 @@ ROM_START( panic )
 	ROM_LOAD( "spcpanic.6",   0x2800, 0x0800, 0xb73babf0 )
 	ROM_LOAD( "spcpanic.7",   0x3000, 0x0800, 0xfc27f4e5 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "spcpanic.9",   0x0000, 0x0800, 0xeec78b4c )
 	ROM_LOAD( "spcpanic.10",  0x0800, 0x0800, 0xc9631c2d )
 	ROM_LOAD( "spcpanic.12",  0x1000, 0x0800, 0xe83423d0 )
 	ROM_LOAD( "spcpanic.11",  0x1800, 0x0800, 0xacea9df4 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.sp",    0x0000, 0x0020, 0x35d43d2f )
 
-	ROM_REGION( 0x0800, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0800, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "spcpanic.8",   0x0000, 0x0800, 0x7da0b321 )
 ROM_END
 
 ROM_START( panica )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "panica.1",     0x0000, 0x0800, 0x289720ce )
 	ROM_LOAD( "spcpanic.2",   0x0800, 0x0800, 0xb6a286c5 )
 	ROM_LOAD( "spcpanic.3",   0x1000, 0x0800, 0x85ae8b2e )
@@ -1358,21 +1340,21 @@ ROM_START( panica )
 	ROM_LOAD( "spcpanic.6",   0x2800, 0x0800, 0xb73babf0 )
 	ROM_LOAD( "panica.7",     0x3000, 0x0800, 0x3641cb7f )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "spcpanic.9",   0x0000, 0x0800, 0xeec78b4c )
 	ROM_LOAD( "spcpanic.10",  0x0800, 0x0800, 0xc9631c2d )
 	ROM_LOAD( "spcpanic.12",  0x1000, 0x0800, 0xe83423d0 )
 	ROM_LOAD( "spcpanic.11",  0x1800, 0x0800, 0xacea9df4 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.sp",    0x0000, 0x0020, 0x35d43d2f )
 
-	ROM_REGION( 0x0800, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0800, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "spcpanic.8",   0x0000, 0x0800, 0x7da0b321 )
 ROM_END
 
 ROM_START( panicger )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "spacepan.001", 0x0000, 0x0800, 0xa6d9515a )
 	ROM_LOAD( "spacepan.002", 0x0800, 0x0800, 0xcfc22663 )
 	ROM_LOAD( "spacepan.003", 0x1000, 0x0800, 0xe1f36893 )
@@ -1381,43 +1363,43 @@ ROM_START( panicger )
 	ROM_LOAD( "spacepan.006", 0x2800, 0x0800, 0xaae1458e )
 	ROM_LOAD( "spacepan.007", 0x3000, 0x0800, 0x14e46e70 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "spcpanic.9",   0x0000, 0x0800, 0xeec78b4c )
 	ROM_LOAD( "spcpanic.10",  0x0800, 0x0800, 0xc9631c2d )
 	ROM_LOAD( "spcpanic.12",  0x1000, 0x0800, 0xe83423d0 )
 	ROM_LOAD( "spcpanic.11",  0x1800, 0x0800, 0xacea9df4 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.sp",    0x0000, 0x0020, 0x35d43d2f )
 
-	ROM_REGION( 0x0800, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0800, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "spcpanic.8",   0x0000, 0x0800, 0x7da0b321 )
 ROM_END
 
 ROM_START( cosmica )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ca.e3",        0x0000, 0x0800, 0x535ee0c5 )
 	ROM_LOAD( "ca.e4",        0x0800, 0x0800, 0xed3cf8f7 )
 	ROM_LOAD( "ca.e5",        0x1000, 0x0800, 0x6a111e5e )
 	ROM_LOAD( "ca.e6",        0x1800, 0x0800, 0xc9b5ca2a )
 	ROM_LOAD( "ca.e7",        0x2000, 0x0800, 0x43666d68 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "ca.n1",        0x0000, 0x0800, 0x431e866c )
 	ROM_LOAD( "ca.n2",        0x0800, 0x0800, 0xaa6c6079 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "ca.d9",        0x0000, 0x0020, 0xdfb60f19 )
 
-	ROM_REGION( 0x0400, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0400, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "ca.e2",        0x0000, 0x0400, 0xea4ee931 )
 
-	ROM_REGION( 0x0400, REGION_USER2 ) /* starfield generator */
+	ROM_REGION( 0x0400, REGION_USER2, 0 ) /* starfield generator */
 	ROM_LOAD( "ca.sub",       0x0000, 0x0400, 0xacbd4e98 )
 ROM_END
 
 ROM_START( cosmica2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ca.e3",        0x0000, 0x0800, 0x535ee0c5 )
 	ROM_LOAD( "c3.bin",       0x0800, 0x0400, 0x699c849e )
 	ROM_LOAD( "d4.bin",       0x0c00, 0x0400, 0x168e38da )
@@ -1426,22 +1408,22 @@ ROM_START( cosmica2 )
 	ROM_LOAD( "i9.bin",       0x2000, 0x0400, 0x3bb57720 )
 	ROM_LOAD( "j0.bin",       0x2400, 0x0400, 0x4ff70f45 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "ca.n1",        0x0000, 0x0800, 0x431e866c )
 	ROM_LOAD( "ca.n2",        0x0800, 0x0800, 0xaa6c6079 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "ca.d9",        0x0000, 0x0020, 0xdfb60f19 )
 
-	ROM_REGION( 0x0400, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0400, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "ca.e2",        0x0000, 0x0400, 0xea4ee931 )
 
-	ROM_REGION( 0x0400, REGION_USER2 ) /* starfield generator */
+	ROM_REGION( 0x0400, REGION_USER2, 0 ) /* starfield generator */
 	ROM_LOAD( "ca.sub",       0x0000, 0x0400, 0xacbd4e98 )
 ROM_END
 
 ROM_START( cosmicg )
-	ROM_REGION( 0x10000, REGION_CPU1 )  /* 8k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )  /* 8k for code */
 	COSMICG_ROM_LOAD( "cosmicg1.bin",  0x0000, 0x0400, 0xe1b9f894 )
 	COSMICG_ROM_LOAD( "cosmicg2.bin",  0x0400, 0x0400, 0x35c75346 )
 	COSMICG_ROM_LOAD( "cosmicg3.bin",  0x0800, 0x0400, 0x82a49b48 )
@@ -1451,12 +1433,12 @@ ROM_START( cosmicg )
 	COSMICG_ROM_LOAD( "cosmicg7.bin",  0x1800, 0x0400, 0xf33ebae7 )
 	COSMICG_ROM_LOAD( "cosmicg8.bin",  0x1C00, 0x0400, 0x472e4990 )
 
-	ROM_REGION( 0x0400, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0400, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "cosmicg9.bin",  0x0000, 0x0400, 0x689c2c96 )
 ROM_END
 
 ROM_START( magspot2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ms.e3",   0x0000, 0x0800, 0xc0085ade )
 	ROM_LOAD( "ms.e4",   0x0800, 0x0800, 0xd534a68b )
 	ROM_LOAD( "ms.e5",   0x1000, 0x0800, 0x25513b2a )
@@ -1464,19 +1446,19 @@ ROM_START( magspot2 )
 	ROM_LOAD( "ms.e6",   0x2000, 0x0800, 0x6a08ab94 )
 	ROM_LOAD( "ms.e8",   0x2800, 0x0800, 0x77c6d109 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "ms.n1",   0x0000, 0x0800, 0x1ab338d3 )
 	ROM_LOAD( "ms.n2",   0x0800, 0x0800, 0x9e1d63a2 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "ms.d9",   0x0000, 0x0020, 0x36e2aa2a )
 
-	ROM_REGION( 0x0400, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0400, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "ms.e2",   0x0000, 0x0400, 0x89f23ebd )
 ROM_END
 
 ROM_START( devzone )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "dv1.e3",  0x0000, 0x0800, 0xc70faf00 )
 	ROM_LOAD( "dv2.e4",  0x0800, 0x0800, 0xeacfed61 )
 	ROM_LOAD( "dv3.e5",  0x1000, 0x0800, 0x7973317e )
@@ -1484,19 +1466,19 @@ ROM_START( devzone )
 	ROM_LOAD( "dv4.e6",  0x2000, 0x0800, 0xa58c5b8c )
 	ROM_LOAD( "dv6.e8",  0x2800, 0x0800, 0x3930fb67 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "dv7.n1",  0x0000, 0x0800, 0xe7562fcf )
 	ROM_LOAD( "dv8.n2",  0x0800, 0x0800, 0xda1cbec1 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "ms.d9",   0x0000, 0x0020, 0x36e2aa2a )
 
-	ROM_REGION( 0x0400, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0400, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "dz9.e2",  0x0000, 0x0400, 0x693855b6 )
 ROM_END
 
 ROM_START( nomnlnd )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "1.bin",  0x0000, 0x0800, 0xba117ba6 )
 	ROM_LOAD( "2.bin",  0x0800, 0x0800, 0xe5ed654f )
 	ROM_LOAD( "3.bin",  0x1000, 0x0800, 0x7fc42724 )
@@ -1504,23 +1486,23 @@ ROM_START( nomnlnd )
 	ROM_LOAD( "4.bin",  0x2000, 0x0800, 0x0e8cd46a )
 	ROM_LOAD( "6.bin",  0x2800, 0x0800, 0xba472ba5 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "nml7.n1",  0x0000, 0x0800, 0xd08ed22f )
 	ROM_LOAD( "nml8.n2",  0x0800, 0x0800, 0x739009b4 )
 
-	ROM_REGION( 0x0800, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* tree + river */
+	ROM_REGION( 0x0800, REGION_GFX2, ROMREGION_DISPOSE )	/* tree + river */
 	ROM_LOAD( "nl11.ic7", 0x0000, 0x0400, 0xe717b241 )
 	ROM_LOAD( "nl10.ic4", 0x0400, 0x0400, 0x5b13f64e )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "nml.clr",  0x0000, 0x0020, 0x65e911f9 )
 
-	ROM_REGION( 0x0400, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0400, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "nl9.e2",   0x0000, 0x0400, 0x9e05f14e )
 ROM_END
 
 ROM_START( nomnlndg )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "nml1.e3",  0x0000, 0x0800, 0xe212ed91 )
 	ROM_LOAD( "nml2.e4",  0x0800, 0x0800, 0xf66ef3d8 )
 	ROM_LOAD( "nml3.e5",  0x1000, 0x0800, 0xd422fc8a )
@@ -1528,18 +1510,18 @@ ROM_START( nomnlndg )
 	ROM_LOAD( "nml4.e6",  0x2000, 0x0800, 0x994c9afb )
 	ROM_LOAD( "nml6.e8",  0x2800, 0x0800, 0x01ed2d8c )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "nml7.n1",  0x0000, 0x0800, 0xd08ed22f )
 	ROM_LOAD( "nml8.n2",  0x0800, 0x0800, 0x739009b4 )
 
-	ROM_REGION( 0x0800, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* tree + river */
+	ROM_REGION( 0x0800, REGION_GFX2, ROMREGION_DISPOSE )	/* tree + river */
 	ROM_LOAD( "nl11.ic7", 0x0000, 0x0400, 0xe717b241 )
 	ROM_LOAD( "nl10.ic4", 0x0400, 0x0400, 0x5b13f64e )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "nml.clr",  0x0000, 0x0020, 0x65e911f9 )
 
-	ROM_REGION( 0x0400, REGION_USER1 ) /* color map */
+	ROM_REGION( 0x0400, REGION_USER1, 0 ) /* color map */
 	ROM_LOAD( "nl9.e2",   0x0000, 0x0400, 0x9e05f14e )
 ROM_END
 

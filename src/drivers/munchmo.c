@@ -65,8 +65,7 @@ WRITE_HANDLER( mnchmobl_soundlatch_w )
 	cpu_cause_interrupt( 1, Z80_IRQ_INT );
 }
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x8000, 0x83ff, MRA_RAM }, /* working RAM */
 	{ 0xa000, 0xa3ff, MRA_RAM },
@@ -82,11 +81,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xbf01, 0xbf01, input_port_0_r }, /* coin, start */
 	{ 0xbf02, 0xbf02, input_port_1_r }, /* P1 controls */
 	{ 0xbf03, 0xbf03, input_port_2_r }, /* P2 controls */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
  	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x8000, 0x83ff, MWA_RAM }, /* working RAM */
 	{ 0xa000, 0xa3ff, MWA_RAM, &mnchmobl_sprite_xpos },
@@ -106,18 +103,14 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xbe41, 0xbe41, mnchmobl_flipscreen_w },
 	{ 0xbe61, 0xbe61, mnchmobl_nmi_enable_w }, /* ENI 1-10C */
 	{ 0xbf00, 0xbf07, MWA_RAM, &mnchmobl_vreg }, /* MY0 1-8C */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x2000, soundlatch_r },
 	{ 0xe000, 0xe7ff, MRA_RAM },
-	{ -1 }
-};
-static struct MemoryWriteAddress writemem_sound[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x4000, 0x4000, AY8910_write_port_0_w },
 	{ 0x5000, 0x5000, AY8910_control_port_0_w },
@@ -127,8 +120,7 @@ static struct MemoryWriteAddress writemem_sound[] =
 	{ 0xa000, 0xa000, MWA_NOP }, /* ? */
 	{ 0xc000, 0xc000, MWA_NOP }, /* ? */
 	{ 0xe000, 0xe7ff, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
 static struct AY8910interface ay8910_interface =
 {
@@ -341,58 +333,58 @@ static const struct MachineDriver machine_driver_munchmo =
 
 
 ROM_START( joyfulr )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for CPUA */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for CPUA */
 	ROM_LOAD( "m1j.10e", 0x0000, 0x2000, 0x1fe86e25 )
 	ROM_LOAD( "m2j.10d", 0x2000, 0x2000, 0xb144b9a6 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for sound CPU */
 	ROM_LOAD( "mu.2j",	 0x0000, 0x2000, 0x420adbd4 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "s1.10a",	 0x0000, 0x1000, 0xc0bcc301 )	/* characters */
 	ROM_LOAD( "s2.10b",	 0x1000, 0x1000, 0x96aa11ca )
 
-	ROM_REGION( 0x2000, REGION_GFX2 )
+	ROM_REGION( 0x2000, REGION_GFX2, 0 )
 	ROM_LOAD( "b1.2c",	 0x0000, 0x1000, 0x8ce3a403 )	/* tile layout */
 	ROM_LOAD( "b2.2b",	 0x1000, 0x1000, 0x0df28913 )	/* 4x8 tiles */
 
-	ROM_REGION( 0x6000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "f1j.1g",	 0x0000, 0x2000, 0x93c3c17e )	/* sprites */
 	ROM_LOAD( "f2j.3g",	 0x2000, 0x2000, 0xb3fb5bd2 )
 	ROM_LOAD( "f3j.5g",	 0x4000, 0x2000, 0x772a7527 )
 
-	ROM_REGION( 0x2000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "h",		 0x0000, 0x2000, 0x332584de )	/* monochrome sprites */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a2001.clr", 0x0000, 0x0100, 0x1b16b907 ) /* color prom */
 ROM_END
 
 ROM_START( mnchmobl )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for CPUA */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for CPUA */
 	ROM_LOAD( "m1.10e",	 0x0000, 0x2000, 0xa4bebc6a )
 	ROM_LOAD( "m2.10d",	 0x2000, 0x2000, 0xf502d466 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for sound CPU */
 	ROM_LOAD( "mu.2j",	 0x0000, 0x2000, 0x420adbd4 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "s1.10a",	 0x0000, 0x1000, 0xc0bcc301 )	/* characters */
 	ROM_LOAD( "s2.10b",	 0x1000, 0x1000, 0x96aa11ca )
 
-	ROM_REGION( 0x2000, REGION_GFX2 )
+	ROM_REGION( 0x2000, REGION_GFX2, 0 )
 	ROM_LOAD( "b1.2c",	 0x0000, 0x1000, 0x8ce3a403 )	/* tile layout */
 	ROM_LOAD( "b2.2b",	 0x1000, 0x1000, 0x0df28913 )	/* 4x8 tiles */
 
-	ROM_REGION( 0x6000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "f1.1g",	 0x0000, 0x2000, 0xb75411d4 )	/* sprites */
 	ROM_LOAD( "f2.3g",	 0x2000, 0x2000, 0x539a43ba )
 	ROM_LOAD( "f3.5g",	 0x4000, 0x2000, 0xec996706 )
 
-	ROM_REGION( 0x2000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "h",		 0x0000, 0x2000, 0x332584de )	/* monochrome sprites */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a2001.clr", 0x0000, 0x0100, 0x1b16b907 ) /* color prom */
 ROM_END
 

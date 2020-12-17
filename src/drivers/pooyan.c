@@ -64,21 +64,15 @@ standard NMI at 0x66
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
+#include "sndhrdw/timeplt.h"
 
 
 WRITE_HANDLER( pooyan_flipscreen_w );
 void pooyan_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void pooyan_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-/* defined in sndhrdw/timeplt.c */
-extern struct MemoryReadAddress timeplt_sound_readmem[];
-extern struct MemoryWriteAddress timeplt_sound_writemem[];
-extern struct AY8910interface timeplt_ay8910_interface;
-WRITE_HANDLER( timeplt_sh_irqtrigger_w );
 
-
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8fff, MRA_RAM },	/* color and video RAM */
 	{ 0xa000, 0xa000, input_port_4_r },	/* DSW2 */
@@ -86,11 +80,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xa0a0, 0xa0a0, input_port_1_r },	/* IN1 */
 	{ 0xa0c0, 0xa0c0, input_port_2_r },	/* IN2 */
 	{ 0xa0e0, 0xa0e0, input_port_3_r },	/* DSW1 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x83ff, colorram_w, &colorram },
 	{ 0x8400, 0x87ff, videoram_w, &videoram, &videoram_size },
@@ -102,8 +94,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xa180, 0xa180, interrupt_enable_w },
 	{ 0xa181, 0xa181, timeplt_sh_irqtrigger_w },
 	{ 0xa187, 0xa187, pooyan_flipscreen_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( pooyan )
@@ -287,75 +278,75 @@ static const struct MachineDriver machine_driver_pooyan =
 ***************************************************************************/
 
 ROM_START( pooyan )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "1.4a",         0x0000, 0x2000, 0xbb319c63 )
 	ROM_LOAD( "2.5a",         0x2000, 0x2000, 0xa1463d98 )
 	ROM_LOAD( "3.6a",         0x4000, 0x2000, 0xfe1a9e08 )
 	ROM_LOAD( "4.7a",         0x6000, 0x2000, 0x9e0f9bcc )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "xx.7a",        0x0000, 0x1000, 0xfbe2b368 )
 	ROM_LOAD( "xx.8a",        0x1000, 0x1000, 0xe1795b3d )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "8.10g",        0x0000, 0x1000, 0x931b29eb )
 	ROM_LOAD( "7.9g",         0x1000, 0x1000, 0xbbe6d6e4 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "6.9a",         0x0000, 0x1000, 0xb2d8c121 )
 	ROM_LOAD( "5.8a",         0x1000, 0x1000, 0x1097c2b6 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "pooyan.pr1",   0x0000, 0x0020, 0xa06a6d0e ) /* palette */
 	ROM_LOAD( "pooyan.pr2",   0x0020, 0x0100, 0x82748c0b ) /* sprites */
 	ROM_LOAD( "pooyan.pr3",   0x0120, 0x0100, 0x8cd4cd60 ) /* characters */
 ROM_END
 
 ROM_START( pooyans )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ic22_a4.cpu",  0x0000, 0x2000, 0x916ae7d7 )
 	ROM_LOAD( "ic23_a5.cpu",  0x2000, 0x2000, 0x8fe38c61 )
 	ROM_LOAD( "ic24_a6.cpu",  0x4000, 0x2000, 0x2660218a )
 	ROM_LOAD( "ic25_a7.cpu",  0x6000, 0x2000, 0x3d2a10ad )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "xx.7a",        0x0000, 0x1000, 0xfbe2b368 )
 	ROM_LOAD( "xx.8a",        0x1000, 0x1000, 0xe1795b3d )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic13_g10.cpu", 0x0000, 0x1000, 0x7433aea9 )
 	ROM_LOAD( "ic14_g9.cpu",  0x1000, 0x1000, 0x87c1789e )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "6.9a",         0x0000, 0x1000, 0xb2d8c121 )
 	ROM_LOAD( "5.8a",         0x1000, 0x1000, 0x1097c2b6 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "pooyan.pr1",   0x0000, 0x0020, 0xa06a6d0e ) /* palette */
 	ROM_LOAD( "pooyan.pr2",   0x0020, 0x0100, 0x82748c0b ) /* sprites */
 	ROM_LOAD( "pooyan.pr3",   0x0120, 0x0100, 0x8cd4cd60 ) /* characters */
 ROM_END
 
 ROM_START( pootan )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "poo_ic22.bin", 0x0000, 0x2000, 0x41b23a24 )
 	ROM_LOAD( "poo_ic23.bin", 0x2000, 0x2000, 0xc9d94661 )
 	ROM_LOAD( "3.6a",         0x4000, 0x2000, 0xfe1a9e08 )
 	ROM_LOAD( "poo_ic25.bin", 0x6000, 0x2000, 0x8ae459ef )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "xx.7a",        0x0000, 0x1000, 0xfbe2b368 )
 	ROM_LOAD( "xx.8a",        0x1000, 0x1000, 0xe1795b3d )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "poo_ic13.bin", 0x0000, 0x1000, 0x0be802e4 )
 	ROM_LOAD( "poo_ic14.bin", 0x1000, 0x1000, 0xcba29096 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "6.9a",         0x0000, 0x1000, 0xb2d8c121 )
 	ROM_LOAD( "5.8a",         0x1000, 0x1000, 0x1097c2b6 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "pooyan.pr1",   0x0000, 0x0020, 0xa06a6d0e ) /* palette */
 	ROM_LOAD( "pooyan.pr2",   0x0020, 0x0100, 0x82748c0b ) /* sprites */
 	ROM_LOAD( "pooyan.pr3",   0x0120, 0x0100, 0x8cd4cd60 ) /* characters */

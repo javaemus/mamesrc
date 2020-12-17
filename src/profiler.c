@@ -3,6 +3,16 @@
 
 static int use_profiler;
 
+/*
+ * Versions of GNU C earlier that 2.7 have big problems with the UINT64
+ * so we make it into an unsigned long here.
+ */
+
+#ifdef __GNU__
+#if (__GNUC__ == 2) && (__GNUC_MINOR_ <= 7)
+#define UINT64		unsigned long
+#endif
+#endif
 
 #define MEMORY 6
 
@@ -31,7 +41,7 @@ void profiler_stop(void)
 	use_profiler = 0;
 }
 
-void profiler_mark(int type)
+void profiler__mark(int type)
 {
 	unsigned int curr_cycles;
 
@@ -99,11 +109,12 @@ void profiler_show(struct osd_bitmap *bitmap)
 		"CPU 6  ",
 		"CPU 7  ",
 		"CPU 8  ",
+		"Mem rd ",
+		"Mem wr ",
 		"Video  ",
 		"drawgfx",
 		"copybmp",
 		"tmupdat",
-		"tmrendr",
 		"tmdraw ",
 		"Blit   ",
 		"Sound  ",

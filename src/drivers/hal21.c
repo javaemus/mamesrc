@@ -353,7 +353,7 @@ INPUT_PORTS_START( aso )
 	PORT_DIPSETTING(    0x04, "Normal" )
 	PORT_DIPSETTING(    0x02, "Hard" )
 	PORT_DIPSETTING(    0x00, "Hardest" )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_BITX( 0x10,    0x10, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Cheat of some kind", IP_KEY_NONE, IP_JOY_NONE )
@@ -497,21 +497,19 @@ static struct YM3526interface ym3526_interface ={
 	{ 50 }		/* (not supported) */
 };
 
-static struct MemoryReadAddress aso_readmem_sound[] ={
+static MEMORY_READ_START( aso_readmem_sound )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xd000, 0xd000, snk_soundcommand_r },
 	{ 0xf000, 0xf000, YM3526_status_port_0_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress aso_writemem_sound[] ={
+static MEMORY_WRITE_START( aso_writemem_sound )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xf000, 0xf000, YM3526_control_port_0_w }, /* YM3526 #1 control port? */
 	{ 0xf001, 0xf001, YM3526_write_port_0_w },   /* YM3526 #1 write port?  */
-	{ -1 }
-};
+MEMORY_END
 
 /**************************************************************************/
 
@@ -525,28 +523,25 @@ static struct AY8910interface ay8910_interface = {
 	{ 0 }
 };
 
-static struct MemoryReadAddress hal21_readmem_sound[] = {
+static MEMORY_READ_START( hal21_readmem_sound )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xa000, 0xa000, snk_soundcommand_r },
 //	{ 0xc000, 0xc000, ack },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress hal21_writemem_sound[] = {
+static MEMORY_WRITE_START( hal21_writemem_sound )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0xe000, 0xe000, AY8910_control_port_0_w },
 	{ 0xe001, 0xe001, AY8910_write_port_0_w },
 	{ 0xe008, 0xe008, AY8910_control_port_1_w },
 	{ 0xe009, 0xe009, AY8910_write_port_1_w },
-	{ -1 }
-};
+MEMORY_END
 
 /**************************** ASO/Alpha Mission *************************/
 
-static struct MemoryReadAddress aso_readmem_cpuA[] =
-{
+static MEMORY_READ_START( aso_readmem_cpuA )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc000, input_port_0_r },	/* coin, start */
 	{ 0xc100, 0xc100, input_port_1_r },	/* P1 */
@@ -555,11 +550,9 @@ static struct MemoryReadAddress aso_readmem_cpuA[] =
 	{ 0xc600, 0xc600, input_port_4_r },	/* DSW2 */
 	{ 0xc700, 0xc700, CPUB_int_trigger_r },
 	{ 0xd000, 0xffff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress aso_writemem_cpuA[] =
-{
+static MEMORY_WRITE_START( aso_writemem_cpuA )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc400, 0xc400, snk_soundcommand_w },
 	{ 0xc700, 0xc700, CPUA_int_enable_w },
@@ -573,32 +566,27 @@ static struct MemoryWriteAddress aso_writemem_cpuA[] =
 	{ 0xe000, 0xe7ff, MWA_RAM, &spriteram },
 	{ 0xe800, 0xf7ff, videoram_w, &videoram },
 	{ 0xf800, 0xffff, MWA_RAM, &shared_ram },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress aso_readmem_cpuB[] =
-{
+static MEMORY_READ_START( aso_readmem_cpuB )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc000, CPUA_int_trigger_r },
 	{ 0xc800, 0xe7ff, shared_auxram_r },
 	{ 0xe800, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xffff, shared_ram_r },
-	{ -1 }
-};
-static struct MemoryWriteAddress aso_writemem_cpuB[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( aso_writemem_cpuB )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc000, CPUB_int_enable_w },
 	{ 0xc800, 0xd7ff, shared_auxram_w },
 	{ 0xd800, 0xe7ff, videoram_w },
 	{ 0xe800, 0xf7ff, MWA_RAM },
 	{ 0xf800, 0xffff, shared_ram_w },
-	{ -1 }
-};
+MEMORY_END
 
 /**************************** HAL21 *************************/
 
-static struct MemoryReadAddress hal21_readmem_CPUA[] = {
+static MEMORY_READ_START( hal21_readmem_CPUA )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xc000, 0xc000, input_port_0_r },	/* coin, start */
 	{ 0xc100, 0xc100, input_port_1_r },	/* P1 */
@@ -608,10 +596,9 @@ static struct MemoryReadAddress hal21_readmem_CPUA[] = {
 	{ 0xc700, 0xc700, CPUB_int_trigger_r },
 	{ 0xe000, 0xefff, MRA_RAM },
 	{ 0xf000, 0xffff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress hal21_writemem_CPUA[] = {
+static MEMORY_WRITE_START( hal21_writemem_CPUA )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xc300, 0xc300, snk_soundcommand_w },
 	{ 0xc600, 0xc600, hal21_vreg0_w },
@@ -623,8 +610,7 @@ static struct MemoryWriteAddress hal21_writemem_CPUA[] = {
 	{ 0xd700, 0xd700, hal21_vreg5_w },
 	{ 0xe000, 0xefff, MWA_RAM, &spriteram },
 	{ 0xf000, 0xffff, MWA_RAM, &shared_ram },
-	{ -1 }
-};
+MEMORY_END
 
 READ_HANDLER( hal21_spriteram_r ){
 	return spriteram[offset];
@@ -633,22 +619,20 @@ WRITE_HANDLER( hal21_spriteram_w ){
 	spriteram[offset] = data;
 }
 
-static struct MemoryReadAddress hal21_readmem_CPUB[] = {
+static MEMORY_READ_START( hal21_readmem_CPUB )
 	{ 0x0000, 0x9fff, MRA_ROM },
 	{ 0xc000, 0xcfff, hal21_spriteram_r },
 	{ 0xd000, 0xdfff, MRA_RAM }, /* background */
 	{ 0xe000, 0xefff, shared_ram_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress hal21_writemem_CPUB[] = {
+static MEMORY_WRITE_START( hal21_writemem_CPUB )
 	{ 0x0000, 0x9fff, MWA_ROM },
 	{ 0xa000, 0xa000, CPUB_int_enable_w },
 	{ 0xc000, 0xcfff, hal21_spriteram_w },
 	{ 0xd000, 0xdfff, videoram_w, &videoram },
 	{ 0xe000, 0xefff, shared_ram_w },
-	{ -1 }
-};
+MEMORY_END
 
 /**************************************************************************/
 
@@ -751,29 +735,29 @@ static const struct MachineDriver machine_driver_hal21 = {
 /**************************************************************************/
 
 ROM_START( hal21 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for CPUA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for CPUA code */
 	ROM_LOAD( "hal21p1.bin",    0x0000, 0x2000, 0x9d193830 )
 	ROM_LOAD( "hal21p2.bin",    0x2000, 0x2000, 0xc1f00350 )
 	ROM_LOAD( "hal21p3.bin",    0x4000, 0x2000, 0x881d22a6 )
 	ROM_LOAD( "hal21p4.bin",    0x6000, 0x2000, 0xce692534 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for CPUB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for CPUB code */
 	ROM_LOAD( "hal21p5.bin",    0x0000, 0x2000, 0x3ce0684a )
 	ROM_LOAD( "hal21p6.bin",    0x2000, 0x2000, 0x878ef798 )
 	ROM_LOAD( "hal21p7.bin",    0x4000, 0x2000, 0x72ebbe95 )
 	ROM_LOAD( "hal21p8.bin",    0x6000, 0x2000, 0x17e22ad3 )
 	ROM_LOAD( "hal21p9.bin",    0x8000, 0x2000, 0xb146f891 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "hal21p10.bin",   0x0000, 0x4000, 0x916f7ba0 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "hal21p12.bin", 0x0000, 0x2000, 0x9839a7cd ) /* char */
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE  ) /* background tiles */
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "hal21p11.bin", 0x0000, 0x4000, 0x24abc57e )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE  ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "hal21p13.bin", 0x00000, 0x4000, 0x052b4f4f )
 	ROM_RELOAD(               0x04000, 0x4000 )
 	ROM_LOAD( "hal21p14.bin", 0x08000, 0x4000, 0xda0cb670 )
@@ -781,36 +765,36 @@ ROM_START( hal21 )
 	ROM_LOAD( "hal21p15.bin", 0x10000, 0x4000, 0x5c5ea945 )
 	ROM_RELOAD(               0x14000, 0x4000 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "hal21_1.prm",  0x000, 0x400, 0x195768fc )
 	ROM_LOAD( "hal21_2.prm",  0x400, 0x400, 0xc5d84225 )
 	ROM_LOAD( "hal21_3.prm",  0x800, 0x400, 0x605afff8 )
 ROM_END
 
 ROM_START( hal21j )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for CPUA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for CPUA code */
 	ROM_LOAD( "hal21p1.bin",    0x0000, 0x2000, 0x9d193830 )
 	ROM_LOAD( "hal21p2.bin",    0x2000, 0x2000, 0xc1f00350 )
 	ROM_LOAD( "hal21p3.bin",    0x4000, 0x2000, 0x881d22a6 )
 	ROM_LOAD( "hal21p4.bin",    0x6000, 0x2000, 0xce692534 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for CPUB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for CPUB code */
 	ROM_LOAD( "hal21p5.bin",    0x0000, 0x2000, 0x3ce0684a )
 	ROM_LOAD( "hal21p6.bin",    0x2000, 0x2000, 0x878ef798 )
 	ROM_LOAD( "hal21p7.bin",    0x4000, 0x2000, 0x72ebbe95 )
 	ROM_LOAD( "hal21p8.bin",    0x6000, 0x2000, 0x17e22ad3 )
 	ROM_LOAD( "hal21p9.bin",    0x8000, 0x2000, 0xb146f891 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "hal21-10.bin",   0x0000, 0x4000, 0xa182b3f0 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "hal21p12.bin", 0x0000, 0x2000, 0x9839a7cd ) /* char */
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE  ) /* background tiles */
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "hal21p11.bin", 0x0000, 0x4000, 0x24abc57e )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE  ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "hal21p13.bin", 0x00000, 0x4000, 0x052b4f4f )
 	ROM_RELOAD(               0x04000, 0x4000 )
 	ROM_LOAD( "hal21p14.bin", 0x08000, 0x4000, 0xda0cb670 )
@@ -818,37 +802,37 @@ ROM_START( hal21j )
 	ROM_LOAD( "hal21p15.bin", 0x10000, 0x4000, 0x5c5ea945 )
 	ROM_RELOAD(               0x14000, 0x4000 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "hal21_1.prm",  0x000, 0x400, 0x195768fc )
 	ROM_LOAD( "hal21_2.prm",  0x400, 0x400, 0xc5d84225 )
 	ROM_LOAD( "hal21_3.prm",  0x800, 0x400, 0x605afff8 )
 ROM_END
 
 ROM_START( aso )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for cpuA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for cpuA code */
 	ROM_LOAD( "aso.1",    0x0000, 0x8000, 0x3fc9d5e4 )
 	ROM_LOAD( "aso.3",    0x8000, 0x4000, 0x39a666d2 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for cpuB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for cpuB code */
 	ROM_LOAD( "aso.4",    0x0000, 0x8000, 0x2429792b )
 	ROM_LOAD( "aso.6",    0x8000, 0x4000, 0xc0bfdf1f )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "aso.7",    0x0000, 0x8000, 0x49258162 )  /* YM3526 */
 	ROM_LOAD( "aso.9",    0x8000, 0x4000, 0xaef5a4f4 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE ) /* characters */
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE ) /* characters */
 	ROM_LOAD( "aso.14",   0x0000, 0x2000, 0x8baa2253 )
 
-	ROM_REGION( 0x8000, REGION_GFX2 | REGIONFLAG_DISPOSE  ) /* background tiles */
+	ROM_REGION( 0x8000, REGION_GFX2, ROMREGION_DISPOSE ) /* background tiles */
 	ROM_LOAD( "aso.10",   0x0000, 0x8000, 0x00dff996 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE  ) /* 16x16 sprites */
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE ) /* 16x16 sprites */
 	ROM_LOAD( "aso.11",   0x00000, 0x8000, 0x7feac86c )
 	ROM_LOAD( "aso.12",   0x08000, 0x8000, 0x6895990b )
 	ROM_LOAD( "aso.13",   0x10000, 0x8000, 0x87a81ce1 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "up02_f12.rom",  0x000, 0x00400, 0x5b0a0059 )
 	ROM_LOAD( "up02_f13.rom",  0x400, 0x00400, 0x37e28dd8 )
 	ROM_LOAD( "up02_f14.rom",  0x800, 0x00400, 0xc3fd1dd3 )

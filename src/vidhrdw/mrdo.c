@@ -27,22 +27,24 @@ static int flipscreen;
   U2:
   bit 7 -- unused
         -- unused
-        -- 100 ohm resistor  -- BLUE
-        --  75 ohm resistor  -- BLUE
-        -- 100 ohm resistor  -- GREEN
-        --  75 ohm resistor  -- GREEN
-        -- 100 ohm resistor  -- RED
-  bit 0 --  75 ohm resistor  -- RED
+        -- 100 ohm resistor  -diode- BLUE
+        --  75 ohm resistor  -diode- BLUE
+        -- 100 ohm resistor  -diode- GREEN
+        --  75 ohm resistor  -diode- GREEN
+        -- 100 ohm resistor  -diode- RED
+  bit 0 --  75 ohm resistor  -diode- RED
 
   T2:
   bit 7 -- unused
         -- unused
-        -- 150 ohm resistor  -- BLUE
-        -- 120 ohm resistor  -- BLUE
-        -- 150 ohm resistor  -- GREEN
-        -- 120 ohm resistor  -- GREEN
-        -- 150 ohm resistor  -- RED
-  bit 0 -- 120 ohm resistor  -- RED
+        -- 150 ohm resistor  -diode- BLUE
+        -- 120 ohm resistor  -diode- BLUE
+        -- 150 ohm resistor  -diode- GREEN
+        -- 120 ohm resistor  -diode- GREEN
+        -- 150 ohm resistor  -diode- RED
+  bit 0 -- 120 ohm resistor  -diode- RED
+
+  200 ohm pulldown on all three components
 
 ***************************************************************************/
 void mrdo_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
@@ -51,31 +53,50 @@ void mrdo_vh_convert_color_prom(unsigned char *palette, unsigned short *colortab
 	#define TOTAL_COLORS(gfxn) (Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
 	#define COLOR(gfxn,offs) (colortable[Machine->drv->gfxdecodeinfo[gfxn].color_codes_start + offs])
 
+	const int R1 = 150;
+	const int R2 = 120;
+	const int R3 = 100;
+	const int R4 = 75;
+	const int pull = 200;
+	float pot[16];
+	int weight[16];
+	const float potadjust = 0.2;	/* hack to reduce brightness */
+
+	for (i = 15;i >= 0;i--)
+	{
+		float par = 0;
+
+		if (i & 1) par += 1.0/R1;
+		if (i & 2) par += 1.0/R2;
+		if (i & 4) par += 1.0/R3;
+		if (i & 8) par += 1.0/R4;
+		if (par)
+		{
+			par = 1/par;
+			pot[i] = pull/(pull+par) - potadjust;
+		}
+		else pot[i] = 0;
+
+		weight[i] = 255 * pot[i] / pot[15];
+	}
 
 	for (i = 0;i < 256;i++)
 	{
 		int a1,a2;
-		int bit0,bit1,bit2,bit3;
-
+		int bits0,bits2;
 
 		a1 = ((i >> 3) & 0x1c) + (i & 0x03) + 32;
 		a2 = ((i >> 0) & 0x1c) + (i & 0x03);
 
-		bit0 = (color_prom[a1] >> 1) & 0x01;
-		bit1 = (color_prom[a1] >> 0) & 0x01;
-		bit2 = (color_prom[a2] >> 1) & 0x01;
-		bit3 = (color_prom[a2] >> 0) & 0x01;
-		*(palette++) = 0x2c * bit0 + 0x37 * bit1 + 0x43 * bit2 + 0x59 * bit3;
-		bit0 = (color_prom[a1] >> 3) & 0x01;
-		bit1 = (color_prom[a1] >> 2) & 0x01;
-		bit2 = (color_prom[a2] >> 3) & 0x01;
-		bit3 = (color_prom[a2] >> 2) & 0x01;
-		*(palette++) = 0x2c * bit0 + 0x37 * bit1 + 0x43 * bit2 + 0x59 * bit3;
-		bit0 = (color_prom[a1] >> 5) & 0x01;
-		bit1 = (color_prom[a1] >> 4) & 0x01;
-		bit2 = (color_prom[a2] >> 5) & 0x01;
-		bit3 = (color_prom[a2] >> 4) & 0x01;
-		*(palette++) = 0x2c * bit0 + 0x37 * bit1 + 0x43 * bit2 + 0x59 * bit3;
+		bits0 = (color_prom[a1] >> 0) & 0x03;
+		bits2 = (color_prom[a2] >> 0) & 0x03;
+		*(palette++) = weight[bits0 + (bits2 << 2)];
+		bits0 = (color_prom[a1] >> 2) & 0x03;
+		bits2 = (color_prom[a2] >> 2) & 0x03;
+		*(palette++) = weight[bits0 + (bits2 << 2)];
+		bits0 = (color_prom[a1] >> 4) & 0x03;
+		bits2 = (color_prom[a2] >> 4) & 0x03;
+		*(palette++) = weight[bits0 + (bits2 << 2)];
 	}
 
 	color_prom += 64;
@@ -106,14 +127,14 @@ static void get_bg_tile_info(int tile_index)
 {
 	unsigned char attr = mrdo_bgvideoram[tile_index];
 	SET_TILE_INFO(1,mrdo_bgvideoram[tile_index+0x400] + ((attr & 0x80) << 1),attr & 0x3f)
-	tile_info.flags = TILE_SPLIT((attr & 0x40) >> 6);
+	tile_info.flags = (attr & 0x40) ? TILE_IGNORE_TRANSPARENCY : 0;
 }
 
 static void get_fg_tile_info(int tile_index)
 {
 	unsigned char attr = mrdo_fgvideoram[tile_index];
 	SET_TILE_INFO(0,mrdo_fgvideoram[tile_index+0x400] + ((attr & 0x80) << 1),attr & 0x3f)
-	tile_info.flags = TILE_SPLIT((attr & 0x40) >> 6);
+	tile_info.flags = (attr & 0x40) ? TILE_IGNORE_TRANSPARENCY : 0;
 }
 
 
@@ -126,16 +147,14 @@ static void get_fg_tile_info(int tile_index)
 
 int mrdo_vh_start(void)
 {
-	bg_tilemap = tilemap_create(get_bg_tile_info,tilemap_scan_rows,TILEMAP_SPLIT,8,8,32,32);
-	fg_tilemap = tilemap_create(get_fg_tile_info,tilemap_scan_rows,TILEMAP_SPLIT,8,8,32,32);
+	bg_tilemap = tilemap_create(get_bg_tile_info,tilemap_scan_rows,TILEMAP_TRANSPARENT,8,8,32,32);
+	fg_tilemap = tilemap_create(get_fg_tile_info,tilemap_scan_rows,TILEMAP_TRANSPARENT,8,8,32,32);
 
 	if (!bg_tilemap || !fg_tilemap)
 		return 1;
 
-	bg_tilemap->transmask[0] = 0x01; /* split type 0 has pen 1 transparent in front half */
-	bg_tilemap->transmask[1] = 0x00; /* split type 1 is totally opaque in front half */
-	fg_tilemap->transmask[0] = 0x01; /* split type 0 has pen 1 transparent in front half */
-	fg_tilemap->transmask[1] = 0x00; /* split type 1 is totally opaque in front half */
+	tilemap_set_transparent_pen(bg_tilemap,0);
+	tilemap_set_transparent_pen(fg_tilemap,0);
 
 	return 0;
 }
@@ -217,10 +236,8 @@ void mrdo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	tilemap_update(ALL_TILEMAPS);
 
-	tilemap_render(ALL_TILEMAPS);
-
 	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
-	tilemap_draw(bitmap,bg_tilemap,TILEMAP_FRONT);
-	tilemap_draw(bitmap,fg_tilemap,TILEMAP_FRONT);
+	tilemap_draw(bitmap,bg_tilemap,0,0);
+	tilemap_draw(bitmap,fg_tilemap,0,0);
 	draw_sprites(bitmap);
 }

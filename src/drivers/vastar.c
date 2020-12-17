@@ -113,10 +113,14 @@ static WRITE_HANDLER( vastar_sharedram_w )
 	vastar_sharedram[offset] = data;
 }
 
-
-
-static struct MemoryReadAddress readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+
+
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8fff, vastar_bg2videoram_r },
 	{ 0x9000, 0x9fff, vastar_bg1videoram_r },
@@ -126,11 +130,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xe000, 0xe000, watchdog_reset_r },
 	{ 0xf000, 0xf0ff, vastar_sharedram_r },
 	{ 0xf100, 0xf7ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8fff, vastar_bg2videoram_w, &vastar_bg2videoram },
 	{ 0x9000, 0x9fff, vastar_bg1videoram_w, &vastar_bg1videoram },
@@ -148,46 +150,35 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xc400, 0xc43f, MWA_RAM, &spriteram, &spriteram_size },	/* actually c410-c41f and c430-c43f */
 	{ 0xc800, 0xc83f, MWA_RAM, &spriteram_2 },	/* actually c810-c81f and c830-c83f */
 	{ 0xcc00, 0xcc3f, MWA_RAM, &spriteram_3 },	/* actually cc10-cc1f and cc30-cc3f */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, interrupt_enable_w },
 	{ 0x01, 0x01, flip_screen_w },
 	{ 0x02, 0x02, vastar_hold_cpu2_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress cpu2_readmem[] =
-{
+static MEMORY_READ_START( cpu2_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x4000, 0x40ff, vastar_sharedram_r },
 	{ 0x8000, 0x8000, input_port_1_r },
 	{ 0x8040, 0x8040, input_port_0_r },
 	{ 0x8080, 0x8080, input_port_2_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cpu2_writemem[] =
-{
+static MEMORY_WRITE_START( cpu2_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x4000, 0x40ff, vastar_sharedram_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort cpu2_readport[] =
-{
+static PORT_READ_START( cpu2_readport )
 	{ 0x02, 0x02, AY8910_read_port_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort cpu2_writeport[] =
-{
+static PORT_WRITE_START( cpu2_writeport )
 	{ 0x00, 0x00, AY8910_control_port_0_w },
 	{ 0x01, 0x01, AY8910_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -393,7 +384,7 @@ static const struct MachineDriver machine_driver_vastar =
 ***************************************************************************/
 
 ROM_START( vastar )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "e_f4.rom",     0x0000, 0x1000, 0x45fa5075 )
 	ROM_LOAD( "e_k4.rom",     0x1000, 0x1000, 0x84531982 )
 	ROM_LOAD( "e_h4.rom",     0x2000, 0x1000, 0x94a4f778 )
@@ -403,24 +394,24 @@ ROM_START( vastar )
 	ROM_LOAD( "e_n7.rom",     0x6000, 0x1000, 0x31b6be39 )
 	ROM_LOAD( "e_n5.rom",     0x7000, 0x1000, 0xf63f0e78 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "e_f2.rom",     0x0000, 0x1000, 0x713478d8 )
 	ROM_LOAD( "e_j2.rom",     0x1000, 0x1000, 0xe4535442 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_c9.rom",     0x0000, 0x2000, 0x34f067b6 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_f7.rom",     0x0000, 0x2000, 0xedbf3b13 )
 	ROM_LOAD( "c_f9.rom",     0x2000, 0x2000, 0x8f309e22 )
 
-	ROM_REGION( 0x2000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_n4.rom",     0x0000, 0x2000, 0xb5f9c866 )
 
-	ROM_REGION( 0x2000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_s4.rom",     0x0000, 0x2000, 0xc9fbbfc9 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "tbp24s10.6p",  0x0000, 0x0100, 0xa712d73a )	/* red component */
 	ROM_LOAD( "tbp24s10.6s",  0x0100, 0x0100, 0x0a7d48ec )	/* green component */
 	ROM_LOAD( "tbp24s10.6m",  0x0200, 0x0100, 0x4c3db907 )	/* blue component */
@@ -428,7 +419,7 @@ ROM_START( vastar )
 ROM_END
 
 ROM_START( vastar2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "3.4f",         0x0000, 0x1000, 0x6741ff9c )
 	ROM_LOAD( "6.4k",         0x1000, 0x1000, 0x5027619b )
 	ROM_LOAD( "4.4h",         0x2000, 0x1000, 0xfdaa44e6 )
@@ -438,24 +429,24 @@ ROM_START( vastar2 )
 	ROM_LOAD( "10.6n",        0x6000, 0x1000, 0x80df74ba )
 	ROM_LOAD( "9.5n",         0x7000, 0x1000, 0x239ec84e )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "e_f2.rom",     0x0000, 0x1000, 0x713478d8 )
 	ROM_LOAD( "e_j2.rom",     0x1000, 0x1000, 0xe4535442 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_c9.rom",     0x0000, 0x2000, 0x34f067b6 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_f7.rom",     0x0000, 0x2000, 0xedbf3b13 )
 	ROM_LOAD( "c_f9.rom",     0x2000, 0x2000, 0x8f309e22 )
 
-	ROM_REGION( 0x2000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_n4.rom",     0x0000, 0x2000, 0xb5f9c866 )
 
-	ROM_REGION( 0x2000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "c_s4.rom",     0x0000, 0x2000, 0xc9fbbfc9 )
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "tbp24s10.6p",  0x0000, 0x0100, 0xa712d73a )	/* red component */
 	ROM_LOAD( "tbp24s10.6s",  0x0100, 0x0100, 0x0a7d48ec )	/* green component */
 	ROM_LOAD( "tbp24s10.6m",  0x0200, 0x0100, 0x4c3db907 )	/* blue component */

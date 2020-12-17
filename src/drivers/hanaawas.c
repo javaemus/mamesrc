@@ -64,39 +64,31 @@ static READ_HANDLER( hanaawas_input_port_0_r )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x2fff, MRA_ROM },
 	{ 0x4000, 0x4fff, MRA_ROM },
 	{ 0x6000, 0x6fff, MRA_ROM },
 	{ 0x8000, 0x8bff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x2fff, MWA_ROM },
 	{ 0x4000, 0x4fff, MWA_ROM },
 	{ 0x6000, 0x6fff, MWA_ROM },
 	{ 0x8000, 0x83ff, videoram_w, &videoram, &videoram_size },
 	{ 0x8400, 0x87ff, hanaawas_colorram_w, &colorram },
 	{ 0x8800, 0x8bff, MWA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, hanaawas_input_port_0_r },
 	{ 0x10, 0x10, AY8910_read_port_0_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x10, 0x10, AY8910_control_port_0_w },
 	{ 0x11, 0x11, AY8910_write_port_0_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( hanaawas )
@@ -225,19 +217,19 @@ static const struct MachineDriver machine_driver_hanaawas =
 ***************************************************************************/
 
 ROM_START( hanaawas )
-	ROM_REGION( 0x10000, REGION_CPU1 )       /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )       /* 64k for code */
 	ROM_LOAD( "1.1e",    	0x0000, 0x2000, 0x618dc1e3 )
 	ROM_LOAD( "2.3e",    	0x2000, 0x1000, 0x5091b67f )
 	ROM_LOAD( "3.4e",    	0x4000, 0x1000, 0xdcb65067 )
 	ROM_LOAD( "4.6e",    	0x6000, 0x1000, 0x24bee0dc )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5.9a",		0x0000, 0x1000, 0x304ae219 )
 	ROM_LOAD( "6.10a",		0x1000, 0x1000, 0x765a4e5f )
 	ROM_LOAD( "7.12a",		0x2000, 0x1000, 0x5245af2d )
 	ROM_LOAD( "8.13a",		0x3000, 0x1000, 0x3356ddce )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "13j.bpr",	0x0000, 0x0020, 0x99300d85 )	/* color PROM */
 	ROM_LOAD( "2a.bpr",		0x0020, 0x0100, 0xe26f21a2 )	/* lookup table */
 	ROM_LOAD( "6g.bpr",		0x0120, 0x0100, 0x4d94fed5 )	/* I don't know what this is */

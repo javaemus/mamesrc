@@ -5,6 +5,7 @@
 ***************************************************************************/
 
 #include "driver.h"
+#include "vidhrdw/generic.h"
 
 int  goindol_vh_start(void);
 void goindol_vh_stop(void);
@@ -17,9 +18,8 @@ extern unsigned char	*goindol_fg_scrollx;
 extern unsigned char	*goindol_fg_scrolly;
 extern unsigned char 	*goindol_fg_videoram;
 extern unsigned char 	*goindol_bg_videoram;
-extern unsigned char 	*goindol_spriteram1;
-extern unsigned char 	*goindol_spriteram2;
-extern size_t goindol_spriteram_size;
+extern unsigned char 	*spriteram_1;
+extern unsigned char 	*spriteram_2;
 extern size_t goindol_fg_videoram_size;
 extern size_t goindol_bg_videoram_size;
 extern int 	 	goindol_char_bank;
@@ -38,8 +38,7 @@ WRITE_HANDLER( goindol_bankswitch_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xc7ff, MRA_RAM },
@@ -51,42 +50,35 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xc820, 0xc820, input_port_2_r },
 	{ 0xc830, 0xc830, input_port_0_r },
 	{ 0xe000, 0xefff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
-        { 0xc810, 0xc810, goindol_bankswitch_w },
+	{ 0xc810, 0xc810, goindol_bankswitch_w },
 	{ 0xc820, 0xd820, MWA_RAM, &goindol_fg_scrollx },
 	{ 0xc830, 0xd830, MWA_RAM, &goindol_fg_scrolly },
 	{ 0xc800, 0xc800, soundlatch_w },
-	{ 0xd000, 0xd03f, MWA_RAM, &goindol_spriteram1, &goindol_spriteram_size },
+	{ 0xd000, 0xd03f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xd040, 0xd7ff, MWA_RAM },
 	{ 0xd800, 0xdfff, goindol_bg_videoram_w, &goindol_bg_videoram, &goindol_bg_videoram_size },
-	{ 0xe000, 0xe03f, MWA_RAM, &goindol_spriteram2 },
+	{ 0xe000, 0xe03f, MWA_RAM, &spriteram_2 },
 	{ 0xe040, 0xe7ff, MWA_RAM },
 	{ 0xe800, 0xefff, goindol_fg_videoram_w, &goindol_fg_videoram, &goindol_fg_videoram_size },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xd800, 0xd800, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xa000, 0xa000, YM2203_control_port_0_w },
 	{ 0xa001, 0xa001, YM2203_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( goindol )
@@ -326,50 +318,50 @@ static const struct MachineDriver machine_driver_goindol =
 ***************************************************************************/
 
 ROM_START( goindol )
-	ROM_REGION( 0x20000, REGION_CPU1 )     /* 2*64k for code */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )     /* 2*64k for code */
 	ROM_LOAD( "r1", 0x00000, 0x8000, 0x3111c61b ) /* Code 0000-7fff */
 	ROM_LOAD( "r2", 0x10000, 0x8000, 0x1ff6e3a2 ) /* Paged data */
 	ROM_LOAD( "r3", 0x18000, 0x8000, 0xe9eec24a ) /* Paged data */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "r10", 0x00000, 0x8000, 0x72e1add1 )
 
-	ROM_REGION( 0x18000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "r4", 0x00000, 0x8000, 0x1ab84225 ) /* Characters */
 	ROM_LOAD( "r5", 0x08000, 0x8000, 0x4997d469 )
 	ROM_LOAD( "r6", 0x10000, 0x8000, 0x752904b0 )
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "r7", 0x00000, 0x8000, 0x362f2a27 )
 	ROM_LOAD( "r8", 0x08000, 0x8000, 0x9fc7946e )
 	ROM_LOAD( "r9", 0x10000, 0x8000, 0xe6212fe4 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "am27s21.pr1", 0x0000, 0x0100, 0x361f0868 )	/* palette red bits   */
 	ROM_LOAD( "am27s21.pr2", 0x0100, 0x0100, 0xe355da4d )	/* palette green bits */
 	ROM_LOAD( "am27s21.pr3", 0x0200, 0x0100, 0x8534cfb5 )	/* palette blue bits  */
 ROM_END
 
 ROM_START( homo )
-	ROM_REGION( 0x20000, REGION_CPU1 )     /* 2*64k for code */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )     /* 2*64k for code */
 	ROM_LOAD( "homo.01", 0x00000, 0x8000, 0x28c539ad ) /* Code 0000-7fff */
 	ROM_LOAD( "r2", 0x10000, 0x8000, 0x1ff6e3a2 ) /* Paged data */
 	ROM_LOAD( "r3", 0x18000, 0x8000, 0xe9eec24a ) /* Paged data */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "r10", 0x00000, 0x8000, 0x72e1add1 )
 
-	ROM_REGION( 0x18000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "r4", 0x00000, 0x8000, 0x1ab84225 ) /* Characters */
 	ROM_LOAD( "r5", 0x08000, 0x8000, 0x4997d469 )
 	ROM_LOAD( "r6", 0x10000, 0x8000, 0x752904b0 )
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "r7", 0x00000, 0x8000, 0x362f2a27 )
 	ROM_LOAD( "r8", 0x08000, 0x8000, 0x9fc7946e )
 	ROM_LOAD( "r9", 0x10000, 0x8000, 0xe6212fe4 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "am27s21.pr1", 0x0000, 0x0100, 0x361f0868 )	/* palette red bits   */
 	ROM_LOAD( "am27s21.pr2", 0x0100, 0x0100, 0xe355da4d )	/* palette green bits */
 	ROM_LOAD( "am27s21.pr3", 0x0200, 0x0100, 0x8534cfb5 )	/* palette blue bits  */

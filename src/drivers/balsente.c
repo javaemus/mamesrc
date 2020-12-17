@@ -20,6 +20,7 @@
 		* Snake Pit
 		* Spiker
 		* Stocker
+		* Stompin'
 		* Street Football
 		* Toggle
 		* Trivial Pursuit (Genus I)
@@ -30,7 +31,6 @@
 
 	Looking for ROMs for these:
 		* Euro Stocker
-		* Stompin'
 		* Strike Avenger
 		* Team Hat Trick
 		* Trick Shot
@@ -148,6 +148,8 @@
 #include "vidhrdw/generic.h"
 #include <math.h>
 
+
+#define LOG_CEM_WRITES		0
 
 
 /* video driver data & functions */
@@ -284,8 +286,8 @@ static void interrupt_timer(int param)
 		/* we latch the beam values on the first interrupt after VBLANK */
 		if (param == 64 && balsente_shooter)
 		{
-			balsente_shooter_x = input_port_8_r(0);
-			balsente_shooter_y = input_port_9_r(0);
+			balsente_shooter_x = readinputport(8);
+			balsente_shooter_y = readinputport(9);
 		}
 
 		/* which bits get returned depends on which scanline we're at */
@@ -448,8 +450,6 @@ static WRITE_HANDLER( rombank_select_w )
 {
 	int bank_offset = 0x6000 * ((data >> 4) & 7);
 
-logerror("%04X:rombank_select_w(%02X)\n", cpu_getpreviouspc(), data);
-
 	/* the bank number comes from bits 4-6 */
 	cpu_setbank(1, &memory_region(REGION_CPU1)[0x10000 + bank_offset]);
 	cpu_setbank(2, &memory_region(REGION_CPU1)[0x12000 + bank_offset]);
@@ -463,8 +463,6 @@ static WRITE_HANDLER( rombank2_select_w )
 
 	/* top bit controls which half of the ROMs to use (Name that Tune only) */
 	if (memory_region_length(REGION_CPU1) > 0x40000) bank |= (data >> 4) & 8;
-
-//logerror("%04X:rombank2_select_w(%02X)\n", cpu_getpreviouspc(), data);
 
 	/* when they set the AB bank, it appears as though the CD bank is reset */
 	if (data & 0x20)
@@ -745,6 +743,13 @@ static void adc_finished(int which)
 	/* analog controls are read in two pieces; the lower port returns the sign */
 	/* and the upper port returns the absolute value of the magnitude */
 	int val = analog_input_data[which / 2] << adc_shift;
+
+	/* special case for Stompin' */
+	if (adc_shift == 32)
+	{
+		adc_value = analog_input_data[which];
+		return;
+	}
 
 	/* push everything out a little bit extra; most games seem to have a dead */
 	/* zone in the middle that feels unnatural with the mouse */
@@ -1144,7 +1149,7 @@ static WRITE_HANDLER( counter_control_w )
 
 static READ_HANDLER( nstocker_port2_r )
 {
-	return (input_port_2_r(offset) & 0xf0) | nstocker_bits;
+	return (readinputport(2) & 0xf0) | nstocker_bits;
 }
 
 
@@ -1204,18 +1209,6 @@ static WRITE_HANDLER( chip_select_w )
 		CEM3394_WAVE_SELECT
 	};
 
-	static const char *names[] =
-	{
-		"VCO_FREQUENCY",
-		"FINAL_GAIN",
-		"FILTER_RESONANCE",
-		"FILTER_FREQENCY",
-		"MIXER_BALANCE",
-		"MODULATION_AMOUNT",
-		"PULSE_WIDTH",
-		"WAVE_SELECT"
-	};
-
 	double voltage = (double)dac_value * (8.0 / 4096.0) - 4.0;
 	int diffchip = data ^ chip_select, i;
 	int reg = register_map[dac_register];
@@ -1236,8 +1229,23 @@ static WRITE_HANDLER( chip_select_w )
 			cem3394_set_voltage(i, reg, voltage);
 
 			/* only log changes */
+#if LOG_CEM_WRITES
 			if (temp != cem3394_get_parameter(i, reg))
+			{
+				static const char *names[] =
+				{
+					"VCO_FREQUENCY",
+					"FINAL_GAIN",
+					"FILTER_RESONANCE",
+					"FILTER_FREQENCY",
+					"MIXER_BALANCE",
+					"MODULATION_AMOUNT",
+					"PULSE_WIDTH",
+					"WAVE_SELECT"
+				};
 				logerror("s%04X:   CEM#%d:%s=%f\n", cpu_getpreviouspc(), i, names[dac_register], voltage);
+			}
+#endif
 		}
 
 	/* if a timer for counter 0 is running, recompute */
@@ -1279,8 +1287,7 @@ static WRITE_HANDLER( register_addr_w )
  *************************************/
 
 /* CPU 1 read addresses */
-static struct MemoryReadAddress readmem_cpu1[] =
-{
+static MEMORY_READ_START( readmem_cpu1 )
 	{ 0x0000, 0x8fff, MRA_RAM },
 	{ 0x9400, 0x9400, adc_data_r },
 	{ 0x9900, 0x9900, input_port_0_r },
@@ -1293,13 +1300,11 @@ static struct MemoryReadAddress readmem_cpu1[] =
 	{ 0x9c00, 0x9cff, MRA_RAM },		/* cart NOVRAM */
 	{ 0xa000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xffff, MRA_BANK2 },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 /* CPU 1 write addresses */
-static struct MemoryWriteAddress writemem_cpu1[] =
-{
+static MEMORY_WRITE_START( writemem_cpu1 )
 	{ 0x0000, 0x07ff, MWA_RAM, &spriteram },
 	{ 0x0800, 0x7fff, balsente_videoram_w, &videoram, &videoram_size },
 	{ 0x8000, 0x8fff, balsente_paletteram_w, &paletteram },
@@ -1314,8 +1319,7 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x9b00, 0x9cff, MWA_RAM, &nvram, &nvram_size },		/* system NOVRAM + cart NOVRAM */
 	{ 0x9f00, 0x9f00, rombank2_select_w },
 	{ 0xa000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -1325,41 +1329,33 @@ static struct MemoryWriteAddress writemem_cpu1[] =
  *
  *************************************/
 
-static struct MemoryReadAddress readmem_cpu2[] =
-{
+static MEMORY_READ_START( readmem_cpu2 )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x5fff, MRA_RAM },
 	{ 0xe000, 0xffff, m6850_sound_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x5fff, MWA_RAM },
 	{ 0x6000, 0x7fff, m6850_sound_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct IOReadPort readport_cpu2[] =
-{
+static PORT_READ_START( readport_cpu2 )
 	{ 0x00, 0x03, counter_8253_r },
 	{ 0x08, 0x0f, counter_state_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
-static struct IOWritePort writeport_cpu2[] =
-{
+static PORT_WRITE_START( writeport_cpu2 )
 	{ 0x00, 0x03, counter_8253_w },
 	{ 0x08, 0x09, counter_control_w },
 	{ 0x0a, 0x0b, dac_data_w },
 	{ 0x0c, 0x0d, register_addr_w },
 	{ 0x0e, 0x0f, chip_select_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -1968,7 +1964,7 @@ INPUT_PORTS_START( minigolf )
 	PORT_DIPNAME( 0x01, 0x01, "Add-A-Coin" )
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ))
 	PORT_DIPSETTING(    0x00, DEF_STR( On ))
-	PORT_BIT( 0x7e, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x7e, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Demo_Sounds ))
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ))
 	PORT_DIPSETTING(    0x00, DEF_STR( On ))
@@ -2022,7 +2018,7 @@ INPUT_PORTS_START( minigol2 )
 	PORT_DIPNAME( 0x01, 0x01, "Add-A-Coin" )
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ))
 	PORT_DIPSETTING(    0x00, DEF_STR( On ))
-	PORT_BIT( 0x7e, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x7e, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Demo_Sounds ))
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ))
 	PORT_DIPSETTING(    0x00, DEF_STR( On ))
@@ -2326,6 +2322,95 @@ INPUT_PORTS_START( spiker )
 INPUT_PORTS_END
 
 
+INPUT_PORTS_START( stompin )
+	PORT_START	/* IN0 */
+	PORT_DIPNAME( 0x03, 0x00, DEF_STR( Coinage ))
+	PORT_DIPSETTING(    0x03, DEF_STR( 3C_1C ))
+	PORT_DIPSETTING(    0x02, DEF_STR( 2C_1C ))
+	PORT_DIPSETTING(    0x00, DEF_STR( 1C_1C ))
+	PORT_DIPSETTING(    0x01, DEF_STR( 1C_2C ))
+	PORT_DIPNAME( 0x1c, 0x00, "Bonus Coins" )
+	PORT_DIPSETTING(    0x00, "None" )
+	PORT_DIPSETTING(    0x04, "2 Coins = 1 Bonus" )
+	PORT_DIPSETTING(    0x08, "3 Coins = 1 Bonus" )
+	PORT_DIPSETTING(    0x0c, "4 Coins = 1 Bonus" )
+	PORT_DIPSETTING(    0x10, "4 Coins = 2 Bonus" )
+	PORT_DIPSETTING(    0x14, "5 Coins = 1 Bonus" )
+	PORT_DIPSETTING(    0x18, "5 Coins = 2 Bonus" )
+	PORT_DIPSETTING(    0x1c, "5 Coins = 3 Bonus" )
+	PORT_DIPNAME( 0x20, 0x00, "Left Coin Mech" )
+	PORT_DIPSETTING(    0x00, "x1" )
+	PORT_DIPSETTING(    0x20, "x2" )
+	PORT_DIPNAME( 0xc0, 0x00, "Right Coin Mech" )
+	PORT_DIPSETTING(    0x00, "x1" )
+	PORT_DIPSETTING(    0x40, "x4" )
+	PORT_DIPSETTING(    0x80, "x5" )
+	PORT_DIPSETTING(    0xc0, "x6" )
+
+	PORT_START	/* IN1 */
+	PORT_DIPNAME( 0x80, 0x00, "Bug Generation" )
+	PORT_DIPSETTING(    0x00, "Regular" )
+	PORT_DIPSETTING(    0x80, "None" )
+	PORT_DIPNAME( 0x40, 0x00, "Bee In Game?" )
+	PORT_DIPSETTING(    0x40, DEF_STR( No ))
+	PORT_DIPSETTING(    0x00, DEF_STR( Yes ))
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Demo_Sounds ))
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ))
+	PORT_DIPSETTING(    0x20, DEF_STR( On ))
+	PORT_BIT( 0x18, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_DIPNAME( 0x04, 0x04, "Kid on Left Located?" )
+	PORT_DIPSETTING(    0x04, DEF_STR( No ))
+	PORT_DIPSETTING(    0x00, DEF_STR( Yes ))
+	PORT_DIPNAME( 0x02, 0x02, "Kid on Right Located?" )
+	PORT_DIPSETTING(    0x02, DEF_STR( No ))
+	PORT_DIPSETTING(    0x00, DEF_STR( Yes ))
+	PORT_DIPNAME( 0x01, 0x01, "Display Kids?" )
+	PORT_DIPSETTING(    0x00, DEF_STR( No ))
+	PORT_DIPSETTING(    0x01, DEF_STR( Yes ))
+
+	PORT_START	/* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICKRIGHT_UP | IPF_PLAYER1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICKRIGHT_DOWN | IPF_PLAYER1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICKRIGHT_RIGHT | IPF_PLAYER1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICKRIGHT_LEFT | IPF_PLAYER1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_SERVICE( 0x80, IP_ACTIVE_LOW )
+
+	PORT_START	/* IN3 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICKLEFT_UP | IPF_PLAYER1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICKLEFT_DOWN | IPF_PLAYER1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICKLEFT_RIGHT | IPF_PLAYER1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICKLEFT_LEFT | IPF_PLAYER1 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_VBLANK )
+
+	/* "analog" ports */
+	PORT_START
+	PORT_BIT( 0x1f, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BITX(0x20, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1, "Top-Right", KEYCODE_9_PAD, IP_JOY_DEFAULT )
+	PORT_BITX(0x40, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1, "Top",       KEYCODE_8_PAD, IP_JOY_DEFAULT )
+	PORT_BITX(0x80, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1, "Top-Left",  KEYCODE_7_PAD, IP_JOY_DEFAULT )
+
+	PORT_START
+	PORT_BIT( 0x1f, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BITX(0x20, IP_ACTIVE_LOW, IPT_BUTTON4 | IPF_PLAYER1, "Left",      KEYCODE_6_PAD, IP_JOY_DEFAULT )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BITX(0x80, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER1, "Bot-Right", KEYCODE_4_PAD, IP_JOY_DEFAULT )
+
+	PORT_START
+	PORT_BIT( 0x1f, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BITX(0x20, IP_ACTIVE_LOW, IPT_BUTTON6 | IPF_PLAYER1, "Right",     KEYCODE_3_PAD, IP_JOY_DEFAULT )
+	PORT_BITX(0x40, IP_ACTIVE_LOW, IPT_BUTTON7 | IPF_PLAYER1, "Bot-Left",  KEYCODE_2_PAD, IP_JOY_DEFAULT )
+	PORT_BITX(0x80, IP_ACTIVE_LOW, IPT_BUTTON8 | IPF_PLAYER1, "Bottom",    KEYCODE_1_PAD, IP_JOY_DEFAULT )
+
+	UNUSED_ANALOG
+INPUT_PORTS_END
+
+
 INPUT_PORTS_START( rescraid )
 	PORT_START	/* IN0 */
 	PORT_DIPNAME( 0x03, 0x00, DEF_STR( Coinage ))
@@ -2360,7 +2445,7 @@ INPUT_PORTS_START( rescraid )
 	PORT_DIPSETTING(    0x04, "60" )
 	PORT_DIPSETTING(    0x00, "90" )
 	PORT_DIPSETTING(    0x0c, "120" )
-	PORT_BIT( 0x30, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x30, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_DIPNAME( 0x40, 0x40, "Keep High Scores" )
 	PORT_DIPSETTING(    0x40, DEF_STR( No ))
 	PORT_DIPSETTING(    0x00, DEF_STR( Yes ))
@@ -2569,6 +2654,7 @@ static void init_spiker(void)
 	install_mem_read_handler(0, 0x9f80, 0x9f8f, spiker_expand_r);
 	expand_roms(EXPAND_ALL  | SWAP_HALVES); balsente_shooter = 0; adc_shift = 1;
 }
+static void init_stompin(void)  { expand_roms(0x0c | SWAP_HALVES); balsente_shooter = 0; adc_shift = 32; }
 static void init_rescraid(void) { expand_roms(EXPAND_NONE); balsente_shooter = 0; /* noanalog */ }
 
 
@@ -2580,19 +2666,19 @@ static void init_rescraid(void) { expand_roms(EXPAND_NONE); balsente_shooter = 0
  *************************************/
 
 ROM_START( sentetst )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "sdiagef.bin",  0x2e000, 0x2000, 0x2a39fc53 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",     0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "sdiaggr0.bin", 0x00000, 0x2000, 0x5e0ff62a )
 ROM_END
 
 
 ROM_START( cshift )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "cs-ab0.bin", 0x10000, 0x2000, 0xd2069e75 )
 	ROM_LOAD( "cs-ab1.bin", 0x12000, 0x2000, 0x198f25a8 )
 	ROM_LOAD( "cs-ab2.bin", 0x14000, 0x2000, 0x2e2b2b82 )
@@ -2602,10 +2688,10 @@ ROM_START( cshift )
 	ROM_LOAD( "cs-cd.bin",  0x2c000, 0x2000, 0xf555a0b2 )
 	ROM_LOAD( "cs-ef.bin",  0x2e000, 0x2000, 0x368b1ce3 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",   0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "cs-gr0.bin", 0x00000, 0x2000, 0x67f9d3b3 )
 	ROM_LOAD( "cs-gr1.bin", 0x02000, 0x2000, 0x78973d50 )
 	ROM_LOAD( "cs-gr2.bin", 0x04000, 0x2000, 0x1784f939 )
@@ -2615,7 +2701,7 @@ ROM_END
 
 
 ROM_START( gghost )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ggh-ab0.bin", 0x10000, 0x2000, 0xed0fdeac )
 	ROM_LOAD( "ggh-ab1.bin", 0x12000, 0x2000, 0x5bfbae58 )
 	ROM_LOAD( "ggh-ab2.bin", 0x14000, 0x2000, 0xf0baf921 )
@@ -2625,10 +2711,10 @@ ROM_START( gghost )
 	ROM_LOAD( "ggh-cd.bin",  0x2c000, 0x2000, 0xd3d75f84 )
 	ROM_LOAD( "ggh-ef.bin",  0x2e000, 0x2000, 0xa02b4243 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",    0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "ggh-gr0.bin", 0x00000, 0x2000, 0x03515526 )
 	ROM_LOAD( "ggh-gr1.bin", 0x02000, 0x2000, 0xb4293435 )
 	ROM_LOAD( "ggh-gr2.bin", 0x04000, 0x2000, 0xece0cb97 )
@@ -2639,24 +2725,24 @@ ROM_END
 
 
 ROM_START( hattrick )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "rom-ab0.u9a", 0x10000, 0x2000, 0xf25c1b99 )
 	ROM_LOAD( "rom-ab1.u8a", 0x12000, 0x2000, 0xc1df3d1f )
 	ROM_LOAD( "rom-ab2.u7a", 0x14000, 0x2000, 0xf6c41257 )
 	ROM_LOAD( "rom-cd.u3a",  0x2c000, 0x2000, 0xfc44f36c )
 	ROM_LOAD( "rom-ef.u2a",  0x2e000, 0x2000, 0xd8f910fb )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",    0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "rom-gr0.u9b", 0x00000, 0x2000, 0x9f41baba )
 	ROM_LOAD( "rom-gr1.u8b", 0x02000, 0x2000, 0x951f08c9 )
 ROM_END
 
 
 ROM_START( otwalls )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "otw-ab0.bin", 0x10000, 0x2000, 0x474441c7 )
 	ROM_LOAD( "otw-ab1.bin", 0x12000, 0x2000, 0x2e9e9411 )
 	ROM_LOAD( "otw-ab2.bin", 0x14000, 0x2000, 0xba092128 )
@@ -2666,10 +2752,10 @@ ROM_START( otwalls )
 	ROM_LOAD( "otw-cd.bin",  0x2c000, 0x2000, 0x8e2d15ab )
 	ROM_LOAD( "otw-ef.bin",  0x2e000, 0x2000, 0x57eab299 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",    0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "otw-gr0.bin", 0x00000, 0x2000, 0x210bad3c )
 	ROM_LOAD( "otw-gr1.bin", 0x02000, 0x2000, 0x13e6aaa5 )
 	ROM_LOAD( "otw-gr2.bin", 0x04000, 0x2000, 0x5cfefee5 )
@@ -2680,7 +2766,7 @@ ROM_END
 
 
 ROM_START( snakepit )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "spit-ab0.bin", 0x10000, 0x2000, 0x5aa86081 )
 	ROM_LOAD( "spit-ab1.bin", 0x12000, 0x2000, 0x588228b8 )
 	ROM_LOAD( "spit-ab2.bin", 0x14000, 0x2000, 0x60173ab6 )
@@ -2690,10 +2776,10 @@ ROM_START( snakepit )
 	ROM_LOAD( "spit-cd.bin",  0x2c000, 0x2000, 0x54095cbb )
 	ROM_LOAD( "spit-ef.bin",  0x2e000, 0x2000, 0x5f836a66 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",     0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "spit-gr0.bin", 0x00000, 0x2000, 0xf77fd85d )
 	ROM_LOAD( "spit-gr1.bin", 0x02000, 0x2000, 0x3ad10334 )
 	ROM_LOAD( "spit-gr2.bin", 0x04000, 0x2000, 0x24887703 )
@@ -2704,7 +2790,7 @@ ROM_END
 
 
 ROM_START( snakjack )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "rom-ab0.u9a", 0x10000, 0x2000, 0xda2dd119 )
 	ROM_LOAD( "rom-ab1.u8a", 0x12000, 0x2000, 0x657ddf26 )
 	ROM_LOAD( "rom-ab2.u7a", 0x14000, 0x2000, 0x15333dcf )
@@ -2714,10 +2800,10 @@ ROM_START( snakjack )
 	ROM_LOAD( "rom-cd.u3a",  0x2c000, 0x2000, 0x7b44ca4c )
 	ROM_LOAD( "rom-ef.u1a",  0x2e000, 0x2000, 0xf5309b38 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",    0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "rom-gr0.u9b", 0x00000, 0x2000, 0x3e64b5d5 )
 	ROM_LOAD( "rom-gr1.u8b", 0x02000, 0x2000, 0xb3b8baee )
 	ROM_LOAD( "rom-gr2.u7b", 0x04000, 0x2000, 0xe9d89dac )
@@ -2728,7 +2814,7 @@ ROM_END
 
 
 ROM_START( stocker )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "stkr-ab0.bin", 0x10000, 0x2000, 0x784a00ad )
 	ROM_LOAD( "stkr-ab1.bin", 0x12000, 0x2000, 0xcdae01dc )
 	ROM_LOAD( "stkr-ab2.bin", 0x14000, 0x2000, 0x18527d57 )
@@ -2736,10 +2822,10 @@ ROM_START( stocker )
 	ROM_LOAD( "stkr-cd.bin",  0x2c000, 0x2000, 0x53dbc4e5 )
 	ROM_LOAD( "stkr-ef.bin",  0x2e000, 0x2000, 0xcdcf46bc )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",    0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "stkr-gr0.bin", 0x00000, 0x2000, 0x76d5694c )
 	ROM_LOAD( "stkr-gr1.bin", 0x02000, 0x2000, 0x4a5cc00b )
 	ROM_LOAD( "stkr-gr2.bin", 0x04000, 0x2000, 0x70002382 )
@@ -2748,7 +2834,7 @@ ROM_END
 
 
 ROM_START( triviag1 )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "tpg1-ab0.bin", 0x10000, 0x2000, 0x79fd3ac3 )
 	ROM_LOAD( "tpg1-ab1.bin", 0x12000, 0x2000, 0x0ff677e9 )
 	ROM_LOAD( "tpg1-ab2.bin", 0x14000, 0x2000, 0x3b4d03e7 )
@@ -2758,10 +2844,10 @@ ROM_START( triviag1 )
 	ROM_LOAD( "tpg1-cd.bin",  0x2c000, 0x2000, 0x35c9b9c2 )
 	ROM_LOAD( "tpg1-ef.bin",  0x2e000, 0x2000, 0x64878342 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",    0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "tpg1-gr0.bin", 0x00000, 0x2000, 0x20c9217a )
 	ROM_LOAD( "tpg1-gr1.bin", 0x02000, 0x2000, 0xd7f44504 )
 	ROM_LOAD( "tpg1-gr2.bin", 0x04000, 0x2000, 0x4e59a15d )
@@ -2772,7 +2858,7 @@ ROM_END
 
 
 ROM_START( triviag2 )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab01.bin",  0x10000, 0x4000, 0x4fca20c5 )
 	ROM_LOAD( "ab23.bin",  0x14000, 0x4000, 0x6cf2ddeb )
 	ROM_LOAD( "ab45.bin",  0x18000, 0x4000, 0xa7ff789c )
@@ -2780,10 +2866,10 @@ ROM_START( triviag2 )
 	ROM_LOAD( "cd45.bin",  0x28000, 0x4000, 0xfc9c752a )
 	ROM_LOAD( "cd6ef.bin", 0x2c000, 0x4000, 0x23b56fb8 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.bin",  0x00000, 0x4000, 0x6829de8e )
 	ROM_LOAD( "gr23.bin",  0x04000, 0x4000, 0x89398700 )
 	ROM_LOAD( "gr45.bin",  0x08000, 0x4000, 0x1e870293 )
@@ -2791,7 +2877,7 @@ ROM_END
 
 
 ROM_START( triviasp )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "allsport.8a", 0x10000, 0x4000, 0x54b7ff31 )
 	ROM_LOAD( "allsport.7a", 0x14000, 0x4000, 0x59fae9d2 )
 	ROM_LOAD( "allsport.6a", 0x18000, 0x4000, 0x237b6b95 )
@@ -2799,10 +2885,10 @@ ROM_START( triviasp )
 	ROM_LOAD( "allsport.3a", 0x28000, 0x4000, 0xe45d09d6 )
 	ROM_LOAD( "allsport.1a", 0x2c000, 0x4000, 0x8bb3e831 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",     0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.bin",    0x00000, 0x4000, 0x6829de8e )
 	ROM_LOAD( "gr23.bin",    0x04000, 0x4000, 0x89398700 )
 	ROM_LOAD( "allsport.3b", 0x08000, 0x4000, 0x7415a7fc )
@@ -2810,7 +2896,7 @@ ROM_END
 
 
 ROM_START( triviayp )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab01.bin",  0x10000, 0x4000, 0x97d35a85 )
 	ROM_LOAD( "ab23.bin",  0x14000, 0x4000, 0x2ff67c70 )
 	ROM_LOAD( "ab45.bin",  0x18000, 0x4000, 0x511a0fab )
@@ -2818,10 +2904,10 @@ ROM_START( triviayp )
 	ROM_LOAD( "cd45.bin",  0x28000, 0x4000, 0xac45809e )
 	ROM_LOAD( "cd6ef.bin", 0x2c000, 0x4000, 0xa008059f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.bin", 0x00000, 0x4000, 0x6829de8e )
 	ROM_LOAD( "gr23.bin", 0x04000, 0x4000, 0x89398700 )
 	ROM_LOAD( "gr45.bin", 0x08000, 0x4000, 0x1242033e )
@@ -2829,7 +2915,7 @@ ROM_END
 
 
 ROM_START( triviabb )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab01.bin",  0x10000, 0x4000, 0x1b7c439d )
 	ROM_LOAD( "ab23.bin",  0x14000, 0x4000, 0xe4f1e704 )
 	ROM_LOAD( "ab45.bin",  0x18000, 0x4000, 0xdaa2d8bc )
@@ -2837,10 +2923,10 @@ ROM_START( triviabb )
 	ROM_LOAD( "cd45.bin",  0x28000, 0x4000, 0x07fd88ff )
 	ROM_LOAD( "cd6ef.bin", 0x2c000, 0x4000, 0x2d03f241 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.bin", 0x00000, 0x4000, 0x6829de8e )
 	ROM_LOAD( "gr23.bin", 0x04000, 0x4000, 0x89398700 )
 	ROM_LOAD( "gr45.bin", 0x08000, 0x4000, 0x92fb6fb1 )
@@ -2848,23 +2934,23 @@ ROM_END
 
 
 ROM_START( gimeabrk )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab01.u8a",  0x10000, 0x4000, 0x18cc53db )
 	ROM_LOAD( "ab23.u7a",  0x14000, 0x4000, 0x6bd4190a )
 	ROM_LOAD( "ab45.u6a",  0x18000, 0x4000, 0x5dca4f33 )
 	ROM_LOAD( "cd6ef.uia", 0x2c000, 0x4000, 0x5e2b3510 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.u6b", 0x00000, 0x4000, 0xe3cdc476 )
 	ROM_LOAD( "gr23.u5b", 0x04000, 0x4000, 0x0555d9c0 )
 ROM_END
 
 
 ROM_START( minigolf )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab01.u8a",  0x10000, 0x4000, 0x348f827f )
 	ROM_LOAD( "ab23.u7a",  0x14000, 0x4000, 0x19a6ff47 )
 	ROM_LOAD( "ab45.u6a",  0x18000, 0x4000, 0x925d76eb )
@@ -2872,10 +2958,10 @@ ROM_START( minigolf )
 	ROM_LOAD( "cd23.u3a",  0x24000, 0x4000, 0x52279801 )
 	ROM_LOAD( "cd6ef.u1a", 0x2c000, 0x4000, 0x34c64f4c )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.u6b", 0x00000, 0x4000, 0x8e24d594 )
 	ROM_LOAD( "gr23.u5b", 0x04000, 0x4000, 0x3bf355ef )
 	ROM_LOAD( "gr45.u4b", 0x08000, 0x4000, 0x8eb14921 )
@@ -2883,21 +2969,21 @@ ROM_END
 
 
 ROM_START( minigol2 )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "4a-ver2",  0x10000, 0x10000, 0x97d50493 )
 	ROM_LOAD( "1a-ver2",  0x20000, 0x10000, 0x60b6cd58 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "6b-ver2",  0x00000, 0x8000, 0x5988f4ba )
 	ROM_LOAD( "4b-ver2",  0x08000, 0x8000, 0x78a30e23 )
 ROM_END
 
 
 ROM_START( toggle )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "tgle-ab0.bin", 0x10000, 0x2000, 0x8c7b7fad )
 	ROM_LOAD( "tgle-ab1.bin", 0x12000, 0x2000, 0x771e5434 )
 	ROM_LOAD( "tgle-ab2.bin", 0x14000, 0x2000, 0x9b4baa3f )
@@ -2907,17 +2993,17 @@ ROM_START( toggle )
 	ROM_LOAD( "tgle-cd.bin",  0x2c000, 0x2000, 0x0a2bb949 )
 	ROM_LOAD( "tgle-ef.bin",  0x2e000, 0x2000, 0x3ec10804 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",    0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "tgle-gr0.bin", 0x00000, 0x2000, 0x0e0e5d0e )
 	ROM_LOAD( "tgle-gr1.bin", 0x02000, 0x2000, 0x3b141ad2 )
 ROM_END
 
 
 ROM_START( nametune )
-	ROM_REGION( 0x70000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x70000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "nttab01.bin",  0x10000, 0x4000, 0xf99054f1 )
 	ROM_CONTINUE(             0x40000, 0x4000 )
 	ROM_LOAD( "nttab23.bin",  0x14000, 0x4000, 0xf2b8f7fa )
@@ -2935,16 +3021,16 @@ ROM_START( nametune )
 	ROM_LOAD( "nttcd6ef.bin", 0x2c000, 0x4000, 0x0459e6f8 )
 	ROM_CONTINUE(             0x5c000, 0x4000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "nttgr0.bin",  0x00000, 0x8000, 0x6b75bb4b )
 ROM_END
 
 
 ROM_START( nstocker )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab01.u8a",  0x10000, 0x4000, 0xa635f973 )
 	ROM_LOAD( "ab23.u7a",  0x14000, 0x4000, 0x223acbb2 )
 	ROM_LOAD( "ab45.u6a",  0x18000, 0x4000, 0x27a728b5 )
@@ -2954,10 +3040,10 @@ ROM_START( nstocker )
 	ROM_LOAD( "cd45.u2a",  0x28000, 0x4000, 0x9bb292fe )
 	ROM_LOAD( "cd6ef.u1a", 0x2c000, 0x4000, 0xe77c1aea )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.u4c", 0x00000, 0x4000, 0xfd0c38be )
 	ROM_LOAD( "gr23.u3c", 0x04000, 0x4000, 0x35d4433e )
 	ROM_LOAD( "gr45.u2c", 0x08000, 0x4000, 0x734b858a )
@@ -2966,16 +3052,16 @@ ROM_END
 
 
 ROM_START( sfootbal )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "sfbab01.bin",  0x10000, 0x4000, 0x2a69803f )
 	ROM_LOAD( "sfbab23.bin",  0x14000, 0x4000, 0x89f157c2 )
 	ROM_LOAD( "sfbab45.bin",  0x18000, 0x4000, 0x91ad42c5 )
 	ROM_LOAD( "sfbcd6ef.bin", 0x2c000, 0x4000, 0xbf80bb1a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "sfbgr01.bin", 0x00000, 0x4000, 0xe3108d35 )
 	ROM_LOAD( "sfbgr23.bin", 0x04000, 0x4000, 0x5c5af726 )
 	ROM_LOAD( "sfbgr45.bin", 0x08000, 0x4000, 0xe767251e )
@@ -2984,48 +3070,68 @@ ROM_END
 
 
 ROM_START( spiker )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab01.u8a",  0x10000, 0x4000, 0x2d53d023 )
 	ROM_LOAD( "ab23.u7a",  0x14000, 0x4000, 0x3be87edf )
 	ROM_LOAD( "cd6ef.u1a", 0x2c000, 0x4000, 0xf2c73ece )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr01.u4c", 0x00000, 0x4000, 0x0caa6e3e )
 	ROM_LOAD( "gr23.u3c", 0x04000, 0x4000, 0x970c81f6 )
 	ROM_LOAD( "gr45.u2c", 0x08000, 0x4000, 0x90ddd737 )
 ROM_END
 
 
+ROM_START( stompin )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_LOAD( "ab01.bin",  0x10000, 0x4000, 0x46f428c6 )
+	ROM_LOAD( "ab23.bin",  0x14000, 0x4000, 0x0e13132f )
+	ROM_LOAD( "ab45.bin",  0x18000, 0x4000, 0x6ed26069 )
+	ROM_LOAD( "ab67.bin",  0x1c000, 0x4000, 0x7f63b516 )
+	ROM_LOAD( "cd23.bin",  0x24000, 0x4000, 0x52b29048 )
+	ROM_LOAD( "cd6ef.bin", 0x2c000, 0x4000, 0xb880961a )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
+	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
+
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
+	ROM_LOAD( "gr01.u4c", 0x00000, 0x4000, 0x14ffdd1e )
+	ROM_LOAD( "gr23.u3c", 0x04000, 0x4000, 0x761abb80 )
+	ROM_LOAD( "gr45.u2c", 0x08000, 0x4000, 0x0d2cf2e6 )
+	ROM_LOAD( "gr67.u2c", 0x0c000, 0x4000, 0x2bab2784 )
+ROM_END
+
+
 ROM_START( rescraid )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab1.a10",   0x10000, 0x8000, 0x33a76b47 )
 	ROM_LOAD( "ab12.a12",  0x18000, 0x8000, 0x7c7a9f12 )
 	ROM_LOAD( "cd8.a16",   0x20000, 0x8000, 0x90917a43 )
 	ROM_LOAD( "cd12.a18",  0x28000, 0x8000, 0x0450e9d7 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr0.a5",    0x00000, 0x8000, 0xe0dfc133 )
 	ROM_LOAD( "gr4.a7",    0x08000, 0x8000, 0x952ade30 )
 ROM_END
 
 
 ROM_START( rescrdsa )
-	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
 	ROM_LOAD( "ab1-sa.a10",   0x10000, 0x8000, 0xaa0a9f48 )
 	ROM_LOAD( "ab12-sa.a12",  0x18000, 0x8000, 0x16d4da86 )
 	ROM_LOAD( "cd8-sa.a16",   0x20000, 0x8000, 0x9dfb50c2 )
 	ROM_LOAD( "cd12-sa.a18",  0x28000, 0x8000, 0x18c62613 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* 64k for Z80 */
 	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_REGION( 0x10000, REGION_GFX1, 0 )		/* up to 64k of sprites */
 	ROM_LOAD( "gr0.a5",    0x00000, 0x8000, 0xe0dfc133 )
 	ROM_LOAD( "gr4.a7",    0x08000, 0x8000, 0x952ade30 )
 ROM_END
@@ -3059,5 +3165,6 @@ GAME( 1986, nametune, 0,        balsente, nametune, nametune, ROT0, "Bally/Sente
 GAME( 1986, nstocker, 0,        balsente, nstocker, nstocker, ROT0, "Bally/Sente", "Night Stocker" )
 GAME( 1986, sfootbal, 0,        balsente, sfootbal, sfootbal, ROT0, "Bally/Sente", "Street Football" )
 GAME( 1986, spiker,   0,        balsente, spiker,   spiker,   ROT0, "Bally/Sente", "Spiker" )
+GAME( 1986, stompin,  0,        balsente, stompin,  stompin,  ROT0, "Bally/Sente", "Stompin'" )
 GAME( 1987, rescraid, 0,        balsente, rescraid, rescraid, ROT0, "Bally/Sente", "Rescue Raider" )
 GAME( 1987, rescrdsa, rescraid, balsente, rescraid, rescraid, ROT0, "Bally/Sente", "Rescue Raider (Stand-Alone)" )

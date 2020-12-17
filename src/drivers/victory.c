@@ -243,8 +243,7 @@ static WRITE_HANDLER( lamp_control_w )
  *
  *************************************/
 
-static struct MemoryReadAddress main_readmem[] =
-{
+static MEMORY_READ_START( main_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc0ff, victory_video_control_r },
 	{ 0xc400, 0xc7ff, MRA_RAM },
@@ -253,12 +252,10 @@ static struct MemoryReadAddress main_readmem[] =
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xf800, sound_response_r },
 	{ 0xf801, 0xf801, sound_status_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress main_writemem[] =
-{
+static MEMORY_WRITE_START( main_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc100, 0xc1ff, victory_video_control_w },
 	{ 0xc200, 0xc3ff, victory_paletteram_w, &paletteram },
@@ -267,27 +264,22 @@ static struct MemoryWriteAddress main_writemem[] =
 	{ 0xe000, 0xefff, MWA_RAM },
 	{ 0xf000, 0xf7ff, MWA_RAM, &nvram, &nvram_size },
 	{ 0xf800, 0xf800, sound_command_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct IOReadPort main_readport[] =
-{
+static PORT_READ_START( main_readport )
 	{ 0x00, 0x03, input_port_0_r },
 	{ 0x04, 0x07, input_port_1_r },
 	{ 0x08, 0x08, input_port_2_r },
 	{ 0x0a, 0x0a, input_port_3_r },
 	{ 0x0c, 0x0c, input_port_4_r },
 	{ 0x0e, 0x0e, input_port_5_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
-static struct IOWritePort main_writeport[] =
-{
+static PORT_WRITE_START( main_writeport )
 	{ 0x10, 0x13, lamp_control_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -297,20 +289,17 @@ static struct IOWritePort main_writeport[] =
  *
  *************************************/
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x01ff, MRA_RAM },
 	{ 0x1000, 0x1fff, exidy_shriot_r },
 	{ 0x2000, 0x200f, pia_0_r },
 	{ 0x3000, 0x3fff, exidy_sh8253_r },
 	{ 0x5000, 0x5fff, exidy_sh6840_r },
 	{ 0xc000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x1000, 0x1fff, exidy_shriot_w },
 	{ 0x2000, 0x200f, pia_0_w },
@@ -318,8 +307,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0x5000, 0x5fff, exidy_sh6840_w },
 	{ 0x6000, 0x6fff, exidy_sfxctrl_w },
 	{ 0xc000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -375,32 +363,6 @@ INPUT_PORTS_END
 
 /*************************************
  *
- *	Graphics layouts
- *
- *************************************/
-
-struct GfxLayout victory_charlayout =
-{
-	8,8,
-	256,
-	3,
-	{ 0x0000*8, 0x0800*8, 0x1000*8 },
-	{ 0, 1, 2, 3, 4, 5, 6, 7 },
-	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },
-	8*8
-};
-
-
-static struct GfxDecodeInfo gfxdecodeinfo[] =
-{
-	{ REGION_CPU1, 0xc800, &victory_charlayout, 0, 1 },    /* the game dynamically modifies this */
-	{ -1 } /* end of array */
-};
-
-
-
-/*************************************
- *
  *	Sound definitions
  *
  *************************************/
@@ -451,7 +413,7 @@ static const struct MachineDriver machine_driver_victory =
 
 	/* video hardware */
 	256, 256, { 0, 255, 0, 255 },
-	gfxdecodeinfo,
+	0,
 	64,64,
 	0,
 
@@ -480,7 +442,7 @@ static const struct MachineDriver machine_driver_victory =
  *************************************/
 
 ROM_START( victory )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "vic3.j2",  0x0000, 0x1000, 0x4b614440 )
 	ROM_LOAD( "vic3.k2",  0x1000, 0x1000, 0x9f9eb12b )
 	ROM_LOAD( "vic3.kl2", 0x2000, 0x1000, 0xa0db4bf9 )
@@ -494,13 +456,13 @@ ROM_START( victory )
 	ROM_LOAD( "vic3.kl1", 0xa000, 0x1000, 0x2b7e626f )
 	ROM_LOAD( "vic3.l1",  0xb000, 0x1000, 0x7bb8e1f5 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "vic1.7bc", 0xc000, 0x1000, 0xd4927560 )
 	ROM_LOAD( "vic1.7c",  0xd000, 0x1000, 0x059efab5 )
 	ROM_LOAD( "vic1.7d",  0xe000, 0x1000, 0x82c4767c )
 	ROM_LOAD( "vic1.7e",  0xf000, 0x1000, 0xa19be034 )
 
-	ROM_REGION( 0x1e0, REGION_PROMS )
+	ROM_REGION( 0x1e0, REGION_PROMS, 0 )
 	ROM_LOAD( "hsc17l",   0x0000, 0x0100, 0xb2c75dee )
 	ROM_LOAD( "hsc13e",   0x0100, 0x0020, 0xa107c4f5 )
 	ROM_LOAD( "hsc16a",   0x0120, 0x0020, 0x5f06ad26 )
@@ -513,7 +475,7 @@ ROM_END
 
 
 ROM_START( victorba )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "j2.rom",  0x0000, 0x1000, 0xdd788e93 )
 	ROM_LOAD( "k2.rom",  0x1000, 0x1000, 0xf47bf046 )
 	ROM_LOAD( "kl2.rom", 0x2000, 0x1000, 0xbaef885e )
@@ -527,13 +489,13 @@ ROM_START( victorba )
 	ROM_LOAD( "kl1.rom", 0xa000, 0x1000, 0x6c82ebca )
 	ROM_LOAD( "l1.rom",  0xb000, 0x1000, 0x03b89d8a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "vic1.7bc", 0xc000, 0x1000, 0xd4927560 )
 	ROM_LOAD( "vic1.7c",  0xd000, 0x1000, 0x059efab5 )
 	ROM_LOAD( "vic1.7d",  0xe000, 0x1000, 0x82c4767c )
 	ROM_LOAD( "vic1.7e",  0xf000, 0x1000, 0xa19be034 )
 
-	ROM_REGION( 0x1e0, REGION_PROMS )
+	ROM_REGION( 0x1e0, REGION_PROMS, 0 )
 	ROM_LOAD( "hsc17l",   0x0000, 0x0100, 0xb2c75dee )
 	ROM_LOAD( "hsc13e",   0x0100, 0x0020, 0xa107c4f5 )
 	ROM_LOAD( "hsc16a",   0x0120, 0x0020, 0x5f06ad26 )

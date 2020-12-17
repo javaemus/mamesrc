@@ -107,7 +107,7 @@ typedef enum
 	/* Assumed registers */
 	/* These are cheat registers which emulate the 1-longword prefetch
 	 * present in the 68000 and 68010.
-	 */ 
+	 */
 	M68K_REG_PREF_ADDR,	/* Last prefetch address */
 	M68K_REG_PREF_DATA,	/* Last prefetch data */
 
@@ -135,8 +135,8 @@ unsigned int  m68k_read_memory_16(unsigned int address);
 unsigned int  m68k_read_memory_32(unsigned int address);
 
 /* Read data immediately following the PC */
-unsigned int  m68k_read_immediate_16(unsigned int address);
-unsigned int  m68k_read_immediate_32(unsigned int address);
+INLINE unsigned int  m68k_read_immediate_16(unsigned int address);
+INLINE unsigned int  m68k_read_immediate_32(unsigned int address);
 
 /* Memory access for the disassembler */
 unsigned int m68k_read_disassembler_8  (unsigned int address);

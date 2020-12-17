@@ -122,15 +122,14 @@ static READ_HANDLER( sound_ack_r ){
 	return 0xff;
 }
 
-static struct MemoryReadAddress readmem_sound[] = {
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x4000, sound_command_r },
 	{ 0xa000, 0xa000, sound_ack_r },
 	{ 0xe000, 0xe7ff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sound[] = {
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x3fff, MWA_ROM, &namco_wavedata },	/* silly hack - this shouldn't be here */
 	{ 0x8000, 0x8000, AY8910_control_port_0_w },
 	{ 0x8001, 0x8001, AY8910_write_port_0_w },
@@ -138,8 +137,7 @@ static struct MemoryWriteAddress writemem_sound[] = {
 	{ 0x8008, 0x8008, AY8910_control_port_1_w },
 	{ 0x8009, 0x8009, AY8910_write_port_1_w },
 	{ 0xe000, 0xe7ff, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
 /* this input port has one of its bits mapped to sound CPU status */
 static READ_HANDLER( marvins_port_0_r ){
@@ -242,8 +240,7 @@ static READ_HANDLER( CPUB_int_trigger_r )
 **
 ***************************************************************************/
 
-static struct MemoryReadAddress readmem_CPUA[] =
-{
+static MEMORY_READ_START( readmem_CPUA )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8000, marvins_port_0_r },	/* coin input, start, sound CPU status */
 	{ 0x8100, 0x8100, input_port_1_r },		/* player #1 controls */
@@ -253,11 +250,9 @@ static struct MemoryReadAddress readmem_CPUA[] =
 	{ 0x8700, 0x8700, CPUB_int_trigger_r },
 	{ 0xc000, 0xcfff, MRA_RAM },
 	{ 0xd000, 0xffff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_CPUA[] =
-{
+static MEMORY_WRITE_START( writemem_CPUA )
 	{ 0x6000, 0x6000, marvins_palette_bank_w }, // Marvin's Maze only
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8300, 0x8300, sound_command_w },
@@ -271,43 +266,35 @@ static struct MemoryWriteAddress writemem_CPUA[] =
 	{ 0xe800, 0xefff, MWA_RAM },
 	{ 0xf000, 0xf3ff, marvins_text_ram_w },
 	{ 0xf400, 0xffff, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress marvins_readmem_CPUB[] =
-{
+static MEMORY_READ_START( marvins_readmem_CPUB )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8700, 0x8700, CPUA_int_trigger_r },
 	{ 0xc000, 0xcfff, marvins_spriteram_r },
 	{ 0xd000, 0xffff, marvins_background_ram_r },
 	{ 0xe000, 0xffff, marvins_foreground_ram_r },
 	{ 0xf000, 0xffff, marvins_text_ram_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress marvins_writemem_CPUB[] =
-{
+static MEMORY_WRITE_START( marvins_writemem_CPUB )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8700, 0x8700, CPUB_int_enable_w },
 	{ 0xc000, 0xcfff, marvins_spriteram_w },
 	{ 0xd000, 0xffff, marvins_background_ram_w },
 	{ 0xe000, 0xffff, marvins_foreground_ram_w },
 	{ 0xf000, 0xffff, marvins_text_ram_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress madcrash_readmem_CPUB[] =
-{
+static MEMORY_READ_START( madcrash_readmem_CPUB )
 	{ 0x0000, 0x9fff, MRA_ROM },
 	{ 0xc000, 0xcfff, marvins_foreground_ram_r },
 	{ 0xd000, 0xdfff, marvins_text_ram_r },
 	{ 0xe000, 0xefff, marvins_spriteram_r },
 	{ 0xf000, 0xffff, marvins_background_ram_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress madcrash_writemem_CPUB[] =
-{
+static MEMORY_WRITE_START( madcrash_writemem_CPUB )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8700, 0x8700, CPUB_int_enable_w }, /* Vangaurd II */
 	{ 0x8000, 0x9fff, MWA_ROM }, /* extra ROM for Mad Crasher */
@@ -316,8 +303,7 @@ static struct MemoryWriteAddress madcrash_writemem_CPUB[] =
 	{ 0xd000, 0xdfff, marvins_text_ram_w },
 	{ 0xe000, 0xefff, marvins_spriteram_w },
 	{ 0xf000, 0xffff, marvins_background_ram_w },
-	{ -1 }
-};
+MEMORY_END
 
 
 
@@ -457,7 +443,7 @@ INPUT_PORTS_START( vangrd2 )
 	PORT_DIPSETTING(    0xc0, "5" )
 
 	PORT_START	/* DSW2 */
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Demo_Sounds) )
+	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Demo_Sounds) )
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x02, 0x02, "Freeze" )
@@ -728,106 +714,106 @@ static const struct MachineDriver machine_driver_madcrash = {
 ***************************************************************************/
 
 ROM_START( marvins )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for CPUA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for CPUA code */
 	ROM_LOAD( "pa1",   0x0000, 0x2000, 0x0008d791 )
 	ROM_LOAD( "pa2",   0x2000, 0x2000, 0x9457003c )
 	ROM_LOAD( "pa3",   0x4000, 0x2000, 0x54c33ecb )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for CPUB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for CPUB code */
 	ROM_LOAD( "pb1",   0x0000, 0x2000, 0x3b6941a5 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "m1",    0x0000, 0x2000, 0x2314c696 )
 	ROM_LOAD( "m2",    0x2000, 0x2000, 0x74ba5799 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "s1",    0x0000, 0x2000, 0x327f70f3 )	/* characters */
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "b1",    0x0000, 0x2000, 0xe528bc60 )	/* background tiles */
 
-	ROM_REGION( 0x2000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "b2",    0x0000, 0x2000, 0xe528bc60 )	/* foreground tiles */
 
-	ROM_REGION( 0x6000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "f3",    0x0000, 0x2000, 0xe55c9b83 )	/* sprites */
 	ROM_LOAD( "f2",    0x2000, 0x2000, 0x8fc2b081 )
 	ROM_LOAD( "f1",    0x4000, 0x2000, 0x0bd6b4e5 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "marvmaze.j1",  0x000, 0x400, 0x92f5b06d )
 	ROM_LOAD( "marvmaze.j2",  0x400, 0x400, 0xd2b25665 )
 	ROM_LOAD( "marvmaze.j3",  0x800, 0x400, 0xdf9e6005 )
 ROM_END
 
 ROM_START( madcrash )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for CPUA code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for CPUA code */
 	ROM_LOAD( "p8",    0x0000, 0x2000, 0xecb2fdc9 )
 	ROM_LOAD( "p9",    0x2000, 0x2000, 0x0a87df26 )
 	ROM_LOAD( "p10",   0x4000, 0x2000, 0x6eb8a87c )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for CPUB code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for CPUB code */
 	ROM_LOAD( "p4",   0x0000, 0x2000, 0x5664d699 )
 	ROM_LOAD( "p5",   0x2000, 0x2000, 0xdea2865a )
 	ROM_LOAD( "p6",   0x4000, 0x2000, 0xe25a9b9c )
 	ROM_LOAD( "p7",   0x6000, 0x2000, 0x55b14a36 )
 	ROM_LOAD( "p3",   0x8000, 0x2000, 0xe3c8c2cb )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "p1",   0x0000, 0x2000, 0x2dcd036d )
 	ROM_LOAD( "p2",   0x2000, 0x2000, 0xcc30ae8b )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "p13",    0x0000, 0x2000, 0x48c4ade0 )	/* characters */
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "p11",    0x0000, 0x2000, 0x67174956 )	/* background tiles */
 
-	ROM_REGION( 0x2000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "p12",    0x0000, 0x2000, 0x085094c1 )	/* foreground tiles */
 
-	ROM_REGION( 0x6000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "p14",    0x0000, 0x2000, 0x07e807bc )	/* sprites */
 	ROM_LOAD( "p15",    0x2000, 0x2000, 0xa74149d4 )
 	ROM_LOAD( "p16",    0x4000, 0x2000, 0x6153611a )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "m3-prom.j3",  0x000, 0x400, 0xd19e8a91 )
 	ROM_LOAD( "m2-prom.j4",  0x400, 0x400, 0x9fc325af )
 	ROM_LOAD( "m1-prom.j5",  0x800, 0x400, 0x07678443 )
 ROM_END
 
 ROM_START( vangrd2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "p1.9a",  0x0000, 0x2000, 0xbc9eeca5 )
 	ROM_LOAD( "p3.11a", 0x2000, 0x2000, 0x3970f69d )
 	ROM_LOAD( "p2.12a", 0x4000, 0x2000, 0x58b08b58 )
 	ROM_LOAD( "p4.14a", 0x6000, 0x2000, 0xa95f11ea )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "p5.4a", 0x0000, 0x2000, 0xe4dfd0ba )
 	ROM_LOAD( "p6.6a", 0x2000, 0x2000, 0x894ff00d )
 	ROM_LOAD( "p7.7a", 0x4000, 0x2000, 0x40b4d069 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for sound code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for sound code */
 	ROM_LOAD( "p8.6a", 0x0000, 0x2000, 0xa3daa438 )
 	ROM_LOAD( "p9.8a", 0x2000, 0x2000, 0x9345101a )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "p15.1e", 0x0000, 0x2000, 0x85718a41 )	/* characters */
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "p13.1a", 0x0000, 0x2000, 0x912f22c6 )	/* background tiles */
 
-	ROM_REGION( 0x2000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "p9",     0x0000, 0x2000, 0x7aa0b684 )	/* foreground tiles */
 
-	ROM_REGION( 0x6000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "p12.1kl", 0x0000, 0x2000, 0x8658ea6c )	/* sprites */
 	ROM_LOAD( "p11.3kl", 0x2000, 0x2000, 0x620cd4ec )
 	ROM_LOAD( "p10.4kl", 0x4000, 0x2000, 0x5bfc04c0 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "mb7054.3j", 0x000, 0x400, 0x506f659a )
 	ROM_LOAD( "mb7054.4j", 0x400, 0x400, 0x222133ce )
 	ROM_LOAD( "mb7054.5j", 0x800, 0x400, 0x2e21a79b )

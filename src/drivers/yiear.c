@@ -80,8 +80,7 @@ static WRITE_HANDLER( yiear_speech_st_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x0000, yiear_speech_r },
 	{ 0x4c00, 0x4c00, input_port_3_r },
 	{ 0x4d00, 0x4d00, input_port_4_r },
@@ -91,11 +90,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x4e03, 0x4e03, input_port_5_r },
 	{ 0x5000, 0x5fff, MRA_RAM },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x4000, 0x4000, yiear_control_w },
 	{ 0x4800, 0x4800, konami_SN76496_latch_w },
 	{ 0x4900, 0x4900, konami_SN76496_0_w },
@@ -108,8 +105,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x5430, 0x57ff, MWA_RAM },
 	{ 0x5800, 0x5fff, videoram_w, &videoram, &videoram_size },
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
 
 
@@ -333,46 +329,46 @@ static const struct MachineDriver machine_driver_yiear =
 ***************************************************************************/
 
 ROM_START( yiear )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "i08.10d",      0x08000, 0x4000, 0xe2d7458b )
 	ROM_LOAD( "i07.8d",       0x0c000, 0x4000, 0x7db7442e )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "g16_1.bin",    0x00000, 0x2000, 0xb68fd91d )
 	ROM_LOAD( "g15_2.bin",    0x02000, 0x2000, 0xd9b167c6 )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "g04_5.bin",    0x00000, 0x4000, 0x45109b29 )
 	ROM_LOAD( "g03_6.bin",    0x04000, 0x4000, 0x1d650790 )
 	ROM_LOAD( "g06_3.bin",    0x08000, 0x4000, 0xe6aa945b )
 	ROM_LOAD( "g05_4.bin",    0x0c000, 0x4000, 0xcc187c22 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "yiear.clr",    0x00000, 0x0020, 0xc283d71f )
 
-	ROM_REGION( 0x2000, REGION_SOUND1 )	/* 8k for the VLM5030 data */
+	ROM_REGION( 0x2000, REGION_SOUND1, 0 )	/* 8k for the VLM5030 data */
 	ROM_LOAD( "a12_9.bin",    0x00000, 0x2000, 0xf75a1539 )
 ROM_END
 
 ROM_START( yiear2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "d12_8.bin",    0x08000, 0x4000, 0x49ecd9dd )
 	ROM_LOAD( "d14_7.bin",    0x0c000, 0x4000, 0xbc2e1208 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "g16_1.bin",    0x00000, 0x2000, 0xb68fd91d )
 	ROM_LOAD( "g15_2.bin",    0x02000, 0x2000, 0xd9b167c6 )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "g04_5.bin",    0x00000, 0x4000, 0x45109b29 )
 	ROM_LOAD( "g03_6.bin",    0x04000, 0x4000, 0x1d650790 )
 	ROM_LOAD( "g06_3.bin",    0x08000, 0x4000, 0xe6aa945b )
 	ROM_LOAD( "g05_4.bin",    0x0c000, 0x4000, 0xcc187c22 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "yiear.clr",    0x00000, 0x0020, 0xc283d71f )
 
-	ROM_REGION( 0x2000, REGION_SOUND1 )	/* 8k for the VLM5030 data */
+	ROM_REGION( 0x2000, REGION_SOUND1, 0 )	/* 8k for the VLM5030 data */
 	ROM_LOAD( "a12_9.bin",    0x00000, 0x2000, 0xf75a1539 )
 ROM_END
 

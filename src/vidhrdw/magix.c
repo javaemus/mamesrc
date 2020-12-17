@@ -74,18 +74,18 @@ WRITE_HANDLER( magix_videoram_w )
 	{
 		int bank = magix_videobank & 2;
 		unsigned char *RAM;
-		int r,g,b;
+		int r,g,b,color;
 
 		if (bank)	RAM = magix_videoram_0;
 		else		RAM = magix_videoram_1;
 
 		RAM[offset] = data;
-		data = RAM[offset & ~1] | (RAM[offset | 1] << 8);
+		color = RAM[offset & ~1] | (RAM[offset | 1] << 8);
 
 		/* BBBBBGGGGGRRRRRx */
-		r = (data >>  0) & 0x1f;
-		g = (data >>  5) & 0x1f;
-		b = (data >> 10) & 0x1f;
+		r = (color >>  0) & 0x1f;
+		g = (color >>  5) & 0x1f;
+		b = (color >> 10) & 0x1f;
 
 		palette_change_color(offset/2 + (bank ? 0x400:0), (r << 3)|(r >> 2), (g << 3)|(g >> 2), (b << 3)|(b >> 2));
 	}
@@ -183,7 +183,7 @@ int magix_vh_start(void)
 
 	if (tilemap_0 && tilemap_1)
 	{
-		tilemap_1->transparent_pen = 0;
+		tilemap_set_transparent_pen(tilemap_1,0);
 		return 0;
 	}
 	else return 1;
@@ -219,12 +219,10 @@ if (keyboard_pressed(KEYCODE_Z))
 
 	/* No Sprites ... */
 
-	if (palette_recalc())	tilemap_mark_all_pixels_dirty(ALL_TILEMAPS);
+	palette_recalc();
 
-	tilemap_render(ALL_TILEMAPS);
+	if (layers_ctrl&1)	tilemap_draw(bitmap, tilemap_0, 0,0);
+	else                fillbitmap(bitmap,palette_transparent_pen,&Machine->visible_area);
 
-	if (layers_ctrl&1)	tilemap_draw(bitmap, tilemap_0, 0);
-	else				osd_clearbitmap(bitmap);
-
-	if (layers_ctrl&2)	tilemap_draw(bitmap, tilemap_1, 0);
+	if (layers_ctrl&2)	tilemap_draw(bitmap, tilemap_1, 0,0);
 }

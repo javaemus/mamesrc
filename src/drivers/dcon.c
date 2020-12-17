@@ -13,106 +13,124 @@
 #include "cpu/z80/z80.h"
 #include "sndhrdw/seibu.h"
 
-WRITE_HANDLER( dcon_background_w );
-WRITE_HANDLER( dcon_foreground_w );
-WRITE_HANDLER( dcon_midground_w );
-WRITE_HANDLER( dcon_text_w );
-WRITE_HANDLER( dcon_control_w );
+WRITE16_HANDLER( dcon_background_w );
+WRITE16_HANDLER( dcon_foreground_w );
+WRITE16_HANDLER( dcon_midground_w );
+WRITE16_HANDLER( dcon_text_w );
+WRITE16_HANDLER( dcon_control_w );
 
 int dcon_vh_start(void);
-WRITE_HANDLER( dcon_control_w );
 void dcon_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-extern unsigned char *dcon_back_data,*dcon_fore_data,*dcon_mid_data,*dcon_scroll_ram;
+extern data16_t *dcon_back_data,*dcon_fore_data,*dcon_mid_data,*dcon_scroll_ram,*dcon_textram;
 
 /***************************************************************************/
 
-static WRITE_HANDLER( dcon_sound_w )
-{
-	seibu_soundlatch_w(offset,data&0xff); /* Convert 16 bit write to 8 bit */
-}
+static MEMORY_READ16_START( readmem )
+	{ 0x00000, 0x7ffff, MRA16_ROM },
+	{ 0x80000, 0x8bfff, MRA16_RAM },
+	{ 0x8c000, 0x8c7ff, MRA16_RAM },
+	{ 0x8c800, 0x8cfff, MRA16_RAM },
+	{ 0x8d000, 0x8d7ff, MRA16_RAM },
+	{ 0x8e800, 0x8f7ff, MRA16_RAM },
+	{ 0x8f800, 0x8ffff, MRA16_RAM },
+	{ 0xa0000, 0xa000f, MRA16_NOP }, /* Unused sound cpu read */
+	{ 0xe0000, 0xe0001, input_port_0_word_r },
+	{ 0xe0002, 0xe0003, input_port_1_word_r },
+	{ 0xe0004, 0xe0005, input_port_2_word_r },
+MEMORY_END
 
-static READ_HANDLER( dcon_control_r )
-{
-	switch (offset)
-	{
-		case 0: /* Dip Switches */
-			return (readinputport(4) + (readinputport(3) << 8));
-
-		case 2: /* Player 1 & Player 2 joysticks & fire buttons */
-			return (readinputport(0) + (readinputport(1) << 8));
-
-		case 4: /* Credits */
-			return readinputport(2);
-	}
-	return 0xffff;
-}
-
-static READ_HANDLER( dcon_background_r ) { return READ_WORD(&dcon_back_data[offset]); }
-static READ_HANDLER( dcon_foreground_r ) { return READ_WORD(&dcon_fore_data[offset]); }
-static READ_HANDLER( dcon_midground_r ) { return READ_WORD(&dcon_mid_data[offset]); }
-
-/******************************************************************************/
-
-static struct MemoryReadAddress readmem[] =
-{
-	{ 0x00000, 0x7ffff, MRA_ROM },
-	{ 0x80000, 0x8bfff, MRA_BANK2 },
-	{ 0x8c000, 0x8c7ff, dcon_background_r },
-	{ 0x8c800, 0x8cfff, dcon_foreground_r },
-	{ 0x8d000, 0x8d7ff, dcon_midground_r },
-	{ 0x8e800, 0x8f7ff, paletteram_word_r },
-	{ 0x8f800, 0x8ffff, MRA_BANK3 },
-	{ 0xa0000, 0xa000f, MRA_NOP }, /* Unused sound cpu read */
-	{ 0xe0000, 0xe0007, dcon_control_r },
-	{ -1 }	/* end of table */
-};
-
-static struct MemoryWriteAddress writemem[] =
-{
-	{ 0x00000, 0x7ffff, MWA_ROM },
-	{ 0x80000, 0x8bfff, MWA_BANK2 },
+static MEMORY_WRITE16_START( writemem )
+	{ 0x00000, 0x7ffff, MWA16_ROM },
+	{ 0x80000, 0x8bfff, MWA16_RAM },
 	{ 0x8c000, 0x8c7ff, dcon_background_w, &dcon_back_data },
 	{ 0x8c800, 0x8cfff, dcon_foreground_w, &dcon_fore_data },
 	{ 0x8d000, 0x8d7ff, dcon_midground_w, &dcon_mid_data },
-	{ 0x8d800, 0x8e7ff, dcon_text_w, &videoram },
-	{ 0x8e800, 0x8f7ff, paletteram_xBBBBBGGGGGRRRRR_word_w, &paletteram },
-	{ 0x8f800, 0x8ffff, MWA_BANK3, &spriteram },
-	{ 0xa0000, 0xa000f, dcon_sound_w, &seibu_shared_sound_ram },
+	{ 0x8d800, 0x8e7ff, dcon_text_w, &dcon_textram },
+	{ 0x8e800, 0x8f7ff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
+	{ 0x8f800, 0x8ffff, MWA16_RAM, &spriteram16 },
+	{ 0xa0000, 0xa000f, seibu_soundlatch_word_w, (data16_t **)&seibu_shared_sound_ram },
 	{ 0xc001c, 0xc001d, dcon_control_w },
-	{ 0xc0020, 0xc002b, MWA_BANK4, &dcon_scroll_ram },
-	{ 0xc0000, 0xc00ff, MWA_NOP },
-	{ -1 }	/* end of table */
-};
+	{ 0xc0020, 0xc002b, MWA16_RAM, &dcon_scroll_ram },
+	{ 0xc0000, 0xc00ff, MWA16_NOP },
+MEMORY_END
 
 /******************************************************************************/
 
-SEIBU_SOUND_SYSTEM_YM3812_MEMORY_MAP(MRA_NOP); /* No coin port in this game */
+SEIBU_SOUND_SYSTEM_YM3812_MEMORY_MAP(MRA_NOP) /* No coin port in this game */
 
 /******************************************************************************/
 
 INPUT_PORTS_START( dcon )
-	PORT_START	/* IN0 */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_START
+	PORT_DIPNAME( 0x0001, 0x0001, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0001, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0002, 0x0002, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0002, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0004, 0x0004, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0004, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0008, 0x0008, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0008, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0010, 0x0010, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0010, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0020, 0x0020, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0020, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0040, 0x0040, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0040, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0080, 0x0080, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0080, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0100, 0x0100, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0100, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0200, 0x0200, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0200, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0400, 0x0400, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0400, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0800, 0x0800, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0800, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x1000, 0x1000, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x1000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x2000, 0x2000, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x2000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x4000, 0x4000, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x4000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x8000, 0x8000, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x8000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
 
-	PORT_START	/* IN1 */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_START
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_UNUSED )
 
-	PORT_START	/* IN1 */
+	PORT_START
 	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -129,58 +147,6 @@ INPUT_PORTS_START( dcon )
 	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_UNKNOWN )
-
-	PORT_START	/* Dip switch A */
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-
-	PORT_START	/* Dip switch B */
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 INPUT_PORTS_END
 
 /******************************************************************************/
@@ -288,36 +254,36 @@ static const struct MachineDriver machine_driver_dcon =
 /***************************************************************************/
 
 ROM_START( dcon )
-	ROM_REGION( 0x80000, REGION_CPU1 )
-	ROM_LOAD_EVEN("p0-0",   0x000000, 0x20000, 0xa767ec15 )
-	ROM_LOAD_ODD ("p0-1",   0x000000, 0x20000, 0xa7efa091 )
-	ROM_LOAD_EVEN("p1-0",   0x040000, 0x20000, 0x3ec1ef7d )
-	ROM_LOAD_ODD ("p1-1",   0x040000, 0x20000, 0x4b8de320 )
+	ROM_REGION( 0x80000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE("p0-0",   0x000000, 0x20000, 0xa767ec15 )
+	ROM_LOAD16_BYTE("p0-1",   0x000001, 0x20000, 0xa7efa091 )
+	ROM_LOAD16_BYTE("p1-0",   0x040000, 0x20000, 0x3ec1ef7d )
+	ROM_LOAD16_BYTE("p1-1",   0x040001, 0x20000, 0x4b8de320 )
 
-	ROM_REGION( 0x18000, REGION_CPU2 )	 /* 64k code for sound Z80 */
+	ROM_REGION( 0x18000, REGION_CPU2, 0 )	 /* 64k code for sound Z80 */
 	ROM_LOAD( "fm", 0x000000, 0x08000, 0x50450faa )
 	ROM_CONTINUE(   0x010000, 0x08000 )
 
-	ROM_REGION( 0x020000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x020000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "fix0",  0x000000, 0x10000, 0xab30061f ) /* chars */
 	ROM_LOAD( "fix1",  0x010000, 0x10000, 0xa0582115 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "bg1",   0x000000, 0x80000, 0xeac43283 ) /* tiles */
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "bg3",   0x000000, 0x80000, 0x1408a1e0 ) /* tiles */
 
-	ROM_REGION( 0x080000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "bg2",   0x000000, 0x80000, 0x01864eb6 ) /* tiles */
 
-	ROM_REGION( 0x200000, REGION_GFX5 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x200000, REGION_GFX5, ROMREGION_DISPOSE )
 	ROM_LOAD( "obj0",  0x000000, 0x80000, 0xc3af37db ) /* sprites */
 	ROM_LOAD( "obj1",  0x080000, 0x80000, 0xbe1f53ba )
 	ROM_LOAD( "obj2",  0x100000, 0x80000, 0x24e0b51c )
 	ROM_LOAD( "obj3",  0x180000, 0x80000, 0x5274f02d )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	 /* ADPCM samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	 /* ADPCM samples */
 	ROM_LOAD( "pcm", 0x000000, 0x20000, 0xd2133b85 )
 ROM_END
 

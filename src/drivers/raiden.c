@@ -49,6 +49,7 @@ WRITE_HANDLER( raiden_foreground_w );
 WRITE_HANDLER( raiden_text_w );
 WRITE_HANDLER( raidena_text_w );
 int raiden_vh_start(void);
+int raidena_vh_start(void);
 WRITE_HANDLER( raiden_control_w );
 void raiden_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
@@ -85,8 +86,7 @@ static READ_HANDLER( raiden_sound_r )
 
 /******************************************************************************/
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x00000, 0x07fff, MRA_RAM },
 	{ 0x0a000, 0x0afff, raiden_shared_r },
 	{ 0x0b000, 0x0b000, input_port_0_r },
@@ -95,11 +95,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x0b003, 0x0b003, input_port_3_r },
 	{ 0x0d000, 0x0d00f, raiden_sound_r },
 	{ 0xa0000, 0xfffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x00000, 0x06fff, MWA_RAM },
 	{ 0x07000, 0x07fff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x0a000, 0x0afff, raiden_shared_w, &raiden_shared_ram },
@@ -108,22 +106,18 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x0d000, 0x0d00f, seibu_soundlatch_w, &seibu_shared_sound_ram },
 	{ 0x0d060, 0x0d067, MWA_RAM, &raiden_scroll_ram },
 	{ 0xa0000, 0xfffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sub_readmem[] =
-{
+static MEMORY_READ_START( sub_readmem )
 	{ 0x00000, 0x01fff, MRA_RAM },
 	{ 0x02000, 0x027ff, raiden_background_r },
 	{ 0x02800, 0x02fff, raiden_foreground_r },
 	{ 0x03000, 0x03fff, paletteram_r },
 	{ 0x04000, 0x04fff, raiden_shared_r },
 	{ 0xc0000, 0xfffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sub_writemem[] =
-{
+static MEMORY_WRITE_START( sub_writemem )
 	{ 0x00000, 0x01fff, MWA_RAM },
 	{ 0x02000, 0x027ff, raiden_background_w, &raiden_back_data },
 	{ 0x02800, 0x02fff, raiden_foreground_w, &raiden_fore_data },
@@ -131,13 +125,11 @@ static struct MemoryWriteAddress sub_writemem[] =
 	{ 0x04000, 0x04fff, raiden_shared_w },
 	{ 0x07ffe, 0x0afff, MWA_NOP },
 	{ 0xc0000, 0xfffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /************************* Alternate board set ************************/
 
-static struct MemoryReadAddress alt_readmem[] =
-{
+static MEMORY_READ_START( alt_readmem )
 	{ 0x00000, 0x07fff, MRA_RAM },
 	{ 0x08000, 0x08fff, raiden_shared_r },
 	{ 0x0a000, 0x0a00f, raiden_sound_r },
@@ -146,11 +138,9 @@ static struct MemoryReadAddress alt_readmem[] =
 	{ 0x0e002, 0x0e002, input_port_2_r },
 	{ 0x0e003, 0x0e003, input_port_3_r },
 	{ 0xa0000, 0xfffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress alt_writemem[] =
-{
+static MEMORY_WRITE_START( alt_writemem )
 	{ 0x00000, 0x06fff, MWA_RAM },
 	{ 0x07000, 0x07fff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x08000, 0x08fff, raiden_shared_w, &raiden_shared_ram },
@@ -159,12 +149,11 @@ static struct MemoryWriteAddress alt_writemem[] =
 	{ 0x0c000, 0x0c7ff, raidena_text_w, &videoram },
 	{ 0x0f000, 0x0f035, MWA_RAM, &raiden_scroll_ram },
 	{ 0xa0000, 0xfffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /******************************************************************************/
 
-SEIBU_SOUND_SYSTEM_YM3812_MEMORY_MAP(input_port_4_r); /* Coin port */
+SEIBU_SOUND_SYSTEM_YM3812_MEMORY_MAP(input_port_4_r) /* Coin port */
 
 /******************************************************************************/
 
@@ -323,13 +312,13 @@ static const struct MachineDriver machine_driver_raiden =
 	{
 		{
 			CPU_V30, /* NEC V30 CPU */
-			19000000, /* 20MHz is correct, but glitched!? */
+			20000000, /* 20MHz */
 			readmem,writemem,0,0,
 			raiden_interrupt,1
 		},
 		{
 			CPU_V30, /* NEC V30 CPU */
-			19000000, /* 20MHz is correct, but glitched!? */
+			20000000, /* 20MHz */
 			sub_readmem,sub_writemem,0,0,
 			raiden_interrupt,1
 		},
@@ -337,7 +326,7 @@ static const struct MachineDriver machine_driver_raiden =
 			SEIBU_SOUND_SYSTEM_CPU(14318180/4)
 		}
 	},
-	60, DEFAULT_REAL_60HZ_VBLANK_DURATION*2,	/* frames per second, vblank duration */
+	60, DEFAULT_REAL_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
 	70,	/* CPU interleave  */
 	seibu_sound_init_2,
 
@@ -366,13 +355,13 @@ static const struct MachineDriver machine_driver_raidena =
 	{
 		{
 			CPU_V30, /* NEC V30 CPU */
-			19000000, /* 20MHz is correct, but glitched!? */
+			20000000, /* 20MHz */
 			alt_readmem,alt_writemem,0,0,
 			raiden_interrupt,1
 		},
 		{
 			CPU_V30, /* NEC V30 CPU */
-			19000000, /* 20MHz is correct, but glitched!? */
+			20000000, /* 20MHz */
 			sub_readmem,sub_writemem,0,0,
 			raiden_interrupt,1
 		},
@@ -380,7 +369,7 @@ static const struct MachineDriver machine_driver_raidena =
 			SEIBU_SOUND_SYSTEM_CPU(14318180/4)
 		}
 	},
-	60, DEFAULT_REAL_60HZ_VBLANK_DURATION*2,	/* frames per second, vblank duration */
+	60, DEFAULT_REAL_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
 	60,	/* CPU interleave  */
 	seibu_sound_init_2,
 
@@ -392,7 +381,7 @@ static const struct MachineDriver machine_driver_raidena =
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_BUFFERS_SPRITERAM,
 	raiden_eof_callback,
-	raiden_vh_start,
+	raidena_vh_start,
 	0,
 	raiden_vh_screenrefresh,
 
@@ -406,98 +395,98 @@ static const struct MachineDriver machine_driver_raidena =
 /***************************************************************************/
 
 ROM_START( raiden )
-	ROM_REGION( 0x100000, REGION_CPU1 ) /* v30 main cpu */
-	ROM_LOAD_V20_ODD ( "rai1.bin",   0x0a0000, 0x10000, 0xa4b12785 )
-	ROM_LOAD_V20_EVEN( "rai2.bin",   0x0a0000, 0x10000, 0x17640bd5 )
-	ROM_LOAD_V20_ODD ( "rai3.bin",   0x0c0000, 0x20000, 0x9d735bf5 )
-	ROM_LOAD_V20_EVEN( "rai4.bin",   0x0c0000, 0x20000, 0x8d184b99 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 ) /* v30 main cpu */
+	ROM_LOAD16_BYTE( "rai1.bin",   0x0a0000, 0x10000, 0xa4b12785 )
+	ROM_LOAD16_BYTE( "rai2.bin",   0x0a0001, 0x10000, 0x17640bd5 )
+	ROM_LOAD16_BYTE( "rai3.bin",   0x0c0000, 0x20000, 0x9d735bf5 )
+	ROM_LOAD16_BYTE( "rai4.bin",   0x0c0001, 0x20000, 0x8d184b99 )
 
-	ROM_REGION( 0x100000, REGION_CPU2 ) /* v30 sub cpu */
-	ROM_LOAD_V20_ODD ( "rai5.bin",   0x0c0000, 0x20000, 0x7aca6d61 )
-	ROM_LOAD_V20_EVEN( "rai6a.bin",  0x0c0000, 0x20000, 0xe3d35cc2 )
+	ROM_REGION( 0x100000, REGION_CPU2, 0 ) /* v30 sub cpu */
+	ROM_LOAD16_BYTE( "rai5.bin",   0x0c0000, 0x20000, 0x7aca6d61 )
+	ROM_LOAD16_BYTE( "rai6a.bin",  0x0c0001, 0x20000, 0xe3d35cc2 )
 
-	ROM_REGION( 0x18000, REGION_CPU3 ) /* 64k code for sound Z80 */
+	ROM_REGION( 0x18000, REGION_CPU3, 0 ) /* 64k code for sound Z80 */
 	ROM_LOAD( "rai6.bin", 0x000000, 0x08000, 0x723a483b )
 	ROM_CONTINUE(         0x010000, 0x08000 )
 
-	ROM_REGION( 0x010000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x010000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rai9.bin",     0x00000, 0x08000, 0x1922b25e ) /* chars */
 	ROM_LOAD( "rai10.bin",    0x08000, 0x08000, 0x5f90786a )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu0919.bin", 0x00000, 0x80000, 0xda151f0b ) /* tiles */
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu0920.bin", 0x00000, 0x80000, 0xac1f57ac ) /* tiles */
 
-	ROM_REGION( 0x090000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x090000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu165.bin",  0x00000, 0x80000, 0x946d7bde ) /* sprites */
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	 /* ADPCM samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	 /* ADPCM samples */
 	ROM_LOAD( "rai7.bin", 0x00000, 0x10000, 0x8f927822 )
 ROM_END
 
 ROM_START( raidena )
-	ROM_REGION( 0x100000, REGION_CPU1 ) /* v30 main cpu */
-	ROM_LOAD_V20_ODD ( "rai1.bin",     0x0a0000, 0x10000, 0xa4b12785 )
-	ROM_LOAD_V20_EVEN( "rai2.bin",     0x0a0000, 0x10000, 0x17640bd5 )
-	ROM_LOAD_V20_ODD ( "raiden03.rom", 0x0c0000, 0x20000, 0xf6af09d0 )
-	ROM_LOAD_V20_EVEN( "raiden04.rom", 0x0c0000, 0x20000, 0x6bdfd416 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 ) /* v30 main cpu */
+	ROM_LOAD16_BYTE( "rai1.bin",     0x0a0000, 0x10000, 0xa4b12785 )
+	ROM_LOAD16_BYTE( "rai2.bin",     0x0a0001, 0x10000, 0x17640bd5 )
+	ROM_LOAD16_BYTE( "raiden03.rom", 0x0c0000, 0x20000, 0xf6af09d0 )
+	ROM_LOAD16_BYTE( "raiden04.rom", 0x0c0001, 0x20000, 0x6bdfd416 )
 
-	ROM_REGION( 0x100000, REGION_CPU2 ) /* v30 sub cpu */
-	ROM_LOAD_V20_ODD ( "raiden05.rom",   0x0c0000, 0x20000, 0xed03562e )
-	ROM_LOAD_V20_EVEN( "raiden06.rom",   0x0c0000, 0x20000, 0xa19d5b5d )
+	ROM_REGION( 0x100000, REGION_CPU2, 0 ) /* v30 sub cpu */
+	ROM_LOAD16_BYTE( "raiden05.rom",   0x0c0000, 0x20000, 0xed03562e )
+	ROM_LOAD16_BYTE( "raiden06.rom",   0x0c0001, 0x20000, 0xa19d5b5d )
 
-	ROM_REGION( 0x18000, REGION_CPU3 ) /* 64k code for sound Z80 */
+	ROM_REGION( 0x18000, REGION_CPU3, 0 ) /* 64k code for sound Z80 */
 	ROM_LOAD( "raiden08.rom", 0x000000, 0x08000, 0x731adb43 )
 	ROM_CONTINUE(             0x010000, 0x08000 )
 
-	ROM_REGION( 0x010000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x010000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rai9.bin",     0x00000, 0x08000, 0x1922b25e ) /* chars */
 	ROM_LOAD( "rai10.bin",    0x08000, 0x08000, 0x5f90786a )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu0919.bin", 0x00000, 0x80000, 0xda151f0b ) /* tiles */
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu0920.bin", 0x00000, 0x80000, 0xac1f57ac ) /* tiles */
 
-	ROM_REGION( 0x090000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x090000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu165.bin",  0x00000, 0x80000, 0x946d7bde ) /* sprites */
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	 /* ADPCM samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	 /* ADPCM samples */
 	ROM_LOAD( "rai7.bin", 0x00000, 0x10000, 0x8f927822 )
 ROM_END
 
 ROM_START( raidenk )
-	ROM_REGION( 0x100000, REGION_CPU1 ) /* v30 main cpu */
-	ROM_LOAD_V20_ODD ( "rai1.bin",     0x0a0000, 0x10000, 0xa4b12785 )
-	ROM_LOAD_V20_EVEN( "rai2.bin",     0x0a0000, 0x10000, 0x17640bd5 )
-	ROM_LOAD_V20_ODD ( "raiden03.rom", 0x0c0000, 0x20000, 0xf6af09d0 )
-	ROM_LOAD_V20_EVEN( "1i",           0x0c0000, 0x20000, 0xfddf24da )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 ) /* v30 main cpu */
+	ROM_LOAD16_BYTE( "rai1.bin",     0x0a0000, 0x10000, 0xa4b12785 )
+	ROM_LOAD16_BYTE( "rai2.bin",     0x0a0001, 0x10000, 0x17640bd5 )
+	ROM_LOAD16_BYTE( "raiden03.rom", 0x0c0000, 0x20000, 0xf6af09d0 )
+	ROM_LOAD16_BYTE( "1i",           0x0c0001, 0x20000, 0xfddf24da )
 
-	ROM_REGION( 0x100000, REGION_CPU2 ) /* v30 sub cpu */
-	ROM_LOAD_V20_ODD ( "raiden05.rom",   0x0c0000, 0x20000, 0xed03562e )
-	ROM_LOAD_V20_EVEN( "raiden06.rom",   0x0c0000, 0x20000, 0xa19d5b5d )
+	ROM_REGION( 0x100000, REGION_CPU2, 0 ) /* v30 sub cpu */
+	ROM_LOAD16_BYTE( "raiden05.rom",   0x0c0000, 0x20000, 0xed03562e )
+	ROM_LOAD16_BYTE( "raiden06.rom",   0x0c0001, 0x20000, 0xa19d5b5d )
 
-	ROM_REGION( 0x18000, REGION_CPU3 ) /* 64k code for sound Z80 */
+	ROM_REGION( 0x18000, REGION_CPU3, 0 ) /* 64k code for sound Z80 */
 	ROM_LOAD( "8b",           0x000000, 0x08000, 0x99ee7505 )
 	ROM_CONTINUE(             0x010000, 0x08000 )
 
-	ROM_REGION( 0x010000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x010000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rai9.bin",     0x00000, 0x08000, 0x1922b25e ) /* chars */
 	ROM_LOAD( "rai10.bin",    0x08000, 0x08000, 0x5f90786a )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu0919.bin", 0x00000, 0x80000, 0xda151f0b ) /* tiles */
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu0920.bin", 0x00000, 0x80000, 0xac1f57ac ) /* tiles */
 
-	ROM_REGION( 0x090000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x090000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "raiu165.bin",  0x00000, 0x80000, 0x946d7bde ) /* sprites */
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	 /* ADPCM samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	 /* ADPCM samples */
 	ROM_LOAD( "rai7.bin", 0x00000, 0x10000, 0x8f927822 )
 ROM_END
 
@@ -614,7 +603,6 @@ static void init_raidena(void)
 	common_decrypt();
 	seibu_sound_decrypt();
 }
-
 
 /***************************************************************************/
 

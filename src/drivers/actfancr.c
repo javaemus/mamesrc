@@ -80,8 +80,7 @@ static WRITE_HANDLER( actfancr_sound_w )
 
 /******************************************************************************/
 
-static struct MemoryReadAddress actfan_readmem[] =
-{
+static MEMORY_READ_START( actfan_readmem )
 	{ 0x000000, 0x02ffff, MRA_ROM },
 	{ 0x062000, 0x063fff, actfancr_pf1_data_r },
 	{ 0x072000, 0x0727ff, actfancr_pf2_data_r },
@@ -90,11 +89,9 @@ static struct MemoryReadAddress actfan_readmem[] =
 	{ 0x140000, 0x140001, actfan_control_0_r },
 	{ 0x120000, 0x1205ff, paletteram_r },
 	{ 0x1f0000, 0x1f3fff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress actfan_writemem[] =
-{
+static MEMORY_WRITE_START( actfan_writemem )
 	{ 0x000000, 0x02ffff, MWA_ROM },
 	{ 0x060000, 0x06001f, actfancr_pf1_control_w },
 	{ 0x062000, 0x063fff, actfancr_pf1_data_w, &actfancr_pf1_data },
@@ -105,11 +102,9 @@ static struct MemoryWriteAddress actfan_writemem[] =
 	{ 0x120000, 0x1205ff, paletteram_xxxxBBBBGGGGRRRR_w, &paletteram },
 	{ 0x150000, 0x150001, actfancr_sound_w },
 	{ 0x1f0000, 0x1f3fff, MWA_RAM, &actfancr_ram }, /* Main ram */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress triothep_readmem[] =
-{
+static MEMORY_READ_START( triothep_readmem )
 	{ 0x000000, 0x03ffff, MRA_ROM },
 	{ 0x044000, 0x045fff, actfancr_pf2_data_r },
 	{ 0x064000, 0x0647ff, actfancr_pf1_data_r },
@@ -118,11 +113,9 @@ static struct MemoryReadAddress triothep_readmem[] =
 	{ 0x140000, 0x140001, MRA_NOP }, /* Value doesn't matter */
 	{ 0x1f0000, 0x1f3fff, MRA_RAM },
 	{ 0x1ff000, 0x1ff001, triothep_control_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress triothep_writemem[] =
-{
+static MEMORY_WRITE_START( triothep_writemem )
 	{ 0x000000, 0x03ffff, MWA_ROM },
 	{ 0x040000, 0x04001f, actfancr_pf2_control_w },
 	{ 0x044000, 0x045fff, actfancr_pf2_data_w, &actfancr_pf2_data },
@@ -137,22 +130,18 @@ static struct MemoryWriteAddress triothep_writemem[] =
 	{ 0x1f0000, 0x1f3fff, MWA_RAM, &actfancr_ram }, /* Main ram */
 	{ 0x1ff000, 0x1ff001, triothep_control_select_w },
 	{ 0x1ff402, 0x1ff403, H6280_irq_status_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 /******************************************************************************/
 
-static struct MemoryReadAddress dec0_s_readmem[] =
-{
+static MEMORY_READ_START( dec0_s_readmem )
 	{ 0x0000, 0x07ff, MRA_RAM },
 	{ 0x3000, 0x3000, soundlatch_r },
 	{ 0x3800, 0x3800, OKIM6295_status_0_r },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress dec0_s_writemem[] =
-{
+static MEMORY_WRITE_START( dec0_s_writemem )
 	{ 0x0000, 0x07ff, MWA_RAM },
 	{ 0x0800, 0x0800, YM2203_control_port_0_w },
 	{ 0x0801, 0x0801, YM2203_write_port_0_w },
@@ -160,8 +149,7 @@ static struct MemoryWriteAddress dec0_s_writemem[] =
 	{ 0x1001, 0x1001, YM3812_write_port_0_w },
 	{ 0x3800, 0x3800, OKIM6295_data_0_w },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 /******************************************************************************/
 
@@ -529,19 +517,19 @@ static const struct MachineDriver machine_driver_triothep =
 /******************************************************************************/
 
 ROM_START( actfancr )
-	ROM_REGION( 0x200000, REGION_CPU1 ) /* Need to allow full RAM allocation for now */
+	ROM_REGION( 0x200000, REGION_CPU1, 0 ) /* Need to allow full RAM allocation for now */
 	ROM_LOAD( "fe08-2.bin", 0x00000, 0x10000, 0x0d36fbfa )
 	ROM_LOAD( "fe09-2.bin", 0x10000, 0x10000, 0x27ce2bb1 )
 	ROM_LOAD( "10",   0x20000, 0x10000, 0xcabad137 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 6502 Sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 6502 Sound CPU */
 	ROM_LOAD( "17-1", 0x08000, 0x8000, 0x289ad106 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "15", 0x00000, 0x10000, 0xa1baf21e ) /* Chars */
 	ROM_LOAD( "16", 0x10000, 0x10000, 0x22e64730 )
 
-	ROM_REGION( 0x60000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x60000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "02", 0x00000, 0x10000, 0xb1db0efc ) /* Sprites */
 	ROM_LOAD( "03", 0x10000, 0x08000, 0xf313e04f )
 	ROM_LOAD( "06", 0x18000, 0x10000, 0x8cb6dd87 )
@@ -551,30 +539,30 @@ ROM_START( actfancr )
 	ROM_LOAD( "04", 0x48000, 0x10000, 0xbcf41795 )
 	ROM_LOAD( "05", 0x58000, 0x08000, 0xd38b94aa )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "14", 0x00000, 0x10000, 0xd6457420 ) /* Tiles */
 	ROM_LOAD( "12", 0x10000, 0x10000, 0x08787b7a )
 	ROM_LOAD( "13", 0x20000, 0x10000, 0xc30c37dc )
 	ROM_LOAD( "11", 0x30000, 0x10000, 0x1f006d9f )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* ADPCM sounds */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* ADPCM sounds */
 	ROM_LOAD( "18",   0x00000, 0x10000, 0x5c55b242 )
 ROM_END
 
 ROM_START( actfanc1 )
-	ROM_REGION( 0x200000, REGION_CPU1 ) /* Need to allow full RAM allocation for now */
+	ROM_REGION( 0x200000, REGION_CPU1, 0 ) /* Need to allow full RAM allocation for now */
 	ROM_LOAD( "08-1", 0x00000, 0x10000, 0x3bf214a4 )
 	ROM_LOAD( "09-1", 0x10000, 0x10000, 0x13ae78d5 )
 	ROM_LOAD( "10",   0x20000, 0x10000, 0xcabad137 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 6502 Sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 6502 Sound CPU */
 	ROM_LOAD( "17-1", 0x08000, 0x8000, 0x289ad106 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "15", 0x00000, 0x10000, 0xa1baf21e ) /* Chars */
 	ROM_LOAD( "16", 0x10000, 0x10000, 0x22e64730 )
 
-	ROM_REGION( 0x60000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x60000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "02", 0x00000, 0x10000, 0xb1db0efc ) /* Sprites */
 	ROM_LOAD( "03", 0x10000, 0x08000, 0xf313e04f )
 	ROM_LOAD( "06", 0x18000, 0x10000, 0x8cb6dd87 )
@@ -584,30 +572,30 @@ ROM_START( actfanc1 )
 	ROM_LOAD( "04", 0x48000, 0x10000, 0xbcf41795 )
 	ROM_LOAD( "05", 0x58000, 0x08000, 0xd38b94aa )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "14", 0x00000, 0x10000, 0xd6457420 ) /* Tiles */
 	ROM_LOAD( "12", 0x10000, 0x10000, 0x08787b7a )
 	ROM_LOAD( "13", 0x20000, 0x10000, 0xc30c37dc )
 	ROM_LOAD( "11", 0x30000, 0x10000, 0x1f006d9f )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* ADPCM sounds */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* ADPCM sounds */
 	ROM_LOAD( "18",   0x00000, 0x10000, 0x5c55b242 )
 ROM_END
 
 ROM_START( actfancj )
-	ROM_REGION( 0x200000, REGION_CPU1 ) /* Need to allow full RAM allocation for now */
+	ROM_REGION( 0x200000, REGION_CPU1, 0 ) /* Need to allow full RAM allocation for now */
 	ROM_LOAD( "fd08-1.bin", 0x00000, 0x10000, 0x69004b60 )
 	ROM_LOAD( "fd09-1.bin", 0x10000, 0x10000, 0xa455ae3e )
 	ROM_LOAD( "10",   0x20000, 0x10000, 0xcabad137 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 6502 Sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 6502 Sound CPU */
 	ROM_LOAD( "17-1", 0x08000, 0x8000, 0x289ad106 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "15", 0x00000, 0x10000, 0xa1baf21e ) /* Chars */
 	ROM_LOAD( "16", 0x10000, 0x10000, 0x22e64730 )
 
-	ROM_REGION( 0x60000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x60000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "02", 0x00000, 0x10000, 0xb1db0efc ) /* Sprites */
 	ROM_LOAD( "03", 0x10000, 0x08000, 0xf313e04f )
 	ROM_LOAD( "06", 0x18000, 0x10000, 0x8cb6dd87 )
@@ -617,30 +605,30 @@ ROM_START( actfancj )
 	ROM_LOAD( "04", 0x48000, 0x10000, 0xbcf41795 )
 	ROM_LOAD( "05", 0x58000, 0x08000, 0xd38b94aa )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "14", 0x00000, 0x10000, 0xd6457420 ) /* Tiles */
 	ROM_LOAD( "12", 0x10000, 0x10000, 0x08787b7a )
 	ROM_LOAD( "13", 0x20000, 0x10000, 0xc30c37dc )
 	ROM_LOAD( "11", 0x30000, 0x10000, 0x1f006d9f )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* ADPCM sounds */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* ADPCM sounds */
 	ROM_LOAD( "18",   0x00000, 0x10000, 0x5c55b242 )
 ROM_END
 
 ROM_START( triothep )
-	ROM_REGION( 0x200000, REGION_CPU1 ) /* Need to allow full RAM allocation for now */
+	ROM_REGION( 0x200000, REGION_CPU1, 0 ) /* Need to allow full RAM allocation for now */
 	ROM_LOAD( "ff16",     0x00000, 0x20000, 0x84d7e1b6 )
 	ROM_LOAD( "ff15.bin", 0x20000, 0x10000, 0x6eada47c )
 	ROM_LOAD( "ff14.bin", 0x30000, 0x10000, 0x4ba7de4a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 6502 Sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 6502 Sound CPU */
 	ROM_LOAD( "ff18.bin", 0x00000, 0x10000, 0x9de9ee63 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ff12.bin", 0x00000, 0x10000, 0x15fb49f2 ) /* Chars */
 	ROM_LOAD( "ff13.bin", 0x10000, 0x10000, 0xe20c9623 )
 
-	ROM_REGION( 0x60000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x60000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ff11.bin", 0x00000, 0x10000, 0x19e885c7 ) /* Sprites */
 	ROM_LOAD( "ff10.bin", 0x10000, 0x08000, 0x4b6b477a )
 	ROM_LOAD( "ff09.bin", 0x18000, 0x10000, 0x79c6bc0e )
@@ -650,13 +638,13 @@ ROM_START( triothep )
 	ROM_LOAD( "ff01.bin", 0x48000, 0x10000, 0x68d80a66 )
 	ROM_LOAD( "ff00.bin", 0x58000, 0x08000, 0x41232442 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "ff04.bin", 0x00000, 0x10000, 0x7cea3c87 ) /* Tiles */
 	ROM_LOAD( "ff06.bin", 0x10000, 0x10000, 0x5e7f3e8f )
 	ROM_LOAD( "ff05.bin", 0x20000, 0x10000, 0x8bb13f05 )
 	ROM_LOAD( "ff07.bin", 0x30000, 0x10000, 0x0d7affc3 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* ADPCM sounds */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* ADPCM sounds */
 	ROM_LOAD( "ff17.bin", 0x00000, 0x10000, 0xf0ab0d05 )
 ROM_END
 

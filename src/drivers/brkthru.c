@@ -87,8 +87,7 @@ WRITE_HANDLER( brkthru_soundlatch_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },		/* Plane 0: Text */
 	{ 0x0400, 0x0bff, MRA_RAM },
 	{ 0x0c00, 0x0fff, MRA_RAM },		/* Plane 2  Background */
@@ -100,11 +99,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x1803, 0x1803, input_port_2_r },	/* coin input & DSW */
 	{ 0x2000, 0x3fff, MRA_BANK1 },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x03ff, MWA_RAM, &brkthru_videoram, &brkthru_videoram_size },
 	{ 0x0400, 0x0bff, MWA_RAM },
 	{ 0x0c00, 0x0fff, videoram_w, &videoram, &videoram_size },
@@ -114,10 +111,8 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x1802, 0x1802, brkthru_soundlatch_w },
 	{ 0x1803, 0x1803, brkthru_1803_w },	/* NMI enable, + ? */
 	{ 0x2000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
-static struct MemoryReadAddress darwin_readmem[] =
-{
+MEMORY_END
+static MEMORY_READ_START( darwin_readmem )
 	{ 0x1000, 0x13ff, MRA_RAM },		/* Plane 0: Text */
 	{ 0x0400, 0x07ff, MRA_RAM },
 	{ 0x1c00, 0x1fff, MRA_RAM },		/* Plane 2  Background */
@@ -129,11 +124,9 @@ static struct MemoryReadAddress darwin_readmem[] =
 	{ 0x0803, 0x0803, input_port_2_r },	/* coin input & DSW */
 	{ 0x2000, 0x3fff, MRA_BANK1 },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress darwin_writemem[] =
-{
+static MEMORY_WRITE_START( darwin_writemem )
 	{ 0x1000, 0x13ff, MWA_RAM, &brkthru_videoram, &brkthru_videoram_size },
 	{ 0x1c00, 0x1fff, videoram_w, &videoram, &videoram_size },
 	{ 0x0000, 0x00ff, MWA_RAM, &spriteram, &spriteram_size },
@@ -143,28 +136,23 @@ static struct MemoryWriteAddress darwin_writemem[] =
 	{ 0x0802, 0x0802, brkthru_soundlatch_w },
 	{ 0x0803, 0x0803, darwin_0803_w },     /* NMI enable, + ? */
 	{ 0x2000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x1fff, MRA_RAM },
 	{ 0x4000, 0x4000, soundlatch_r },
 	{ 0x6000, 0x6000, YM2203_status_port_0_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x1fff, MWA_RAM },
 	{ 0x2000, 0x2000, YM3526_control_port_0_w  },
 	{ 0x2001, 0x2001, YM3526_write_port_0_w },
 	{ 0x6000, 0x6000, YM2203_control_port_0_w },
 	{ 0x6001, 0x6001, YM2203_write_port_0_w },
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -390,7 +378,7 @@ static struct YM2203interface ym2203_interface =
 {
 	1,
 	1500000,	/* Unknown */
-	{ YM2203_VOL(25,25) },
+	{ YM2203_VOL(50,10) },
 	{ 0 },
 	{ 0 },
 	{ 0 },
@@ -399,9 +387,9 @@ static struct YM2203interface ym2203_interface =
 
 static struct YM3526interface ym3526_interface =
 {
-	1,			/* 1 chip (no more supported) */
-	3000000,	/* 3.000000 MHz ? (partially supported) */
-	{ 255 },		/* (not supported) */
+	1,			/* 1 chip */
+	3000000,	/* 3 MHz? */
+	{ 50 },		/* volume */
 	{ irqhandler },
 };
 
@@ -471,7 +459,19 @@ static const struct MachineDriver machine_driver_darwin =
 			ignore_interrupt,0	/* IRQs are caused by the YM3526 */
 		}
 	},
-	58, DEFAULT_REAL_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration / 60->58 tuned by Shingo Suzuki 1999/10/16 */
+	15625.0/272, DEFAULT_REAL_60HZ_VBLANK_DURATION,
+	/* frames per second, vblank duration
+		Horizontal video frequency:
+			HSync = Dot Clock / Horizontal Frame Length
+			      = Xtal /2   / (HDisplay + HBlank)
+			      = 12MHz/2   / (240 + 144)
+			      = 15.625kHz
+		Vertical Video frequency:
+			VSync = HSync / Vertical Frame Length
+			      = HSync / (VDisplay + VBlank)
+			      = 15.625kHz / (240 + 32)
+			      = 57.444855Hz
+	tuned by Shingo SUZUKI(VSyncMAME Project) 2000/10/19 */
 	1,	/* 1 CPU slice per frame - interleaving is forced when a sound command is written */
 	0,	/* init machine */
 
@@ -509,16 +509,16 @@ static const struct MachineDriver machine_driver_darwin =
 ***************************************************************************/
 
 ROM_START( brkthru )
-	ROM_REGION( 0x20000, REGION_CPU1 )     /* 64k for main CPU + 64k for banked ROMs */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )     /* 64k for main CPU + 64k for banked ROMs */
 	ROM_LOAD( "brkthru.1",    0x04000, 0x4000, 0xcfb4265f )
 	ROM_LOAD( "brkthru.2",    0x08000, 0x8000, 0xfa8246d9 )
 	ROM_LOAD( "brkthru.4",    0x10000, 0x8000, 0x8cabf252 )
 	ROM_LOAD( "brkthru.3",    0x18000, 0x8000, 0x2f2c40c2 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "brkthru.12",   0x00000, 0x2000, 0x58c0b29b )	/* characters */
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	/* background */
 	/* we do a lot of scatter loading here, to place the data in a format */
 	/* which can be decoded by MAME's standard functions */
@@ -535,30 +535,30 @@ ROM_START( brkthru )
 	ROM_CONTINUE(             0x1c000, 0x1000 )				/* bitplane 3 for bank 7,8 */
 	ROM_CONTINUE(             0x1e000, 0x1000 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "brkthru.9",    0x00000, 0x8000, 0xf54e50a7 )	/* sprites */
 	ROM_LOAD( "brkthru.10",   0x08000, 0x8000, 0xfd156945 )
 	ROM_LOAD( "brkthru.11",   0x10000, 0x8000, 0xc152a99b )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "brkthru.13",   0x0000, 0x0100, 0xaae44269 ) /* red and green component */
 	ROM_LOAD( "brkthru.14",   0x0100, 0x0100, 0xf2d4822a ) /* blue component */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64K for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64K for sound CPU */
 	ROM_LOAD( "brkthru.5",    0x8000, 0x8000, 0xc309435f )
 ROM_END
 
 ROM_START( brkthruj )
-	ROM_REGION( 0x20000, REGION_CPU1 )     /* 64k for main CPU + 64k for banked ROMs */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )     /* 64k for main CPU + 64k for banked ROMs */
 	ROM_LOAD( "1",            0x04000, 0x4000, 0x09bd60ee )
 	ROM_LOAD( "2",            0x08000, 0x8000, 0xf2b2cd1c )
 	ROM_LOAD( "4",            0x10000, 0x8000, 0xb42b3359 )
 	ROM_LOAD( "brkthru.3",    0x18000, 0x8000, 0x2f2c40c2 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "12",   0x00000, 0x2000, 0x3d9a7003 )	/* characters */
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	/* background */
 	/* we do a lot of scatter loading here, to place the data in a format */
 	/* which can be decoded by MAME's standard functions */
@@ -575,30 +575,30 @@ ROM_START( brkthruj )
 	ROM_CONTINUE(             0x1c000, 0x1000 )				/* bitplane 3 for bank 7,8 */
 	ROM_CONTINUE(             0x1e000, 0x1000 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "brkthru.9",    0x00000, 0x8000, 0xf54e50a7 )	/* sprites */
 	ROM_LOAD( "brkthru.10",   0x08000, 0x8000, 0xfd156945 )
 	ROM_LOAD( "brkthru.11",   0x10000, 0x8000, 0xc152a99b )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "brkthru.13",   0x0000, 0x0100, 0xaae44269 ) /* red and green component */
 	ROM_LOAD( "brkthru.14",   0x0100, 0x0100, 0xf2d4822a ) /* blue component */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64K for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64K for sound CPU */
 	ROM_LOAD( "brkthru.5",    0x8000, 0x8000, 0xc309435f )
 ROM_END
 
 ROM_START( darwin )
-	ROM_REGION( 0x20000, REGION_CPU1 )     /* 64k for main CPU + 64k for banked ROMs */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )     /* 64k for main CPU + 64k for banked ROMs */
 	ROM_LOAD( "darw_04.rom",  0x04000, 0x4000, 0x0eabf21c )
 	ROM_LOAD( "darw_05.rom",  0x08000, 0x8000, 0xe771f864 )
 	ROM_LOAD( "darw_07.rom",  0x10000, 0x8000, 0x97ac052c )
 	ROM_LOAD( "darw_06.rom",  0x18000, 0x8000, 0x2a9fb208 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "darw_09.rom",  0x00000, 0x2000, 0x067b4cf5 )   /* characters */
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	/* background */
 	/* we do a lot of scatter loading here, to place the data in a format */
 	/* which can be decoded by MAME's standard functions */
@@ -615,16 +615,16 @@ ROM_START( darwin )
 	ROM_CONTINUE(             0x1c000, 0x1000 )				/* bitplane 3 for bank 7,8 */
 	ROM_CONTINUE(             0x1e000, 0x1000 )
 
-	ROM_REGION( 0x18000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "darw_10.rom",  0x00000, 0x8000, 0x487a014c )	/* sprites */
 	ROM_LOAD( "darw_11.rom",  0x08000, 0x8000, 0x548ce2d1 )
 	ROM_LOAD( "darw_12.rom",  0x10000, 0x8000, 0xfaba5fef )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "df.12",   0x0000, 0x0100, 0x89b952ef ) /* red and green component */
 	ROM_LOAD( "df.13",   0x0100, 0x0100, 0xd595e91d ) /* blue component */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64K for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64K for sound CPU */
 	ROM_LOAD( "darw_08.rom",  0x8000, 0x8000, 0x6b580d58 )
 ROM_END
 

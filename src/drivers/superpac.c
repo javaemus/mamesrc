@@ -39,10 +39,6 @@ CPU #2 uses no interrupts
 #include "vidhrdw/generic.h"
 
 
-extern unsigned char *mappy_soundregs;
-WRITE_HANDLER( mappy_sound_enable_w );
-WRITE_HANDLER( mappy_sound_w );
-
 extern unsigned char *superpac_sharedram;
 extern unsigned char *superpac_customio_1,*superpac_customio_2;
 READ_HANDLER( superpac_customio_r );
@@ -62,22 +58,24 @@ READ_HANDLER( superpac_flipscreen_r );
 WRITE_HANDLER( superpac_flipscreen_w );
 
 
-/* CPU 1 read addresses */
-static struct MemoryReadAddress readmem_cpu1[] =
-{
+
+/*************************************
+ *
+ *	Main CPU memory handlers
+ *
+ *************************************/
+
+static MEMORY_READ_START( readmem_cpu1 )
 	{ 0x0000, 0x1fff, MRA_RAM },
 	{ 0x2000, 0x2000, superpac_flipscreen_r },
 	{ 0x4040, 0x43ff, superpac_sharedram_r },	/* Pac'n Pal only */
 	{ 0x4800, 0x480f, superpac_customio_1_r },
 	{ 0x4810, 0x481f, superpac_customio_2_r },
 	{ 0xa000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-/* CPU 1 write addresses */
-static struct MemoryWriteAddress writemem_cpu1[] =
-{
+static MEMORY_WRITE_START( writemem_cpu1 )
 	{ 0x0000, 0x03ff, videoram_w, &videoram, &videoram_size },
 	{ 0x0400, 0x07ff, colorram_w, &colorram },
 	{ 0x0800, 0x0f7f, MWA_RAM },
@@ -86,7 +84,7 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x1780, 0x17ff, MWA_RAM, &spriteram_2 },
 	{ 0x1800, 0x1f7f, MWA_RAM },
 	{ 0x1f80, 0x1fff, MWA_RAM, &spriteram_3 },
-	{ 0x2000, 0x2000, flip_screen_w },
+	{ 0x2000, 0x2000, superpac_flipscreen_w },
 	{ 0x4040, 0x43ff, superpac_sharedram_w, &superpac_sharedram },
 	{ 0x4800, 0x480f, MWA_RAM, &superpac_customio_1 },
 	{ 0x4810, 0x481f, MWA_RAM, &superpac_customio_2 },
@@ -96,49 +94,37 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x500a, 0x500b, superpac_cpu_enable_w },
 	{ 0x8000, 0x8000, watchdog_reset_w },
 	{ 0xa000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-/* CPU 2 read addresses */
-static struct MemoryReadAddress superpac_readmem_cpu2[] =
-{
+
+/*************************************
+ *
+ *	Sound CPU memory handlers
+ *
+ *************************************/
+
+static MEMORY_READ_START( readmem_cpu2 )
 	{ 0x0040, 0x03ff, superpac_sharedram_r },
 	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-/* CPU 2 write addresses */
-static struct MemoryWriteAddress superpac_writemem_cpu2[] =
-{
-	{ 0x0000, 0x003f, mappy_sound_w, &mappy_soundregs },
-	{ 0x0040, 0x03ff, superpac_sharedram_w },
-	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
-
-
-/* CPU 2 read addresses */
-static struct MemoryReadAddress pacnpal_readmem_cpu2[] =
-{
-	{ 0x0040, 0x03ff, superpac_sharedram_r },
-	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
-
-
-/* CPU 2 write addresses */
-static struct MemoryWriteAddress pacnpal_writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x0000, 0x003f, mappy_sound_w, &mappy_soundregs },
 	{ 0x0040, 0x03ff, superpac_sharedram_w },
 	{ 0x2000, 0x2001, superpac_interrupt_enable_w },
 	{ 0x2006, 0x2007, mappy_sound_enable_w },
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
+
+
+/*************************************
+ *
+ *	Input ports
+ *
+ *************************************/
 
 INPUT_PORTS_START( superpac )
 	PORT_START	/* DSW0 */
@@ -319,29 +305,36 @@ INPUT_PORTS_START( pacnpal )
 INPUT_PORTS_END
 
 
+
+/*************************************
+ *
+ *	Graphics layouts
+ *
+ *************************************/
+
 static struct GfxLayout charlayout =
 {
-	8,8,                                           /* 8*8 characters */
-	256,                                           /* 256 characters */
-	2,                                             /* 2 bits per pixel */
-	{ 0, 4 },                                      /* the two bitplanes for 4 pixels are packed into one byte */
-	{ 8*8+0, 8*8+1, 8*8+2, 8*8+3, 0, 1, 2, 3 },    /* bits are packed in groups of four */
-	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },    /* characters are rotated 90 degrees */
-	16*8                                           /* every char takes 16 bytes */
+	8,8,
+	RGN_FRAC(1,1),
+	2,
+	{ 0, 4 },
+	{ 8*8+0, 8*8+1, 8*8+2, 8*8+3, 0, 1, 2, 3 },
+	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },
+	16*8
 };
 
 
 static struct GfxLayout spritelayout =
 {
-	16,16,                                         /* 16*16 sprites */
-	128,                                           /* 128 sprites */
-	2,                                             /* 2 bits per pixel */
-	{ 0, 4 },                                      /* the two bitplanes for 4 pixels are packed into one byte */
+	16,16,
+	RGN_FRAC(1,1),
+	2,
+	{ 0, 4 },
 	{ 0, 1, 2, 3, 8*8, 8*8+1, 8*8+2, 8*8+3,
 			16*8+0, 16*8+1, 16*8+2, 16*8+3, 24*8+0, 24*8+1, 24*8+2, 24*8+3 },
 	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8,
 			32*8, 33*8, 34*8, 35*8, 36*8, 37*8, 38*8, 39*8 },
-	64*8                                           /* every sprite takes 64 bytes */
+	64*8
 };
 
 
@@ -349,9 +342,16 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 {
 	{ REGION_GFX1, 0, &charlayout,      0, 64 },
 	{ REGION_GFX2, 0, &spritelayout, 64*4, 64 },
-	{ -1 } /* end of array */
+	{ -1 }
 };
 
+
+
+/*************************************
+ *
+ *	Sound interfaces
+ *
+ *************************************/
 
 static struct namco_interface namco_interface =
 {
@@ -363,26 +363,31 @@ static struct namco_interface namco_interface =
 
 
 
+/*************************************
+ *
+ *	Machine driver
+ *
+ *************************************/
+
 static const struct MachineDriver machine_driver_superpac =
 {
 	/* basic machine hardware  */
 	{
 		{
 			CPU_M6809,
-			1100000,             /* 1.1 MHz */
+			1100000,
 			readmem_cpu1,writemem_cpu1,0,0,
 			interrupt,1
 		},
 		{
 			CPU_M6809,
-			1100000,             /* 1.1 MHz */
-			superpac_readmem_cpu2,superpac_writemem_cpu2,0,0,
-			ignore_interrupt,1
+			1100000,
+			readmem_cpu2,writemem_cpu2,0,0,
+			interrupt,1
 		}
 	},
-	60, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
-	100,	/* 100 CPU slices per frame - an high value to ensure proper */
-			/* synchronization of the CPUs */
+	60, DEFAULT_60HZ_VBLANK_DURATION,
+	100,
 	superpac_init_machine,
 
 	/* video hardware */
@@ -407,173 +412,146 @@ static const struct MachineDriver machine_driver_superpac =
 	}
 };
 
-static const struct MachineDriver machine_driver_pacnpal =
-{
-	/* basic machine hardware  */
-	{
-		{
-			CPU_M6809,
-			1100000,             /* 1.1 MHz */
-			readmem_cpu1,writemem_cpu1,0,0,
-			interrupt,1
-		},
-		{
-			CPU_M6809,
-			1100000,             /* 1.1 MHz */
-			pacnpal_readmem_cpu2,pacnpal_writemem_cpu2,0,0,
-			interrupt,1
-		}
-	},
-	60, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
-	100,	/* 100 CPU slices per frame - an high value to ensure proper */
-			/* synchronization of the CPUs */
-	superpac_init_machine,
 
-	/* video hardware */
-	36*8, 28*8,	{ 0*8, 36*8-1, 0*8, 28*8-1 },
-	gfxdecodeinfo,
-	32,	4*(64+64),
-	superpac_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER,
-	0,
-	generic_vh_start,
-	generic_vh_stop,
-	superpac_vh_screenrefresh,
-
-	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_NAMCO,
-			&namco_interface
-		}
-	}
-};
-
+/*************************************
+ *
+ *	ROM definitions
+ *
+ *************************************/
 
 ROM_START( superpac )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "sp1.2",        0xc000, 0x2000, 0x4bb33d9c )
 	ROM_LOAD( "sp1.1",        0xe000, 0x2000, 0x846fbb4a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "spc-3.1k",     0xf000, 0x1000, 0x04445ddb )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sp1.6",        0x0000, 0x1000, 0x91c5935c )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "spv-2.3f",     0x0000, 0x2000, 0x670a42f2 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "superpac.4c",  0x0000, 0x0020, 0x9ce22c46 ) /* palette */
 	ROM_LOAD( "superpac.4e",  0x0020, 0x0100, 0x1253c5c1 ) /* chars */
 	ROM_LOAD( "superpac.3l",  0x0120, 0x0100, 0xd4d7026f ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "superpac.3m",  0x0000, 0x0100, 0xad43688f )
 ROM_END
 
+
 ROM_START( superpcm )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "spc-2.1c",     0xc000, 0x2000, 0x1a38c30e )
 	ROM_LOAD( "spc-1.1b",     0xe000, 0x2000, 0x730e95a9 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "spc-3.1k",     0xf000, 0x1000, 0x04445ddb )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "spv-1.3c",     0x0000, 0x1000, 0x78337e74 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "spv-2.3f",     0x0000, 0x2000, 0x670a42f2 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "superpac.4c",  0x0000, 0x0020, 0x9ce22c46 ) /* palette */
 	ROM_LOAD( "superpac.4e",  0x0020, 0x0100, 0x1253c5c1 ) /* chars */
 	ROM_LOAD( "superpac.3l",  0x0120, 0x0100, 0xd4d7026f ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "superpac.3m",  0x0000, 0x0100, 0xad43688f )
 ROM_END
 
+
 ROM_START( pacnpal )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "pap13b.cpu",   0xa000, 0x2000, 0xed64a565 )
 	ROM_LOAD( "pap12b.cpu",   0xc000, 0x2000, 0x15308bcf )
 	ROM_LOAD( "pap11b.cpu",   0xe000, 0x2000, 0x3cac401c )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "pap14.cpu",    0xf000, 0x1000, 0x330e20de )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pap16.cpu",    0x0000, 0x1000, 0xa36b96cb )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pap15.vid",    0x0000, 0x2000, 0xfb6f56e3 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "papi6.vid",    0x0000, 0x0020, 0x52634b41 ) /* palette */
 	ROM_LOAD( "papi5.vid",    0x0020, 0x0100, 0xac46203c ) /* chars */
 	ROM_LOAD( "papi4.vid",    0x0120, 0x0100, 0x686bde84 ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "papi3.cpu",    0x0000, 0x0100, 0x83c31a98 )
 ROM_END
 
+
 ROM_START( pacnpal2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "pap1_3.1d",    0xa000, 0x2000, 0xd7ec2719 )
 	ROM_LOAD( "pap1_2.1c",    0xc000, 0x2000, 0x0245396e )
 	ROM_LOAD( "pap1_1.1b",    0xe000, 0x2000, 0x7f046b58 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "pap14.cpu",    0xf000, 0x1000, 0x330e20de )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pap16.cpu",    0x0000, 0x1000, 0xa36b96cb )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pap15.vid",    0x0000, 0x2000, 0xfb6f56e3 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "papi6.vid",    0x0000, 0x0020, 0x52634b41 ) /* palette */
 	ROM_LOAD( "papi5.vid",    0x0020, 0x0100, 0xac46203c ) /* chars */
 	ROM_LOAD( "papi4.vid",    0x0120, 0x0100, 0x686bde84 ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "papi3.cpu",    0x0000, 0x0100, 0x83c31a98 )
 ROM_END
 
+
 ROM_START( pacnchmp )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "pap3.1d",      0xa000, 0x2000, 0x20a07d3d )
 	ROM_LOAD( "pap3.1c",      0xc000, 0x2000, 0x505bae56 )
 	ROM_LOAD( "pap11b.cpu",   0xe000, 0x2000, 0x3cac401c )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "pap14.cpu",    0xf000, 0x1000, 0x330e20de )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pap2.3c",      0x0000, 0x1000, 0x93d15c30 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pap2.3f",      0x0000, 0x2000, 0x39f44aa4 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "papi6.vid",    0x0000, 0x0020, BADCRC( 0x52634b41 ) ) /* palette */
 	ROM_LOAD( "papi5.vid",    0x0020, 0x0100, BADCRC( 0xac46203c ) ) /* chars */
 	ROM_LOAD( "papi4.vid",    0x0120, 0x0100, BADCRC( 0x686bde84 ) ) /* sprites */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "papi3.cpu",    0x0000, 0x0100, 0x83c31a98 )
 ROM_END
 
 
 
+/*************************************
+ *
+ *	Game drivers
+ *
+ *************************************/
+
 GAME( 1982, superpac, 0,        superpac, superpac, 0, ROT90, "Namco", "Super Pac-Man" )
 GAME( 1982, superpcm, superpac, superpac, superpac, 0, ROT90, "[Namco] (Bally Midway license)", "Super Pac-Man (Midway)" )
-GAME( 1983, pacnpal,  0,        pacnpal,  pacnpal,  0, ROT90, "Namco", "Pac & Pal" )
-GAME( 1983, pacnpal2, pacnpal,  pacnpal,  pacnpal,  0, ROT90, "Namco", "Pac & Pal (older)" )
-GAMEX(1983, pacnchmp, pacnpal,  pacnpal,  pacnpal,  0, ROT90, "Namco", "Pac-Man & Chomp Chomp", GAME_IMPERFECT_COLORS )
+GAME( 1983, pacnpal,  0,        superpac, pacnpal,  0, ROT90, "Namco", "Pac & Pal" )
+GAME( 1983, pacnpal2, pacnpal,  superpac, pacnpal,  0, ROT90, "Namco", "Pac & Pal (older)" )
+GAMEX(1983, pacnchmp, pacnpal,  superpac, pacnpal,  0, ROT90, "Namco", "Pac-Man & Chomp Chomp", GAME_IMPERFECT_COLORS )

@@ -3,9 +3,25 @@
 */
 
 #include "driver.h"
-#include "m68000.h"
-#include "d68k.h"
 #include "mamedbg.h"
+#include "m68000.h"
+
+enum
+{
+	M68K_CPU_TYPE_INVALID,
+	M68K_CPU_TYPE_68000,
+	M68K_CPU_TYPE_68010,
+	M68K_CPU_TYPE_68EC020,
+	M68K_CPU_TYPE_68020,
+	M68K_CPU_TYPE_68030,	/* Supported by disassembler ONLY */
+	M68K_CPU_TYPE_68040		/* Supported by disassembler ONLY */
+};
+
+
+int illegal_op = 0 ;
+int illegal_pc = 0 ;
+
+unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_type);
 
 #ifdef WIN32
 #define CONVENTION __cdecl
@@ -50,7 +66,7 @@ typedef struct
 } m68k_cpu_context;
 
 
-static UINT8 m68k_reg_layout[] = {
+static UINT8 M68K_layout[] = {
 	M68K_PC, M68K_ISP, -1,
 	M68K_SR, M68K_USP, -1,
 	M68K_D0, M68K_A0, -1,
@@ -76,16 +92,235 @@ extern m68k_cpu_context regs;
 extern void CONVENTION M68KRUN(void);
 extern void CONVENTION M68KRESET(void);
 
+
+/* Redirect memory calls */
+struct m68k_memory_interface
+{
+	offs_t		opcode_xor;
+	data8_t		(*read8)(offs_t);
+	data16_t	(*read16)(offs_t);
+	data32_t	(*read32)(offs_t);
+	void		(*write8)(offs_t, data8_t);
+	void		(*write16)(offs_t, data16_t);
+	void		(*write32)(offs_t, data32_t);
+	void		(*changepc)(offs_t);
+};
+
+
+/****************************************************************************
+ * 24-bit address, 16-bit data memory interface
+ ****************************************************************************/
+
+static data32_t readlong_a24_d16(offs_t address)
+{
+	data32_t result = cpu_readmem24bew_word(address) << 16;
+	return result | cpu_readmem24bew_word(address + 2);
+}
+
+static void writelong_a24_d16(offs_t address, data32_t data)
+{
+	cpu_writemem24bew_word(address, data >> 16);
+	cpu_writemem24bew_word(address + 2, data);
+}
+
+static void changepc_a24_d16(offs_t pc)
+{
+	change_pc24bew(pc);
+}
+
+/* interface for 24-bit address bus, 16-bit data bus (68000, 68010) */
+static const struct m68k_memory_interface interface_a24_d16 =
+{
+	0,
+	cpu_readmem24bew,
+	cpu_readmem24bew_word,
+	readlong_a24_d16,
+	cpu_writemem24bew,
+	cpu_writemem24bew_word,
+	writelong_a24_d16,
+	changepc_a24_d16
+};
+
+
+/****************************************************************************
+ * 24-bit address, 32-bit data memory interface
+ ****************************************************************************/
+
+/* potentially misaligned 16-bit reads with a 32-bit data bus (and 24-bit address bus) */
+static data16_t readword_a24_d32(offs_t address)
+{
+	data16_t result;
+
+	if (!(address & 1))
+		return cpu_readmem24bedw_word(address);
+	result = cpu_readmem24bedw(address) << 8;
+	return result | cpu_readmem24bedw(address + 1);
+}
+
+/* potentially misaligned 16-bit writes with a 32-bit data bus (and 24-bit address bus) */
+static void writeword_a24_d32(offs_t address, data16_t data)
+{
+	if (!(address & 1))
+	{
+		cpu_writemem24bedw_word(address, data);
+		return;
+	}
+	cpu_writemem24bedw(address, data >> 8);
+	cpu_writemem24bedw(address + 1, data);
+}
+
+/* potentially misaligned 32-bit reads with a 32-bit data bus (and 24-bit address bus) */
+static data32_t readlong_a24_d32(offs_t address)
+{
+	data32_t result;
+
+	if (!(address & 3))
+		return cpu_readmem24bedw_dword(address);
+	else if (!(address & 1))
+	{
+		result = cpu_readmem24bedw_word(address) << 16;
+		return result | cpu_readmem24bedw_word(address + 2);
+	}
+	result = cpu_readmem24bedw(address) << 24;
+	result |= cpu_readmem24bedw_word(address + 1) << 8;
+	return result | cpu_readmem24bedw(address + 3);
+}
+
+/* potentially misaligned 32-bit writes with a 32-bit data bus (and 24-bit address bus) */
+static void writelong_a24_d32(offs_t address, data32_t data)
+{
+	if (!(address & 3))
+	{
+		cpu_writemem24bedw_dword(address, data);
+		return;
+	}
+	else if (!(address & 1))
+	{
+		cpu_writemem24bedw_word(address, data >> 16);
+		cpu_writemem24bedw_word(address + 2, data);
+		return;
+	}
+	cpu_writemem24bedw(address, data >> 24);
+	cpu_writemem24bedw_word(address + 1, data >> 8);
+	cpu_writemem24bedw(address + 3, data);
+}
+
+static void changepc_a24_d32(offs_t pc)
+{
+	change_pc24bedw(pc);
+}
+
+/* interface for 24-bit address bus, 32-bit data bus (68EC020) */
+static const struct m68k_memory_interface interface_a24_d32 =
+{
+	WORD_XOR_BE(0),
+	cpu_readmem24bedw,
+	readword_a24_d32,
+	readlong_a24_d32,
+	cpu_writemem24bedw,
+	writeword_a24_d32,
+	writelong_a24_d32,
+	changepc_a24_d32
+};
+
+
+/****************************************************************************
+ * 32-bit address, 32-bit data memory interface
+ ****************************************************************************/
+
+/* potentially misaligned 16-bit reads with a 32-bit data bus (and 32-bit address bus) */
+static data16_t readword_a32_d32(offs_t address)
+{
+	data16_t result;
+
+	if (!(address & 1))
+		return cpu_readmem32bedw_word(address);
+	result = cpu_readmem32bedw(address) << 8;
+	return result | cpu_readmem32bedw(address + 1);
+}
+
+/* potentially misaligned 16-bit writes with a 32-bit data bus (and 32-bit address bus) */
+static void writeword_a32_d32(offs_t address, data16_t data)
+{
+	if (!(address & 1))
+	{
+		cpu_writemem32bedw_word(address, data);
+		return;
+	}
+	cpu_writemem32bedw(address, data >> 8);
+	cpu_writemem32bedw(address + 1, data);
+}
+
+/* potentially misaligned 32-bit reads with a 32-bit data bus (and 32-bit address bus) */
+static data32_t readlong_a32_d32(offs_t address)
+{
+	data32_t result;
+
+	if (!(address & 3))
+		return cpu_readmem32bedw_dword(address);
+	else if (!(address & 1))
+	{
+		result = cpu_readmem32bedw_word(address) << 16;
+		return result | cpu_readmem32bedw_word(address + 2);
+	}
+	result = cpu_readmem32bedw(address) << 24;
+	result |= cpu_readmem32bedw_word(address + 1) << 8;
+	return result | cpu_readmem32bedw(address + 3);
+}
+
+/* potentially misaligned 32-bit writes with a 32-bit data bus (and 32-bit address bus) */
+static void writelong_a32_d32(offs_t address, data32_t data)
+{
+	if (!(address & 3))
+	{
+		cpu_writemem32bedw_dword(address, data);
+		return;
+	}
+	else if (!(address & 1))
+	{
+		cpu_writemem32bedw_word(address,     data >> 16);
+		cpu_writemem32bedw_word(address + 2, data);
+		return;
+	}
+	cpu_writemem32bedw(address, data >> 24);
+	cpu_writemem32bedw_word(address + 1, data >> 8);
+	cpu_writemem32bedw(address + 3, data);
+}
+
+static void changepc_a32_d32(offs_t pc)
+{
+	change_pc32bedw(pc);
+}
+
+/* interface for 24-bit address bus, 32-bit data bus (68020) */
+static const struct m68k_memory_interface interface_a32_d32 =
+{
+	WORD_XOR_BE(0),
+	cpu_readmem32bedw,
+	readword_a32_d32,
+	readlong_a32_d32,
+	cpu_writemem32bedw,
+	writeword_a32_d32,
+	writelong_a32_d32,
+	changepc_a32_d32
+};
+
+/* global access */
+struct m68k_memory_interface m68k_memory_intf;
+
+
 /********************************************/
 /* Interface routines to link Mame -> 68KEM */
 /********************************************/
 
-void m68000_reset(void *param)
+#define READOP(a)	(cpu_readop16((a) ^ m68k_memory_intf.opcode_xor))
+
+static void m680x0_reset_common(void)
 {
 	memset(&regs,0,sizeof(regs));
 
-    regs.a[7] = regs.isp = (( cpu_readop16(0) << 16 ) | cpu_readop16(2));
-    regs.pc   = (( cpu_readop16(4) << 16 ) | cpu_readop16(6)) & 0xffffff;
+    regs.a[7] = regs.isp = (( READOP(0) << 16 ) | READOP(2));
+    regs.pc   = (( READOP(4) << 16 ) | READOP(6)) & 0xffffff;
     regs.sr_high = 0x27;
 
 	#ifdef MAME_DEBUG
@@ -93,6 +328,13 @@ void m68000_reset(void *param)
 	#endif
 
     M68KRESET();
+}
+
+void m68000_reset(void *param)
+{
+	if (m68k_memory_intf.read8 != cpu_readmem24bew)
+		m68k_memory_intf = interface_a24_d16;
+	m680x0_reset_common();
 }
 
 
@@ -173,6 +415,8 @@ unsigned m68000_get_context(void *dst)
 
 void m68000_set_context(void *src)
 {
+	if (m68k_memory_intf.read8 != cpu_readmem24bew)
+		m68k_memory_intf = interface_a24_d16;
 	if( src )
 		regs = *(m68k_cpu_context*)src;
 }
@@ -231,7 +475,7 @@ unsigned m68000_get_reg(int regnum)
 			{
 				unsigned offset = regs.isp + 4 * (REG_SP_CONTENTS - regnum);
 				if( offset < 0xfffffd )
-					return cpu_readmem24bew_dword( offset );
+					return (*m68k_memory_intf.read32)( offset );
             }
     }
     return 0;
@@ -270,7 +514,7 @@ void m68000_set_reg(int regnum, unsigned val)
 			{
 				unsigned offset = regs.isp + 4 * (REG_SP_CONTENTS - regnum);
 				if( offset < 0xfffffd )
-					cpu_writemem24bew_dword( offset, val );
+					(*m68k_memory_intf.write32)( offset, val );
             }
     }
 }
@@ -338,7 +582,7 @@ void m68000_set_reset_callback(int (*callback)(void))
 const char *m68000_info(void *context, int regnum)
 {
 #ifdef MAME_DEBUG
-extern int m68k_disassemble(char* str_buff, int pc);
+//extern int m68k_disassemble(char* str_buff, int pc, int cputype);
 #endif
     static char buffer[32][47+1];
 	static int which;
@@ -398,7 +642,7 @@ extern int m68k_disassemble(char* str_buff, int pc);
 		case CPU_INFO_VERSION: return "0.16";
 		case CPU_INFO_FILE: return __FILE__;
 		case CPU_INFO_CREDITS: return "Copyright 1998,99 Mike Coates, Darren Olafson. All rights reserved";
-		case CPU_INFO_REG_LAYOUT: return (const char*)m68k_reg_layout;
+		case CPU_INFO_REG_LAYOUT: return (const char*)M68K_layout;
         case CPU_INFO_WIN_LAYOUT: return (const char*)m68k_win_layout;
 	}
 	return buffer[which];
@@ -408,7 +652,7 @@ unsigned m68000_dasm(char *buffer, unsigned pc)
 {
 	change_pc24bew(pc);
 #ifdef MAME_DEBUG
-    return m68k_disassemble(buffer, pc);
+	return m68k_disassemble(buffer, pc, M68K_CPU_TYPE_68000);
 #else
 	sprintf(buffer, "$%04X", cpu_readop16(pc) );
 	return 2;
@@ -423,14 +667,24 @@ unsigned m68000_dasm(char *buffer, unsigned pc)
 
 void m68010_reset(void *param)
 {
-	m68000_reset(param);
+	if (m68k_memory_intf.read8 != cpu_readmem24bew)
+		m68k_memory_intf = interface_a24_d16;
+	m680x0_reset_common();
     regs.CPUtype=1;
 }
 
 void m68010_exit(void) { m68000_exit(); }
 int  m68010_execute(int cycles) { return m68000_execute(cycles); }
 unsigned m68010_get_context(void *dst) { return m68000_get_context(dst); }
-void m68010_set_context(void *src) { m68000_set_context(src); }
+
+void m68010_set_context(void *src)
+{
+	if (m68k_memory_intf.read8 != cpu_readmem24bew)
+		m68k_memory_intf = interface_a24_d16;
+	if( src )
+		regs = *(m68k_cpu_context*)src;
+}
+
 unsigned m68010_get_pc(void) { return m68000_get_pc(); }
 void m68010_set_pc(unsigned val) { m68000_set_pc(val); }
 unsigned m68010_get_sp(void) { return m68000_get_sp(); }
@@ -454,7 +708,7 @@ unsigned m68010_dasm(char *buffer, unsigned pc)
 {
 	change_pc24bew(pc);
 #ifdef MAME_DEBUG
-    return m68k_disassemble(buffer, pc);
+	return m68k_disassemble(buffer, pc, M68K_CPU_TYPE_68010);
 #else
 	sprintf(buffer, "$%04X", cpu_readop16(pc) );
 	return 2;
@@ -470,14 +724,24 @@ unsigned m68010_dasm(char *buffer, unsigned pc)
 
 void m68ec020_reset(void *param)
 {
-	m68000_reset(param);
+	if (m68k_memory_intf.read8 != cpu_readmem24bedw)
+		m68k_memory_intf = interface_a24_d32;
+	m680x0_reset_common();
     regs.CPUtype=2;
 }
 
 void m68ec020_exit(void) { m68000_exit(); }
 int  m68ec020_execute(int cycles) { return m68000_execute(cycles); }
 unsigned m68ec020_get_context(void *dst) { return m68000_get_context(dst); }
-void m68ec020_set_context(void *src) { m68000_set_context(src); }
+
+void m68ec020_set_context(void *src)
+{
+	if (m68k_memory_intf.read8 != cpu_readmem24bedw)
+		m68k_memory_intf = interface_a24_d32;
+	if( src )
+		regs = *(m68k_cpu_context*)src;
+}
+
 unsigned m68ec020_get_pc(void) { return m68000_get_pc(); }
 void m68ec020_set_pc(unsigned val) { m68000_set_pc(val); }
 unsigned m68ec020_get_sp(void) { return m68000_get_sp(); }
@@ -501,7 +765,7 @@ unsigned m68ec020_dasm(char *buffer, unsigned pc)
 {
 	change_pc24bew(pc);
 #ifdef MAME_DEBUG
-    return m68k_disassemble(buffer, pc);
+	return m68k_disassemble(buffer, pc, M68K_CPU_TYPE_68EC020);
 #else
 	sprintf(buffer, "$%04X", cpu_readop16(pc) );
 	return 2;
@@ -513,14 +777,24 @@ unsigned m68ec020_dasm(char *buffer, unsigned pc)
 
 void m68020_reset(void *param)
 {
-	m68000_reset(param);
+	if (m68k_memory_intf.read8 != cpu_readmem32bedw)
+		m68k_memory_intf = interface_a32_d32;
+	m680x0_reset_common();
     regs.CPUtype=2;
 }
 
 void m68020_exit(void) { m68000_exit(); }
 int  m68020_execute(int cycles) { return m68000_execute(cycles); }
 unsigned m68020_get_context(void *dst) { return m68000_get_context(dst); }
-void m68020_set_context(void *src) { m68000_set_context(src); }
+
+void m68020_set_context(void *src)
+{
+	if (m68k_memory_intf.read8 != cpu_readmem32bedw)
+		m68k_memory_intf = interface_a32_d32;
+	if( src )
+		regs = *(m68k_cpu_context*)src;
+}
+
 unsigned m68020_get_pc(void) { return m68000_get_pc(); }
 void m68020_set_pc(unsigned val) { m68000_set_pc(val); }
 unsigned m68020_get_sp(void) { return m68000_get_sp(); }
@@ -544,7 +818,7 @@ unsigned m68020_dasm(char *buffer, unsigned pc)
 {
 	change_pc24bew(pc);
 #ifdef MAME_DEBUG
-    return m68k_disassemble(buffer, pc);
+	return m68k_disassemble(buffer, pc, M68K_CPU_TYPE_68020);
 #else
 	sprintf(buffer, "$%04X", cpu_readop16(pc) );
 	return 2;

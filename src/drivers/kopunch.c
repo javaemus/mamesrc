@@ -99,31 +99,17 @@ int kopunch_interrupt(void)
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x23ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x23ff, MWA_RAM },
 	{ 0x6000, 0x63ff, videoram_w, &videoram, &videoram_size },
 	{ 0x7000, 0x70ff, MWA_RAM, &bsvideoram, &bsvideoram_size },
-	{ -1 }	/* end of table */
-};
-
-static struct IOReadPort readport[] =
-{
-	{ -1 }	/* end of table */
-};
-
-static struct IOWritePort writeport[] =
-{
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -173,7 +159,7 @@ static const struct MachineDriver machine_driver_kopunch =
 		{
 			CPU_Z80,
 			3072000,	/* 3.072 MHz ? */
-			readmem,writemem,readport,writeport,
+			readmem,writemem,0,0,
 			kopunch_interrupt,1
 		}
 	},
@@ -206,16 +192,16 @@ static const struct MachineDriver machine_driver_kopunch =
 ***************************************************************************/
 
 ROM_START( kopunch )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "epr1105.x",    0x0000, 0x1000, 0x34ef5e79 )
 	ROM_LOAD( "epr1106.x",    0x1000, 0x1000, 0x25a5c68b )
 
-	ROM_REGION( 0x1800, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1800, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "epr1102",      0x0000, 0x0800, 0x8a52de96 )
 	ROM_LOAD( "epr1103",      0x0800, 0x0800, 0xbae5e054 )
 	ROM_LOAD( "epr1104",      0x1000, 0x0800, 0x7b119a0e )
 
-	ROM_REGION( 0x6000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "epr1107",      0x0000, 0x1000, 0xca00244d )
 	ROM_LOAD( "epr1108",      0x1000, 0x1000, 0xcc17c5ed )
 	ROM_LOAD( "epr1110",      0x2000, 0x1000, 0xae0aff15 )
@@ -223,7 +209,7 @@ ROM_START( kopunch )
 	ROM_LOAD( "epr1112",      0x4000, 0x1000, 0xef6994df )
 	ROM_LOAD( "epr1111",      0x5000, 0x1000, 0x28530ec9 )
 
-	ROM_REGION( 0x0060, REGION_PROMS )
+	ROM_REGION( 0x0060, REGION_PROMS, 0 )
 	ROM_LOAD( "epr1099",      0x0000, 0x0020, 0xfc58c456 )
 	ROM_LOAD( "epr1100",      0x0020, 0x0020, 0xbedb66b1 )
 	ROM_LOAD( "epr1101",      0x0040, 0x0020, 0x15600f5d )

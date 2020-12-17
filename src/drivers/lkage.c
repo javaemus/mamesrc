@@ -82,8 +82,7 @@ static WRITE_HANDLER( lkage_sh_nmi_enable_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xdfff, MRA_ROM },
 	{ 0xe000, 0xe7ff, MRA_RAM },
 	{ 0xe800, 0xefff, paletteram_r },
@@ -100,11 +99,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xf0c0, 0xf0c5, MRA_RAM },
 	{ 0xf100, 0xf15f, MRA_RAM },
 	{ 0xf400, 0xffff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xdfff, MWA_ROM },
 	{ 0xe000, 0xe7ff, MWA_RAM },
 	{ 0xe800, 0xefff, MWA_RAM, &paletteram },
@@ -120,33 +117,27 @@ static struct MemoryWriteAddress writemem[] =
 //	{ 0xf0e1, 0xf0e1, MWA_NOP }, /* unknown */
 	{ 0xf100, 0xf15f, MWA_RAM, &spriteram }, /* spriteram */
 	{ 0xf400, 0xffff, lkage_videoram_w, &videoram }, /* videoram */
-	{ -1 }
-};
+MEMORY_END
 
 static READ_HANDLER( port_fetch_r )
 {
 	return memory_region(REGION_USER1)[offset];
 }
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x4000, 0x7fff, port_fetch_r },
-	{ -1 }
-};
+PORT_END
 
 
-static struct MemoryReadAddress m68705_readmem[] =
-{
+static MEMORY_READ_START( m68705_readmem )
 	{ 0x0000, 0x0000, lkage_68705_portA_r },
 	{ 0x0001, 0x0001, lkage_68705_portB_r },
 	{ 0x0002, 0x0002, lkage_68705_portC_r },
 	{ 0x0010, 0x007f, MRA_RAM },
 	{ 0x0080, 0x07ff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress m68705_writemem[] =
-{
+static MEMORY_WRITE_START( m68705_writemem )
 	{ 0x0000, 0x0000, lkage_68705_portA_w },
 	{ 0x0001, 0x0001, lkage_68705_portB_w },
 	{ 0x0002, 0x0002, lkage_68705_portC_w },
@@ -155,8 +146,7 @@ static struct MemoryWriteAddress m68705_writemem[] =
 	{ 0x0006, 0x0006, lkage_68705_ddrC_w },
 	{ 0x0010, 0x007f, MWA_RAM },
 	{ 0x0080, 0x07ff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -164,8 +154,7 @@ static struct MemoryWriteAddress m68705_writemem[] =
 
 /* sound section is almost identical to Bubble Bobble, YM2203 instead of YM3526 */
 
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0x9000, 0x9000, YM2203_status_port_0_r },
@@ -173,11 +162,9 @@ static struct MemoryReadAddress readmem_sound[] =
 	{ 0xb000, 0xb000, soundlatch_r },
 	{ 0xb001, 0xb001, MRA_NOP },	/* ??? */
 	{ 0xe000, 0xefff, MRA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sound[] =
-{
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0x9000, 0x9000, YM2203_control_port_0_w },
@@ -188,8 +175,7 @@ static struct MemoryWriteAddress writemem_sound[] =
 	{ 0xb001, 0xb001, lkage_sh_nmi_enable_w },
 	{ 0xb002, 0xb002, lkage_sh_nmi_disable_w },
 	{ 0xe000, 0xefff, MWA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }
-};
+MEMORY_END
 
 /***************************************************************************/
 
@@ -466,89 +452,89 @@ static const struct MachineDriver machine_driver_lkageb =
 
 
 ROM_START( lkage )
-	ROM_REGION( 0x14000, REGION_CPU1 ) /* Z80 code (main CPU) */
+	ROM_REGION( 0x14000, REGION_CPU1, 0 ) /* Z80 code (main CPU) */
 	ROM_LOAD( "a54-01-1.37", 0x0000, 0x8000, 0x973da9c5 )
 	ROM_LOAD( "a54-02-1.38", 0x8000, 0x8000, 0x27b509da )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* Z80 code (sound CPU) */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* Z80 code (sound CPU) */
 	ROM_LOAD( "a54-04.54",   0x0000, 0x8000, 0x541faf9a )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 68705 MCU code */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 68705 MCU code */
 	ROM_LOAD( "a54-09.53",   0x0000, 0x0800, 0x0e8b8846 )
 
-	ROM_REGION( 0x4000, REGION_USER1 ) /* data */
+	ROM_REGION( 0x4000, REGION_USER1, 0 ) /* data */
 	ROM_LOAD( "a54-03.51",   0x0000, 0x4000, 0x493e76d8 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a54-05-1.84", 0x0000, 0x4000, 0x0033c06a )
 	ROM_LOAD( "a54-06-1.85", 0x4000, 0x4000, 0x9f04d9ad )
 	ROM_LOAD( "a54-07-1.86", 0x8000, 0x4000, 0xb20561a4 )
 	ROM_LOAD( "a54-08-1.87", 0xc000, 0x4000, 0x3ff3b230 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "a54-10.2",    0x0000, 0x0200, 0x17dfbd14 )	/* unknown */
 ROM_END
 
 ROM_START( lkageb )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* Z80 code (main CPU) */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* Z80 code (main CPU) */
 	ROM_LOAD( "ic37_1",      0x0000, 0x8000, 0x05694f7b )
 	ROM_LOAD( "ic38_2",      0x8000, 0x8000, 0x22efe29e )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* Z80 code (sound CPU) */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* Z80 code (sound CPU) */
 	ROM_LOAD( "a54-04.54",   0x0000, 0x8000, 0x541faf9a )
 
-	ROM_REGION( 0x4000, REGION_USER1 ) /* data */
+	ROM_REGION( 0x4000, REGION_USER1, 0 ) /* data */
 	ROM_LOAD( "a54-03.51",   0x0000, 0x4000, 0x493e76d8 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic93_5",      0x0000, 0x4000, 0x76753e52 )
 	ROM_LOAD( "ic94_6",      0x4000, 0x4000, 0xf33c015c )
 	ROM_LOAD( "ic95_7",      0x8000, 0x4000, 0x0e02c2e8 )
 	ROM_LOAD( "ic96_8",      0xc000, 0x4000, 0x4ef5f073 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "a54-10.2",    0x0000, 0x0200, 0x17dfbd14 )	/* unknown */
 ROM_END
 
 ROM_START( lkageb2 )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* Z80 code (main CPU) */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* Z80 code (main CPU) */
 	ROM_LOAD( "lok.a",       0x0000, 0x8000, 0x866df793 )
 	ROM_LOAD( "lok.b",       0x8000, 0x8000, 0xfba9400f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* Z80 code (sound CPU) */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* Z80 code (sound CPU) */
 	ROM_LOAD( "a54-04.54",   0x0000, 0x8000, 0x541faf9a )
 
-	ROM_REGION( 0x4000, REGION_USER1 ) /* data */
+	ROM_REGION( 0x4000, REGION_USER1, 0 ) /* data */
 	ROM_LOAD( "a54-03.51",   0x0000, 0x4000, 0x493e76d8 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic93_5",      0x0000, 0x4000, 0x76753e52 )
 	ROM_LOAD( "ic94_6",      0x4000, 0x4000, 0xf33c015c )
 	ROM_LOAD( "ic95_7",      0x8000, 0x4000, 0x0e02c2e8 )
 	ROM_LOAD( "ic96_8",      0xc000, 0x4000, 0x4ef5f073 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "a54-10.2",    0x0000, 0x0200, 0x17dfbd14 )	/* unknown */
 ROM_END
 
 ROM_START( lkageb3 )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* Z80 code (main CPU) */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* Z80 code (main CPU) */
 	ROM_LOAD( "z1.bin",      0x0000, 0x8000, 0x60cac488 )
 	ROM_LOAD( "z2.bin",      0x8000, 0x8000, 0x22c95f17 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* Z80 code (sound CPU) */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* Z80 code (sound CPU) */
 	ROM_LOAD( "a54-04.54",   0x0000, 0x8000, 0x541faf9a )
 
-	ROM_REGION( 0x4000, REGION_USER1 ) /* data */
+	ROM_REGION( 0x4000, REGION_USER1, 0 ) /* data */
 	ROM_LOAD( "a54-03.51",   0x0000, 0x4000, 0x493e76d8 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic93_5",      0x0000, 0x4000, 0x76753e52 )
 	ROM_LOAD( "ic94_6",      0x4000, 0x4000, 0xf33c015c )
 	ROM_LOAD( "ic95_7",      0x8000, 0x4000, 0x0e02c2e8 )
 	ROM_LOAD( "ic96_8",      0xc000, 0x4000, 0x4ef5f073 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "a54-10.2",    0x0000, 0x0200, 0x17dfbd14 )	/* unknown */
 ROM_END
 

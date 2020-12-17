@@ -53,17 +53,12 @@ static void cabal_init_machine( void ) {
 	cabal_sound_command1 = cabal_sound_command2 = 0xff;
 }
 
-static READ_HANDLER( cabal_background_r ){
-	return READ_WORD (&videoram[offset]);
-}
-
-static WRITE_HANDLER( cabal_background_w ){
-	int oldword = READ_WORD(&videoram[offset]);
-	int newword = COMBINE_WORD(oldword,data);
-	if( oldword != newword ){
-		WRITE_WORD(&videoram[offset],newword);
-		dirtybuffer[offset/2] = 1;
-	}
+static WRITE16_HANDLER( cabal_background_w )
+{
+	int oldword = videoram16[offset];
+	COMBINE_DATA(&videoram16[offset]);
+	if (oldword != videoram16[offset])
+		dirtybuffer[offset] = 1;
 }
 
 /******************************************************************************************/
@@ -102,75 +97,48 @@ static void cabal_play_adpcm( int channel, int which ){
 	}
 }
 
-static READ_HANDLER( cabal_coin_r ) {
-	static int coin = 0;
-	int val = readinputport( 3 );
-
-	if ( !( val & 0x04 ) ){
-		if ( coin == 0 ){
-			coin = 1;
-			return val;
-		}
-	} else {
-		coin = 0;
-	}
-
- 	return val | 0x04;
-}
-
-static READ_HANDLER( cabal_io_r ) {
-	// logerror("INPUT a000[%02x] \n", offset);
-	switch (offset){
-		case 0x0: return readinputport(4) + (readinputport(5)<<8); /* DIPSW */
-		case 0x8: return 0xff + (readinputport(0)<<8);/* IN0 */
-		case 0x10: return readinputport(1) + (readinputport(2)<<8); /* IN1,IN2 */
-		default: return (0xffff);
-	}
-}
-
-static WRITE_HANDLER( cabal_sndcmd_w ) {
+static WRITE16_HANDLER( cabal_sndcmd_w )
+{
 	switch (offset) {
 		case 0x0:
 			cabal_sound_command1 = data;
 			cpu_cause_interrupt( 1, Z80_NMI_INT );
 		break;
 
-		case 0x2: /* ?? */
+		case 0x1: /* ?? */
 			cabal_sound_command2 = data & 0xff;
-		break;
-
-		case 0x8: /* ?? */
 		break;
 	}
 }
 
-static struct MemoryReadAddress readmem_cpu[] = {
-	{ 0x00000, 0x3ffff, MRA_ROM },
-	{ 0x40000, 0x437ff, MRA_RAM },
-	{ 0x43c00, 0x4ffff, MRA_RAM },
-	{ 0x43800, 0x43bff, MRA_RAM },
-	{ 0x60000, 0x607ff, MRA_BANK1 },  /* text layer */
-	{ 0x80000, 0x801ff, cabal_background_r }, /* background layer */
-	{ 0x80200, 0x803ff, MRA_BANK2 },
-	{ 0xa0000, 0xa0013, cabal_io_r },
-	{ 0xe0000, 0xe07ff, paletteram_word_r },
-	{ 0xe8000, 0xe800f, cabal_coin_r },
-	{ -1 }
-};
-static struct MemoryWriteAddress writemem_cpu[] = {
-	{ 0x00000, 0x3ffff, MWA_ROM },
-	{ 0x40000, 0x437ff, MWA_RAM },
-	{ 0x43800, 0x43bff, MWA_RAM, &spriteram, &spriteram_size },
-	{ 0x43c00, 0x4ffff, MWA_RAM },
-	{ 0x60000, 0x607ff, MWA_BANK1, &colorram },
-	{ 0x80000, 0x801ff, cabal_background_w, &videoram, &videoram_size },
-	{ 0x80200, 0x803ff, MWA_BANK2 },
-	{ 0xc0040, 0xc0041, MWA_NOP }, /* ??? */
-	{ 0xc0080, 0xc0081, MWA_NOP }, /* ??? */
-	{ 0xe0000, 0xe07ff, paletteram_xxxxBBBBGGGGRRRR_word_w, &paletteram},
-	{ 0xe8000, 0xe800f, cabal_sndcmd_w },
-	{ -1 }
-};
+static MEMORY_READ16_START( readmem_cpu )
+	{ 0x00000, 0x3ffff, MRA16_ROM },
+	{ 0x40000, 0x437ff, MRA16_RAM },
+	{ 0x43c00, 0x4ffff, MRA16_RAM },
+	{ 0x43800, 0x43bff, MRA16_RAM },
+	{ 0x60000, 0x607ff, MRA16_RAM },
+	{ 0x80000, 0x801ff, MRA16_RAM },
+	{ 0x80200, 0x803ff, MRA16_RAM },
+	{ 0xa0000, 0xa0001, input_port_0_word_r },
+	{ 0xa0008, 0xa0009, input_port_1_word_r },
+	{ 0xa0010, 0xa0011, input_port_2_word_r },
+	{ 0xe0000, 0xe07ff, MRA16_RAM },
+	{ 0xe8004, 0xe8005, input_port_3_word_r },
+MEMORY_END
+
+static MEMORY_WRITE16_START( writemem_cpu )
+	{ 0x00000, 0x3ffff, MWA16_ROM },
+	{ 0x40000, 0x437ff, MWA16_RAM },
+	{ 0x43800, 0x43bff, MWA16_RAM, &spriteram16, &spriteram_size },
+	{ 0x43c00, 0x4ffff, MWA16_RAM },
+	{ 0x60000, 0x607ff, MWA16_RAM, &colorram16 },
+	{ 0x80000, 0x801ff, cabal_background_w, &videoram16, &videoram_size },
+	{ 0x80200, 0x803ff, MWA16_RAM },
+	{ 0xc0040, 0xc0041, MWA16_NOP }, /* ??? */
+	{ 0xc0080, 0xc0081, MWA16_NOP }, /* ??? */
+	{ 0xe0000, 0xe07ff, paletteram16_xxxxBBBBGGGGRRRR_word_w, &paletteram16 },
+	{ 0xe8000, 0xe8003, cabal_sndcmd_w },
+MEMORY_END
 
 /*********************************************************************/
 
@@ -191,18 +159,15 @@ static WRITE_HANDLER( cabal_snd_w )
      }
 }
 
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x2fff, MRA_RAM },
 	{ 0x4000, 0x400d, cabal_snd_r },
 	{ 0x400f, 0x400f, YM2151_status_port_0_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sound[] =
-{
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x2fff, MWA_RAM },
 	{ 0x4000, 0x400d, cabal_snd_w },
@@ -210,21 +175,17 @@ static struct MemoryWriteAddress writemem_sound[] =
 	{ 0x400f, 0x400f, YM2151_data_port_0_w },
 	{ 0x6000, 0x6000, MWA_NOP },  /*???*/
 	{ 0x8000, 0xffff, MWA_ROM },
- 	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress cabalbl_readmem_sound[] =
-{
+static MEMORY_READ_START( cabalbl_readmem_sound )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x2fff, MRA_RAM },
 	{ 0x4000, 0x400d, cabal_snd_r },
 	{ 0x400f, 0x400f, YM2151_status_port_0_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cabalbl_writemem_sound[] =
-{
+static MEMORY_WRITE_START( cabalbl_writemem_sound )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x2fff, MWA_RAM },
 	{ 0x4000, 0x400d, cabal_snd_w },
@@ -232,111 +193,105 @@ static struct MemoryWriteAddress cabalbl_writemem_sound[] =
 	{ 0x400f, 0x400f, YM2151_data_port_0_w },
 	{ 0x6000, 0x6000, MWA_NOP },  /*???*/
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
 /* ADPCM CPU (common) */
 
 #if 0
-static struct MemoryReadAddress cabalbl_readmem_adpcm[] = {
+static MEMORY_READ_START( cabalbl_readmem_adpcm )
 	{ 0x0000, 0xffff, MRA_ROM },
-	{ -1 }
-};
-static struct MemoryWriteAddress cabalbl_writemem_adpcm[] = {
+MEMORY_END
+static MEMORY_WRITE_START( cabalbl_writemem_adpcm )
 	{ 0x0000, 0xffff, MWA_NOP },
-	{ -1 }
-};
+MEMORY_END
 #endif
 
 
 /***************************************************************************/
 
 INPUT_PORTS_START( cabal )
-	PORT_START	/* IN0 */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY)
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY)
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY)
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY)
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
-
-	PORT_START	/* IN1 */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON1 )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
-	PORT_BIT( 0xf0, IP_ACTIVE_LOW, IPT_UNKNOWN )
-
-	PORT_START	/* IN2 */
-	PORT_BIT( 0x0f, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2)
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON3 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START1 )
-
-	PORT_START	/* IN3 */
-	PORT_BIT( 0x03, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
-	PORT_BIT( 0xf8, IP_ACTIVE_LOW, IPT_UNKNOWN )
-
-	PORT_START	/* DIPSW1 */
-	PORT_DIPNAME( 0x0f, 0x0e, DEF_STR( Coinage ) )
-	PORT_DIPSETTING(    0x0a, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x0b, "3 Coins/1 Credit 5/2" )
-	PORT_DIPSETTING(    0x0c, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x0d, "2 Coins/1 Credit 3/2" )
-	PORT_DIPSETTING(    0x01, DEF_STR( 4C_3C ) )
-	PORT_DIPSETTING(    0x0e, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x03, "2 Coins/2 Credits 3/4" )
-	PORT_DIPSETTING(    0x02, DEF_STR( 3C_3C ) )
-	PORT_DIPSETTING(    0x0f, DEF_STR( 1C_2C ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( 1C_3C ) )
-	PORT_DIPSETTING(    0x09, DEF_STR( 1C_4C ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( 1C_6C ) )
-	PORT_DIPSETTING(    0x07, DEF_STR( 1C_8C ) )
-	PORT_DIPSETTING(    0x06, "1 Coin/10 Credits" )
-	PORT_DIPSETTING(    0x05, "1 Coin/12 Credits" )
-	PORT_DIPSETTING(    0x00, "Free 99 Credits" )
+	PORT_START
+	PORT_DIPNAME( 0x000f, 0x000e, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(      0x000a, DEF_STR( 3C_1C ) )
+	PORT_DIPSETTING(      0x000b, "3 Coins/1 Credit 5/2" )
+	PORT_DIPSETTING(      0x000c, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(      0x000d, "2 Coins/1 Credit 3/2" )
+	PORT_DIPSETTING(      0x0001, DEF_STR( 4C_3C ) )
+	PORT_DIPSETTING(      0x000e, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(      0x0003, "2 Coins/2 Credits 3/4" )
+	PORT_DIPSETTING(      0x0002, DEF_STR( 3C_3C ) )
+	PORT_DIPSETTING(      0x000f, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(      0x0004, DEF_STR( 1C_3C ) )
+	PORT_DIPSETTING(      0x0009, DEF_STR( 1C_4C ) )
+	PORT_DIPSETTING(      0x0008, DEF_STR( 1C_6C ) )
+	PORT_DIPSETTING(      0x0007, DEF_STR( 1C_8C ) )
+	PORT_DIPSETTING(      0x0006, "1 Coin/10 Credits" )
+	PORT_DIPSETTING(      0x0005, "1 Coin/12 Credits" )
+	PORT_DIPSETTING(      0x0000, "Free 99 Credits" )
 /* 0x10 is different from the Free 99 Credits.
    When you start the game the credits decrease using the Free 99,
    while they stay at 99 using the 0x10 dip. */
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Free_Play ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, "Invert Buttons" )
-	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, "Trackball" )
-	PORT_DIPSETTING(    0x80, "Small" )
-	PORT_DIPSETTING(    0x00, "Large" )
+	PORT_DIPNAME( 0x0010, 0x0010, DEF_STR( Free_Play ) )
+	PORT_DIPSETTING(      0x0010, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0020, 0x0020, "Invert Buttons" )
+	PORT_DIPSETTING(      0x0020, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0040, 0x0040, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x0040, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0080, 0x0080, "Trackball" )
+	PORT_DIPSETTING(      0x0080, "Small" )
+	PORT_DIPSETTING(      0x0000, "Large" )
+	PORT_DIPNAME( 0x0300, 0x0300, DEF_STR( Lives ) )
+	PORT_DIPSETTING(      0x0200, "2" )
+	PORT_DIPSETTING(      0x0300, "3" )
+	PORT_DIPSETTING(      0x0100, "5" )
+	PORT_BITX( 0,         0x0000, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Infinite", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0c00, 0x0c00, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(      0x0c00, "20k 50k" )
+	PORT_DIPSETTING(      0x0800, "30k 100k" )
+	PORT_DIPSETTING(      0x0400, "50k 150k" )
+	PORT_DIPSETTING(      0x0000, "70K" )
+	PORT_DIPNAME( 0x3000, 0x3000, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(      0x3000, "Easy" )
+	PORT_DIPSETTING(      0x2000, "Normal" )
+	PORT_DIPSETTING(      0x1000, "Hard" )
+	PORT_DIPSETTING(      0x0000, "Very Hard" )
+	PORT_DIPNAME( 0x4000, 0x4000, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(      0x4000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x8000, 0x8000, DEF_STR( Demo_Sounds ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x8000, DEF_STR( On ) )
 
-	PORT_START	/* DIPSW2 */
-	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Lives ) )
-	PORT_DIPSETTING(    0x02, "2" )
-	PORT_DIPSETTING(    0x03, "3" )
-	PORT_DIPSETTING(    0x01, "5" )
-	PORT_BITX( 0,       0x00, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Infinite", IP_KEY_NONE, IP_JOY_NONE )
-	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Bonus_Life ) )
-	PORT_DIPSETTING(    0x0c, "20k 50k" )
-	PORT_DIPSETTING(    0x08, "30k 100k" )
-	PORT_DIPSETTING(    0x04, "50k 150k" )
-	PORT_DIPSETTING(    0x00, "70K" )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Difficulty ) )
-	PORT_DIPSETTING(    0x30, "Easy" )
-	PORT_DIPSETTING(    0x20, "Normal" )
-	PORT_DIPSETTING(    0x10, "Hard" )
-	PORT_DIPSETTING(    0x00, "Very Hard" )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Demo_Sounds ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( On ) )
+	PORT_START	/* IN0 */
+	PORT_BIT( 0x00ff, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
+
+	PORT_START	/* IN1 */
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x00f0, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0f00, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 )
+	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1 )
+	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_START1 )
+
+	PORT_START	/* IN3 */
+	PORT_BIT( 0x0003, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT_IMPULSE( 0x0004, IP_ACTIVE_LOW, IPT_COIN1, 1 )
+	PORT_BIT( 0xfff8, IP_ACTIVE_LOW, IPT_UNKNOWN )
 INPUT_PORTS_END
 
 
@@ -470,22 +425,22 @@ static const struct MachineDriver machine_driver_cabalbl =
 };
 
 ROM_START( cabal )
-	ROM_REGION( 0x50000, REGION_CPU1 )	/* 64k for cpu code */
-	ROM_LOAD_EVEN( "h7_512.bin",      0x00000, 0x10000, 0x8fe16fb4 )
-	ROM_LOAD_ODD ( "h6_512.bin",      0x00000, 0x10000, 0x6968101c )
-	ROM_LOAD_EVEN( "k7_512.bin",      0x20000, 0x10000, 0x562031a2 )
-	ROM_LOAD_ODD ( "k6_512.bin",      0x20000, 0x10000, 0x4fda2856 )
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )	/* 64k for cpu code */
+	ROM_LOAD16_BYTE( "h7_512.bin",      0x00000, 0x10000, 0x8fe16fb4 )
+	ROM_LOAD16_BYTE( "h6_512.bin",      0x00001, 0x10000, 0x6968101c )
+	ROM_LOAD16_BYTE( "k7_512.bin",      0x20000, 0x10000, 0x562031a2 )
+	ROM_LOAD16_BYTE( "k6_512.bin",      0x20001, 0x10000, 0x4fda2856 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu code */
 	ROM_LOAD( "4-3n",           0x0000, 0x2000, 0x4038eff2 )
 	ROM_LOAD( "3-3p",           0x8000, 0x8000, 0xd9defcbf )
 
-	ROM_REGION( 0x4000,  REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000,  REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "t6_128.bin",     0x00000, 0x04000, 0x1ccee214 ) /* characters */
 
 	/* the gfx ROMs were missing in this set, I'm using the ones from */
 	/* the bootleg */
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cabal_17.bin",   0x00000, 0x10000, 0x3b6d2b09 ) /* tiles, planes0,1 */
 	ROM_LOAD( "cabal_16.bin",   0x10000, 0x10000, 0x77bc7a60 )
 	ROM_LOAD( "cabal_18.bin",   0x20000, 0x10000, 0x0bc50075 )
@@ -495,7 +450,7 @@ ROM_START( cabal )
 	ROM_LOAD( "cabal_12.bin",   0x60000, 0x10000, 0x543fcb37 )
 	ROM_LOAD( "cabal_13.bin",   0x70000, 0x10000, 0xd28d921e )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cabal_05.bin",   0x00000, 0x10000, 0x4e49c28e ) /* sprites, planes0,1 */
 	ROM_LOAD( "cabal_06.bin",   0x10000, 0x10000, 0x6a0e739d )
 	ROM_LOAD( "cabal_07.bin",   0x20000, 0x10000, 0x581a50c1 )
@@ -505,28 +460,28 @@ ROM_START( cabal )
 	ROM_LOAD( "cabal_02.bin",   0x60000, 0x10000, 0x0e1ec30e )
 	ROM_LOAD( "cabal_01.bin",   0x70000, 0x10000, 0x55c44764 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* Samples? */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* Samples? */
 	ROM_LOAD( "2-1s",           0x00000, 0x10000, 0x850406b4 )
 	ROM_LOAD( "1-1u",           0x10000, 0x10000, 0x8b3e0789 )
 ROM_END
 
 ROM_START( cabal2 )
-	ROM_REGION( 0x50000, REGION_CPU1 )	/* 64k for cpu code */
-	ROM_LOAD_EVEN( "9-7h",            0x00000, 0x10000, 0xebbb9484 )
-	ROM_LOAD_ODD ( "7-6h",            0x00000, 0x10000, 0x51aeb49e )
-	ROM_LOAD_EVEN( "8-7k",            0x20000, 0x10000, 0x4c24ed9a )
-	ROM_LOAD_ODD ( "6-6k",            0x20000, 0x10000, 0x681620e8 )
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )	/* 64k for cpu code */
+	ROM_LOAD16_BYTE( "9-7h",            0x00000, 0x10000, 0xebbb9484 )
+	ROM_LOAD16_BYTE( "7-6h",            0x00001, 0x10000, 0x51aeb49e )
+	ROM_LOAD16_BYTE( "8-7k",            0x20000, 0x10000, 0x4c24ed9a )
+	ROM_LOAD16_BYTE( "6-6k",            0x20001, 0x10000, 0x681620e8 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu code */
 	ROM_LOAD( "4-3n",           0x0000, 0x2000, 0x4038eff2 )
 	ROM_LOAD( "3-3p",           0x8000, 0x8000, 0xd9defcbf )
 
-	ROM_REGION( 0x4000,  REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000,  REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5-6s",           0x00000, 0x04000, 0x6a76955a ) /* characters */
 
 	/* the gfx ROMs were missing in this set, I'm using the ones from */
 	/* the bootleg */
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cabal_17.bin",   0x00000, 0x10000, 0x3b6d2b09 ) /* tiles, planes0,1 */
 	ROM_LOAD( "cabal_16.bin",   0x10000, 0x10000, 0x77bc7a60 )
 	ROM_LOAD( "cabal_18.bin",   0x20000, 0x10000, 0x0bc50075 )
@@ -536,7 +491,7 @@ ROM_START( cabal2 )
 	ROM_LOAD( "cabal_12.bin",   0x60000, 0x10000, 0x543fcb37 )
 	ROM_LOAD( "cabal_13.bin",   0x70000, 0x10000, 0xd28d921e )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cabal_05.bin",   0x00000, 0x10000, 0x4e49c28e ) /* sprites, planes0,1 */
 	ROM_LOAD( "cabal_06.bin",   0x10000, 0x10000, 0x6a0e739d )
 	ROM_LOAD( "cabal_07.bin",   0x20000, 0x10000, 0x581a50c1 )
@@ -546,25 +501,25 @@ ROM_START( cabal2 )
 	ROM_LOAD( "cabal_02.bin",   0x60000, 0x10000, 0x0e1ec30e )
 	ROM_LOAD( "cabal_01.bin",   0x70000, 0x10000, 0x55c44764 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* Samples? */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* Samples? */
 	ROM_LOAD( "2-1s",           0x00000, 0x10000, 0x850406b4 )
 	ROM_LOAD( "1-1u",           0x10000, 0x10000, 0x8b3e0789 )
 ROM_END
 
 ROM_START( cabalbl )
-	ROM_REGION( 0x50000, REGION_CPU1 )	/* 64k for cpu code */
-	ROM_LOAD_EVEN( "cabal_24.bin",    0x00000, 0x10000, 0x00abbe0c )
-	ROM_LOAD_ODD ( "cabal_22.bin",    0x00000, 0x10000, 0x78c4af27 )
-	ROM_LOAD_EVEN( "cabal_23.bin",    0x20000, 0x10000, 0xd763a47c )
-	ROM_LOAD_ODD ( "cabal_21.bin",    0x20000, 0x10000, 0x96d5e8af )
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )	/* 64k for cpu code */
+	ROM_LOAD16_BYTE( "cabal_24.bin",    0x00000, 0x10000, 0x00abbe0c )
+	ROM_LOAD16_BYTE( "cabal_22.bin",    0x00001, 0x10000, 0x78c4af27 )
+	ROM_LOAD16_BYTE( "cabal_23.bin",    0x20000, 0x10000, 0xd763a47c )
+	ROM_LOAD16_BYTE( "cabal_21.bin",    0x20001, 0x10000, 0x96d5e8af )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu code */
 	ROM_LOAD( "cabal_11.bin",    0x0000, 0x10000, 0xd308a543 )
 
-	ROM_REGION( 0x4000,  REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000,  REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5-6s",           0x00000, 0x04000, 0x6a76955a ) /* characters */
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cabal_17.bin",   0x00000, 0x10000, 0x3b6d2b09 ) /* tiles, planes0,1 */
 	ROM_LOAD( "cabal_16.bin",   0x10000, 0x10000, 0x77bc7a60 )
 	ROM_LOAD( "cabal_18.bin",   0x20000, 0x10000, 0x0bc50075 )
@@ -574,7 +529,7 @@ ROM_START( cabalbl )
 	ROM_LOAD( "cabal_12.bin",   0x60000, 0x10000, 0x543fcb37 )
 	ROM_LOAD( "cabal_13.bin",   0x70000, 0x10000, 0xd28d921e )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cabal_05.bin",   0x00000, 0x10000, 0x4e49c28e ) /* sprites, planes0,1 */
 	ROM_LOAD( "cabal_06.bin",   0x10000, 0x10000, 0x6a0e739d )
 	ROM_LOAD( "cabal_07.bin",   0x20000, 0x10000, 0x581a50c1 )
@@ -584,7 +539,7 @@ ROM_START( cabalbl )
 	ROM_LOAD( "cabal_02.bin",   0x60000, 0x10000, 0x0e1ec30e )
 	ROM_LOAD( "cabal_01.bin",   0x70000, 0x10000, 0x55c44764 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )
 	ROM_LOAD( "cabal_09.bin",   0x00000, 0x10000, 0x4ffa7fe3 ) /* Z80 code/adpcm data */
 	ROM_LOAD( "cabal_10.bin",   0x10000, 0x10000, 0x958789b6 ) /* Z80 code/adpcm data */
 ROM_END

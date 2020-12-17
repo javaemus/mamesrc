@@ -19,37 +19,29 @@ WRITE_HANDLER( cheekyms_port_40_w );
 WRITE_HANDLER( cheekyms_port_80_w );
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x1fff, MRA_ROM},
 	{ 0x3000, 0x33ff, MRA_RAM},
 	{ 0x3800, 0x3bff, MRA_RAM},	/* screen RAM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x3000, 0x33ff, MWA_RAM },
 	{ 0x3800, 0x3bff, videoram_w, &videoram, &videoram_size },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, input_port_0_r },
 	{ 0x01, 0x01, input_port_1_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x20, 0x3f, cheekyms_sprite_w },
 	{ 0x40, 0x40, cheekyms_port_40_w },
 	{ 0x80, 0x80, cheekyms_port_80_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 static int cheekyms_interrupt(void)
@@ -193,21 +185,21 @@ static const struct MachineDriver machine_driver_cheekyms =
 ***************************************************************************/
 
 ROM_START( cheekyms )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "cm03.c5",       0x0000, 0x0800, 0x1ad0cb40 )
 	ROM_LOAD( "cm04.c6",       0x0800, 0x0800, 0x2238f607 )
 	ROM_LOAD( "cm05.c7",       0x1000, 0x0800, 0x4169eba8 )
 	ROM_LOAD( "cm06.c8",       0x1800, 0x0800, 0x7031660c )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cm01.c1",       0x0000, 0x0800, 0x26f73bd7 )
 	ROM_LOAD( "cm02.c2",       0x0800, 0x0800, 0x885887c3 )
 
-	ROM_REGION( 0x1000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cm07.n5",       0x0000, 0x0800, 0x2738c88d )
 	ROM_LOAD( "cm08.n6",       0x0800, 0x0800, 0xb3fbd4ac )
 
-	ROM_REGION( 0x0060, REGION_PROMS )
+	ROM_REGION( 0x0060, REGION_PROMS, 0 )
 	ROM_LOAD( "cm.m8",         0x0000, 0x0020, 0x2386bc68 )	 /* Character colors \ Selected by Bit 6 of Port 0x80 */
 	ROM_LOAD( "cm.m9",         0x0020, 0x0020, 0xdb9c59a5 )	 /* Character colors /                                */
 	ROM_LOAD( "cm.p3",         0x0040, 0x0020, 0x6ac41516 )  /* Sprite colors */

@@ -48,8 +48,7 @@ WRITE_HANDLER( ssozumo_sh_command_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x077f, MRA_RAM },
 
 	{ 0x2000, 0x27ff, MRA_RAM },
@@ -61,12 +60,10 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x4030, 0x4030, input_port_3_r },
 
 	{ 0x6000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x077f, MWA_RAM },
 
 	{ 0x0780, 0x07ff, MWA_RAM, &spriteram, &spriteram_size },
@@ -84,21 +81,17 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x4050, 0x407f, ssozumo_paletteram_w, &paletteram },
 
 	{ 0x6000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x01ff, MRA_RAM },
 	{ 0x2007, 0x2007, soundlatch_r },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x2000, 0x2000, AY8910_write_port_0_w },
 	{ 0x2001, 0x2001, AY8910_control_port_0_w },
@@ -107,8 +100,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0x2004, 0x2004, DAC_0_signed_data_w },
 	{ 0x2005, 0x2005, interrupt_enable_w },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( ssozumo )
@@ -303,7 +295,7 @@ static const struct MachineDriver machine_driver_ssozumo =
 
 
 ROM_START( ssozumo )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	/* Main Program ROMs */
 	ROM_LOAD( "ic61.g01",	0x06000, 0x2000, 0x86968f46 )	// m1
 	ROM_LOAD( "ic60.g11",	0x08000, 0x2000, 0x1a5143dd )	// m2
@@ -311,7 +303,7 @@ ROM_START( ssozumo )
 	ROM_LOAD( "ic58.g31",	0x0c000, 0x2000, 0x0ee43a78 )	// m4
 	ROM_LOAD( "ic57.g41",	0x0e000, 0x2000, 0xac77aa4c )	// m5
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	/* Sound Program & Voice Sample ROMs*/
 	ROM_LOAD( "ic47.g50",	0x04000, 0x2000, 0xb64ec829 )	// a1
 	ROM_LOAD( "ic46.g60",	0x06000, 0x2000, 0x630d7380 )	// a2
@@ -320,19 +312,19 @@ ROM_START( ssozumo )
 	ROM_LOAD( "ic43.g90",	0x0c000, 0x2000, 0x20262064 )	// a5
 	ROM_LOAD( "ic42.ga0",	0x0e000, 0x2000, 0x98d7e998 )	// a6
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	/* Character ROMs */
 	ROM_LOAD( "ic22.gq0",	0x00000, 0x2000, 0xb4c7e612 )	// c1
 	ROM_LOAD( "ic23.gr0",	0x02000, 0x2000, 0x90bb9fda )	// c2
 	ROM_LOAD( "ic21.gs0",	0x04000, 0x2000, 0xd8cd5c78 )	// c3
 
-	ROM_REGION( 0x06000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX2, ROMREGION_DISPOSE )
 	/* tile set ROMs */
 	ROM_LOAD( "ic69.gt0",	0x00000, 0x2000, 0x771116ca )	// t1
 	ROM_LOAD( "ic59.gu0",	0x02000, 0x2000, 0x68035bfd )	// t2
 	ROM_LOAD( "ic81.gv0",	0x04000, 0x2000, 0xcdda1f9f )	// t3
 
-	ROM_REGION( 0x1e000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1e000, REGION_GFX3, ROMREGION_DISPOSE )
 	/* sprites ROMs */
 	ROM_LOAD( "ic06.gg0",	0x00000, 0x2000, 0xd2342c50 )	// s1a
 	ROM_LOAD( "ic05.gh0",	0x02000, 0x2000, 0x14a3cb10 )	// s1b
@@ -350,7 +342,7 @@ ROM_START( ssozumo )
 	ROM_LOAD( "ic41.ge0",	0x1a000, 0x2000, 0x935578d0 )	// s3d
 	ROM_LOAD( "ic40.gf0",	0x1c000, 0x2000, 0x5a3bf1ba )	// s3e
 
-	ROM_REGION( 0x0080, REGION_PROMS )
+	ROM_REGION( 0x0080, REGION_PROMS, 0 )
 	ROM_LOAD( "ic33.gz0",	0x00000, 0x0020, 0x523d29ad )	/* char palette red and green components */
 	ROM_LOAD( "ic30.gz2",	0x00020, 0x0020, 0x0de202e1 )	/* tile palette red and green components */
 	ROM_LOAD( "ic32.gz1",	0x00040, 0x0020, 0x6fbff4d2 )	/* char palette blue component */

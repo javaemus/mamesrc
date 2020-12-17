@@ -95,8 +95,7 @@ static int dday_interrupt (void)
     return ignore_interrupt();
 }
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x5000, 0x5bff, MRA_RAM },
 	{ 0x5c00, 0x5fff, dday_colorram_r },
@@ -106,11 +105,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x7400, 0x7400, input_port_2_r },
 	{ 0x7800, 0x7800, dday_timer_r },
 	{ 0x7c00, 0x7c00, input_port_3_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x4000, dday_searchlight_w },
 	{ 0x5000, 0x53ff, MWA_RAM, &dday_videoram2 },
@@ -135,8 +132,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x6800, 0x6800, AY8910_control_port_1_w },
 	{ 0x6801, 0x6801, AY8910_write_port_1_w },
 	{ 0x7800, 0x7800, dday_control_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -380,66 +376,66 @@ static const struct MachineDriver machine_driver_dday =
 ***************************************************************************/
 
 ROM_START( dday )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "e8_63co.bin",  0x0000, 0x1000, 0x13d53793 )
 	ROM_LOAD( "e7_64co.bin",  0x1000, 0x1000, 0xe1ef2a70 )
 	ROM_LOAD( "e6_65co.bin",  0x2000, 0x1000, 0xfe414a83 )
 	ROM_LOAD( "e5_66co.bin",  0x3000, 0x1000, 0xfc9f7774 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "k2_71.bin",    0x0000, 0x0800, 0xf85461de )
 	ROM_LOAD( "k3_72.bin",    0x0800, 0x0800, 0xfdfe88b6 )
 
-	ROM_REGION( 0x1000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "j8_70co.bin",  0x0000, 0x0800, 0x0c60e94c )
 	ROM_LOAD( "j9_69co.bin",  0x0800, 0x0800, 0xba341c10 )
 
-	ROM_REGION( 0x1000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "k6_74o.bin",   0x0000, 0x0800, 0x66719aea )
 	ROM_LOAD( "k7_75o.bin",   0x0800, 0x0800, 0x5f8772e2 )
 
-	ROM_REGION( 0x2000, REGION_GFX4 )      /* search light */
+	ROM_REGION( 0x2000, REGION_GFX4, 0 )      /* search light */
 	ROM_LOAD( "d2_67.bin",    0x0000, 0x1000, 0x2b693e42 )  /* layout */
 	ROM_LOAD( "d4_68.bin",    0x1000, 0x0800, 0xf3649264 )  /* mask */
 							/*0x1800 -0x1fff will be filled in dynamically */
 
-	ROM_REGION( 0x0800, REGION_GFX5 )      /* layer mask */
+	ROM_REGION( 0x0800, REGION_GFX5, 0 )      /* layer mask */
 	ROM_LOAD( "k4_73.bin",    0x0000, 0x0800, 0xfa6237e4 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "dday.m11",     0x0000, 0x0100, 0xaef6bbfc )  /* red component */
 	ROM_LOAD( "dday.m8",      0x0100, 0x0100, 0xad3314b9 )  /* green component */
 	ROM_LOAD( "dday.m3",      0x0200, 0x0100, 0xe877ab82 )  /* blue component */
 ROM_END
 
 ROM_START( ddayc )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "e8_63-c.bin",  0x0000, 0x1000, 0xd4fa3ae3 )
 	ROM_LOAD( "e7_64-c.bin",  0x1000, 0x1000, 0x9fb8b1a7 )
 	ROM_LOAD( "e6_65-c.bin",  0x2000, 0x1000, 0x4c210686 )
 	ROM_LOAD( "e5_66-c.bin",  0x3000, 0x1000, 0xe7e832f9 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "k2_71.bin",    0x0000, 0x0800, 0xf85461de )
 	ROM_LOAD( "k3_72.bin",    0x0800, 0x0800, 0xfdfe88b6 )
 
-	ROM_REGION( 0x1000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "j8_70-c.bin",  0x0000, 0x0800, 0xa0c6b86b )
 	ROM_LOAD( "j9_69-c.bin",  0x0800, 0x0800, 0xd352a3d6 )
 
-	ROM_REGION( 0x1000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "k6_74.bin",    0x0000, 0x0800, 0xd21a3e22 )
 	ROM_LOAD( "k7_75.bin",    0x0800, 0x0800, 0xa5e5058c )
 
-	ROM_REGION( 0x2000, REGION_GFX4 )      /* search light */
+	ROM_REGION( 0x2000, REGION_GFX4, 0 )      /* search light */
 	ROM_LOAD( "d2_67.bin",    0x0000, 0x1000, 0x2b693e42 )  /* layout */
 	ROM_LOAD( "d4_68.bin",    0x1000, 0x0800, 0xf3649264 )  /* mask */
 							/*0x1800 -0x1fff will be filled in dynamically */
 
-	ROM_REGION( 0x0800, REGION_GFX5 )      /* layer mask */
+	ROM_REGION( 0x0800, REGION_GFX5, 0 )      /* layer mask */
 	ROM_LOAD( "k4_73.bin",    0x0000, 0x0800, 0xfa6237e4 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "dday.m11",     0x0000, 0x0100, 0xaef6bbfc )  /* red component */
 	ROM_LOAD( "dday.m8",      0x0100, 0x0100, 0xad3314b9 )  /* green component */
 	ROM_LOAD( "dday.m3",      0x0200, 0x0100, 0xe877ab82 )  /* blue component */

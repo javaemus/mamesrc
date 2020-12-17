@@ -152,24 +152,20 @@ WRITE_HANDLER( missile_video_3rd_bit_w );
 WRITE_HANDLER( missile_video2_w );
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x18ff, MRA_RAM },
 	{ 0x1900, 0xfff9, missile_r }, /* shared region */
 	{ 0xfffa, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x0400, 0x05ff, missile_video_3rd_bit_w },
 	{ 0x0600, 0x063f, MWA_RAM },
 	{ 0x0640, 0x4fff, missile_w }, /* shared region */
 	{ 0x5000, 0xffff, missile_video2_w, &missile_video2ram },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -404,7 +400,7 @@ static const struct MachineDriver machine_driver_missile =
 ***************************************************************************/
 
 ROM_START( missile )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "035820.02",    0x5000, 0x0800, 0x7a62ce6a )
 	ROM_LOAD( "035821.02",    0x5800, 0x0800, 0xdf3bd57f )
 	ROM_LOAD( "035822.02",    0x6000, 0x0800, 0xa1cd384a )
@@ -415,7 +411,7 @@ ROM_START( missile )
 ROM_END
 
 ROM_START( missile2 )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "35820-01.h1",  0x5000, 0x0800, 0x41cbb8f2 )
 	ROM_LOAD( "35821-01.jk1", 0x5800, 0x0800, 0x728702c8 )
 	ROM_LOAD( "35822-01.kl1", 0x6000, 0x0800, 0x28f0999f )
@@ -426,7 +422,7 @@ ROM_START( missile2 )
 ROM_END
 
 ROM_START( suprmatk )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "035820.sma",   0x5000, 0x0800, 0x75f01b87 )
 	ROM_LOAD( "035821.sma",   0x5800, 0x0800, 0x3320d67e )
 	ROM_LOAD( "035822.sma",   0x6000, 0x0800, 0xe6be5055 )

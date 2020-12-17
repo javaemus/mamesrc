@@ -39,18 +39,19 @@ R-Shark:
 
 extern unsigned char *lastday_txvideoram;
 extern unsigned char *lastday_bgscroll,*lastday_fgscroll,*bluehawk_fg2scroll;
-extern unsigned char *rshark_scroll1,*rshark_scroll2,*rshark_scroll3,*rshark_scroll4;
+extern data16_t *rshark_scroll1,*rshark_scroll2,*rshark_scroll3,*rshark_scroll4;
 
 WRITE_HANDLER( lastday_ctrl_w );
 WRITE_HANDLER( pollux_ctrl_w );
 WRITE_HANDLER( primella_ctrl_w );
-WRITE_HANDLER( rshark_ctrl_w );
+WRITE16_HANDLER( rshark_ctrl_w );
 void lastday_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void pollux_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void bluehawk_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void primella_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void rshark_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void dooyong_eof_callback(void);
+void rshark_eof_callback(void);
 
 
 
@@ -65,10 +66,14 @@ static WRITE_HANDLER( lastday_bankswitch_w )
 if (data & 0xf8) usrintf_showmessage("bankswitch %02x",data);
 }
 
-
-
-static struct MemoryReadAddress lastday_readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+
+
+static MEMORY_READ_START( lastday_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc010, 0xc010, input_port_0_r },
@@ -77,11 +82,9 @@ static struct MemoryReadAddress lastday_readmem[] =
 	{ 0xc013, 0xc013, input_port_3_r },	/* DSWA */
 	{ 0xc014, 0xc014, input_port_4_r },	/* DSWB */
 	{ 0xc800, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress lastday_writemem[] =
-{
+static MEMORY_WRITE_START( lastday_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc004, MWA_RAM, &lastday_bgscroll },
 	{ 0xc008, 0xc00c, MWA_RAM, &lastday_fgscroll },
@@ -92,11 +95,9 @@ static struct MemoryWriteAddress lastday_writemem[] =
 	{ 0xd000, 0xdfff, MWA_RAM, &lastday_txvideoram },
 	{ 0xe000, 0xefff, MWA_RAM },
 	{ 0xf000, 0xffff, MWA_RAM, &spriteram, &spriteram_size },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress pollux_readmem[] =
-{
+static MEMORY_READ_START( pollux_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xefff, MRA_RAM },
@@ -106,11 +107,9 @@ static struct MemoryReadAddress pollux_readmem[] =
 	{ 0xf003, 0xf003, input_port_3_r },
 	{ 0xf004, 0xf004, input_port_4_r },
 	{ 0xf800, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress pollux_writemem[] =
-{
+static MEMORY_WRITE_START( pollux_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xd000, 0xdfff, MWA_RAM, &spriteram, &spriteram_size },
@@ -121,11 +120,9 @@ static struct MemoryWriteAddress pollux_writemem[] =
 	{ 0xf018, 0xf01c, MWA_RAM, &lastday_bgscroll },
 	{ 0xf020, 0xf024, MWA_RAM, &lastday_fgscroll },
 	{ 0xf800, 0xffff, paletteram_xRRRRRGGGGGBBBBB_w, &paletteram },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress bluehawk_readmem[] =
-{
+static MEMORY_READ_START( bluehawk_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xc000, input_port_0_r },
@@ -134,11 +131,9 @@ static struct MemoryReadAddress bluehawk_readmem[] =
 	{ 0xc003, 0xc003, input_port_3_r },
 	{ 0xc004, 0xc004, input_port_4_r },
 	{ 0xc800, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress bluehawk_writemem[] =
-{
+static MEMORY_WRITE_START( bluehawk_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc000, flip_screen_w },
 	{ 0xc008, 0xc008, lastday_bankswitch_w },
@@ -150,11 +145,9 @@ static struct MemoryWriteAddress bluehawk_writemem[] =
 	{ 0xd000, 0xdfff, MWA_RAM, &lastday_txvideoram },
 	{ 0xe000, 0xefff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xf000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress primella_readmem[] =
-{
+static MEMORY_READ_START( primella_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xcfff, MRA_RAM },
@@ -165,11 +158,9 @@ static struct MemoryReadAddress primella_readmem[] =
 	{ 0xf820, 0xf820, input_port_2_r },
 	{ 0xf830, 0xf830, input_port_3_r },
 	{ 0xf840, 0xf840, input_port_4_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress primella_writemem[] =
-{
+static MEMORY_WRITE_START( primella_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xd000, 0xd3ff, MWA_RAM },	/* what is this? looks like a palette? scratchpad RAM maybe? */
@@ -179,39 +170,33 @@ static struct MemoryWriteAddress primella_writemem[] =
 	{ 0xf810, 0xf810, soundlatch_w },
 	{ 0xfc00, 0xfc04, MWA_RAM, &lastday_bgscroll },
 	{ 0xfc08, 0xfc0c, MWA_RAM, &lastday_fgscroll },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress rshark_readmem[] =
-{
-	{ 0x000000, 0x03ffff, MRA_ROM },
-	{ 0x340000, 0x34cfff, MRA_BANK1 },
-	{ 0x34d000, 0x34dfff, MRA_BANK2 },
-	{ 0x34e000, 0x34ffff, MRA_BANK3 },
-	{ 0x3c0002, 0x3c0003, input_port_0_r },
-	{ 0x3c0004, 0x3c0005, input_port_1_r },
-	{ 0x3c0006, 0x3c0007, input_port_2_r },
-	{ -1 }	/* end of table */
-};
+static MEMORY_READ16_START( rshark_readmem )
+	{ 0x000000, 0x03ffff, MRA16_ROM },
+	{ 0x340000, 0x34cfff, MRA16_RAM },
+	{ 0x34d000, 0x34dfff, MRA16_RAM },
+	{ 0x34e000, 0x34ffff, MRA16_RAM },
+	{ 0x3c0002, 0x3c0003, input_port_0_word_r },
+	{ 0x3c0004, 0x3c0005, input_port_1_word_r },
+	{ 0x3c0006, 0x3c0007, input_port_2_word_r },
+MEMORY_END
 
-static struct MemoryWriteAddress rshark_writemem[] =
-{
-	{ 0x000000, 0x03ffff, MWA_ROM },
-	{ 0x340000, 0x34cfff, MWA_BANK1 },
-	{ 0x34d000, 0x34dfff, MWA_BANK2, &spriteram, &spriteram_size },
-	{ 0x34e000, 0x34ffff, MWA_BANK3 },
-	{ 0x3c4000, 0x3c4009, MWA_BANK4, &rshark_scroll4 },
-	{ 0x3c4010, 0x3c4019, MWA_BANK5, &rshark_scroll3 },
-	{ 0x3c8000, 0x3c8fff, paletteram_xRRRRRGGGGGBBBBB_word_w, &paletteram },
-	{ 0x3c0012, 0x3c0013, soundlatch_w },
+static MEMORY_WRITE16_START( rshark_writemem )
+	{ 0x000000, 0x03ffff, MWA16_ROM },
+	{ 0x340000, 0x34cfff, MWA16_RAM },
+	{ 0x34d000, 0x34dfff, MWA16_RAM, &spriteram16, &spriteram_size },
+	{ 0x34e000, 0x34ffff, MWA16_RAM },
+	{ 0x3c4000, 0x3c4009, MWA16_RAM, &rshark_scroll4 },
+	{ 0x3c4010, 0x3c4019, MWA16_RAM, &rshark_scroll3 },
+	{ 0x3c8000, 0x3c8fff, paletteram16_xRRRRRGGGGGBBBBB_word_w, &paletteram16 },
+	{ 0x3c0012, 0x3c0013, soundlatch_word_w },
 	{ 0x3c0014, 0x3c0015, rshark_ctrl_w },	/* flip screen + unknown stuff */
-	{ 0x3cc000, 0x3cc009, MWA_BANK6, &rshark_scroll2 },
-	{ 0x3cc010, 0x3cc019, MWA_BANK7, &rshark_scroll1 },
-	{ -1 }	/* end of table */
-};
+	{ 0x3cc000, 0x3cc009, MWA16_RAM, &rshark_scroll2 },
+	{ 0x3cc010, 0x3cc019, MWA16_RAM, &rshark_scroll1 },
+MEMORY_END
 
-static struct MemoryReadAddress lastday_sound_readmem[] =
-{
+static MEMORY_READ_START( lastday_sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xc800, 0xc800, soundlatch_r },
@@ -219,22 +204,18 @@ static struct MemoryReadAddress lastday_sound_readmem[] =
 	{ 0xf001, 0xf001, YM2203_read_port_0_r },
 	{ 0xf002, 0xf002, YM2203_status_port_1_r },
 	{ 0xf003, 0xf003, YM2203_read_port_1_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress lastday_sound_writemem[] =
-{
+static MEMORY_WRITE_START( lastday_sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xf000, 0xf000, YM2203_control_port_0_w },
 	{ 0xf001, 0xf001, YM2203_write_port_0_w },
 	{ 0xf002, 0xf002, YM2203_control_port_1_w },
 	{ 0xf003, 0xf003, YM2203_write_port_1_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress pollux_sound_readmem[] =
-{
+static MEMORY_READ_START( pollux_sound_readmem )
 	{ 0x0000, 0xefff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xf800, soundlatch_r },
@@ -242,39 +223,32 @@ static struct MemoryReadAddress pollux_sound_readmem[] =
 	{ 0xf803, 0xf803, YM2203_read_port_0_r },
 	{ 0xf804, 0xf804, YM2203_status_port_1_r },
 	{ 0xf805, 0xf805, YM2203_read_port_1_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress pollux_sound_writemem[] =
-{
+static MEMORY_WRITE_START( pollux_sound_writemem )
 	{ 0x0000, 0xefff, MWA_ROM },
 	{ 0xf000, 0xf7ff, MWA_RAM },
 	{ 0xf802, 0xf802, YM2203_control_port_0_w },
 	{ 0xf803, 0xf803, YM2203_write_port_0_w },
 	{ 0xf804, 0xf804, YM2203_control_port_1_w },
 	{ 0xf805, 0xf805, YM2203_write_port_1_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress bluehawk_sound_readmem[] =
-{
+static MEMORY_READ_START( bluehawk_sound_readmem )
 	{ 0x0000, 0xefff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xf800, soundlatch_r },
 	{ 0xf809, 0xf809, YM2151_status_port_0_r },
 	{ 0xf80a, 0xf80a, OKIM6295_status_0_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress bluehawk_sound_writemem[] =
-{
+static MEMORY_WRITE_START( bluehawk_sound_writemem )
 	{ 0x0000, 0xefff, MWA_ROM },
 	{ 0xf000, 0xf7ff, MWA_RAM },
 	{ 0xf808, 0xf808, YM2151_register_port_0_w },
 	{ 0xf809, 0xf809, YM2151_data_port_0_w },
 	{ 0xf80a, 0xf80a, OKIM6295_data_0_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -1049,7 +1023,7 @@ static const struct MachineDriver machine_driver_rshark =
 	0,
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_BUFFERS_SPRITERAM,
-	dooyong_eof_callback,
+	rshark_eof_callback,
 	0,
 	0,
 	rshark_vh_screenrefresh,
@@ -1071,201 +1045,201 @@ static const struct MachineDriver machine_driver_rshark =
 
 
 ROM_START( lastday )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "lday3.bin",    0x00000, 0x10000, 0xa06dfb1e )
 	ROM_RELOAD(               0x10000, 0x10000 )				/* banked at 0x8000-0xbfff */
 	ROM_LOAD( "lday4.bin",    0x20000, 0x10000, 0x70961ea6 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "lday1.bin",    0x0000, 0x8000, 0xdd4316fd )	/* empty */
 	ROM_CONTINUE(             0x0000, 0x8000 )
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* chars */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE )	/* chars */
 	ROM_LOAD( "lday2.bin",    0x0000, 0x8000, 0x83eb572c )	/* empty */
 	ROM_CONTINUE(             0x0000, 0x8000 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* sprites */
-	ROM_LOAD_GFX_EVEN( "lday16.bin",   0x00000, 0x20000, 0xdf503504 )
-	ROM_LOAD_GFX_ODD ( "lday15.bin",   0x00000, 0x20000, 0xcd990442 )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )	/* sprites */
+	ROM_LOAD16_BYTE( "lday16.bin",   0x00000, 0x20000, 0xdf503504 )
+	ROM_LOAD16_BYTE( "lday15.bin",   0x00001, 0x20000, 0xcd990442 )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* tiles */
-	ROM_LOAD_GFX_EVEN( "lday6.bin",    0x00000, 0x20000, 0x1054361d )
-	ROM_LOAD_GFX_ODD ( "lday9.bin",    0x00000, 0x20000, 0x6952ef4d )
-	ROM_LOAD_GFX_EVEN( "lday7.bin",    0x40000, 0x20000, 0x6e57a888 )
-	ROM_LOAD_GFX_ODD ( "lday10.bin",   0x40000, 0x20000, 0xa5548dca )
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE )	/* tiles */
+	ROM_LOAD16_BYTE( "lday6.bin",    0x00000, 0x20000, 0x1054361d )
+	ROM_LOAD16_BYTE( "lday9.bin",    0x00001, 0x20000, 0x6952ef4d )
+	ROM_LOAD16_BYTE( "lday7.bin",    0x40000, 0x20000, 0x6e57a888 )
+	ROM_LOAD16_BYTE( "lday10.bin",   0x40001, 0x20000, 0xa5548dca )
 
-	ROM_REGION( 0x40000, REGION_GFX4 | REGIONFLAG_DISPOSE )	/* tiles */
-	ROM_LOAD_GFX_EVEN( "lday12.bin",   0x00000, 0x20000, 0x992bc4af )
-	ROM_LOAD_GFX_ODD ( "lday14.bin",   0x00000, 0x20000, 0xa79abc85 )
+	ROM_REGION( 0x40000, REGION_GFX4, ROMREGION_DISPOSE )	/* tiles */
+	ROM_LOAD16_BYTE( "lday12.bin",   0x00000, 0x20000, 0x992bc4af )
+	ROM_LOAD16_BYTE( "lday14.bin",   0x00001, 0x20000, 0xa79abc85 )
 
-	ROM_REGION( 0x20000, REGION_GFX5 )	/* background tilemaps */
-	ROM_LOAD_GFX_EVEN( "lday5.bin",    0x00000, 0x10000, 0x4789bae8 )
-	ROM_LOAD_GFX_ODD ( "lday8.bin",    0x00000, 0x10000, 0x92402b9a )
+	ROM_REGION( 0x20000, REGION_GFX5, 0 )	/* background tilemaps */
+	ROM_LOAD16_BYTE( "lday5.bin",    0x00000, 0x10000, 0x4789bae8 )
+	ROM_LOAD16_BYTE( "lday8.bin",    0x00001, 0x10000, 0x92402b9a )
 
-	ROM_REGION( 0x20000, REGION_GFX6 )	/* fg tilemaps */
-	ROM_LOAD_GFX_EVEN( "lday11.bin",   0x00000, 0x10000, 0x04b961de )
-	ROM_LOAD_GFX_ODD ( "lday13.bin",   0x00000, 0x10000, 0x6bdbd887 )
+	ROM_REGION( 0x20000, REGION_GFX6, 0 )	/* fg tilemaps */
+	ROM_LOAD16_BYTE( "lday11.bin",   0x00000, 0x10000, 0x04b961de )
+	ROM_LOAD16_BYTE( "lday13.bin",   0x00001, 0x10000, 0x6bdbd887 )
 ROM_END
 
 ROM_START( lastdaya )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "lday3.bin",    0x00000, 0x10000, 0xa06dfb1e )
 	ROM_RELOAD(               0x10000, 0x10000 )				/* banked at 0x8000-0xbfff */
 	ROM_LOAD( "lday4.bin",    0x20000, 0x10000, 0x70961ea6 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "e1",           0x0000, 0x8000, 0xce96e106 )	/* empty */
 	ROM_CONTINUE(             0x0000, 0x8000 )
 
-	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* chars */
+	ROM_REGION( 0x8000, REGION_GFX1, ROMREGION_DISPOSE )	/* chars */
 	ROM_LOAD( "lday2.bin",    0x0000, 0x8000, 0x83eb572c )	/* empty */
 	ROM_CONTINUE(             0x0000, 0x8000 )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* sprites */
-	ROM_LOAD_GFX_EVEN( "lday16.bin",   0x00000, 0x20000, 0xdf503504 )
-	ROM_LOAD_GFX_ODD ( "lday15.bin",   0x00000, 0x20000, 0xcd990442 )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )	/* sprites */
+	ROM_LOAD16_BYTE( "lday16.bin",   0x00000, 0x20000, 0xdf503504 )
+	ROM_LOAD16_BYTE( "lday15.bin",   0x00001, 0x20000, 0xcd990442 )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* tiles */
-	ROM_LOAD_GFX_EVEN( "e6",           0x00000, 0x20000, 0x7623c443 )
-	ROM_LOAD_GFX_ODD ( "e9",           0x00000, 0x20000, 0x717f6a0e )
-	ROM_LOAD_GFX_EVEN( "lday7.bin",    0x40000, 0x20000, 0x6e57a888 )
-	ROM_LOAD_GFX_ODD ( "lday10.bin",   0x40000, 0x20000, 0xa5548dca )
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE )	/* tiles */
+	ROM_LOAD16_BYTE( "e6",           0x00000, 0x20000, 0x7623c443 )
+	ROM_LOAD16_BYTE( "e9",           0x00001, 0x20000, 0x717f6a0e )
+	ROM_LOAD16_BYTE( "lday7.bin",    0x40000, 0x20000, 0x6e57a888 )
+	ROM_LOAD16_BYTE( "lday10.bin",   0x40001, 0x20000, 0xa5548dca )
 
-	ROM_REGION( 0x40000, REGION_GFX4 | REGIONFLAG_DISPOSE )	/* tiles */
-	ROM_LOAD_GFX_EVEN( "lday12.bin",   0x00000, 0x20000, 0x992bc4af )
-	ROM_LOAD_GFX_ODD ( "lday14.bin",   0x00000, 0x20000, 0xa79abc85 )
+	ROM_REGION( 0x40000, REGION_GFX4, ROMREGION_DISPOSE )	/* tiles */
+	ROM_LOAD16_BYTE( "lday12.bin",   0x00000, 0x20000, 0x992bc4af )
+	ROM_LOAD16_BYTE( "lday14.bin",   0x00001, 0x20000, 0xa79abc85 )
 
-	ROM_REGION( 0x20000, REGION_GFX5 )	/* bg tilemaps */
-	ROM_LOAD_GFX_EVEN( "e5",           0x00000, 0x10000, 0x5f801410 )
-	ROM_LOAD_GFX_ODD ( "e8",           0x00000, 0x10000, 0xa7b8250b )
+	ROM_REGION( 0x20000, REGION_GFX5, 0 )	/* bg tilemaps */
+	ROM_LOAD16_BYTE( "e5",           0x00000, 0x10000, 0x5f801410 )
+	ROM_LOAD16_BYTE( "e8",           0x00001, 0x10000, 0xa7b8250b )
 
-	ROM_REGION( 0x20000, REGION_GFX6 )	/* fg tilemaps */
-	ROM_LOAD_GFX_EVEN( "lday11.bin",   0x00000, 0x10000, 0x04b961de )
-	ROM_LOAD_GFX_ODD ( "lday13.bin",   0x00000, 0x10000, 0x6bdbd887 )
+	ROM_REGION( 0x20000, REGION_GFX6, 0 )	/* fg tilemaps */
+	ROM_LOAD16_BYTE( "lday11.bin",   0x00000, 0x10000, 0x04b961de )
+	ROM_LOAD16_BYTE( "lday13.bin",   0x00001, 0x10000, 0x6bdbd887 )
 ROM_END
 
 ROM_START( pollux )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "pollux2.bin",  0x00000, 0x10000, 0x45e10d4e )
 	ROM_RELOAD(               0x10000, 0x10000 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "pollux3.bin",  0x00000, 0x10000, 0x85a9dc98 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* chars */
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )	/* chars */
 	ROM_LOAD( "pollux1.bin",  0x08000, 0x08000, 0x7f7135da )
 	ROM_CONTINUE(             0x00000, 0x08000 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* sprites */
-	ROM_LOAD_GFX_SWAP( "polluxm2.bin", 0x00000, 0x80000, 0xbdea6f7d )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )	/* sprites */
+	ROM_LOAD16_WORD_SWAP( "polluxm2.bin", 0x00000, 0x80000, 0xbdea6f7d )
 
-	ROM_REGION( 0x80000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* tiles */
-	ROM_LOAD_GFX_SWAP( "polluxm1.bin", 0x00000, 0x80000, 0x1d2dedd2 )
+	ROM_REGION( 0x80000, REGION_GFX3, ROMREGION_DISPOSE )	/* tiles */
+	ROM_LOAD16_WORD_SWAP( "polluxm1.bin", 0x00000, 0x80000, 0x1d2dedd2 )
 
-	ROM_REGION( 0x80000, REGION_GFX4 | REGIONFLAG_DISPOSE )	/* tiles */
-	ROM_LOAD_GFX_EVEN( "pollux6.bin",  0x00000, 0x20000, 0xb0391db5 )
-	ROM_LOAD_GFX_ODD ( "pollux7.bin",  0x00000, 0x20000, 0x632f6e10 )
+	ROM_REGION( 0x80000, REGION_GFX4, ROMREGION_DISPOSE )	/* tiles */
+	ROM_LOAD16_BYTE( "pollux6.bin",  0x00000, 0x20000, 0xb0391db5 )
+	ROM_LOAD16_BYTE( "pollux7.bin",  0x00001, 0x20000, 0x632f6e10 )
 	/* 40000-7ffff empty, it will be filled with 0xff to avoid garbage */
 
-	ROM_REGION( 0x20000, REGION_GFX5 )	/* bg tilemaps */
-	ROM_LOAD_GFX_EVEN( "pollux9.bin",  0x00000, 0x10000, 0x378d8914 )
-	ROM_LOAD_GFX_ODD ( "pollux8.bin",  0x00000, 0x10000, 0x8859fa70 )
+	ROM_REGION( 0x20000, REGION_GFX5, 0 )	/* bg tilemaps */
+	ROM_LOAD16_BYTE( "pollux9.bin",  0x00000, 0x10000, 0x378d8914 )
+	ROM_LOAD16_BYTE( "pollux8.bin",  0x00001, 0x10000, 0x8859fa70 )
 
-	ROM_REGION( 0x20000, REGION_GFX6 )	/* fg tilemaps */
-	ROM_LOAD_GFX_EVEN( "pollux5.bin",  0x00000, 0x10000, 0xac090d34 )
-	ROM_LOAD_GFX_ODD ( "pollux4.bin",  0x00000, 0x10000, 0x2c6bd3be )
+	ROM_REGION( 0x20000, REGION_GFX6, 0 )	/* fg tilemaps */
+	ROM_LOAD16_BYTE( "pollux5.bin",  0x00000, 0x10000, 0xac090d34 )
+	ROM_LOAD16_BYTE( "pollux4.bin",  0x00001, 0x10000, 0x2c6bd3be )
 ROM_END
 
 ROM_START( bluehawk )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "rom19",        0x00000, 0x20000, 0x24149246 )
 	ROM_RELOAD(               0x10000, 0x20000 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "rom1",         0x00000, 0x10000, 0xeef22920 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* chars */
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )	/* chars */
 	ROM_LOAD( "rom3",         0x00000, 0x10000, 0xc192683f )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* sprites */
-	ROM_LOAD_GFX_SWAP( "dy-bh-m3",     0x00000, 0x80000, 0x8809d157 )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )	/* sprites */
+	ROM_LOAD16_WORD_SWAP( "dy-bh-m3",     0x00000, 0x80000, 0x8809d157 )
 
-	ROM_REGION( 0x80000, REGION_GFX3 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_SWAP( "dy-bh-m1",     0x00000, 0x80000, 0x51816b2c )
+	ROM_REGION( 0x80000, REGION_GFX3, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_WORD_SWAP( "dy-bh-m1",     0x00000, 0x80000, 0x51816b2c )
 
-	ROM_REGION( 0x80000, REGION_GFX4 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_SWAP( "dy-bh-m2",     0x00000, 0x80000, 0xf9daace6 )
+	ROM_REGION( 0x80000, REGION_GFX4, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_WORD_SWAP( "dy-bh-m2",     0x00000, 0x80000, 0xf9daace6 )
 
-	ROM_REGION( 0x40000, REGION_GFX5 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_EVEN( "rom6",         0x00000, 0x20000, 0xe6bd9daa )
-	ROM_LOAD_GFX_ODD ( "rom5",         0x00000, 0x20000, 0x5c654dc6 )
+	ROM_REGION( 0x40000, REGION_GFX5, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_BYTE( "rom6",         0x00000, 0x20000, 0xe6bd9daa )
+	ROM_LOAD16_BYTE( "rom5",         0x00001, 0x20000, 0x5c654dc6 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* OKI6295 samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* OKI6295 samples */
 	ROM_LOAD( "rom4",         0x00000, 0x20000, 0xf7318919 )
 ROM_END
 
 ROM_START( primella )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "1_d3.bin",     0x00000, 0x20000, 0x82fea4e0 )
 	ROM_RELOAD(               0x10000, 0x20000 )				/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "3_r6.bin",     0x0000, 0x10000, 0xea41c4ad )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* chars */
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )	/* chars */
 	ROM_LOAD( "2_c5.bin",     0x0000, 0x20000, 0x8575e64b )
 
 	/* no sprites */
 
-	ROM_REGION( 0x40000, REGION_GFX2 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_EVEN( "7_n9.bin",     0x00000, 0x20000, 0x20b6a574 )
-	ROM_LOAD_GFX_ODD ( "4_n7.bin",     0x00000, 0x20000, 0xfe593666 )
+	ROM_REGION( 0x40000, REGION_GFX2, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_BYTE( "7_n9.bin",     0x00000, 0x20000, 0x20b6a574 )
+	ROM_LOAD16_BYTE( "4_n7.bin",     0x00001, 0x20000, 0xfe593666 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_EVEN( "8_g9.bin",     0x00000, 0x20000, 0x542ecb83 )
-	ROM_LOAD_GFX_ODD ( "5_g7.bin",     0x00000, 0x20000, 0x058ecac6 )
+	ROM_REGION( 0x40000, REGION_GFX3, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_BYTE( "8_g9.bin",     0x00000, 0x20000, 0x542ecb83 )
+	ROM_LOAD16_BYTE( "5_g7.bin",     0x00001, 0x20000, 0x058ecac6 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* OKI6295 samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* OKI6295 samples */
 	ROM_LOAD( "6_r9.bin",     0x00000, 0x20000, 0xf92e5803 )
 ROM_END
 
 ROM_START( rshark )
-	ROM_REGION( 0x40000, REGION_CPU1 )	/* 64k for code + 128k for banks */
-	ROM_LOAD_EVEN( "rspl00.bin",   0x00000, 0x20000, 0x40356b9d )
-	ROM_LOAD_ODD ( "rspu00.bin",   0x00000, 0x20000, 0x6635c668 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
+	ROM_LOAD16_BYTE( "rspl00.bin",   0x00000, 0x20000, 0x40356b9d )
+	ROM_LOAD16_BYTE( "rspu00.bin",   0x00001, 0x20000, 0x6635c668 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "rse3.bin",     0x0000, 0x10000, 0x03c8fd17 )
 
-	ROM_REGION( 0x200000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* sprite */
-	ROM_LOAD_GFX_EVEN( "rse4.bin",     0x000000, 0x80000, 0xb857e411 )
-	ROM_LOAD_GFX_ODD ( "rse5.bin",     0x000000, 0x80000, 0x7822d77a )
-	ROM_LOAD_GFX_EVEN( "rse6.bin",     0x100000, 0x80000, 0x80215c52 )
-	ROM_LOAD_GFX_ODD ( "rse7.bin",     0x100000, 0x80000, 0xbd28bbdc )
+	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )	/* sprite */
+	ROM_LOAD16_BYTE( "rse4.bin",     0x000000, 0x80000, 0xb857e411 )
+	ROM_LOAD16_BYTE( "rse5.bin",     0x000001, 0x80000, 0x7822d77a )
+	ROM_LOAD16_BYTE( "rse6.bin",     0x100000, 0x80000, 0x80215c52 )
+	ROM_LOAD16_BYTE( "rse7.bin",     0x100001, 0x80000, 0xbd28bbdc )
 
-	ROM_REGION( 0x100000, REGION_GFX2 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_EVEN( "rse11.bin",    0x00000, 0x80000, 0x8a0c572f )
-	ROM_LOAD_GFX_ODD ( "rse10.bin",    0x00000, 0x80000, 0x139d5947 )
+	ROM_REGION( 0x100000, REGION_GFX2, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_BYTE( "rse11.bin",    0x00000, 0x80000, 0x8a0c572f )
+	ROM_LOAD16_BYTE( "rse10.bin",    0x00001, 0x80000, 0x139d5947 )
 
-	ROM_REGION( 0x100000, REGION_GFX3 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_EVEN( "rse15.bin",    0x00000, 0x80000, 0xd188134d )
-	ROM_LOAD_GFX_ODD ( "rse14.bin",    0x00000, 0x80000, 0x0ef637a7 )
+	ROM_REGION( 0x100000, REGION_GFX3, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_BYTE( "rse15.bin",    0x00000, 0x80000, 0xd188134d )
+	ROM_LOAD16_BYTE( "rse14.bin",    0x00001, 0x80000, 0x0ef637a7 )
 
-	ROM_REGION( 0x100000, REGION_GFX4 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_EVEN( "rse17.bin",    0x00000, 0x80000, 0x7ff0f3c7 )
-	ROM_LOAD_GFX_ODD ( "rse16.bin",    0x00000, 0x80000, 0xc176c8bc )
+	ROM_REGION( 0x100000, REGION_GFX4, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_BYTE( "rse17.bin",    0x00000, 0x80000, 0x7ff0f3c7 )
+	ROM_LOAD16_BYTE( "rse16.bin",    0x00001, 0x80000, 0xc176c8bc )
 
-	ROM_REGION( 0x100000, REGION_GFX5 )	/* tiles + tilemaps (together!) */
-	ROM_LOAD_GFX_EVEN( "rse21.bin",    0x00000, 0x80000, 0x2ea665af )
-	ROM_LOAD_GFX_ODD ( "rse20.bin",    0x00000, 0x80000, 0xef93e3ac )
+	ROM_REGION( 0x100000, REGION_GFX5, 0 )	/* tiles + tilemaps (together!) */
+	ROM_LOAD16_BYTE( "rse21.bin",    0x00000, 0x80000, 0x2ea665af )
+	ROM_LOAD16_BYTE( "rse20.bin",    0x00001, 0x80000, 0xef93e3ac )
 
-	ROM_REGION( 0x80000, REGION_GFX6 )	/* top 4 bits of tilemaps */
+	ROM_REGION( 0x80000, REGION_GFX6, 0 )	/* top 4 bits of tilemaps */
 	ROM_LOAD( "rse12.bin",    0x00000, 0x20000, 0xfadbf947 )
 	ROM_LOAD( "rse13.bin",    0x20000, 0x20000, 0x323d4df6 )
 	ROM_LOAD( "rse18.bin",    0x40000, 0x20000, 0xe00c9171 )
 	ROM_LOAD( "rse19.bin",    0x60000, 0x20000, 0xd214d1d0 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* OKI6295 samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* OKI6295 samples */
 	ROM_LOAD( "rse1.bin",     0x00000, 0x20000, 0x0291166f )
 	ROM_LOAD( "rse2.bin",     0x20000, 0x20000, 0x5a26ee72 )
 ROM_END

@@ -154,8 +154,7 @@ logerror("e000 = %02x\n",RAM[0xe000]);
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xc000, input_port_0_r },	/* DSW0 */
@@ -164,11 +163,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xc005, 0xc005, input_port_3_r },	/* IN1 (Gun Dealer only) */
 	{ 0xc006, 0xc006, input_port_4_r },	/* IN0 (Gun Dealer only) */
 	{ 0xc400, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc010, 0xc013, yamyam_fg_scroll_w },		/* Yam Yam only */
 	{ 0xc014, 0xc014, gundealr_flipscreen_w },
@@ -178,21 +175,16 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xc800, 0xcfff, gundealr_bg_videoram_w, &gundealr_bg_videoram },
 	{ 0xd000, 0xdfff, gundealr_fg_videoram_w, &gundealr_fg_videoram },
 	{ 0xe000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x01, 0x01, YM2203_read_port_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, YM2203_control_port_0_w },
 	{ 0x01, 0x01, YM2203_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -250,7 +242,7 @@ INPUT_PORTS_START( gundealr )
 	PORT_START	/* COIN */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -276,6 +268,88 @@ INPUT_PORTS_START( gundealr )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* probably unused */
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* probably unused */
+INPUT_PORTS_END
+
+INPUT_PORTS_START( gundealt )
+	PORT_START	/* DSW0 */
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x0c, "Easy" )
+	PORT_DIPSETTING(    0x08, "Medium" )
+	PORT_DIPSETTING(    0x04, "Hard" )
+	PORT_DIPSETTING(    0x00, "Hardest" )
+	PORT_DIPNAME( 0x10, 0x00, DEF_STR( Demo_Sounds ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( Cocktail ) )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Flip_Screen ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( On ) )
+
+	PORT_START	/* DSW1 */
+	PORT_DIPNAME( 0x07, 0x07, DEF_STR( Coin_A ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( 5C_1C ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( 4C_1C ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( 3C_1C ) )
+	PORT_DIPSETTING(    0x03, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x07, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x06, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x05, DEF_STR( 1C_3C ) )
+	PORT_DIPSETTING(    0x04, DEF_STR( 1C_4C ) )
+	PORT_DIPNAME( 0x38, 0x38, DEF_STR( Coin_B ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( 5C_1C ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( 4C_1C ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( 3C_1C ) )
+	PORT_DIPSETTING(    0x18, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x38, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x30, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x28, DEF_STR( 1C_3C ) )
+	PORT_DIPSETTING(    0x20, DEF_STR( 1C_4C ) )
+	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x00, "0" )
+	PORT_DIPSETTING(    0x40, "1" )
+	PORT_DIPSETTING(    0x80, "2" )
+	PORT_DIPSETTING(    0xc0, "3" )
+
+	PORT_START	/* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_4WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_4WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_4WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_4WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* probably unused */
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* probably unused */
+
+	PORT_START	/* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_4WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_4WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_4WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_4WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* probably unused */
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* probably unused */
+
+	PORT_START	/* COIN */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 INPUT_PORTS_END
 
 INPUT_PORTS_START( yamyam )
@@ -330,7 +404,7 @@ INPUT_PORTS_START( yamyam )
 	PORT_START	/* COIN */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_TILT )	/* "TEST" */
@@ -452,51 +526,63 @@ static const struct MachineDriver machine_driver_gundealr =
 ***************************************************************************/
 
 ROM_START( gundealr )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "gundealr.1",   0x00000, 0x10000, 0x5797e830 )
 	ROM_RELOAD(               0x10000, 0x10000 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "gundealr.3",   0x00000, 0x10000, 0x01f99de2 )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "3.6p",         0x00000, 0x10000, 0x01f99de2 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gundealr.2",   0x00000, 0x20000, 0x7874ec41 )
 ROM_END
 
 ROM_START( gundeala )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "gundeala.1",   0x00000, 0x10000, 0xd87e24f1 )
 	ROM_RELOAD(               0x10000, 0x10000 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gundeala.3",   0x00000, 0x10000, 0x836cf1a3 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gundeala.2",   0x00000, 0x20000, 0x4b5fb53c )
 ROM_END
 
+ROM_START( gundealt )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
+	ROM_LOAD( "1.3j",         0x00000, 0x10000, 0x1d951292 )
+	ROM_RELOAD(               0x10000, 0x10000 )	/* banked at 0x8000-0xbfff */
+
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "3.6p",         0x00000, 0x10000, 0x01f99de2 )
+
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD( "2.6b",         0x00000, 0x20000, 0x508ed0d0 )
+ROM_END
+
 ROM_START( yamyam )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "b3.f10",       0x00000, 0x20000, 0x96ae9088 )
 	ROM_RELOAD(               0x10000, 0x20000 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "b2.d16",       0x00000, 0x10000, 0xcb4f84ee )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "b1.a16",       0x00000, 0x20000, 0xb122828d )
 ROM_END
 
 /* only gfx are different, code is the same */
 ROM_START( wiseguy )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 64k for code + 128k for banks */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 64k for code + 128k for banks */
 	ROM_LOAD( "b3.f10",       0x00000, 0x20000, 0x96ae9088 )
 	ROM_RELOAD(               0x10000, 0x20000 )	/* banked at 0x8000-0xbfff */
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "wguyb2.bin",   0x00000, 0x10000, 0x1c684c46 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "b1.a16",       0x00000, 0x20000, 0xb122828d )
 ROM_END
 
@@ -517,5 +603,6 @@ static void init_yamyam(void)
 
 GAME( 1990, gundealr, 0,        gundealr, gundealr, gundealr, ROT270, "Dooyong", "Gun Dealer (set 1)" )
 GAME( ????, gundeala, gundealr, gundealr, gundealr, gundealr, ROT270, "Dooyong", "Gun Dealer (set 2)" )
+GAME( 1990, gundealt, gundealr, gundealr, gundealt, gundealr, ROT270, "Tecmo", "Gun Dealer (Tecmo)" )
 GAME( 1990, yamyam,   0,        gundealr, yamyam,   yamyam,   ROT0,   "Dooyong", "Yam! Yam!?" )
 GAME( 1990, wiseguy,  yamyam,   gundealr, yamyam,   yamyam,   ROT0,   "Dooyong", "Wise Guy" )

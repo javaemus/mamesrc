@@ -27,8 +27,7 @@ static WRITE_HANDLER( solomon_sh_command_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, MRA_RAM },	/* RAM */
 	{ 0xd000, 0xdfff, MRA_RAM },	/* video + color + bg */
@@ -40,11 +39,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xe604, 0xe604, input_port_3_r },	/* DSW1 */
 	{ 0xe605, 0xe605, input_port_4_r },	/* DSW2 */
 	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xd000, 0xd3ff, colorram_w, &colorram },
@@ -57,35 +54,28 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xe604, 0xe604, solomon_flipscreen_w },
 	{ 0xe800, 0xe800, solomon_sh_command_w },
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress solomon_sound_readmem[] =
-{
+static MEMORY_READ_START( solomon_sound_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x47ff, MRA_RAM },
 	{ 0x8000, 0x8000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress solomon_sound_writemem[] =
-{
+static MEMORY_WRITE_START( solomon_sound_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0xffff, 0xffff, MWA_NOP },	/* watchdog? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort solomon_sound_writeport[] =
-{
+static PORT_WRITE_START( solomon_sound_writeport )
 	{ 0x10, 0x10, AY8910_control_port_0_w },
 	{ 0x11, 0x11, AY8910_write_port_0_w },
 	{ 0x20, 0x20, AY8910_control_port_1_w },
 	{ 0x21, 0x21, AY8910_write_port_1_w },
 	{ 0x30, 0x30, AY8910_control_port_2_w },
 	{ 0x31, 0x31, AY8910_write_port_2_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -266,24 +256,24 @@ static const struct MachineDriver machine_driver_solomon =
 ***************************************************************************/
 
 ROM_START( solomon )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "slmn_06.bin",  0x00000, 0x4000, 0xe4d421ff )
 	ROM_LOAD( "slmn_07.bin",  0x08000, 0x4000, 0xd52d7e38 )
 	ROM_CONTINUE(             0x04000, 0x4000 )
 	ROM_LOAD( "slmn_08.bin",  0x0f000, 0x1000, 0xb924d162 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "slmn_01.bin",  0x0000, 0x4000, 0xfa6e562e )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "slmn_12.bin",  0x00000, 0x08000, 0xaa26dfcb )	/* characters */
 	ROM_LOAD( "slmn_11.bin",  0x08000, 0x08000, 0x6f94d2af )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "slmn_10.bin",  0x00000, 0x08000, 0x8310c2a1 )
 	ROM_LOAD( "slmn_09.bin",  0x08000, 0x08000, 0xab7e6c42 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "slmn_02.bin",  0x00000, 0x04000, 0x80fa2be3 )	/* sprites */
 	ROM_LOAD( "slmn_03.bin",  0x04000, 0x04000, 0x236106b4 )
 	ROM_LOAD( "slmn_04.bin",  0x08000, 0x04000, 0x088fe5d9 )

@@ -133,19 +133,16 @@ WRITE_HANDLER( pandoras_i8039_irqtrigger_w )
 		cpu_cause_interrupt(3,I8039_EXT_INT);
 }
 
-static struct MemoryReadAddress pandoras_readmem_a[] =
-{
+static MEMORY_READ_START( pandoras_readmem_a )
 	{ 0x0000, 0x0fff, pandoras_sharedram_r },	/* Work RAM (Shared with CPU B) */
 	{ 0x1000, 0x13ff, pandoras_cram_r },		/* Color RAM (shared with CPU B) */
 	{ 0x1400, 0x17ff, pandoras_vram_r },		/* Video RAM (shared with CPU B) */
 	{ 0x4000, 0x5fff, MRA_ROM },				/* see notes */
 	{ 0x6000, 0x67ff, pandoras_sharedram2_r },	/* Shared RAM with CPU B */
 	{ 0x8000, 0xffff, MRA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress pandoras_writemem_a[] =
-{
+static MEMORY_WRITE_START( pandoras_writemem_a )
 	{ 0x0000, 0x0fff, pandoras_sharedram_w, &pandoras_sharedram },	/* Work RAM (Shared with CPU B) */
 	{ 0x1000, 0x13ff, pandoras_cram_w, &colorram },					/* Color RAM (shared with CPU B) */
 	{ 0x1400, 0x17ff, pandoras_vram_w, &videoram },					/* Video RAM (shared with CPU B) */
@@ -158,11 +155,9 @@ static struct MemoryWriteAddress pandoras_writemem_a[] =
 	{ 0x4000, 0x5fff, MWA_ROM },									/* see notes */
 	{ 0x6000, 0x67ff, pandoras_sharedram2_w, &pandoras_sharedram2 },/* Shared RAM with CPU B */
 	{ 0x8000, 0xffff, MWA_ROM },									/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress pandoras_readmem_b[] =
-{
+static MEMORY_READ_START( pandoras_readmem_b )
 	{ 0x0000, 0x0fff, pandoras_sharedram_r },	/* Work RAM (Shared with CPU A) */
 	{ 0x1000, 0x13ff, pandoras_cram_r },		/* Color RAM (shared with CPU A) */
 	{ 0x1400, 0x17ff, pandoras_vram_r },		/* Video RAM (shared with CPU A) */
@@ -175,11 +170,9 @@ static struct MemoryReadAddress pandoras_readmem_b[] =
 //	{ 0x1e00, 0x1e00, MWA_NOP },				/* ??? */
 	{ 0xc000, 0xc7ff, pandoras_sharedram2_r },	/* Shared RAM with the CPU A */
 	{ 0xe000, 0xffff, MRA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress pandoras_writemem_b[] =
-{
+static MEMORY_WRITE_START( pandoras_writemem_b )
 	{ 0x0000, 0x0fff, pandoras_sharedram_w },	/* Work RAM (Shared with CPU A) */
 	{ 0x1000, 0x13ff, pandoras_cram_w },		/* Color RAM (shared with CPU A) */
 	{ 0x1400, 0x17ff, pandoras_vram_w },		/* Video RAM (shared with CPU A) */
@@ -188,53 +181,40 @@ static struct MemoryWriteAddress pandoras_writemem_b[] =
 	{ 0xa000, 0xa000, pandoras_cpua_irqtrigger_w },/* cause FIRQ on CPU A */
 	{ 0xc000, 0xc7ff, pandoras_sharedram2_w },	/* Shared RAM with the CPU A */
 	{ 0xe000, 0xffff, MWA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress pandoras_readmem_snd[] =
-{
+static MEMORY_READ_START( pandoras_readmem_snd )
 	{ 0x0000, 0x1fff, MRA_ROM },				/* ROM */
 	{ 0x2000, 0x23ff, MRA_RAM },				/* RAM */
 	{ 0x4000, 0x4000, soundlatch_r },			/* soundlatch_r */
 	{ 0x6001, 0x6001, AY8910_read_port_0_r },	/* AY-8910 */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress pandoras_writemem_snd[] =
-{
+static MEMORY_WRITE_START( pandoras_writemem_snd )
 	{ 0x0000, 0x1fff, MWA_ROM },				/* ROM */
 	{ 0x2000, 0x23ff, MWA_RAM },				/* RAM */
 	{ 0x6000, 0x6000, AY8910_control_port_0_w },/* AY-8910 */
 	{ 0x6002, 0x6002, AY8910_write_port_0_w },	/* AY-8910 */
 	{ 0x8000, 0x8000, pandoras_i8039_irqtrigger_w },/* cause INT on the 8039 */
 	{ 0xa000, 0xa000, soundlatch2_w },			/* sound command to the 8039 */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress i8039_readmem[] =
-{
+static MEMORY_READ_START( i8039_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress i8039_writemem[] =
-{
+static MEMORY_WRITE_START( i8039_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct IOReadPort i8039_readport[] =
-{
+static PORT_READ_START( i8039_readport )
 	{ 0x00, 0xff, soundlatch2_r },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort i8039_writeport[] =
-{
+static PORT_WRITE_START( i8039_writeport )
 	{ I8039_p1, I8039_p1, DAC_0_data_w },
 	{ I8039_p2, I8039_p2, i8039_irqen_w },
-	{ -1 }
-};
+PORT_END
 
 /***************************************************************************
 
@@ -493,31 +473,31 @@ static const struct MachineDriver machine_driver_pandoras =
 ***************************************************************************/
 
 ROM_START( pandoras )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64K for the CPU A */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64K for the CPU A */
 	ROM_LOAD( "pand_j13.cpu",	0x08000, 0x02000, 0x7a0fe9c5 )
 	ROM_LOAD( "pand_j12.cpu",	0x0a000, 0x02000, 0x7dc4bfe1 )
 	ROM_LOAD( "pand_j10.cpu",	0x0c000, 0x02000, 0xbe3af3b7 )
 	ROM_LOAD( "pand_j9.cpu",	0x0e000, 0x02000, 0xe674a17a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64K for the CPU B */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64K for the CPU B */
 	ROM_LOAD( "pand_j5.cpu",	0x0e000, 0x02000, 0x4aab190b )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 64K for the Sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 64K for the Sound CPU */
 	ROM_LOAD( "pand_6c.snd",	0x00000, 0x02000, 0x0c1f109d )
 
-	ROM_REGION( 0x1000, REGION_CPU4 ) /* 4K for the Sound CPU 2 */
+	ROM_REGION( 0x1000, REGION_CPU4, 0 ) /* 4K for the Sound CPU 2 */
 	ROM_LOAD( "pand_7e.snd",	0x00000, 0x01000, 0x18b0f9d0 )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pand_a18.cpu",	0x00000, 0x02000, 0x23706d4a )	/* tiles */
 	ROM_LOAD( "pand_a19.cpu",	0x02000, 0x02000, 0xa463b3f9 )
 
-	ROM_REGION( 0x6000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pand_j18.cpu",	0x00000, 0x02000, 0x99a696c5 )	/* sprites */
 	ROM_LOAD( "pand_j17.cpu",	0x02000, 0x02000, 0x38a03c21 )
 	ROM_LOAD( "pand_j16.cpu",	0x04000, 0x02000, 0xe0708a78 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "pandora.2a",		0x0000, 0x020, 0x4d56f939 ) /* palette */
 	ROM_LOAD( "pandora.17g",	0x0020, 0x100, 0xc1a90cfc ) /* sprite lookup table */
 	ROM_LOAD( "pandora.16b",	0x0120, 0x100, 0xc89af0c3 ) /* character lookup table */

@@ -160,13 +160,20 @@ void z80gb_exit(void)
 
 INLINE void z80gb_ProcessInterrupts (void)
 {
+
 	if (CheckInterrupts && (Regs.w.enable & IME))
 	{
-		UINT8 irq;
+			UINT8 irq;
 
-		CheckInterrupts = 0;
+			CheckInterrupts = 0;
 
-		irq = ISWITCH & IFLAGS;
+			irq = ISWITCH & IFLAGS;
+
+			logerror("Attempting to process Z80GB Interrupt IRQ $%02X\n", irq);
+			logerror("Attempting to process Z80GB Interrupt ISWITCH $%02X\n", ISWITCH);
+			logerror("Attempting to process Z80GB Interrupt IFLAGS $%02X\n", IFLAGS);
+
+
 		if (irq)
 		{
 			int irqline = 0;
@@ -253,7 +260,7 @@ void z80gb_set_context (void *src)
 {
 	if( src )
 		Regs = *(z80gb_regs *)src;
-	change_pc(Regs.w.PC);
+	change_pc16(Regs.w.PC);
 }
 
 /****************************************************************************/
@@ -277,7 +284,7 @@ unsigned z80gb_get_pc (void)
 void z80gb_set_pc (unsigned pc)
 {
 	Regs.w.PC = pc;
-	change_pc(Regs.w.PC);
+	change_pc16(Regs.w.PC);
 }
 
 unsigned z80gb_get_sp (void)
@@ -323,23 +330,28 @@ void z80gb_set_nmi_line(int state)
 
 void z80gb_set_irq_line (int irqline, int state)
 {
-	if( Regs.w.irq_state == state )
-		return;
+	logerror("setting irq line 0x%02x state 0x%08x\n", irqline, state);
+	//if( Regs.w.irq_state == state )
+	//	return;
 
 	Regs.w.irq_state = state;
 	if( state == ASSERT_LINE )
 	{
-		IFLAGS |= 0x01 << irqline;
+
+		IFLAGS |= (0x01 << irqline);
 		CheckInterrupts = 1;
 		logerror("Z80GB assert irq line %d ($%02X)\n", irqline, IFLAGS);
+
 	}
 	else
 	{
+
 		IFLAGS &= ~(0x01 << irqline);
 		if( IFLAGS == 0 )
 			CheckInterrupts = 0;
 		logerror("Z80GB clear irq line %d ($%02X)\n", irqline, IFLAGS);
-    }
+
+     }
 }
 
 void z80gb_set_irq_callback(int (*irq_callback)(int))

@@ -24,8 +24,7 @@ static int pingpong_interrupt(void)
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7FFF, MRA_ROM },
 	{ 0x8000, 0x87FF, MRA_RAM },
 	{ 0x9000, 0x97FF, MRA_RAM },
@@ -33,11 +32,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xA880, 0xA880, input_port_1_r },
 	{ 0xA900, 0xA900, input_port_2_r },
 	{ 0xA980, 0xA980, input_port_3_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7FFF, MWA_ROM },
 	{ 0x8000, 0x83FF, colorram_w, &colorram },
 	{ 0x8400, 0x87FF, videoram_w, &videoram, &videoram_size },
@@ -50,8 +47,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xA200, 0xA200, MWA_NOP },		/* SN76496 data latch */
 	{ 0xA400, 0xA400, SN76496_0_w },	/* trigger read */
 	{ 0xA600, 0xA600, watchdog_reset_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -229,17 +225,17 @@ static const struct MachineDriver machine_driver_pingpong =
 ***************************************************************************/
 
 ROM_START( pingpong )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "pp_e04.rom",   0x0000, 0x4000, 0x18552f8f )
 	ROM_LOAD( "pp_e03.rom",   0x4000, 0x4000, 0xae5f01e8 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pp_e01.rom",   0x0000, 0x2000, 0xd1d6f090 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pp_e02.rom",   0x0000, 0x2000, 0x33c687e0 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "pingpong.3j",  0x0000, 0x0020, 0x3e04f06e ) /* palette (this might be bad) */
 	ROM_LOAD( "pingpong.11j", 0x0020, 0x0100, 0x09d96b08 ) /* sprites */
 	ROM_LOAD( "pingpong.5h",  0x0120, 0x0100, 0x8456046a ) /* characters */

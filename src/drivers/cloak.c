@@ -132,15 +132,19 @@ static void nvram_handler(void *file, int read_or_write)
 }
 
 
-WRITE_HANDLER( cloak_led_w )
+static WRITE_HANDLER( cloak_led_w )
 {
 	set_led_status(1 - offset,~data & 0x80);
 }
 
-
-
-static struct MemoryReadAddress readmem[] =
+static WRITE_HANDLER( cloak_coin_counter_w )
 {
+	set_led_status(offset,data);
+}
+
+
+
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x07ff, MRA_RAM },
 	{ 0x0800, 0x0fff, cloak_sharedram_r },
 	{ 0x2800, 0x29ff, MRA_RAM },
@@ -152,11 +156,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x3000, 0x30ff, MRA_RAM },
 	{ 0x3800, 0x3807, MRA_RAM },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x0400, 0x07ff, videoram_w, &videoram, &videoram_size },
 	{ 0x0800, 0x0fff, cloak_sharedram_w, &cloak_sharedram },
@@ -165,35 +167,30 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x2800, 0x29ff, MWA_RAM, &nvram, &nvram_size },
 	{ 0x3000, 0x30ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x3200, 0x327f, cloak_paletteram_w },
-	{ 0x3800, 0x3801, coin_counter_w },
+	{ 0x3800, 0x3801, cloak_coin_counter_w },
 	{ 0x3802, 0x3805, MWA_RAM },
 	{ 0x3806, 0x3807, cloak_led_w },
 	{ 0x3a00, 0x3a00, watchdog_reset_w },
 	{ 0x3e00, 0x3e00, MWA_RAM, &enable_nvRAM },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem2[] =
-{
+static MEMORY_READ_START( readmem2 )
 	{ 0x0000, 0x0007, MRA_RAM },
 	{ 0x0008, 0x000f, graph_processor_r },
 	{ 0x0010, 0x07ff, MRA_RAM },
 	{ 0x0800, 0x0fff, cloak_sharedram_r },
 	{ 0x2000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem2[] =
-{
+static MEMORY_WRITE_START( writemem2 )
 	{ 0x0000, 0x0007, MWA_RAM },
 	{ 0x0008, 0x000f, graph_processor_w },
 	{ 0x0010, 0x07ff, MWA_RAM },
 	{ 0x0800, 0x0fff, cloak_sharedram_w },
 	{ 0x1200, 0x1200, cloak_clearbmp_w },
 	{ 0x2000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 INPUT_PORTS_START( cloak )
 	PORT_START	/* IN0 */
@@ -367,13 +364,13 @@ static const struct MachineDriver machine_driver_cloak =
 ***************************************************************************/
 
 ROM_START( cloak )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "136023.501",   0x4000, 0x2000, 0xc2dbef1b )
 	ROM_LOAD( "136023.502",   0x6000, 0x2000, 0x316d0c7b )
 	ROM_LOAD( "136023.503",   0x8000, 0x4000, 0xb9c291a6 )
 	ROM_LOAD( "136023.504",   0xc000, 0x4000, 0xd014a1c0 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for code */
 	ROM_LOAD( "136023.509",   0x2000, 0x2000, 0x46c021a4 )
 	ROM_LOAD( "136023.510",   0x4000, 0x2000, 0x8c9cf017 )
 	ROM_LOAD( "136023.511",   0x6000, 0x2000, 0x66fd8a34 )
@@ -382,11 +379,11 @@ ROM_START( cloak )
 	ROM_LOAD( "136023.514",   0xc000, 0x2000, 0x6f8c7991 )
 	ROM_LOAD( "136023.515",   0xe000, 0x2000, 0x835438a0 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "136023.305",   0x0000, 0x1000, 0xee443909 )
 	ROM_LOAD( "136023.306",   0x1000, 0x1000, 0xd708b132 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "136023.307",   0x0000, 0x1000, 0xc42c84a4 )
 	ROM_LOAD( "136023.308",   0x1000, 0x1000, 0x4fe13d58 )
 ROM_END

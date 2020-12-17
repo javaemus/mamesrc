@@ -66,8 +66,7 @@ static READ_HANDLER( speedup_r )
 	return RAM[0x0414];
 }
 
-static struct MemoryReadAddress crimfght_readmem[] =
-{
+static MEMORY_READ_START( crimfght_readmem )
 	{ 0x0000, 0x03ff, MRA_BANK1 },			/* banked RAM */
 	{ 0x0414, 0x0414, speedup_r },
 	{ 0x0400, 0x1fff, MRA_RAM },			/* RAM */
@@ -83,11 +82,9 @@ static struct MemoryReadAddress crimfght_readmem[] =
 	{ 0x2000, 0x5fff, K052109_051960_r },	/* video RAM + sprite RAM */
 	{ 0x6000, 0x7fff, MRA_BANK2 },			/* banked ROM */
 	{ 0x8000, 0xffff, MRA_ROM },			/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress crimfght_writemem[] =
-{
+static MEMORY_WRITE_START( crimfght_writemem )
 	{ 0x0000, 0x03ff, MWA_BANK1 },					/* banked RAM */
 	{ 0x0400, 0x1fff, MWA_RAM },					/* RAM */
 	{ 0x3f88, 0x3f88, crimfght_coin_w },			/* coin counters */
@@ -95,28 +92,23 @@ static struct MemoryWriteAddress crimfght_writemem[] =
 	{ 0x2000, 0x5fff, K052109_051960_w },			/* video RAM + sprite RAM */
 	{ 0x6000, 0x7fff, MWA_ROM },					/* banked ROM */
 	{ 0x8000, 0xffff, MWA_ROM },					/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress crimfght_readmem_sound[] =
-{
+static MEMORY_READ_START( crimfght_readmem_sound )
 	{ 0x0000, 0x7fff, MRA_ROM },				/* ROM 821l01.h4 */
 	{ 0x8000, 0x87ff, MRA_RAM },				/* RAM */
 	{ 0xa001, 0xa001, YM2151_status_port_0_r },	/* YM2151 */
 	{ 0xc000, 0xc000, soundlatch_r },			/* soundlatch_r */
 	{ 0xe000, 0xe00d, K007232_read_port_0_r },	/* 007232 registers */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress crimfght_writemem_sound[] =
-{
+static MEMORY_WRITE_START( crimfght_writemem_sound )
 	{ 0x0000, 0x7fff, MWA_ROM },					/* ROM 821l01.h4 */
 	{ 0x8000, 0x87ff, MWA_RAM },					/* RAM */
 	{ 0xa000, 0xa000, YM2151_register_port_0_w },	/* YM2151 */
 	{ 0xa001, 0xa001, YM2151_data_port_0_w },		/* YM2151 */
 	{ 0xe000, 0xe00d, K007232_write_port_0_w },		/* 007232 registers */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /***************************************************************************
 
@@ -449,71 +441,71 @@ static const struct MachineDriver machine_driver_crimfght =
 ***************************************************************************/
 
 ROM_START( crimfght )
-	ROM_REGION( 0x28000, REGION_CPU1 ) /* code + banked roms */
+	ROM_REGION( 0x28000, REGION_CPU1, 0 ) /* code + banked roms */
 	ROM_LOAD( "821l02.f24", 0x10000, 0x18000, 0x588e7da6 )
 	ROM_CONTINUE(           0x08000, 0x08000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the sound CPU */
 	ROM_LOAD( "821l01.h4",  0x0000, 0x8000, 0x0faca89e )
 
-	ROM_REGION( 0x080000, REGION_GFX1 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x080000, REGION_GFX1, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "821k06.k13", 0x000000, 0x040000, 0xa1eadb24 )	/* characters */
 	ROM_LOAD( "821k07.k19", 0x040000, 0x040000, 0x060019fa )
 
-	ROM_REGION( 0x100000, REGION_GFX2 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x100000, REGION_GFX2, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "821k04.k2",  0x000000, 0x080000, 0x00e0291b )	/* sprites */
 	ROM_LOAD( "821k05.k8",  0x080000, 0x080000, 0xe09ea05d )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "821a08.i15", 0x0000, 0x0100, 0x7da55800 )	/* priority encoder (not used) */
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* data for the 007232 */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* data for the 007232 */
 	ROM_LOAD( "821k03.e5",  0x00000, 0x40000, 0xfef8505a )
 ROM_END
 
 ROM_START( crimfgtj )
-	ROM_REGION( 0x28000, REGION_CPU1 ) /* code + banked roms */
+	ROM_REGION( 0x28000, REGION_CPU1, 0 ) /* code + banked roms */
 	ROM_LOAD( "821p02.bin", 0x10000, 0x18000, 0xf33fa2e1 )
 	ROM_CONTINUE(           0x08000, 0x08000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the sound CPU */
 	ROM_LOAD( "821l01.h4",  0x0000, 0x8000, 0x0faca89e )
 
-	ROM_REGION( 0x080000, REGION_GFX1 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x080000, REGION_GFX1, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "821k06.k13", 0x000000, 0x040000, 0xa1eadb24 )	/* characters */
 	ROM_LOAD( "821k07.k19", 0x040000, 0x040000, 0x060019fa )
 
-	ROM_REGION( 0x100000, REGION_GFX2 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x100000, REGION_GFX2, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "821k04.k2",  0x000000, 0x080000, 0x00e0291b )	/* sprites */
 	ROM_LOAD( "821k05.k8",  0x080000, 0x080000, 0xe09ea05d )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "821a08.i15", 0x0000, 0x0100, 0x7da55800 )	/* priority encoder (not used) */
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* data for the 007232 */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* data for the 007232 */
 	ROM_LOAD( "821k03.e5",  0x00000, 0x40000, 0xfef8505a )
 ROM_END
 
 ROM_START( crimfgt2 )
-ROM_REGION( 0x28000, REGION_CPU1 ) /* code + banked roms */
+ROM_REGION( 0x28000, REGION_CPU1, 0 ) /* code + banked roms */
 	ROM_LOAD( "crimefb.r02", 0x10000, 0x18000, 0x4ecdd923 )
 	ROM_CONTINUE(           0x08000, 0x08000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the sound CPU */
 	ROM_LOAD( "821l01.h4",  0x0000, 0x8000, 0x0faca89e )
 
-	ROM_REGION( 0x080000, REGION_GFX1 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x080000, REGION_GFX1, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "821k06.k13", 0x000000, 0x040000, 0xa1eadb24 )	/* characters */
 	ROM_LOAD( "821k07.k19", 0x040000, 0x040000, 0x060019fa )
 
-	ROM_REGION( 0x100000, REGION_GFX2 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x100000, REGION_GFX2, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "821k04.k2",  0x000000, 0x080000, 0x00e0291b )	/* sprites */
 	ROM_LOAD( "821k05.k8",  0x080000, 0x080000, 0xe09ea05d )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "821a08.i15", 0x0000, 0x0100, 0x7da55800 )	/* priority encoder (not used) */
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* data for the 007232 */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* data for the 007232 */
 	ROM_LOAD( "821k03.e5",  0x00000, 0x40000, 0xfef8505a )
 ROM_END
 
@@ -530,12 +522,12 @@ static void crimfght_banking( int lines )
 
 	/* bit 5 = select work RAM or palette */
 	if (lines & 0x20){
-		cpu_setbankhandler_r (1, paletteram_r);							/* palette */
-		cpu_setbankhandler_w (1, paletteram_xBBBBBGGGGGRRRRR_swap_w);	/* palette */
+		memory_set_bankhandler_r (1, 0, paletteram_r);							/* palette */
+		memory_set_bankhandler_w (1, 0, paletteram_xBBBBBGGGGGRRRRR_swap_w);	/* palette */
 	}
 	else{
-		cpu_setbankhandler_r (1, MRA_RAM);								/* RAM */
-		cpu_setbankhandler_w (1, MWA_RAM);								/* RAM */
+		memory_set_bankhandler_r (1, 0, MRA_RAM);								/* RAM */
+		memory_set_bankhandler_w (1, 0, MWA_RAM);								/* RAM */
 	}
 
 	/* bit 6 = enable char ROM reading through the video RAM */

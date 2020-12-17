@@ -127,17 +127,14 @@ int popflame_sh_start(const struct MachineSound *msound);
 void pleiads_sh_stop(void);
 void pleiads_sh_update(void);
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x8fff, MRA_RAM },
 	{ 0xb000, 0xb7ff, input_port_0_r }, 	/* IN0 */
 	{ 0xb800, 0xbfff, input_port_1_r }, 	/* DSW */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x7fff, MWA_RAM },
 	{ 0x8000, 0x87ff, videoram_w, &videoram, &videoram_size },
@@ -146,11 +143,9 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x9800, 0x9fff, MWA_RAM, &naughtyb_scrollreg },
 	{ 0xa000, 0xa7ff, pleiads_sound_control_a_w },
 	{ 0xa800, 0xafff, pleiads_sound_control_b_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress popflame_writemem[] =
-{
+static MEMORY_WRITE_START( popflame_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x7fff, MWA_RAM },
 	{ 0x8000, 0x87ff, videoram_w, &videoram, &videoram_size },
@@ -159,8 +154,7 @@ static struct MemoryWriteAddress popflame_writemem[] =
 	{ 0x9800, 0x9fff, MWA_RAM, &naughtyb_scrollreg },
 	{ 0xa000, 0xa7ff, pleiads_sound_control_a_w },
 	{ 0xa800, 0xafff, pleiads_sound_control_b_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -371,7 +365,7 @@ static const struct MachineDriver machine_driver_popflame =
 ***************************************************************************/
 
 ROM_START( naughtyb )
-	ROM_REGION( 0x10000, REGION_CPU1 )		/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )		/* 64k for code */
 	ROM_LOAD( "1.30",	   0x0000, 0x0800, 0xf6e1178e )
 	ROM_LOAD( "2.29",	   0x0800, 0x0800, 0xb803eb8c )
 	ROM_LOAD( "3.28",	   0x1000, 0x0800, 0x004d0ba7 )
@@ -381,25 +375,25 @@ ROM_START( naughtyb )
 	ROM_LOAD( "7.24",	   0x3000, 0x0800, 0x00caf9be )
 	ROM_LOAD( "8.23",	   0x3800, 0x0800, 0x17c3b6fb )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "15.44",	   0x0000, 0x0800, 0xd692f9c7 )
 	ROM_LOAD( "16.43",	   0x0800, 0x0800, 0xd3ba8b27 )
 	ROM_LOAD( "13.46",	   0x1000, 0x0800, 0xc1669cd5 )
 	ROM_LOAD( "14.45",	   0x1800, 0x0800, 0xeef2c8e5 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "11.48",	   0x0000, 0x0800, 0x75ec9710 )
 	ROM_LOAD( "12.47",	   0x0800, 0x0800, 0xef0706c3 )
 	ROM_LOAD( "9.50",	   0x1000, 0x0800, 0x8c8db764 )
 	ROM_LOAD( "10.49",	   0x1800, 0x0800, 0xc97c97b9 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "6301-1.63", 0x0000, 0x0100, 0x98ad89a1 ) /* palette low bits */
 	ROM_LOAD( "6301-1.64", 0x0100, 0x0100, 0x909107d4 ) /* palette high bits */
 ROM_END
 
 ROM_START( naughtya )
-	ROM_REGION( 0x10000, REGION_CPU1 )		/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )		/* 64k for code */
 	ROM_LOAD( "91", 	   0x0000, 0x0800, 0x42b14bc7 )
 	ROM_LOAD( "92", 	   0x0800, 0x0800, 0xa24674b4 )
 	ROM_LOAD( "3.28",	   0x1000, 0x0800, 0x004d0ba7 )
@@ -409,25 +403,25 @@ ROM_START( naughtya )
 	ROM_LOAD( "97", 	   0x3000, 0x0800, 0x3cafde88 )
 	ROM_LOAD( "8.23",	   0x3800, 0x0800, 0x17c3b6fb )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "15.44",	   0x0000, 0x0800, 0xd692f9c7 )
 	ROM_LOAD( "16.43",	   0x0800, 0x0800, 0xd3ba8b27 )
 	ROM_LOAD( "13.46",	   0x1000, 0x0800, 0xc1669cd5 )
 	ROM_LOAD( "14.45",	   0x1800, 0x0800, 0xeef2c8e5 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "11.48",	   0x0000, 0x0800, 0x75ec9710 )
 	ROM_LOAD( "12.47",	   0x0800, 0x0800, 0xef0706c3 )
 	ROM_LOAD( "9.50",	   0x1000, 0x0800, 0x8c8db764 )
 	ROM_LOAD( "10.49",	   0x1800, 0x0800, 0xc97c97b9 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "6301-1.63", 0x0000, 0x0100, 0x98ad89a1 ) /* palette low bits */
 	ROM_LOAD( "6301-1.64", 0x0100, 0x0100, 0x909107d4 ) /* palette high bits */
 ROM_END
 
 ROM_START( naughtyc )
-	ROM_REGION( 0x10000, REGION_CPU1 )		/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )		/* 64k for code */
 	ROM_LOAD( "nb1ic30",   0x0000, 0x0800, 0x3f482fa3 )
 	ROM_LOAD( "nb2ic29",   0x0800, 0x0800, 0x7ddea141 )
 	ROM_LOAD( "nb3ic28",   0x1000, 0x0800, 0x8c72a069 )
@@ -437,79 +431,79 @@ ROM_START( naughtyc )
 	ROM_LOAD( "nb7ic24",   0x3000, 0x0800, 0x9cc287df )
 	ROM_LOAD( "nb8ic23",   0x3800, 0x0800, 0x4d84ff2c )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "15.44",	   0x0000, 0x0800, 0xd692f9c7 )
 	ROM_LOAD( "16.43",	   0x0800, 0x0800, 0xd3ba8b27 )
 	ROM_LOAD( "13.46",	   0x1000, 0x0800, 0xc1669cd5 )
 	ROM_LOAD( "14.45",	   0x1800, 0x0800, 0xeef2c8e5 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "nb11ic48",  0x0000, 0x0800, 0x23271a13 )
 	ROM_LOAD( "12.47",	   0x0800, 0x0800, 0xef0706c3 )
 	ROM_LOAD( "nb9ic50",   0x1000, 0x0800, 0xd6949c27 )
 	ROM_LOAD( "10.49",	   0x1800, 0x0800, 0xc97c97b9 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "6301-1.63", 0x0000, 0x0100, 0x98ad89a1 ) /* palette low bits */
 	ROM_LOAD( "6301-1.64", 0x0100, 0x0100, 0x909107d4 ) /* palette high bits */
 ROM_END
 
 ROM_START( popflame )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ic86.pop",	  0x0000, 0x1000, 0x5e32bbdf )
 	ROM_LOAD( "ic80.pop",	  0x1000, 0x1000, 0xb77abf3d )
 	ROM_LOAD( "ic94.pop",	  0x2000, 0x1000, 0x945a3c0f )
 	ROM_LOAD( "ic100.pop",	  0x3000, 0x1000, 0xf9f2343b )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic13.pop",	  0x0000, 0x1000, 0x2367131e )
 	ROM_LOAD( "ic3.pop",	  0x1000, 0x1000, 0xdeed0a8b )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic29.pop",	  0x0000, 0x1000, 0x7b54f60f )
 	ROM_LOAD( "ic38.pop",	  0x1000, 0x1000, 0xdd2d9601 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "ic53",		  0x0000, 0x0100, 0x6e66057f ) /* palette low bits */
 	ROM_LOAD( "ic54",		  0x0100, 0x0100, 0x236bc771 ) /* palette high bits */
 ROM_END
 
 ROM_START( popflama )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "popflama.30",	 0x0000, 0x1000, 0xa9bb0e8a )
 	ROM_LOAD( "popflama.28",	 0x1000, 0x1000, 0xdebe6d03 )
 	ROM_LOAD( "popflama.26",	 0x2000, 0x1000, 0x09df0d4d )
 	ROM_LOAD( "popflama.24",	 0x3000, 0x1000, 0xf399d553 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic13.pop",	  0x0000, 0x1000, 0x2367131e )
 	ROM_LOAD( "ic3.pop",	  0x1000, 0x1000, 0xdeed0a8b )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic29.pop",	  0x0000, 0x1000, 0x7b54f60f )
 	ROM_LOAD( "ic38.pop",	  0x1000, 0x1000, 0xdd2d9601 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "ic53",		  0x0000, 0x0100, 0x6e66057f ) /* palette low bits */
 	ROM_LOAD( "ic54",		  0x0100, 0x0100, 0x236bc771 ) /* palette high bits */
 ROM_END
 
 ROM_START( popflamb )
-	ROM_REGION( 0x10000, REGION_CPU1 )		/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )		/* 64k for code */
 	ROM_LOAD( "ic86.bin",	  0x0000, 0x1000, 0x06397a4b )
 	ROM_LOAD( "ic80.pop",	  0x1000, 0x1000, 0xb77abf3d )
 	ROM_LOAD( "ic94.bin",	  0x2000, 0x1000, 0xae5248ae )
 	ROM_LOAD( "ic100.pop",	  0x3000, 0x1000, 0xf9f2343b )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic13.pop",	  0x0000, 0x1000, 0x2367131e )
 	ROM_LOAD( "ic3.pop",	  0x1000, 0x1000, 0xdeed0a8b )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic29.pop",	  0x0000, 0x1000, 0x7b54f60f )
 	ROM_LOAD( "ic38.pop",	  0x1000, 0x1000, 0xdd2d9601 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "ic53",		  0x0000, 0x0100, 0x6e66057f ) /* palette low bits */
 	ROM_LOAD( "ic54",		  0x0100, 0x0100, 0x236bc771 ) /* palette high bits */
 ROM_END

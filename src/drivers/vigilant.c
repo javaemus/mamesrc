@@ -59,119 +59,95 @@ WRITE_HANDLER( kikcubic_coin_w )
 
 
 
-static struct MemoryReadAddress vigilant_readmem[] =
-{
+static MEMORY_READ_START( vigilant_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc020, 0xc0df, MRA_RAM },
 	{ 0xc800, 0xcfff, MRA_RAM },
 	{ 0xd000, 0xdfff, videoram_r },
 	{ 0xe000, 0xefff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress vigilant_writemem[] =
-{
+static MEMORY_WRITE_START( vigilant_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc020, 0xc0df, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xc800, 0xcfff, vigilant_paletteram_w, &paletteram },
 	{ 0xd000, 0xdfff, videoram_w, &videoram, &videoram_size },
 	{ 0xe000, 0xefff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort vigilant_readport[] =
-{
+static PORT_READ_START( vigilant_readport )
 	{ 0x00, 0x00, input_port_0_r },
 	{ 0x01, 0x01, input_port_1_r },
 	{ 0x02, 0x02, input_port_2_r },
 	{ 0x03, 0x03, input_port_3_r },
 	{ 0x04, 0x04, input_port_4_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort vigilant_writeport[] =
-{
+static PORT_WRITE_START( vigilant_writeport )
 	{ 0x00, 0x00, m72_sound_command_w },  /* SD */
 	{ 0x01, 0x01, vigilant_out2_w }, /* OUT2 */
 	{ 0x04, 0x04, vigilant_bank_select_w }, /* PBANK */
 	{ 0x80, 0x81, vigilant_horiz_scroll_w }, /* HSPL, HSPH */
 	{ 0x82, 0x83, vigilant_rear_horiz_scroll_w }, /* RHSPL, RHSPH */
 	{ 0x84, 0x84, vigilant_rear_color_w }, /* RCOD */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress kikcubic_readmem[] =
-{
+static MEMORY_READ_START( kikcubic_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xc0ff, MRA_RAM },
 	{ 0xc800, 0xcaff, MRA_RAM },
 	{ 0xd000, 0xdfff, videoram_r },
 	{ 0xe000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress kikcubic_writemem[] =
-{
+static MEMORY_WRITE_START( kikcubic_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc0ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xc800, 0xcaff, vigilant_paletteram_w, &paletteram },
 	{ 0xd000, 0xdfff, videoram_w, &videoram, &videoram_size },
 	{ 0xe000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort kikcubic_readport[] =
-{
+static PORT_READ_START( kikcubic_readport )
 	{ 0x00, 0x00, input_port_3_r },
 	{ 0x01, 0x01, input_port_4_r },
 	{ 0x02, 0x02, input_port_0_r },
 	{ 0x03, 0x03, input_port_1_r },
 	{ 0x04, 0x04, input_port_2_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort kikcubic_writeport[] =
-{
+static PORT_WRITE_START( kikcubic_writeport )
 	{ 0x00, 0x00, kikcubic_coin_w },	/* also flip screen, and...? */
 	{ 0x04, 0x04, vigilant_bank_select_w },
 	{ 0x06, 0x06, m72_sound_command_w },
 //	{ 0x07, 0x07, IOWP_NOP },	/* ?? */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xf000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xf000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x01, 0x01, YM2151_status_port_0_r },
 	{ 0x80, 0x80, soundlatch_r },	/* SDRE */
 	{ 0x84, 0x84, m72_sample_r },	/* S ROM C */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, YM2151_register_port_0_w },
 	{ 0x01, 0x01, YM2151_data_port_0_w },
 	{ 0x80, 0x81, vigilant_sample_addr_w },	/* STL / STH */
 	{ 0x82, 0x82, m72_sample_w },			/* COUNT UP */
 	{ 0x83, 0x83, m72_sound_irq_ack_w },	/* IRQ clear */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( vigilant )
@@ -537,19 +513,19 @@ static const struct MachineDriver machine_driver_kikcubic =
 ***************************************************************************/
 
 ROM_START( vigilant )
-	ROM_REGION( 0x30000, REGION_CPU1 ) /* 64k for code + 128k for bankswitching */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 ) /* 64k for code + 128k for bankswitching */
 	ROM_LOAD( "g07_c03.bin",  0x00000, 0x08000, 0x9dcca081 )
 	ROM_LOAD( "j07_c04.bin",  0x10000, 0x10000, 0xe0159105 )
 	/* 0x20000-0x2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for sound */
 	ROM_LOAD( "g05_c02.bin",  0x00000, 0x10000, 0x10582b2d )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "f05_c08.bin",  0x00000, 0x10000, 0x01579d20 )
 	ROM_LOAD( "h05_c09.bin",  0x10000, 0x10000, 0x4f5872f0 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "n07_c12.bin",  0x00000, 0x10000, 0x10af8eb2 )
 	ROM_LOAD( "k07_c10.bin",  0x10000, 0x10000, 0x9576f304 )
 	ROM_LOAD( "o07_c13.bin",  0x20000, 0x10000, 0xb1d9d4dc )
@@ -559,29 +535,29 @@ ROM_START( vigilant )
 	ROM_LOAD( "v07_c17.bin",  0x60000, 0x10000, 0x959ba3c7 )
 	ROM_LOAD( "s07_c15.bin",  0x70000, 0x10000, 0x7f2e91c5 )
 
-	ROM_REGION( 0x30000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x30000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "d01_c05.bin",  0x00000, 0x10000, 0x81b1ee5c )
 	ROM_LOAD( "e01_c06.bin",  0x10000, 0x10000, 0xd0d33673 )
 	ROM_LOAD( "f01_c07.bin",  0x20000, 0x10000, 0xaae81695 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* samples */
 	ROM_LOAD( "d04_c01.bin",  0x00000, 0x10000, 0x9b85101d )
 ROM_END
 
 ROM_START( vigilntu )
-	ROM_REGION( 0x30000, REGION_CPU1 ) /* 64k for code + 128k for bankswitching */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 ) /* 64k for code + 128k for bankswitching */
 	ROM_LOAD( "a-8h",  0x00000, 0x08000, 0x8d15109e )
 	ROM_LOAD( "a-8l",  0x10000, 0x10000, 0x7f95799b )
 	/* 0x20000-0x2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for sound */
 	ROM_LOAD( "g05_c02.bin",  0x00000, 0x10000, 0x10582b2d )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "f05_c08.bin",  0x00000, 0x10000, 0x01579d20 )
 	ROM_LOAD( "h05_c09.bin",  0x10000, 0x10000, 0x4f5872f0 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "n07_c12.bin",  0x00000, 0x10000, 0x10af8eb2 )
 	ROM_LOAD( "k07_c10.bin",  0x10000, 0x10000, 0x9576f304 )
 	ROM_LOAD( "o07_c13.bin",  0x20000, 0x10000, 0xb1d9d4dc )
@@ -591,29 +567,29 @@ ROM_START( vigilntu )
 	ROM_LOAD( "v07_c17.bin",  0x60000, 0x10000, 0x959ba3c7 )
 	ROM_LOAD( "s07_c15.bin",  0x70000, 0x10000, 0x7f2e91c5 )
 
-	ROM_REGION( 0x30000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x30000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "d01_c05.bin",  0x00000, 0x10000, 0x81b1ee5c )
 	ROM_LOAD( "e01_c06.bin",  0x10000, 0x10000, 0xd0d33673 )
 	ROM_LOAD( "f01_c07.bin",  0x20000, 0x10000, 0xaae81695 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* samples */
 	ROM_LOAD( "d04_c01.bin",  0x00000, 0x10000, 0x9b85101d )
 ROM_END
 
 ROM_START( vigilntj )
-	ROM_REGION( 0x30000, REGION_CPU1 ) /* 64k for code + 128k for bankswitching */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 ) /* 64k for code + 128k for bankswitching */
 	ROM_LOAD( "vg_a-8h.rom",  0x00000, 0x08000, 0xba848713 )
 	ROM_LOAD( "vg_a-8l.rom",  0x10000, 0x10000, 0x3b12b1d8 )
 	/* 0x20000-0x2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for sound */
 	ROM_LOAD( "g05_c02.bin",  0x00000, 0x10000, 0x10582b2d )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "f05_c08.bin",  0x00000, 0x10000, 0x01579d20 )
 	ROM_LOAD( "h05_c09.bin",  0x10000, 0x10000, 0x4f5872f0 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "n07_c12.bin",  0x00000, 0x10000, 0x10af8eb2 )
 	ROM_LOAD( "k07_c10.bin",  0x10000, 0x10000, 0x9576f304 )
 	ROM_LOAD( "o07_c13.bin",  0x20000, 0x10000, 0xb1d9d4dc )
@@ -623,33 +599,33 @@ ROM_START( vigilntj )
 	ROM_LOAD( "v07_c17.bin",  0x60000, 0x10000, 0x959ba3c7 )
 	ROM_LOAD( "s07_c15.bin",  0x70000, 0x10000, 0x7f2e91c5 )
 
-	ROM_REGION( 0x30000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x30000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "d01_c05.bin",  0x00000, 0x10000, 0x81b1ee5c )
 	ROM_LOAD( "e01_c06.bin",  0x10000, 0x10000, 0xd0d33673 )
 	ROM_LOAD( "f01_c07.bin",  0x20000, 0x10000, 0xaae81695 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* samples */
 	ROM_LOAD( "d04_c01.bin",  0x00000, 0x10000, 0x9b85101d )
 ROM_END
 
 ROM_START( kikcubic )
-	ROM_REGION( 0x30000, REGION_CPU1 ) /* 64k for code + 128k for bankswitching */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 ) /* 64k for code + 128k for bankswitching */
 	ROM_LOAD( "mqj-p0",       0x00000, 0x08000, 0x9cef394a )
 	ROM_LOAD( "mqj-b0",       0x10000, 0x10000, 0xd9bcf4cd )
 	ROM_LOAD( "mqj-b1",       0x20000, 0x10000, 0x54a0abe1 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for sound */
 	ROM_LOAD( "mqj-sp",       0x00000, 0x10000, 0xbbcf3582 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mqj-c0",       0x00000, 0x10000, 0x975585c5 )
 	ROM_LOAD( "mqj-c1",       0x10000, 0x10000, 0x49d9936d )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mqj-00",       0x00000, 0x40000, 0x7fb0c58f )
 	ROM_LOAD( "mqj-10",       0x40000, 0x40000, 0x3a189205 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 ) /* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 ) /* samples */
 	ROM_LOAD( "mqj-v0",       0x00000, 0x10000, 0x54762956 )
 ROM_END
 

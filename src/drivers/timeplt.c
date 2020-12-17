@@ -42,6 +42,7 @@ same as Pooyan
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
+#include "sndhrdw/timeplt.h"
 
 
 extern unsigned char *timeplt_videoram,*timeplt_colorram;
@@ -55,12 +56,6 @@ WRITE_HANDLER( timeplt_flipscreen_w );
 int  timeplt_vh_start(void);
 void timeplt_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void timeplt_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-
-/* defined in sndhrdw/timeplt.c */
-extern struct MemoryReadAddress timeplt_sound_readmem[];
-extern struct MemoryWriteAddress timeplt_sound_writemem[];
-extern struct AY8910interface timeplt_ay8910_interface;
-WRITE_HANDLER( timeplt_sh_irqtrigger_w );
 
 
 
@@ -76,8 +71,7 @@ static READ_HANDLER( psurge_protection_r )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6004, 0x6004, psurge_protection_r },	/* psurge only */
 	{ 0xa000, 0xbfff, MRA_RAM },
@@ -87,11 +81,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xc320, 0xc320, input_port_1_r },	/* IN1 */
 	{ 0xc340, 0xc340, input_port_2_r },	/* IN2 */
 	{ 0xc360, 0xc360, input_port_3_r },	/* DSW1 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0xa000, 0xa3ff, timeplt_colorram_w, &timeplt_colorram },
 	{ 0xa400, 0xa7ff, timeplt_videoram_w, &timeplt_videoram },
@@ -104,8 +96,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xc302, 0xc302, timeplt_flipscreen_w },
 	{ 0xc304, 0xc304, timeplt_sh_irqtrigger_w },
 	{ 0xc30a, 0xc30c, timeplt_coin_counter_w },  /* c30b is not used */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( timeplt )
@@ -368,22 +359,22 @@ static const struct MachineDriver machine_driver_timeplt =
 ***************************************************************************/
 
 ROM_START( timeplt )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "tm1",          0x0000, 0x2000, 0x1551f1b9 )
 	ROM_LOAD( "tm2",          0x2000, 0x2000, 0x58636cb5 )
 	ROM_LOAD( "tm3",          0x4000, 0x2000, 0xff4e0d83 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "tm7",          0x0000, 0x1000, 0xd66da813 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tm6",          0x0000, 0x2000, 0xc2507f40 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tm4",          0x0000, 0x2000, 0x7e437c3e )
 	ROM_LOAD( "tm5",          0x2000, 0x2000, 0xe8ca87b9 )
 
-	ROM_REGION( 0x0240, REGION_PROMS )
+	ROM_REGION( 0x0240, REGION_PROMS, 0 )
 	ROM_LOAD( "timeplt.b4",   0x0000, 0x0020, 0x34c91839 ) /* palette */
 	ROM_LOAD( "timeplt.b5",   0x0020, 0x0020, 0x463b2b07 ) /* palette */
 	ROM_LOAD( "timeplt.e9",   0x0040, 0x0100, 0x4bbb2150 ) /* sprite lookup table */
@@ -391,22 +382,22 @@ ROM_START( timeplt )
 ROM_END
 
 ROM_START( timepltc )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "cd1y",         0x0000, 0x2000, 0x83ec72c2 )
 	ROM_LOAD( "cd2y",         0x2000, 0x2000, 0x0dcf5287 )
 	ROM_LOAD( "cd3y",         0x4000, 0x2000, 0xc789b912 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "tm7",          0x0000, 0x1000, 0xd66da813 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tm6",          0x0000, 0x2000, 0xc2507f40 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tm4",          0x0000, 0x2000, 0x7e437c3e )
 	ROM_LOAD( "tm5",          0x2000, 0x2000, 0xe8ca87b9 )
 
-	ROM_REGION( 0x0240, REGION_PROMS )
+	ROM_REGION( 0x0240, REGION_PROMS, 0 )
 	ROM_LOAD( "timeplt.b4",   0x0000, 0x0020, 0x34c91839 ) /* palette */
 	ROM_LOAD( "timeplt.b5",   0x0020, 0x0020, 0x463b2b07 ) /* palette */
 	ROM_LOAD( "timeplt.e9",   0x0040, 0x0100, 0x4bbb2150 ) /* sprite lookup table */
@@ -414,22 +405,22 @@ ROM_START( timepltc )
 ROM_END
 
 ROM_START( spaceplt )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "sp1",          0x0000, 0x2000, 0xac8ca3ae )
 	ROM_LOAD( "sp2",          0x2000, 0x2000, 0x1f0308ef )
 	ROM_LOAD( "sp3",          0x4000, 0x2000, 0x90aeca50 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "tm7",          0x0000, 0x1000, 0xd66da813 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sp6",          0x0000, 0x2000, 0x76caa8af )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sp4",          0x0000, 0x2000, 0x3781ce7a )
 	ROM_LOAD( "tm5",          0x2000, 0x2000, 0xe8ca87b9 )
 
-	ROM_REGION( 0x0240, REGION_PROMS )
+	ROM_REGION( 0x0240, REGION_PROMS, 0 )
 	ROM_LOAD( "timeplt.b4",   0x0000, 0x0020, 0x34c91839 ) /* palette */
 	ROM_LOAD( "timeplt.b5",   0x0020, 0x0020, 0x463b2b07 ) /* palette */
 	ROM_LOAD( "timeplt.e9",   0x0040, 0x0100, 0x4bbb2150 ) /* sprite lookup table */
@@ -437,23 +428,23 @@ ROM_START( spaceplt )
 ROM_END
 
 ROM_START( psurge )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "p1",           0x0000, 0x2000, 0x05f9ba12 )
 	ROM_LOAD( "p2",           0x2000, 0x2000, 0x3ff41576 )
 	ROM_LOAD( "p3",           0x4000, 0x2000, 0xe8fe120a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "p6",           0x0000, 0x1000, 0xb52d01fa )
 	ROM_LOAD( "p7",           0x1000, 0x1000, 0x9db5c0ce )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "p4",           0x0000, 0x2000, 0x26fd7f81 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "p5",           0x0000, 0x2000, 0x6066ec8e )
 	ROM_LOAD( "tm5",          0x2000, 0x2000, 0xe8ca87b9 )
 
-	ROM_REGION( 0x0240, REGION_PROMS )
+	ROM_REGION( 0x0240, REGION_PROMS, 0 )
 	ROM_LOAD( "timeplt.b4",   0x0000, 0x0020, 0x00000000 ) /* palette */
 	ROM_LOAD( "timeplt.b5",   0x0020, 0x0020, 0x00000000 ) /* palette */
 	ROM_LOAD( "timeplt.e9",   0x0040, 0x0100, 0x00000000 ) /* sprite lookup table */

@@ -86,8 +86,7 @@ static WRITE_HANDLER( surpratk_5fc0_w )
 
 /********************************************/
 
-static struct MemoryReadAddress surpratk_readmem[] =
-{
+static MEMORY_READ_START( surpratk_readmem )
 	{ 0x0000, 0x07ff, bankedram_r },
 	{ 0x0800, 0x1fff, MRA_RAM },
 	{ 0x2000, 0x3fff, MRA_BANK1 },			/* banked ROM */
@@ -101,11 +100,9 @@ static struct MemoryReadAddress surpratk_readmem[] =
 	{ 0x5fc0, 0x5fc0, watchdog_reset_r },
 	{ 0x4000, 0x7fff, K052109_r },
 	{ 0x8000, 0xffff, MRA_ROM },			/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress surpratk_writemem[] =
-{
+static MEMORY_WRITE_START( surpratk_writemem )
 	{ 0x0000, 0x07ff, bankedram_w, &ram },
 	{ 0x0800, 0x1fff, MWA_RAM },
 	{ 0x2000, 0x3fff, MWA_ROM },					/* banked ROM */
@@ -117,8 +114,7 @@ static struct MemoryWriteAddress surpratk_writemem[] =
 	{ 0x5fc4, 0x5fc4, surpratk_videobank_w },
 	{ 0x4000, 0x7fff, K052109_w },
 	{ 0x8000, 0xffff, MWA_ROM },					/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 /***************************************************************************
@@ -286,16 +282,16 @@ static const struct MachineDriver machine_driver_surpratk =
 ***************************************************************************/
 
 ROM_START( surpratk )
-	ROM_REGION( 0x51000, REGION_CPU1 ) /* code + banked roms + palette RAM */
+	ROM_REGION( 0x51000, REGION_CPU1, 0 ) /* code + banked roms + palette RAM */
 	ROM_LOAD( "911m01.bin", 0x10000, 0x20000, 0xee5b2cc8 )
 	ROM_LOAD( "911m02.bin", 0x30000, 0x18000, 0x5d4148a8 )
 	ROM_CONTINUE(           0x08000, 0x08000 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x080000, REGION_GFX1, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "911d05.bin", 0x000000, 0x040000, 0x308d2319 ) /* characters */
 	ROM_LOAD( "911d06.bin", 0x040000, 0x040000, 0x91cc9b32 ) /* characters */
 
-	ROM_REGION( 0x080000, REGION_GFX2 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x080000, REGION_GFX2, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "911d03.bin", 0x000000, 0x040000, 0xe34ff182 )	/* sprites */
 	ROM_LOAD( "911d04.bin", 0x040000, 0x040000, 0x20700bd2 )	/* sprites */
 ROM_END

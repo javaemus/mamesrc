@@ -25,18 +25,17 @@ TODO:
 #include "cpu/z80/z80.h"
 
 
-extern unsigned char *galspnbl_bgvideoram;
+extern data16_t *galspnbl_bgvideoram,*galspnbl_videoram,*galspnbl_colorram;
 
 void galspnbl_init_palette(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-READ_HANDLER( galspnbl_bgvideoram_r );
-WRITE_HANDLER( galspnbl_bgvideoram_w );
-WRITE_HANDLER( galspnbl_scroll_w );
+WRITE16_HANDLER( galspnbl_bgvideoram_w );
+WRITE16_HANDLER( galspnbl_scroll_w );
 void galspnbl_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
-static WRITE_HANDLER( soundcommand_w )
+static WRITE16_HANDLER( soundcommand_w )
 {
-	if ((data & 0x00ff0000) == 0)
+	if (ACCESSING_LSB)
 	{
 		soundlatch_w(offset,data & 0xff);
 		cpu_cause_interrupt(1,Z80_NMI_INT);
@@ -44,69 +43,61 @@ static WRITE_HANDLER( soundcommand_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
-	{ 0x000000, 0x3fffff, MRA_ROM },
-	{ 0x700000, 0x703fff, MRA_BANK1 },	/* galspnbl */
-	{ 0x708000, 0x70ffff, MRA_BANK2 },	/* galspnbl */
-	{ 0x800000, 0x803fff, MRA_BANK3 },	/* hotpinbl */
-	{ 0x808000, 0x80ffff, MRA_BANK4 },	/* hotpinbl */
-	{ 0x880000, 0x880fff, MRA_BANK5 },
-	{ 0x900000, 0x900fff, MRA_BANK6 },
-	{ 0x904000, 0x904fff, MRA_BANK7 },
-	{ 0x980000, 0x9bffff, galspnbl_bgvideoram_r },
-	{ 0xa80000, 0xa80001, input_port_0_r },
-	{ 0xa80010, 0xa80011, input_port_1_r },
-	{ 0xa80020, 0xa80021, input_port_2_r },
-	{ 0xa80030, 0xa80031, input_port_3_r },
-	{ 0xa80040, 0xa80041, input_port_4_r },
-	{ -1 }  /* end of table */
-};
+static MEMORY_READ16_START( readmem )
+	{ 0x000000, 0x3fffff, MRA16_ROM },
+	{ 0x700000, 0x703fff, MRA16_RAM },	/* galspnbl */
+	{ 0x708000, 0x70ffff, MRA16_RAM },	/* galspnbl */
+	{ 0x800000, 0x803fff, MRA16_RAM },	/* hotpinbl */
+	{ 0x808000, 0x80ffff, MRA16_RAM },	/* hotpinbl */
+	{ 0x880000, 0x880fff, MRA16_RAM },
+	{ 0x900000, 0x900fff, MRA16_RAM },
+	{ 0x904000, 0x904fff, MRA16_RAM },
+	{ 0x980000, 0x9bffff, MRA16_RAM },
+	{ 0xa80000, 0xa80001, input_port_0_word_r },
+	{ 0xa80010, 0xa80011, input_port_1_word_r },
+	{ 0xa80020, 0xa80021, input_port_2_word_r },
+	{ 0xa80030, 0xa80031, input_port_3_word_r },
+	{ 0xa80040, 0xa80041, input_port_4_word_r },
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
-	{ 0x000000, 0x3fffff, MWA_ROM },
-	{ 0x700000, 0x703fff, MWA_BANK1 },	/* galspnbl work RAM */
-	{ 0x708000, 0x70ffff, MWA_BANK2 },	/* galspnbl work RAM, bitmaps are decompressed here */
-	{ 0x800000, 0x803fff, MWA_BANK3 },	/* hotpinbl work RAM */
-	{ 0x808000, 0x80ffff, MWA_BANK4 },	/* hotpinbl work RAM, bitmaps are decompressed here */
-	{ 0x880000, 0x880fff, MWA_BANK5, &spriteram, &spriteram_size },
-{ 0x8ff400, 0x8fffff, MWA_NOP },	/* ??? */
-	{ 0x900000, 0x900fff, MWA_BANK6, &colorram },
-{ 0x901000, 0x903fff, MWA_NOP },	/* ??? */
-	{ 0x904000, 0x904fff, MWA_BANK7, &videoram },
-{ 0x905000, 0x907fff, MWA_NOP },	/* ??? */
+static MEMORY_WRITE16_START( writemem )
+	{ 0x000000, 0x3fffff, MWA16_ROM },
+	{ 0x700000, 0x703fff, MWA16_RAM },	/* galspnbl work RAM */
+	{ 0x708000, 0x70ffff, MWA16_RAM },	/* galspnbl work RAM, bitmaps are decompressed here */
+	{ 0x800000, 0x803fff, MWA16_RAM },	/* hotpinbl work RAM */
+	{ 0x808000, 0x80ffff, MWA16_RAM },	/* hotpinbl work RAM, bitmaps are decompressed here */
+	{ 0x880000, 0x880fff, MWA16_RAM, &spriteram16, &spriteram_size },
+{ 0x8ff400, 0x8fffff, MWA16_NOP },	/* ??? */
+	{ 0x900000, 0x900fff, MWA16_RAM, &galspnbl_colorram },
+{ 0x901000, 0x903fff, MWA16_NOP },	/* ??? */
+	{ 0x904000, 0x904fff, MWA16_RAM, &galspnbl_videoram },
+{ 0x905000, 0x907fff, MWA16_NOP },	/* ??? */
 	{ 0x980000, 0x9bffff, galspnbl_bgvideoram_w, &galspnbl_bgvideoram },
-{ 0xa00000, 0xa00fff, MWA_NOP },	/* more palette ? */
-	{ 0xa01000, 0xa017ff, paletteram_xxxxBBBBGGGGRRRR_word_w, &paletteram },
-{ 0xa01800, 0xa027ff, MWA_NOP },	/* more palette ? */
+{ 0xa00000, 0xa00fff, MWA16_NOP },	/* more palette ? */
+	{ 0xa01000, 0xa017ff, paletteram16_xxxxBBBBGGGGRRRR_word_w, &paletteram16 },
+{ 0xa01800, 0xa027ff, MWA16_NOP },	/* more palette ? */
 	{ 0xa80010, 0xa80011, soundcommand_w },
-	{ 0xa80020, 0xa80021, MWA_NOP },	/* could be watchdog, but causes resets when picture is shown */
-	{ 0xa80030, 0xa80031, MWA_NOP },	/* irq ack? */
+	{ 0xa80020, 0xa80021, MWA16_NOP },	/* could be watchdog, but causes resets when picture is shown */
+	{ 0xa80030, 0xa80031, MWA16_NOP },	/* irq ack? */
 	{ 0xa80050, 0xa80051, galspnbl_scroll_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0xefff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xf800, OKIM6295_status_0_r },
 	{ 0xfc00, 0xfc00, MRA_NOP },	/* irq ack ?? */
 	{ 0xfc20, 0xfc20, soundlatch_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xefff, MWA_ROM },
 	{ 0xf000, 0xf7ff, MWA_RAM },
 	{ 0xf800, 0xf800, OKIM6295_data_0_w },
 	{ 0xf810, 0xf810, YM3812_control_port_0_w },
 	{ 0xf811, 0xf811, YM3812_write_port_0_w },
 	{ 0xfc00, 0xfc00, MWA_NOP },	/* irq ack ?? */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -393,54 +384,54 @@ static const struct MachineDriver machine_driver_hotpinbl =
 ***************************************************************************/
 
 ROM_START( galspnbl )
-	ROM_REGION( 0x400000, REGION_CPU1 )	/* 68000 code */
-	ROM_LOAD_EVEN( "7.rom",        0x000000, 0x80000, 0xce0189bf )
-	ROM_LOAD_ODD ( "3.rom",        0x000000, 0x80000, 0x9b0a8744 )
-	ROM_LOAD_EVEN( "8.rom",        0x100000, 0x80000, 0xeee2f087 )
-	ROM_LOAD_ODD ( "4.rom",        0x100000, 0x80000, 0x56298489 )
-	ROM_LOAD_EVEN( "9.rom",        0x200000, 0x80000, 0xd9e4964c )
-	ROM_LOAD_ODD ( "5.rom",        0x200000, 0x80000, 0xa5e71ee4 )
-	ROM_LOAD_EVEN( "10.rom",       0x300000, 0x80000, 0x3a20e1e5 )
-	ROM_LOAD_ODD ( "6.rom",        0x300000, 0x80000, 0x94927d20 )
+	ROM_REGION( 0x400000, REGION_CPU1, 0 )	/* 68000 code */
+	ROM_LOAD16_BYTE( "7.rom",        0x000000, 0x80000, 0xce0189bf )
+	ROM_LOAD16_BYTE( "3.rom",        0x000001, 0x80000, 0x9b0a8744 )
+	ROM_LOAD16_BYTE( "8.rom",        0x100000, 0x80000, 0xeee2f087 )
+	ROM_LOAD16_BYTE( "4.rom",        0x100001, 0x80000, 0x56298489 )
+	ROM_LOAD16_BYTE( "9.rom",        0x200000, 0x80000, 0xd9e4964c )
+	ROM_LOAD16_BYTE( "5.rom",        0x200001, 0x80000, 0xa5e71ee4 )
+	ROM_LOAD16_BYTE( "10.rom",       0x300000, 0x80000, 0x3a20e1e5 )
+	ROM_LOAD16_BYTE( "6.rom",        0x300001, 0x80000, 0x94927d20 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* Z80 code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* Z80 code */
 	ROM_LOAD( "2.rom",        0x0000, 0x10000, 0xfae688a7 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "17.rom",       0x00000, 0x40000, 0x7d435701 )
 	ROM_LOAD( "18.rom",       0x40000, 0x40000, 0x136adaac )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "15.rom",       0x00000, 0x20000, 0x4beb840d )
 	ROM_LOAD( "16.rom",       0x20000, 0x20000, 0x93d3c610 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* OKIM6295 samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* OKIM6295 samples */
 	ROM_LOAD( "1.rom",        0x00000, 0x40000, 0x93c06d3d )
 ROM_END
 
 ROM_START( hotpinbl )
-	ROM_REGION( 0x400000, REGION_CPU1 )	/* 68000 code */
-	ROM_LOAD_EVEN( "hp_07.bin",    0x000000, 0x80000, 0x978cc13e )
-	ROM_LOAD_ODD ( "hp_03.bin",    0x000000, 0x80000, 0x68388726 )
-	ROM_LOAD_EVEN( "hp_08.bin",    0x100000, 0x80000, 0xbd16be12 )
-	ROM_LOAD_ODD ( "hp_04.bin",    0x100000, 0x80000, 0x655b0cf0 )
-	ROM_LOAD_EVEN( "hp_09.bin",    0x200000, 0x80000, 0xa6368624 )
-	ROM_LOAD_ODD ( "hp_05.bin",    0x200000, 0x80000, 0x48efd028 )
-	ROM_LOAD_EVEN( "hp_10.bin",    0x300000, 0x80000, 0xa5c63e34 )
-	ROM_LOAD_ODD ( "hp_06.bin",    0x300000, 0x80000, 0x513eda91 )
+	ROM_REGION( 0x400000, REGION_CPU1, 0 )	/* 68000 code */
+	ROM_LOAD16_BYTE( "hp_07.bin",    0x000000, 0x80000, 0x978cc13e )
+	ROM_LOAD16_BYTE( "hp_03.bin",    0x000001, 0x80000, 0x68388726 )
+	ROM_LOAD16_BYTE( "hp_08.bin",    0x100000, 0x80000, 0xbd16be12 )
+	ROM_LOAD16_BYTE( "hp_04.bin",    0x100001, 0x80000, 0x655b0cf0 )
+	ROM_LOAD16_BYTE( "hp_09.bin",    0x200000, 0x80000, 0xa6368624 )
+	ROM_LOAD16_BYTE( "hp_05.bin",    0x200001, 0x80000, 0x48efd028 )
+	ROM_LOAD16_BYTE( "hp_10.bin",    0x300000, 0x80000, 0xa5c63e34 )
+	ROM_LOAD16_BYTE( "hp_06.bin",    0x300001, 0x80000, 0x513eda91 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* Z80 code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* Z80 code */
 	ROM_LOAD( "hp_02.bin",    0x0000, 0x10000, 0x82698269 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "hp_13.bin",    0x00000, 0x40000, 0xd53b64b9 )
 	ROM_LOAD( "hp_14.bin",    0x40000, 0x40000, 0x2fe3fcee )
 
-	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "hp_11.bin",    0x00000, 0x20000, 0xdeecd7f1 )
 	ROM_LOAD( "hp_12.bin",    0x20000, 0x20000, 0x5fd603c2 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* OKIM6295 samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* OKIM6295 samples */
 	ROM_LOAD( "hp_01.bin",    0x00000, 0x40000, 0x93c06d3d )
 ROM_END
 

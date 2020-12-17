@@ -68,8 +68,7 @@ static WRITE_HANDLER( i8039_irqen_and_status_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0800, 0x0800, input_port_5_r },
 	{ 0x0808, 0x0808, input_port_4_r },
 	{ 0x0810, 0x0810, input_port_0_r },
@@ -79,11 +78,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x2000, 0x2fff, MRA_RAM },
 	{ 0x3000, 0x3fff, MRA_RAM },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x0000, MWA_NOP },	/* ??? */
 	{ 0x0001, 0x0001, MWA_RAM, &finalizr_scroll },
 	{ 0x0002, 0x0002, MWA_NOP },	/* ??? */
@@ -105,35 +102,26 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3800, 0x39ff, MWA_RAM, &spriteram_2 },
 	{ 0x3a00, 0x3fff, MWA_RAM },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress i8039_readmem[] =
-{
+static MEMORY_READ_START( i8039_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress i8039_writemem[] =
-{
+static MEMORY_WRITE_START( i8039_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort i8039_readport[] =
-{
+static PORT_READ_START( i8039_readport )
 	{ 0x00, 0xff, soundlatch_r },
 	{ I8039_p2, I8039_p2, i8039_irqen_and_status_r },
 	{ 0x111,0x111, IORP_NOP },
-	{ -1 }
-};
+PORT_END
 
-static struct IOWritePort i8039_writeport[] =
-{
+static PORT_WRITE_START( i8039_writeport )
 	{ I8039_p1, I8039_p1, DAC_0_data_w },
 	{ I8039_p2, I8039_p2, i8039_irqen_and_status_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -458,16 +446,16 @@ static const struct MachineDriver machine_driver_finalizr =
 ***************************************************************************/
 
 ROM_START( finalizr )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )	/* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )	/* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "523k01.9c",    0x4000, 0x4000, 0x716633cb )
 	ROM_LOAD( "523k02.12c",   0x8000, 0x4000, 0x1bccc696 )
 	ROM_LOAD( "523k03.13c",   0xc000, 0x4000, 0xc48927c6 )
 
-	ROM_REGION( 0x1000, REGION_CPU2 )	/* 8039 */
+	ROM_REGION( 0x1000, REGION_CPU2, 0 )	/* 8039 */
 	ROM_LOAD( "d8749hd.bin",  0x0000, 0x0800, 0x978dfc33 )	/* this comes from the bootleg, */
 															/* the original has a custom IC */
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "523h04.5e",    0x00000, 0x4000, 0xc056d710 )
 	ROM_LOAD( "523h05.6e",    0x04000, 0x4000, 0xae0d0f76 )
 	ROM_LOAD( "523h06.7e",    0x08000, 0x4000, 0xd2db9689 )
@@ -477,7 +465,7 @@ ROM_START( finalizr )
 	ROM_LOAD( "523h09.7f",    0x18000, 0x4000, 0x8896dc85 )
 	/* 1c000-1ffff empty */
 
-	ROM_REGION( 0x0240, REGION_PROMS )
+	ROM_REGION( 0x0240, REGION_PROMS, 0 )
 	ROM_LOAD( "523h10.2f",    0x0000, 0x0020, 0xec15dd15 ) /* palette */
 	ROM_LOAD( "523h11.3f",    0x0020, 0x0020, 0x54be2e83 ) /* palette */
 	ROM_LOAD( "523h12.10f",   0x0040, 0x0100, 0x53166a2a ) /* sprites */
@@ -485,14 +473,14 @@ ROM_START( finalizr )
 ROM_END
 
 ROM_START( finalizb )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )	/* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )	/* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "finalizr.5",   0x4000, 0x8000, 0xa55e3f14 )
 	ROM_LOAD( "finalizr.6",   0xc000, 0x4000, 0xce177f6e )
 
-	ROM_REGION( 0x1000, REGION_CPU2 )	/* 8039 */
+	ROM_REGION( 0x1000, REGION_CPU2, 0 )	/* 8039 */
 	ROM_LOAD( "d8749hd.bin",  0x0000, 0x0800, 0x978dfc33 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "523h04.5e",    0x00000, 0x4000, 0xc056d710 )
 	ROM_LOAD( "523h05.6e",    0x04000, 0x4000, 0xae0d0f76 )
 	ROM_LOAD( "523h06.7e",    0x08000, 0x4000, 0xd2db9689 )
@@ -502,7 +490,7 @@ ROM_START( finalizb )
 	ROM_LOAD( "523h09.7f",    0x18000, 0x4000, 0x8896dc85 )
 	/* 1c000-1ffff empty */
 
-	ROM_REGION( 0x0240, REGION_PROMS )
+	ROM_REGION( 0x0240, REGION_PROMS, 0 )
 	ROM_LOAD( "523h10.2f",    0x0000, 0x0020, 0xec15dd15 ) /* palette */
 	ROM_LOAD( "523h11.3f",    0x0020, 0x0020, 0x54be2e83 ) /* palette */
 	ROM_LOAD( "523h12.10f",   0x0040, 0x0100, 0x53166a2a ) /* sprites */

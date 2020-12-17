@@ -98,8 +98,7 @@ static WRITE_HANDLER( sound_bank_w )
 
 
 
-static struct MemoryReadAddress spy_readmem[] =
-{
+static MEMORY_READ_START( spy_readmem )
 	{ 0x0000, 0x07ff, spy_bankedram1_r },
 	{ 0x0800, 0x1aff, MRA_RAM },
 	{ 0x3fd0, 0x3fd0, input_port_4_r },
@@ -110,11 +109,9 @@ static struct MemoryReadAddress spy_readmem[] =
 	{ 0x2000, 0x5fff, K052109_051960_r },
 	{ 0x6000, 0x7fff, MRA_BANK1 },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress spy_writemem[] =
-{
+static MEMORY_WRITE_START( spy_writemem )
 	{ 0x0000, 0x07ff, spy_bankedram1_w, &ram },
 	{ 0x0800, 0x1aff, MWA_RAM },
 	{ 0x3f80, 0x3f80, bankswitch_w },
@@ -125,22 +122,18 @@ static struct MemoryWriteAddress spy_writemem[] =
 	{ 0x2000, 0x5fff, K052109_051960_w },
 	{ 0x6000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress spy_sound_readmem[] =
-{
+static MEMORY_READ_START( spy_sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xa000, 0xa00d, K007232_read_port_0_r },
 	{ 0xb000, 0xb00d, K007232_read_port_1_r },
 	{ 0xc000, 0xc000, YM3812_status_port_0_r },
 	{ 0xd000, 0xd000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress spy_sound_writemem[] =
-{
+static MEMORY_WRITE_START( spy_sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0x9000, 0x9000, sound_bank_w },
@@ -148,8 +141,7 @@ static struct MemoryWriteAddress spy_sound_writemem[] =
 	{ 0xb000, 0xb00d, K007232_write_port_1_w },
 	{ 0xc000, 0xc000, YM3812_control_port_0_w },
 	{ 0xc001, 0xc001, YM3812_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -344,29 +336,29 @@ static const struct MachineDriver machine_driver_spy =
 ***************************************************************************/
 
 ROM_START( spy )
-	ROM_REGION( 0x28800, REGION_CPU1 ) /* code + banked roms + space for banked ram */
+	ROM_REGION( 0x28800, REGION_CPU1, 0 ) /* code + banked roms + space for banked ram */
 	ROM_LOAD( "857m03.bin",   0x10000, 0x10000, 0x3bd87fa4 )
     ROM_LOAD( "857m02.bin",   0x20000, 0x08000, 0x306cc659 )
     ROM_CONTINUE(             0x08000, 0x08000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* Z80 code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* Z80 code */
 	ROM_LOAD( "857d01.bin",   0x0000, 0x8000, 0xaad4210f )
 
-	ROM_REGION( 0x080000, REGION_GFX1 ) /* graphics ( dont dispose as the program can read them ) */
+	ROM_REGION( 0x080000, REGION_GFX1, 0 ) /* graphics ( dont dispose as the program can read them, 0 ) */
 	ROM_LOAD( "857b09.bin",   0x00000, 0x40000, 0xb8780966 )	/* characters */
 	ROM_LOAD( "857b08.bin",   0x40000, 0x40000, 0x3e4d8d50 )
 
-	ROM_REGION( 0x100000, REGION_GFX2 ) /* graphics ( dont dispose as the program can read them ) */
+	ROM_REGION( 0x100000, REGION_GFX2, 0 ) /* graphics ( dont dispose as the program can read them, 0 ) */
 	ROM_LOAD( "857b06.bin",   0x00000, 0x80000, 0x7b515fb1 )	/* sprites */
 	ROM_LOAD( "857b05.bin",   0x80000, 0x80000, 0x27b0f73b )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "857a10.bin",   0x0000, 0x0100, 0x32758507 )	/* priority encoder (not used) */
 
-	ROM_REGION( 0x40000, REGION_SOUND1 ) /* samples for 007232 #0 */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 ) /* samples for 007232 #0 */
 	ROM_LOAD( "857b07.bin",   0x00000, 0x40000, 0xce3512d4 )
 
-	ROM_REGION( 0x40000, REGION_SOUND2 ) /* samples for 007232 #1 */
+	ROM_REGION( 0x40000, REGION_SOUND2, 0 ) /* samples for 007232 #1 */
 	ROM_LOAD( "857b04.bin",   0x00000, 0x40000, 0x20b83c13 )
 ROM_END
 

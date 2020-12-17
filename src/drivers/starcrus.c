@@ -35,31 +35,24 @@ extern int p2_sprite;
 extern int s1_sprite;
 extern int s2_sprite;
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x0fff, MRA_ROM }, /* Program ROM */
 	{ 0x1000, 0x10ff, MRA_RAM }, /* RAM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
     { 0x0000, 0x0fff, MWA_ROM }, /* Program ROM */
     { 0x1000, 0x10ff, MWA_RAM }, /* RAM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
     { 0x00, 0x00, input_port_0_r },
     { 0x01, 0x01, input_port_1_r },
     { 0x02, 0x02, starcrus_coll_det_r },
     { 0x03, 0x03, input_port_2_r },
-    { -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
     { 0x00, 0x00, starcrus_s1_x_w },
     { 0x01, 0x01, starcrus_s1_y_w },
     { 0x02, 0x02, starcrus_s2_x_w },
@@ -72,8 +65,7 @@ static struct IOWritePort writeport[] =
     { 0x09, 0x09, starcrus_ship_parm_2_w },
     { 0x0a, 0x0a, starcrus_proj_parm_1_w },
     { 0x0b, 0x0b, starcrus_proj_parm_2_w },
-    { -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -239,7 +231,7 @@ static const struct MachineDriver machine_driver_starcrus =
 ***************************************************************************/
 
 ROM_START( starcrus )
-    ROM_REGION( 0x10000, REGION_CPU1 )  /* code */
+    ROM_REGION( 0x10000, REGION_CPU1, 0 )  /* code */
 	ROM_LOAD( "starcrus.j1",   0x0000, 0x0200, 0x0ee60a50 )
 	ROM_LOAD( "starcrus.k1",   0x0200, 0x0200, 0xa7bc3bc4 )
 	ROM_LOAD( "starcrus.l1",   0x0400, 0x0200, 0x10d233ec )
@@ -249,13 +241,13 @@ ROM_START( starcrus )
 	ROM_LOAD( "starcrus.r1",   0x0c00, 0x0200, 0x010cdcfe )
 	ROM_LOAD( "starcrus.s1",   0x0e00, 0x0200, 0xda4e276b )
 
-    ROM_REGION( 0x0200, REGION_GFX1 | REGIONFLAG_DISPOSE )
+    ROM_REGION( 0x0200, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "starcrus.e6",   0x0000, 0x0200, 0x54887a25 )
 
-    ROM_REGION( 0x0200, REGION_GFX2 | REGIONFLAG_DISPOSE )
+    ROM_REGION( 0x0200, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "starcrus.l2",   0x0000, 0x0200, 0x54887a25 )
 
-    ROM_REGION( 0x0400, REGION_GFX3 | REGIONFLAG_DISPOSE )
+    ROM_REGION( 0x0400, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "starcrus.j4",   0x0000, 0x0200, 0x25f15ae1 )
 	ROM_LOAD( "starcrus.g5",   0x0200, 0x0200, 0x73b27f6e )
 ROM_END

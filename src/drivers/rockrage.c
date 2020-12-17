@@ -61,8 +61,7 @@ static WRITE_HANDLER( rockrage_speech_w ) {
 	VLM5030_VCU( ( data >> 1 ) & 0x01 );
 }
 
-static struct MemoryReadAddress rockrage_readmem[] =
-{
+static MEMORY_READ_START( rockrage_readmem )
 	{ 0x0000, 0x1fff, K007342_r },			/* Color RAM + Video RAM */
 	{ 0x2000, 0x21ff, K007420_r },			/* Sprite RAM */
 	{ 0x2200, 0x23ff, K007342_scroll_r },	/* Scroll RAM */
@@ -75,11 +74,9 @@ static struct MemoryReadAddress rockrage_readmem[] =
 	{ 0x4000, 0x5fff, MRA_RAM },			/* RAM */
 	{ 0x6000, 0x7fff, MRA_BANK1 },			/* banked ROM */
 	{ 0x8000, 0xffff, MRA_ROM },			/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress rockrage_writemem[] =
-{
+static MEMORY_WRITE_START( rockrage_writemem )
 	{ 0x0000, 0x1fff, K007342_w },				/* Color RAM + Video RAM */
 	{ 0x2000, 0x21ff, K007420_w },				/* Sprite RAM */
 	{ 0x2200, 0x23ff, K007342_scroll_w },		/* Scroll RAM */
@@ -92,29 +89,24 @@ static struct MemoryWriteAddress rockrage_writemem[] =
 	{ 0x4000, 0x5fff, MWA_RAM },				/* RAM */
 	{ 0x6000, 0x7fff, MWA_RAM },				/* banked ROM */
 	{ 0x8000, 0xffff, MWA_ROM },				/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress rockrage_readmem_sound[] =
-{
+static MEMORY_READ_START( rockrage_readmem_sound )
 	{ 0x3000, 0x3000, rockrage_VLM5030_busy_r },/* VLM5030 */
 	{ 0x5000, 0x5000, soundlatch_r },			/* soundlatch_r */
 	{ 0x6001, 0x6001, YM2151_status_port_0_r },	/* YM 2151 */
 	{ 0x7000, 0x77ff, MRA_RAM },				/* RAM */
 	{ 0x8000, 0xffff, MRA_ROM },				/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress rockrage_writemem_sound[] =
-{
+static MEMORY_WRITE_START( rockrage_writemem_sound )
 	{ 0x2000, 0x2000, VLM5030_data_w }, 			/* VLM5030 */
 	{ 0x4000, 0x4000, rockrage_speech_w },			/* VLM5030 */
 	{ 0x6000, 0x6000, YM2151_register_port_0_w },	/* YM 2151 */
 	{ 0x6001, 0x6001, YM2151_data_port_0_w },		/* YM 2151 */
 	{ 0x7000, 0x77ff, MWA_RAM },					/* RAM */
 	{ 0x8000, 0xffff, MWA_ROM },					/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /***************************************************************************
 
@@ -328,52 +320,52 @@ static const struct MachineDriver machine_driver_rockrage =
 ***************************************************************************/
 
 ROM_START( rockrage )
-	ROM_REGION( 0x20000, REGION_CPU1 ) /* code + banked roms */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 ) /* code + banked roms */
 	ROM_LOAD( "rr-q01.rom", 0x08000, 0x08000, 0x0ddb5ef5 )	/* fixed ROM */
 	ROM_LOAD( "rr-q02.rom", 0x10000, 0x10000, 0xb4f6e346 )	/* banked ROM */
 
-	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for the sound CPU */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 ) /* 64k for the sound CPU */
 	ROM_LOAD( "620k03.11c", 0x08000, 0x08000, 0x9fbefe82 )
 
-	ROM_REGION( 0x040000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "620k06.15g",	0x000000, 0x20000, BADCRC( 0xc0e2b35c ) )	/* tiles */
 	ROM_LOAD( "620k05.16g",	0x020000, 0x20000, BADCRC( 0xca9d9346 ) )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "rr-k11.rom",	0x000000, 0x20000, 0x70449239 )	/* sprites */
 	ROM_LOAD( "rr-l10.rom",	0x020000, 0x20000, 0x06d108e0 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "620k09.11g", 0x00000, 0x00100, 0x9f0e0608 )	/* layer 0 lookup table */
 	ROM_LOAD( "620k08.12g", 0x00100, 0x00100, 0xb499800c )	/* layer 1 lookup table */
 	ROM_LOAD( "620k07.13g", 0x00200, 0x00100, 0xb6135ee0 )	/* sprite lookup table, but its not used */
 															/* because it's always 0 1 2 ... f */
-	ROM_REGION( 0x08000, REGION_SOUND1 ) /* VLM3050 data */
+	ROM_REGION( 0x08000, REGION_SOUND1, 0 ) /* VLM3050 data */
 	ROM_LOAD( "620k04.6e", 0x00000, 0x08000, 0x8be969f3 )
 ROM_END
 
 ROM_START( rockragj )
-	ROM_REGION( 0x20000, REGION_CPU1 ) /* code + banked roms */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 ) /* code + banked roms */
 	ROM_LOAD( "620k01.16c", 0x08000, 0x08000, 0x4f5171f7 )	/* fixed ROM */
 	ROM_LOAD( "620k02.15c", 0x10000, 0x10000, 0x04c4d8f7 )	/* banked ROM */
 
-	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for the sound CPU */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 ) /* 64k for the sound CPU */
 	ROM_LOAD( "620k03.11c", 0x08000, 0x08000, 0x9fbefe82 )
 
-	ROM_REGION( 0x040000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "620k06.15g",	0x000000, 0x20000, 0xc0e2b35c )	/* tiles */
 	ROM_LOAD( "620k05.16g",	0x020000, 0x20000, 0xca9d9346 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "620k11.7g",	0x000000, 0x20000, 0x7430f6e9 )	/* sprites */
 	ROM_LOAD( "620k10.8g",	0x020000, 0x20000, 0x0d1a95ab )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "620k09.11g", 0x00000, 0x00100, 0x9f0e0608 )	/* layer 0 lookup table */
 	ROM_LOAD( "620k08.12g", 0x00100, 0x00100, 0xb499800c )	/* layer 1 lookup table */
 	ROM_LOAD( "620k07.13g", 0x00200, 0x00100, 0xb6135ee0 )	/* sprite lookup table, but its not used */
 															/* because it's always 0 1 2 ... f */
-	ROM_REGION( 0x08000, REGION_SOUND1 ) /* VLM3050 data */
+	ROM_REGION( 0x08000, REGION_SOUND1, 0 ) /* VLM3050 data */
 	ROM_LOAD( "620k04.6e", 0x00000, 0x08000, 0x8be969f3 )
 ROM_END
 

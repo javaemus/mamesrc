@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #ifdef MESS
-#include "mess/mess.h"
+#include "mess.h"
 #endif
 
 extern char build_version[];
@@ -16,11 +16,17 @@ extern char build_version[];
 #define MAX_GFX_ELEMENTS 32
 #define MAX_MEMORY_REGIONS 32
 
+struct RegionInfo
+{
+	UINT8 *		base;
+	size_t		length;
+	UINT32		type;
+	UINT32		flags;
+};
+
 struct RunningMachine
 {
-	unsigned char *memory_region[MAX_MEMORY_REGIONS];
-	unsigned int memory_region_length[MAX_MEMORY_REGIONS];	/* some drivers might find this useful */
-	int memory_region_type[MAX_MEMORY_REGIONS];
+	struct RegionInfo memory_region[MAX_MEMORY_REGIONS];
 	struct GfxElement *gfx[MAX_GFX_ELEMENTS];	/* graphic sets (chars, sprites) */
 	struct osd_bitmap *scrbitmap;	/* bitmap to draw into */
 	struct rectangle visible_area;
@@ -47,7 +53,7 @@ struct RunningMachine
 								/* remove cheat commands, and so on) */
 	struct InputPort *input_ports_default; /* original input_ports without modifications */
 	int orientation;	/* see #defines in driver.h */
-	struct GfxElement *uifont;	/* font used by DisplayText() */
+	struct GfxElement *uifont;	/* font used by the user interface */
 	int uifontwidth,uifontheight;
 	int uixmin,uiymin;
 	int uiwidth,uiheight;
@@ -105,6 +111,8 @@ struct GameOptions {
 	int use_artwork;
 
 	#ifdef MESS
+	int append_no_file_extension;
+
 	struct ImageFile image_files[MAX_IMAGES];
 	int image_count;
 	#endif
@@ -115,7 +123,12 @@ extern struct RunningMachine *Machine;
 
 int run_game (int game);
 int updatescreen(void);
-void draw_screen(int bitmap_dirty);
+void draw_screen(void);
+
+/* next time vh_screenrefresh is called, full_refresh will be true,
+   thus requesting a redraw of the entire screen */
+void schedule_full_refresh(void);
+
 void update_video_and_audio(void);
 /* osd_fopen() must use this to know if high score files can be used */
 int mame_highscore_enabled(void);

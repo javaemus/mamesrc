@@ -70,8 +70,7 @@ extern void phozon_vh_convert_color_prom(unsigned char *palette, unsigned short 
 extern void phozon_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 	/* CPU 1 (MAIN CPU) read addresses */
-static struct MemoryReadAddress readmem_cpu1[] =
-{
+static MEMORY_READ_START( readmem_cpu1 )
 	{ 0x0000, 0x03ff, videoram_r },			/* video RAM */
 	{ 0x0400, 0x07ff, colorram_r },										/* color RAM */
 	{ 0x0800, 0x1fff, phozon_spriteram_r },			/* shared RAM with CPU #2/sprite RAM*/
@@ -79,12 +78,10 @@ static struct MemoryReadAddress readmem_cpu1[] =
 	{ 0x4800, 0x480f, phozon_customio_1_r },		/* custom I/O chip #1 interface */
 	{ 0x4810, 0x481f, phozon_customio_2_r },		/* custom I/O chip #2 interface */
 	{ 0x8000, 0xffff, MRA_ROM },										/* ROM */
-	{ -1 }																/* end of table */
-};
+MEMORY_END
 
 	/* CPU 1 (MAIN CPU) write addresses */
-static struct MemoryWriteAddress writemem_cpu1[] =
-{
+static MEMORY_WRITE_START( writemem_cpu1 )
 	{ 0x0000, 0x03ff, videoram_w, &videoram, &videoram_size },				/* video RAM */
 	{ 0x0400, 0x07ff, colorram_w, &colorram },  /* color RAM */
 	{ 0x0800, 0x1fff, phozon_spriteram_w, &phozon_spriteram },		/* shared RAM with CPU #2/sprite RAM*/
@@ -101,48 +98,39 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x500e, 0x500f, MWA_NOP },				/* ??? */
 	{ 0x7000, 0x7000, watchdog_reset_w },	 	/* watchdog reset */
 	{ 0x8000, 0xffff, MWA_ROM },				/* ROM */
-	{ -1 }										/* end of table */
-};
+MEMORY_END
 
 	/* CPU 2 (SUB CPU) read addresses */
-static struct MemoryReadAddress readmem_cpu2[] =
-{
+static MEMORY_READ_START( readmem_cpu2 )
 	{ 0x0000, 0x03ff, videoram_r },			/* video RAM */
 	{ 0x0400, 0x07ff, colorram_r },			/* color RAM */
 	{ 0x0800, 0x1fff, phozon_spriteram_r },	/* shared RAM with CPU #1/sprite RAM*/
 	{ 0xa000, 0xa7ff, MRA_RAM },			/* RAM */
 	{ 0xe000, 0xffff, MRA_ROM },			/* ROM */
-	{ -1 }									/* end of table */
-};
+MEMORY_END
 
 	/* CPU 2 (SUB CPU) write addresses */
-static struct MemoryWriteAddress writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x0000, 0x03ff, videoram_w },			/* video RAM */
 	{ 0x0400, 0x07ff, colorram_w },			/* color RAM */
 	{ 0x0800, 0x1fff, phozon_spriteram_w },	/* shared RAM with CPU #1/sprite RAM*/
 	{ 0xa000, 0xa7ff, MWA_RAM },			/* RAM */
 	{ 0xe000, 0xffff, MWA_ROM },			/* ROM */
-	{ -1 }									/* end of table */
-};
+MEMORY_END
 
 	/* CPU 3 (SOUND CPU) read addresses */
-static struct MemoryReadAddress readmem_cpu3[] =
-{
+static MEMORY_READ_START( readmem_cpu3 )
 	{ 0x0000, 0x003f, MRA_RAM },				/* sound registers */
 	{ 0x0040, 0x03ff, phozon_snd_sharedram_r }, /* shared RAM with CPU #1 */
 	{ 0xe000, 0xffff, MRA_ROM },				/* ROM */
-	{ -1 }										/* end of table */
-};
+MEMORY_END
 
 	/* CPU 3 (SOUND CPU) write addresses */
-static struct MemoryWriteAddress writemem_cpu3[] =
-{
+static MEMORY_WRITE_START( writemem_cpu3 )
 	{ 0x0000, 0x003f, mappy_sound_w, &mappy_soundregs },/* sound registers */
 	{ 0x0040, 0x03ff, phozon_snd_sharedram_w },			/* shared RAM with the main CPU */
 	{ 0xe000, 0xffff, MWA_ROM },						/* ROM */
-	{ -1 }												/* end of table */
-};
+MEMORY_END
 
 /* The dipswitches and player inputs are not memory mapped, they are handled by an I/O chip. */
 INPUT_PORTS_START( phozon )
@@ -316,28 +304,28 @@ static const struct MachineDriver machine_driver_phozon =
 
 
 ROM_START( phozon )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the MAIN CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the MAIN CPU  */
 	ROM_LOAD( "6e.rom", 0x8000, 0x2000, 0xa6686af1 )
 	ROM_LOAD( "6h.rom", 0xa000, 0x2000, 0x72a65ba0 )
 	ROM_LOAD( "6c.rom", 0xc000, 0x2000, 0xf1fda22e )
 	ROM_LOAD( "6d.rom", 0xe000, 0x2000, 0xf40e6df0 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the SUB CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the SUB CPU */
 	ROM_LOAD( "9r.rom", 0xe000, 0x2000, 0x5d9f0a28 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the SOUND CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the SOUND CPU */
 	ROM_LOAD( "3b.rom", 0xe000, 0x2000, 0x5a4b3a79 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "7j.rom", 0x0000, 0x1000, 0x27f9db5b ) /* characters (set 1) */
 
-	ROM_REGION( 0x1000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "8j.rom", 0x0000, 0x1000, 0x15b12ef8 ) /* characters (set 2) */
 
-	ROM_REGION( 0x2000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "5t.rom", 0x0000, 0x2000, 0xd50f08f8 ) /* sprites */
 
-	ROM_REGION( 0x0520, REGION_PROMS )
+	ROM_REGION( 0x0520, REGION_PROMS, 0 )
 	ROM_LOAD( "red.prm",     0x0000, 0x0100, 0xa2880667 ) /* red palette ROM (4 bits) */
 	ROM_LOAD( "green.prm",   0x0100, 0x0100, 0xd6e08bef ) /* green palette ROM (4 bits) */
 	ROM_LOAD( "blue.prm",    0x0200, 0x0100, 0xb2d69c72 ) /* blue palette ROM (4 bits) */
@@ -345,7 +333,7 @@ ROM_START( phozon )
 	ROM_LOAD( "sprite.prm",  0x0400, 0x0100, 0x9061db07 ) /* sprites */
 	ROM_LOAD( "palette.prm", 0x0500, 0x0020, 0x60e856ed ) /* palette (unused?) */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound PROMs */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound PROMs */
 	ROM_LOAD( "sound.prm", 0x0000, 0x0100, 0xad43688f )
 ROM_END
 

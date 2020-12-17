@@ -27,19 +27,16 @@ WRITE_HANDLER( gotya_video_control_w );
 WRITE_HANDLER( gotya_soundlatch_w );
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x5000, 0x5fff, MRA_RAM },
 	{ 0x6000, 0x6000, input_port_0_r },
 	{ 0x6001, 0x6001, input_port_1_r },
 	{ 0x6002, 0x6002, input_port_2_r },
 	{ 0xc000, 0xd3ff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x5000, 0x5fff, MWA_RAM },
 	{ 0x6004, 0x6004, gotya_video_control_w },
@@ -50,8 +47,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xc800, 0xcfff, colorram_w, &colorram },
 	{ 0xd000, 0xd3df, MWA_RAM, &gotya_foregroundram },
 	{ 0xd3e0, 0xd3ff, MWA_RAM, &spriteram },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( gotya )
@@ -220,27 +216,27 @@ static const struct MachineDriver machine_driver_gotya =
 ***************************************************************************/
 
 ROM_START( gotya )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for main CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for main CPU */
 	ROM_LOAD( "gb-06.bin",	0x0000, 0x1000, 0x7793985a )
 	ROM_LOAD( "gb-05.bin",	0x1000, 0x1000, 0x683d188b )
 	ROM_LOAD( "gb-04.bin",	0x2000, 0x1000, 0x15b72f09 )
 	ROM_LOAD( "gb-03.bin",	0x3000, 0x1000, 0xf34d90ab )    /* this is the only ROM that passes the ROM test */
 
-	ROM_REGION( 0x1000,  REGION_GFX1 | REGIONFLAG_DISPOSE )	/* characters */
+	ROM_REGION( 0x1000,  REGION_GFX1, ROMREGION_DISPOSE )	/* characters */
 	ROM_LOAD( "gb-12.bin",	0x0000, 0x1000, 0x4993d735 )
 
-	ROM_REGION( 0x1000,  REGION_GFX2 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x1000,  REGION_GFX2, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "gb-11.bin",	0x0000, 0x1000, 0x5d5eca1b )
 
-	ROM_REGION( 0x0120,  REGION_PROMS )
+	ROM_REGION( 0x0120,  REGION_PROMS, 0 )
 	ROM_LOAD( "prom.1a",    0x0000, 0x0020, 0x4864a5a0 )    /* color PROM */
 	ROM_LOAD( "prom.4c",    0x0020, 0x0100, 0x4745b5f6 )    /* lookup table */
 
-	ROM_REGION( 0x1000,  REGION_USER1 )		/* no idea what these are */
+	ROM_REGION( 0x1000,  REGION_USER1, 0 )		/* no idea what these are */
 	ROM_LOAD( "gb-01.bin",	0x0000, 0x0800, 0xc31dba64 )
 	ROM_LOAD( "gb-02.bin",	0x0800, 0x0800, 0x65a7e284 )
 
-	ROM_REGION( 0x4000,  REGION_USER2 )		/* HD38880 code? */
+	ROM_REGION( 0x4000,  REGION_USER2, 0 )		/* HD38880 code? */
 	ROM_LOAD( "gb-10.bin",	0x0000, 0x1000, 0x8101915f )
 	ROM_LOAD( "gb-09.bin",	0x1000, 0x1000, 0x619bba76 )
 	ROM_LOAD( "gb-08.bin",	0x2000, 0x1000, 0x82f59528 )

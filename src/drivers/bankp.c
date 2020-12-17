@@ -50,44 +50,36 @@ void bankp_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xdfff, MRA_ROM },
 	{ 0xe000, 0xe7ff, MRA_RAM },
 	{ 0xf000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xdfff, MWA_ROM },
 	{ 0xe000, 0xe7ff, MWA_RAM },
 	{ 0xf000, 0xf3ff, videoram_w, &videoram, &videoram_size },
 	{ 0xf400, 0xf7ff, colorram_w, &colorram },
 	{ 0xf800, 0xfbff, bankp_videoram2_w, &bankp_videoram2 },
 	{ 0xfc00, 0xffff, bankp_colorram2_w, &bankp_colorram2 },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, input_port_0_r },	/* IN0 */
 	{ 0x01, 0x01, input_port_1_r },	/* IN1 */
 	{ 0x02, 0x02, input_port_2_r },	/* IN2 */
 	{ 0x04, 0x04, input_port_3_r },	/* DSW */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, SN76496_0_w },
 	{ 0x01, 0x01, SN76496_1_w },
 	{ 0x02, 0x02, SN76496_2_w },
 	{ 0x05, 0x05, bankp_scroll_w },
 	{ 0x07, 0x07, bankp_out_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -231,17 +223,17 @@ static const struct MachineDriver machine_driver_bankp =
 ***************************************************************************/
 
 ROM_START( bankp )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "epr6175.bin",  0x0000, 0x4000, 0x044552b8 )
 	ROM_LOAD( "epr6174.bin",  0x4000, 0x4000, 0xd29b1598 )
 	ROM_LOAD( "epr6173.bin",  0x8000, 0x4000, 0xb8405d38 )
 	ROM_LOAD( "epr6176.bin",  0xc000, 0x2000, 0xc98ac200 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "epr6165.bin",  0x0000, 0x2000, 0xaef34a93 )	/* playfield #1 chars */
 	ROM_LOAD( "epr6166.bin",  0x2000, 0x2000, 0xca13cb11 )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "epr6172.bin",  0x0000, 0x2000, 0xc4c4878b )	/* playfield #2 chars */
 	ROM_LOAD( "epr6171.bin",  0x2000, 0x2000, 0xa18165a1 )
 	ROM_LOAD( "epr6170.bin",  0x4000, 0x2000, 0xb58aa8fa )
@@ -249,7 +241,7 @@ ROM_START( bankp )
 	ROM_LOAD( "epr6168.bin",  0x8000, 0x2000, 0x05f3a867 )
 	ROM_LOAD( "epr6167.bin",  0xa000, 0x2000, 0x3fa337e1 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "pr6177.clr",   0x0000, 0x020, 0xeb70c5ae ) 	/* palette */
 	ROM_LOAD( "pr6178.clr",   0x0020, 0x100, 0x0acca001 ) 	/* charset #1 lookup table */
 	ROM_LOAD( "pr6179.clr",   0x0120, 0x100, 0xe53bafdb ) 	/* charset #2 lookup table */

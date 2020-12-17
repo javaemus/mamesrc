@@ -64,8 +64,7 @@ static READ_HANDLER( flstory_d401_r )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
     { 0x0000, 0xbfff, MRA_ROM },
     { 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xd000, 0xd000, flstory_mcu_r },
@@ -79,11 +78,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xd805, 0xd805, flstory_mcu_status_r },
 	{ 0xd806, 0xd806, input_port_5_r },
     { 0xe000, 0xe7ff, MRA_RAM },
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, videoram_w, &videoram, &videoram_size },
 	{ 0xd000, 0xd000, flstory_mcu_w },
@@ -95,20 +92,16 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xdd00, 0xdeff, flstory_palette_w },
 	{ 0xdf03, 0xdf03, flstory_gfxctrl_w },
 	{ 0xe000, 0xe7ff, MWA_RAM },	/* work RAM */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
     { 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
     { 0xd800, 0xd800, soundlatch_r },
     { 0xe000, 0xefff, MRA_ROM },	/* space for diagnostics ROM */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xc800, 0xc800, AY8910_control_port_0_w },
@@ -119,21 +112,17 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0xda00, 0xda00, MWA_RAM },	/* ??? */
 	{ 0xdc00, 0xdc00, MWA_RAM },	/* ??? */
 	{ 0xe000, 0xefff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress m68705_readmem[] =
-{
+static MEMORY_READ_START( m68705_readmem )
 	{ 0x0000, 0x0000, flstory_68705_portA_r },
 	{ 0x0001, 0x0001, flstory_68705_portB_r },
 	{ 0x0002, 0x0002, flstory_68705_portC_r },
 	{ 0x0010, 0x007f, MRA_RAM },
 	{ 0x0080, 0x07ff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress m68705_writemem[] =
-{
+static MEMORY_WRITE_START( m68705_writemem )
 	{ 0x0000, 0x0000, flstory_68705_portA_w },
 	{ 0x0001, 0x0001, flstory_68705_portB_w },
 	{ 0x0002, 0x0002, flstory_68705_portC_w },
@@ -142,8 +131,7 @@ static struct MemoryWriteAddress m68705_writemem[] =
 	{ 0x0006, 0x0006, flstory_68705_ddrC_w },
 	{ 0x0010, 0x007f, MWA_RAM },
 	{ 0x0080, 0x07ff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -245,20 +233,20 @@ INPUT_PORTS_START( flstory )
 	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* "BAD IO" if low */
 
 	PORT_START      /* D804: P1? */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_2WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_2WAY )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START      /* D806: P2? */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )                             /* This is a bit of a guess - but without these here */
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_COCKTAIL )                             /* Player 2 still functions normally */
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_2WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_2WAY | IPF_COCKTAIL )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -373,70 +361,70 @@ static const struct MachineDriver machine_driver_flstory =
 ***************************************************************************/
 
 ROM_START( flstory )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for the first CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for the first CPU */
 	ROM_LOAD( "cpu-a45.15",   0x0000, 0x4000, 0xf03fc969 )
 	ROM_LOAD( "cpu-a45.16",   0x4000, 0x4000, 0x311aa82e )
 	ROM_LOAD( "cpu-a45.17",   0x8000, 0x4000, 0xa2b5d17d )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "snd.22",       0x0000, 0x2000, 0xd58b201d )
 	ROM_LOAD( "snd.23",       0x2000, 0x2000, 0x25e7fd9d )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
-	ROM_LOAD( "a45.mcu",      0x0000, 0x0800, 0x00000000 )
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
+	ROM_LOAD( "a45.mcu",      0x0000, 0x0800, 0x5378253c )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "vid-a45.18",   0x00000, 0x4000, 0x6f08f69e )
-	ROM_LOAD( "vid-a45.20",   0x04000, 0x4000, 0x1b0edf34 )
+	ROM_LOAD( "vid-a45.06",   0x04000, 0x4000, 0xdc856a75 )
 	ROM_LOAD( "vid-a45.08",   0x08000, 0x4000, 0xd0b028ca )
-	ROM_LOAD( "vid-a45.06",   0x0c000, 0x4000, 0xdc856a75 )
+	ROM_LOAD( "vid-a45.20",   0x0c000, 0x4000, 0x1b0edf34 )
 	ROM_LOAD( "vid-a45.19",   0x10000, 0x4000, 0x2b572dc9 )
-	ROM_LOAD( "vid-a45.21",   0x14000, 0x4000, 0xfc382bd1 )
+	ROM_LOAD( "vid-a45.07",   0x14000, 0x4000, 0xaa4b0762 )
 	ROM_LOAD( "vid-a45.09",   0x18000, 0x4000, 0x8336be58 )
-	ROM_LOAD( "vid-a45.07",   0x1c000, 0x4000, 0xaa4b0762 )
+	ROM_LOAD( "vid-a45.21",   0x1c000, 0x4000, 0xfc382bd1 )
 ROM_END
 
 ROM_START( flstoryj )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for the first CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for the first CPU */
 	ROM_LOAD( "cpu-a45.15",   0x0000, 0x4000, 0xf03fc969 )
 	ROM_LOAD( "cpu-a45.16",   0x4000, 0x4000, 0x311aa82e )
 	ROM_LOAD( "cpu-a45.17",   0x8000, 0x4000, 0xa2b5d17d )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a45_12.8",     0x0000, 0x2000, 0xd6f593fb )
 	ROM_LOAD( "a45_13.9",     0x2000, 0x2000, 0x451f92f9 )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
-	ROM_LOAD( "a45.mcu",      0x0000, 0x0800, 0x00000000 )
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
+	ROM_LOAD( "a45.mcu",      0x0000, 0x0800, 0x5378253c )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "vid-a45.18",   0x00000, 0x4000, 0x6f08f69e )
-	ROM_LOAD( "vid-a45.20",   0x04000, 0x4000, 0x1b0edf34 )
+	ROM_LOAD( "vid-a45.06",   0x04000, 0x4000, 0xdc856a75 )
 	ROM_LOAD( "vid-a45.08",   0x08000, 0x4000, 0xd0b028ca )
-	ROM_LOAD( "vid-a45.06",   0x0c000, 0x4000, 0xdc856a75 )
+	ROM_LOAD( "vid-a45.20",   0x0c000, 0x4000, 0x1b0edf34 )
 	ROM_LOAD( "vid-a45.19",   0x10000, 0x4000, 0x2b572dc9 )
-	ROM_LOAD( "vid-a45.21",   0x14000, 0x4000, 0xfc382bd1 )
+	ROM_LOAD( "vid-a45.07",   0x14000, 0x4000, 0xaa4b0762 )
 	ROM_LOAD( "vid-a45.09",   0x18000, 0x4000, 0x8336be58 )
-	ROM_LOAD( "vid-a45.07",   0x1c000, 0x4000, 0xaa4b0762 )
+	ROM_LOAD( "vid-a45.21",   0x1c000, 0x4000, 0xfc382bd1 )
 ROM_END
 
 ROM_START( onna34ro )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for the first CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for the first CPU */
 	ROM_LOAD( "a52-01-1.40c", 0x0000, 0x4000, 0xffddcb02 )
 	ROM_LOAD( "a52-02-1.41c", 0x4000, 0x4000, 0xda97150d )
 	ROM_LOAD( "a52-03-1.42c", 0x8000, 0x4000, 0xb9749a53 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a52-12.08s",   0x0000, 0x2000, 0x28f48096 )
 	ROM_LOAD( "a52-13.09s",   0x2000, 0x2000, 0x4d3b16f3 )
 	ROM_LOAD( "a52-14.10s",   0x4000, 0x2000, 0x90a6f4e8 )
 	ROM_LOAD( "a52-15.37s",   0x6000, 0x2000, 0x5afc21d0 )
 	ROM_LOAD( "a52-16.38s",   0x8000, 0x2000, 0xccf42aee )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "a52-17.54c",   0x0000, 0x0800, 0x00000000 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a52-04.11v",   0x00000, 0x4000, 0x5b126294 )
 	ROM_LOAD( "a52-06.10v",   0x04000, 0x4000, 0x78114721 )
 	ROM_LOAD( "a52-08.09v",   0x08000, 0x4000, 0x4a293745 )
@@ -449,6 +437,6 @@ ROM_END
 
 
 
-GAMEX( 1985, flstory,  0,       flstory, flstory, 0, ROT180, "Taito", "The FairyLand Story", GAME_NOT_WORKING )
-GAMEX( 1985, flstoryj, flstory, flstory, flstory, 0, ROT180, "Taito", "The FairyLand Story (Japan)", GAME_NOT_WORKING )
-GAMEX( 1985, onna34ro, 0,       flstory, flstory, 0, ROT180, "Taito", "Onna Sansirou (Japan)", GAME_NOT_WORKING )
+GAMEX( 1985, flstory,  0,       flstory, flstory, 0, ROT180, "Taito", "The FairyLand Story", GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL )
+GAMEX( 1985, flstoryj, flstory, flstory, flstory, 0, ROT180, "Taito", "The FairyLand Story (Japan)", GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL )
+GAMEX( 1985, onna34ro, 0,       flstory, flstory, 0, ROT180, "Taito", "Onna Sansirou (Japan)", GAME_NOT_WORKING | GAME_NO_COCKTAIL )

@@ -58,6 +58,18 @@ addresses take place.
 #define LOG(x)
 #endif
 
+#ifdef RUNTIME_LOADER
+struct cpu_interface
+m6509_interface=
+CPU0(M6509,    m6509,    1,  0,1.00,M6509_INT_NONE,    M6509_INT_IRQ,  M6509_INT_NMI,  8, 20,     0,20,LE,1, 3 );
+
+extern void m6509_runtime_loader_init(void)
+{
+	cpuintf[CPU_M6509]=m6509_interface;
+}
+#endif
+
+
 /* Layout of the registers in the debugger */
 static UINT8 m6509_reg_layout[] = {
 	M6509_A,M6509_X,M6509_Y,M6509_S,M6509_PC, M6509_P,-1,
@@ -107,24 +119,24 @@ static m6509_Regs m6509;
 
 #include "t6509.c"
 
-READ_HANDLER ( m6509_read_00000 )
+READ_HANDLER( m6509_read_00000 )
 {
 	return m6509.pc_bank.b.h2;
 }
 
-READ_HANDLER ( m6509_read_00001 )
+READ_HANDLER( m6509_read_00001 )
 {
 	return m6509.ind_bank.b.h2;
 }
 
-WRITE_HANDLER ( m6509_write_00000 )
+WRITE_HANDLER( m6509_write_00000 )
 {
 	m6509.pc_bank.b.h2=data&0xf;
 	m6509.pc.w.h=m6509.pc_bank.w.h;
-	change_pc(PCD);
+	change_pc20(PCD);
 }
 
-WRITE_HANDLER ( m6509_write_00001 )
+WRITE_HANDLER( m6509_write_00001 )
 {
 	m6509.ind_bank.b.h2=data&0xf;
 }
@@ -167,7 +179,7 @@ void m6509_set_context (void *src)
 	if( src )
 	{
 		m6509 = *(m6509_Regs*)src;
-		change_pc(PCD);
+		change_pc20(PCD);
 	}
 }
 
@@ -180,7 +192,7 @@ unsigned m6509_get_pc (void)
 void m6509_set_pc (unsigned val)
 {
 	PCW = val&0xffff;
-	change_pc(PCD);
+	change_pc20(PCD);
 }
 
 unsigned m6509_get_sp (void)

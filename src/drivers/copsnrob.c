@@ -54,8 +54,7 @@ READ_HANDLER( copsnrob_gun_position_r );
 int copsnrob_vh_start(void);
 void copsnrob_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x01ff, MRA_RAM },
 	{ 0x0800, 0x08ff, MRA_RAM },
 	{ 0x0b00, 0x0bff, MRA_RAM },
@@ -67,11 +66,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x101a, 0x101a, input_port_2_r },
 	{ 0x1200, 0x1fff, MRA_ROM },
 	{ 0xfff8, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x0500, 0x0503, MWA_RAM },
 	{ 0x0504, 0x0507, MWA_NOP },  // ???
@@ -85,8 +82,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x1000, 0x1003, MWA_NOP },
 	{ 0x1200, 0x1fff, MWA_ROM },
 	{ 0xfff8, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( copsnrob )
@@ -250,7 +246,7 @@ static const struct MachineDriver machine_driver_copsnrob =
 ***************************************************************************/
 
 ROM_START( copsnrob )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "5777.l7",      0x1200, 0x0200, 0x2b62d627 )
 	ROM_LOAD( "5776.k7",      0x1400, 0x0200, 0x7fb12a49 )
 	ROM_LOAD( "5775.j7",      0x1600, 0x0200, 0x627dee63 )
@@ -260,19 +256,19 @@ ROM_START( copsnrob )
 	ROM_LOAD( "5771.b7",      0x1e00, 0x0200, 0xd61758d6 )
 	ROM_RELOAD(               0xfe00, 0x0200 ) // For 6502 vectors
 
-	ROM_REGION( 0x0200, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0200, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5782.m3",      0x0000, 0x0200, 0x82b86852 )
 
-	ROM_REGION( 0x0800, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "5778.p1",      0x0000, 0x0200, 0x78bff86a )
 	ROM_LOAD( "5779.m1",      0x0200, 0x0200, 0x8b1d0d83 )
 	ROM_LOAD( "5780.l1",      0x0400, 0x0200, 0x6f4c6bab )
 	ROM_LOAD( "5781.j1",      0x0600, 0x0200, 0xc87f2f13 )
 
-	ROM_REGION( 0x0100, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0100, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "5770.m2",      0x0000, 0x0100, 0xb00bbe77 )
 
-	ROM_REGION( 0x0260, REGION_PROMS )	 /* misc. PROMs (timing?) */
+	ROM_REGION( 0x0260, REGION_PROMS, 0 )	 /* misc. PROMs (timing?) */
 	ROM_LOAD( "5765.h8",      0x0000, 0x0020, 0x6cd58931 )
 	ROM_LOAD( "5766.k8",      0x0020, 0x0020, 0xe63edf4f )
 	ROM_LOAD( "5767.j8",      0x0040, 0x0020, 0x381b5ae4 )

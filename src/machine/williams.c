@@ -23,7 +23,6 @@ extern UINT8 *williams2_paletteram;
 void williams_vh_update(int counter);
 WRITE_HANDLER( williams_videoram_w );
 READ_HANDLER( williams_video_counter_r );
-void williams2_vh_update(int counter);
 
 
 /* banking addresses set by the drivers */
@@ -267,7 +266,7 @@ static void williams_va11_callback(int scanline)
 	williams_vh_update(scanline);
 
 	/* set a timer for the next update */
-	scanline += 16;
+	scanline += 8;
 	if (scanline >= 256) scanline = 0;
 	timer_set(cpu_getscanlinetime(scanline), scanline, williams_va11_callback);
 }
@@ -466,10 +465,10 @@ static void williams2_va11_callback(int scanline)
 	pia_1_ca1_w(0, scanline & 0x20);
 
 	/* update the screen while we're here */
-	williams2_vh_update(scanline);
+	williams_vh_update(scanline);
 
 	/* set a timer for the next update */
-	scanline += 16;
+	scanline += 8;
 	if (scanline >= 256) scanline = 0;
 	timer_set(cpu_getscanlinetime(scanline), scanline, williams2_va11_callback);
 }
@@ -653,15 +652,15 @@ WRITE_HANDLER( defender_bank_select_w )
 	/* if the bank maps into normal RAM, it represents I/O space */
 	if (bank_offset < 0x10000)
 	{
-		cpu_setbankhandler_r(2, defender_io_r);
-		cpu_setbankhandler_w(2, defender_io_w);
+		memory_set_bankhandler_r(2, 0, defender_io_r);
+		memory_set_bankhandler_w(2, 0, defender_io_w);
 	}
 
 	/* otherwise, it's ROM space */
 	else
 	{
-		cpu_setbankhandler_r(2, MRA_BANK2);
-		cpu_setbankhandler_w(2, MWA_ROM);
+		memory_set_bankhandler_r(2, 0, MRA_BANK2);
+		memory_set_bankhandler_w(2, 0, MWA_ROM);
 	}
 }
 
@@ -926,6 +925,6 @@ static WRITE_HANDLER( joust2_pia_3_cb1_w )
 static WRITE_HANDLER( joust2_snd_cmd_w )
 {
 	joust2_current_sound_data = (joust2_current_sound_data & ~0xff) | (data & 0xff);
-	williams_cvsd_data_w(0, joust2_current_sound_data);
+	williams_cvsd_data_w(joust2_current_sound_data);
 	timer_set(TIME_NOW, joust2_current_sound_data, joust2_deferred_snd_cmd_w);
 }

@@ -187,23 +187,19 @@ static READ_HANDLER( fireone_input_r )
  *
  *************************************/
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x9fff, starfire_scratch_r },
 	{ 0xa000, 0xbfff, starfire_colorram_r },
 	{ 0xc000, 0xffff, starfire_videoram_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x9fff, starfire_scratch_w },
 	{ 0xa000, 0xbfff, starfire_colorram_w, &starfire_colorram },
 	{ 0xc000, 0xffff, starfire_videoram_w, &starfire_videoram },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -348,7 +344,7 @@ static const struct MachineDriver machine_driver_starfire =
  *************************************/
 
 ROM_START( starfire )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "sfire.1a",     0x0000, 0x0800, 0x9990af64 )
 	ROM_LOAD( "sfire.2a",     0x0800, 0x0800, 0x6e17ba33 )
 	ROM_LOAD( "sfire.1b",     0x1000, 0x0800, 0x946175d0 )
@@ -363,7 +359,7 @@ ROM_START( starfire )
 ROM_END
 
 ROM_START( fireone )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "fo-ic13.7b",     0x0000, 0x0800, 0xf927f086 )
 	ROM_LOAD( "fo-ic24.7c",     0x0800, 0x0800, 0x0d2d8723 )
 	ROM_LOAD( "fo-ic12.6b",     0x1000, 0x0800, 0xac7783d9 )

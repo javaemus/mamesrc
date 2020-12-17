@@ -77,8 +77,7 @@ WRITE_HANDLER( maniach_sh_command_w )
 
 
 
-static struct MemoryReadAddress matmania_readmem[] =
-{
+static MEMORY_READ_START( matmania_readmem )
 	{ 0x0000, 0x077f, MRA_RAM },
 	{ 0x1000, 0x17ff, MRA_RAM },
 	{ 0x2000, 0x27ff, MRA_RAM },
@@ -87,11 +86,9 @@ static struct MemoryReadAddress matmania_readmem[] =
 	{ 0x3020, 0x3020, input_port_2_r },
 	{ 0x3030, 0x3030, input_port_3_r },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress matmania_writemem[] =
-{
+static MEMORY_WRITE_START( matmania_writemem )
 	{ 0x0000, 0x077f, MWA_RAM },
 	{ 0x0780, 0x07df, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x1000, 0x13ff, MWA_RAM, &matmania_videoram2, &matmania_videoram2_size },
@@ -106,11 +103,9 @@ static struct MemoryWriteAddress matmania_writemem[] =
 //	{ 0x3030, 0x3030, MWA_NOP },	/* ?? */
 	{ 0x3050, 0x307f, matmania_paletteram_w, &paletteram },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress maniach_readmem[] =
-{
+static MEMORY_READ_START( maniach_readmem )
 	{ 0x0000, 0x077f, MRA_RAM },
 	{ 0x1000, 0x17ff, MRA_RAM },
 	{ 0x2000, 0x27ff, MRA_RAM },
@@ -121,11 +116,9 @@ static struct MemoryReadAddress maniach_readmem[] =
 	{ 0x3040, 0x3040, maniach_mcu_r },
 	{ 0x3041, 0x3041, maniach_mcu_status_r },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress maniach_writemem[] =
-{
+static MEMORY_WRITE_START( maniach_writemem )
 	{ 0x0000, 0x077f, MWA_RAM },
 	{ 0x0780, 0x07df, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x1000, 0x13ff, MWA_RAM, &matmania_videoram2, &matmania_videoram2_size },
@@ -141,19 +134,15 @@ static struct MemoryWriteAddress maniach_writemem[] =
 	{ 0x3040, 0x3040, maniach_mcu_w },
 	{ 0x3050, 0x307f, matmania_paletteram_w, &paletteram },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x01ff, MRA_RAM },
 	{ 0x2007, 0x2007, soundlatch_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x2000, 0x2000, AY8910_write_port_0_w },
 	{ 0x2001, 0x2001, AY8910_control_port_0_w },
@@ -161,39 +150,31 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0x2003, 0x2003, AY8910_control_port_1_w },
 	{ 0x2004, 0x2004, matmania_dac_w },
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress maniach_sound_readmem[] =
-{
+static MEMORY_READ_START( maniach_sound_readmem )
 	{ 0x0000, 0x0fff, MRA_RAM },
 	{ 0x2004, 0x2004, soundlatch_r },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress maniach_sound_writemem[] =
-{
+static MEMORY_WRITE_START( maniach_sound_writemem )
 	{ 0x0000, 0x0fff, MWA_RAM },
 	{ 0x2000, 0x2000, YM3526_control_port_0_w },
 	{ 0x2001, 0x2001, YM3526_write_port_0_w },
 	{ 0x2002, 0x2002, matmania_dac_w },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress mcu_readmem[] =
-{
+static MEMORY_READ_START( mcu_readmem )
 	{ 0x0000, 0x0000, maniach_68705_portA_r },
 	{ 0x0001, 0x0001, maniach_68705_portB_r },
 	{ 0x0002, 0x0002, maniach_68705_portC_r },
 	{ 0x0010, 0x007f, MRA_RAM },
 	{ 0x0080, 0x07ff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress mcu_writemem[] =
-{
+static MEMORY_WRITE_START( mcu_writemem )
 	{ 0x0000, 0x0000, maniach_68705_portA_w },
 	{ 0x0001, 0x0001, maniach_68705_portB_w },
 	{ 0x0002, 0x0002, maniach_68705_portC_w },
@@ -202,8 +183,7 @@ static struct MemoryWriteAddress mcu_writemem[] =
 	{ 0x0006, 0x0006, maniach_68705_ddrC_w },
 	{ 0x0010, 0x007f, MWA_RAM },
 	{ 0x0080, 0x07ff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -501,26 +481,26 @@ static const struct MachineDriver machine_driver_maniach =
 ***************************************************************************/
 
 ROM_START( matmania )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "k0-03",        0x4000, 0x4000, 0x314ab8a4 )
 	ROM_LOAD( "k1-03",        0x8000, 0x4000, 0x3b3c3f08 )
 	ROM_LOAD( "k2-03",        0xc000, 0x4000, 0x286c0917 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for audio code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for audio code */
 	ROM_LOAD( "k4-0",         0x8000, 0x4000, 0x86dab489 )
 	ROM_LOAD( "k5-0",         0xc000, 0x4000, 0x4c41cdba )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ku-02",        0x00000, 0x2000, 0x613c8698 )	/* Character ROMs - 1024 chars, 3 bpp */
 	ROM_LOAD( "kv-02",        0x02000, 0x2000, 0x274ce14b )
 	ROM_LOAD( "kw-02",        0x04000, 0x2000, 0x7588a9c4 )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "kt-02",        0x00000, 0x4000, 0x5d817c70 )	/* tile set */
 	ROM_LOAD( "ks-02",        0x04000, 0x4000, 0x2e9f3ba0 )
 	ROM_LOAD( "kr-02",        0x08000, 0x4000, 0xb057d3e3 )
 
-	ROM_REGION( 0x54000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x54000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "k6-00",        0x00000, 0x4000, 0x294d0878 )	/* sprites */
 	ROM_LOAD( "k7-00",        0x04000, 0x4000, 0x0908c2f5 )
 	ROM_LOAD( "k8-00",        0x08000, 0x4000, 0xae8341e1 )
@@ -543,7 +523,7 @@ ROM_START( matmania )
 	ROM_LOAD( "kp-00",        0x4c000, 0x4000, 0x9c84a969 )
 	ROM_LOAD( "kq-00",        0x50000, 0x4000, 0xfa2f0003 )
 
-	ROM_REGION( 0x0080, REGION_PROMS )
+	ROM_REGION( 0x0080, REGION_PROMS, 0 )
 	ROM_LOAD( "matmania.1",   0x0000, 0x0020, 0x1b58f01f ) /* char palette red and green components */
 	ROM_LOAD( "matmania.5",   0x0020, 0x0020, 0x2029f85f ) /* tile palette red and green components */
 	ROM_LOAD( "matmania.2",   0x0040, 0x0020, 0xb6ac1fd5 ) /* char palette blue component */
@@ -551,26 +531,26 @@ ROM_START( matmania )
 ROM_END
 
 ROM_START( excthour )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "e29",          0x04000, 0x4000, 0xc453e855 )
 	ROM_LOAD( "e28",          0x08000, 0x4000, 0x17b63708 )
 	ROM_LOAD( "e27",          0x0c000, 0x4000, 0x269ab3bc )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for audio code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for audio code */
 	ROM_LOAD( "k4-0",         0x8000, 0x4000, 0x86dab489 )
 	ROM_LOAD( "k5-0",         0xc000, 0x4000, 0x4c41cdba )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "e30",          0x00000, 0x2000, 0xb2875329 )	/* Character ROMs - 1024 chars, 3 bpp */
 	ROM_LOAD( "e31",          0x02000, 0x2000, 0xc9506de8 )
 	ROM_LOAD( "e32",          0x04000, 0x2000, 0x00d1635f )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "e5",           0x00000, 0x4000, 0x0604dc55 )	/* tile set */
 	ROM_LOAD( "ks-02",        0x04000, 0x4000, 0x2e9f3ba0 )
 	ROM_LOAD( "e3",           0x08000, 0x4000, 0xebd273c6 )
 
-	ROM_REGION( 0x54000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x54000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "k6-00",        0x00000, 0x4000, 0x294d0878 )	/* sprites */
 	ROM_LOAD( "k7-00",        0x04000, 0x4000, 0x0908c2f5 )
 	ROM_LOAD( "k8-00",        0x08000, 0x4000, 0xae8341e1 )
@@ -593,7 +573,7 @@ ROM_START( excthour )
 	ROM_LOAD( "kp-00",        0x4c000, 0x4000, 0x9c84a969 )
 	ROM_LOAD( "kq-00",        0x50000, 0x4000, 0xfa2f0003 )
 
-	ROM_REGION( 0x0080, REGION_PROMS )
+	ROM_REGION( 0x0080, REGION_PROMS, 0 )
 	ROM_LOAD( "matmania.1",   0x0000, 0x0020, 0x1b58f01f ) /* char palette red and green components */
 	ROM_LOAD( "matmania.5",   0x0020, 0x0020, 0x2029f85f ) /* tile palette red and green components */
 	ROM_LOAD( "matmania.2",   0x0040, 0x0020, 0xb6ac1fd5 ) /* char palette blue component */
@@ -601,30 +581,30 @@ ROM_START( excthour )
 ROM_END
 
 ROM_START( maniach )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "mc-mb2.bin",   0x04000, 0x4000, 0xa6da1ba8 )
 	ROM_LOAD( "mc-ma2.bin",   0x08000, 0x4000, 0x84583323 )
 	ROM_LOAD( "mc-m92.bin",   0x0c000, 0x4000, 0xe209a500 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for audio code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for audio code */
 	ROM_LOAD( "mc-m50.bin",   0x4000, 0x4000, 0xba415d68 )
 	ROM_LOAD( "mc-m40.bin",   0x8000, 0x4000, 0x2a217ed0 )
 	ROM_LOAD( "mc-m30.bin",   0xc000, 0x4000, 0x95af1723 )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 8k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 8k for the microcontroller */
 	ROM_LOAD( "01",           0x0000, 0x0800, 0x00c7f80c )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc-m60.bin",   0x00000, 0x2000, 0x1cdbb117 )	/* Character ROMs - 1024 chars, 3 bpp */
 	ROM_LOAD( "mc-m70.bin",   0x02000, 0x2000, 0x553f0780 )
 	ROM_LOAD( "mc-m80.bin",   0x04000, 0x2000, 0x9392ecb7 )
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc-m01.bin",   0x00000, 0x8000, 0xda558e4d )	/* tile set */
 	ROM_LOAD( "mc-m10.bin",   0x08000, 0x8000, 0x619a02f8 )
 	ROM_LOAD( "mc-m20.bin",   0x10000, 0x8000, 0xa617c6c1 )
 
-	ROM_REGION( 0x54000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x54000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc-mc0.bin",   0x00000, 0x4000, 0x133d644f )	/* sprites */
 	ROM_LOAD( "mc-md0.bin",   0x04000, 0x4000, 0xe387b036 )
 	ROM_LOAD( "mc-me0.bin",   0x08000, 0x4000, 0xb36b1283 )
@@ -647,7 +627,7 @@ ROM_START( maniach )
 	ROM_LOAD( "mc-mv0.bin",   0x4c000, 0x4000, 0x36fc3e2d )
 	ROM_LOAD( "mc-mw0.bin",   0x50000, 0x4000, 0x135dce4c )
 
-	ROM_REGION( 0x0080, REGION_PROMS )
+	ROM_REGION( 0x0080, REGION_PROMS, 0 )
 	ROM_LOAD( "prom.2",       0x0000, 0x0020, 0x32db2cf4 ) /* char palette red and green components */
 	ROM_LOAD( "prom.16",      0x0020, 0x0020, 0x18836d26 ) /* tile palette red and green components */
 	ROM_LOAD( "prom.3",       0x0040, 0x0020, 0xc7925311 ) /* char palette blue component */
@@ -655,30 +635,30 @@ ROM_START( maniach )
 ROM_END
 
 ROM_START( maniach2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ic40-mb1",     0x04000, 0x4000, 0xb337a867 )
 	ROM_LOAD( "ic41-ma1",     0x08000, 0x4000, 0x85ec8279 )
 	ROM_LOAD( "ic42-m91",     0x0c000, 0x4000, 0xa14b86dd )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for audio code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for audio code */
 	ROM_LOAD( "mc-m50.bin",   0x4000, 0x4000, 0xba415d68 )
 	ROM_LOAD( "mc-m40.bin",   0x8000, 0x4000, 0x2a217ed0 )
 	ROM_LOAD( "mc-m30.bin",   0xc000, 0x4000, 0x95af1723 )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 8k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 8k for the microcontroller */
 	ROM_LOAD( "01",           0x0000, 0x0800, 0x00c7f80c )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc-m60.bin",   0x00000, 0x2000, 0x1cdbb117 )	/* Character ROMs - 1024 chars, 3 bpp */
 	ROM_LOAD( "mc-m70.bin",   0x02000, 0x2000, 0x553f0780 )
 	ROM_LOAD( "mc-m80.bin",   0x04000, 0x2000, 0x9392ecb7 )
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc-m01.bin",   0x00000, 0x8000, 0xda558e4d )	/* tile set */
 	ROM_LOAD( "mc-m10.bin",   0x08000, 0x8000, 0x619a02f8 )
 	ROM_LOAD( "mc-m20.bin",   0x10000, 0x8000, 0xa617c6c1 )
 
-	ROM_REGION( 0x54000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x54000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc-mc0.bin",   0x00000, 0x4000, 0x133d644f )	/* sprites */
 	ROM_LOAD( "mc-md0.bin",   0x04000, 0x4000, 0xe387b036 )
 	ROM_LOAD( "mc-me0.bin",   0x08000, 0x4000, 0xb36b1283 )
@@ -701,7 +681,7 @@ ROM_START( maniach2 )
 	ROM_LOAD( "mc-mv0.bin",   0x4c000, 0x4000, 0x36fc3e2d )
 	ROM_LOAD( "mc-mw0.bin",   0x50000, 0x4000, 0x135dce4c )
 
-	ROM_REGION( 0x0080, REGION_PROMS )
+	ROM_REGION( 0x0080, REGION_PROMS, 0 )
 	ROM_LOAD( "prom.2",       0x0000, 0x0020, 0x32db2cf4 ) /* char palette red and green components */
 	ROM_LOAD( "prom.16",      0x0020, 0x0020, 0x18836d26 ) /* tile palette red and green components */
 	ROM_LOAD( "prom.3",       0x0040, 0x0020, 0xc7925311 ) /* char palette blue component */

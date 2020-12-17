@@ -52,8 +52,7 @@ if (data & 0xe0) usrintf_showmessage("bankswitch %02x",data);
 	coin_counter_w(1,data & 0x10);
 }
 
-static struct MemoryReadAddress labyrunr_readmem[] =
-{
+static MEMORY_READ_START( labyrunr_readmem )
 	{ 0x0020, 0x005f, MRA_RAM },	/* scroll registers */
 	{ 0x0801, 0x0801, YM2203_status_port_0_r },
 	{ 0x0800, 0x0800, YM2203_read_port_0_r },
@@ -68,11 +67,9 @@ static struct MemoryReadAddress labyrunr_readmem[] =
 	{ 0x2000, 0x3fff, MRA_RAM },
 	{ 0x4000, 0x7fff, MRA_BANK1 },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress labyrunr_writemem[] =
-{
+static MEMORY_WRITE_START( labyrunr_writemem )
 	{ 0x0000, 0x0007, K007121_ctrl_0_w },
 	{ 0x0020, 0x005f, MWA_RAM },	/* scroll registers */
 	{ 0x0801, 0x0801, YM2203_control_port_0_w },
@@ -88,8 +85,7 @@ static struct MemoryWriteAddress labyrunr_writemem[] =
 	{ 0x3000, 0x37ff, labyrunr_vram1_w, &labyrunr_videoram1 },
 	{ 0x3800, 0x3fff, labyrunr_vram2_w, &labyrunr_videoram2 },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 /***************************************************************************
@@ -285,15 +281,15 @@ static const struct MachineDriver machine_driver_labyrunr =
 ***************************************************************************/
 
 ROM_START( labyrunr )
-	ROM_REGION( 0x28000, REGION_CPU1 ) /* code + banked roms */
+	ROM_REGION( 0x28000, REGION_CPU1, 0 ) /* code + banked roms */
 	ROM_LOAD( "771j04.10f", 0x10000, 0x08000, 0x354a41d0 )
 	ROM_CONTINUE(           0x08000, 0x08000 )
 	ROM_LOAD( "771j03.08f", 0x18000, 0x10000, 0x12b49044 )
 
-	ROM_REGION( 0x40000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "771d01.14a",	0x00000, 0x40000, 0x15c8f5f9 )	/* tiles + sprites */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "771d02.08d", 0x0000, 0x0100, 0x3d34bb5a )	/* sprite lookup table */
 															/* there is no char lookup table */
 ROM_END

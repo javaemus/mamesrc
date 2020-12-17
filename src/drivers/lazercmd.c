@@ -319,53 +319,41 @@ static READ_HANDLER( lazercmd_hardware_r )
     return data;
 }
 
-static struct MemoryWriteAddress lazercmd_writemem[] =
-{
+static MEMORY_WRITE_START( lazercmd_writemem )
 	{ 0x0000, 0x0bff, MWA_ROM },
 	{ 0x1c20, 0x1eff, videoram_w, &videoram, &videoram_size },
 	{ 0x1f00, 0x1f03, lazercmd_hardware_w },
-	{ -1 }					   /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress lazercmd_readmem[] =
-{
+static MEMORY_READ_START( lazercmd_readmem )
 	{ 0x0000, 0x0bff, MRA_ROM },
 	{ 0x1c20, 0x1eff, MRA_RAM },
 	{ 0x1f00, 0x1f03, lazercmd_hardware_r },
-	{ -1 }					   /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress medlanes_writemem[] =
-{
+static MEMORY_WRITE_START( medlanes_writemem )
 	{ 0x0000, 0x0bff, MWA_ROM },
 	{ 0x1000, 0x1800, MWA_ROM },
 	{ 0x1c20, 0x1eff, videoram_w, &videoram, &videoram_size },
 	{ 0x1f00, 0x1f03, medlanes_hardware_w },
-	{ -1 }					   /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress medlanes_readmem[] =
-{
+static MEMORY_READ_START( medlanes_readmem )
 	{ 0x0000, 0x0bff, MRA_ROM },
 	{ 0x1000, 0x1800, MRA_ROM },
 	{ 0x1c20, 0x1eff, MRA_RAM },
 	{ 0x1f00, 0x1f03, lazercmd_hardware_r },
-	{ -1 }					   /* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort lazercmd_writeport[] =
-{
+static PORT_WRITE_START( lazercmd_writeport )
 	{ S2650_CTRL_PORT, S2650_CTRL_PORT, lazercmd_ctrl_port_w },
 	{ S2650_DATA_PORT, S2650_DATA_PORT, lazercmd_data_port_w },
-	{ -1 }					   /* end of table */
-};
+PORT_END
 
-static struct IOReadPort lazercmd_readport[] =
-{
+static PORT_READ_START( lazercmd_readport )
 	{ S2650_CTRL_PORT, S2650_CTRL_PORT, lazercmd_ctrl_port_r },
 	{ S2650_DATA_PORT, S2650_DATA_PORT, lazercmd_data_port_r },
-	{ -1 }					   /* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( lazercmd )
@@ -600,7 +588,7 @@ static const struct MachineDriver machine_driver_medlanes =
 ***************************************************************************/
 
 ROM_START( lazercmd )
-	ROM_REGION( 0x8000, REGION_CPU1 )			   /* 32K cpu, 4K for ROM/RAM */
+	ROM_REGION( 0x8000, REGION_CPU1, 0 )			   /* 32K cpu, 4K for ROM/RAM */
 	ROM_LOAD( "lc.e5",        0x0000, 0x0400, 0x56dc7a40 )
 	ROM_LOAD( "lc.e6",        0x0400, 0x0400, 0xb1ef0aa2 )
 	ROM_LOAD( "lc.e7",        0x0800, 0x0400, 0x8e6ffc97 )
@@ -608,12 +596,12 @@ ROM_START( lazercmd )
 	ROM_LOAD( "lc.f6",        0x1400, 0x0400, 0x26eaee21 )
 	ROM_LOAD( "lc.f7",        0x1800, 0x0400, 0x9ec3534d )
 
-	ROM_REGION( 0x0c00, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c00, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "lc.b8",        0x0a00, 0x0200, 0x6d708edd )
 ROM_END
 
 ROM_START( medlanes )
-	ROM_REGION( 0x8000, REGION_CPU1 )			   /* 32K cpu, 4K for ROM/RAM */
+	ROM_REGION( 0x8000, REGION_CPU1, 0 )			   /* 32K cpu, 4K for ROM/RAM */
 	ROM_LOAD( "medlanes.2a", 0x0000, 0x0400, 0x9c77566a )
 	ROM_LOAD( "medlanes.2b", 0x0400, 0x0400, 0x7841b1a9 )
 	ROM_LOAD( "medlanes.2c", 0x0800, 0x0400, 0xa359b5b8 )
@@ -625,7 +613,7 @@ ROM_START( medlanes )
 	ROM_LOAD( "medlanes.4a", 0x5000, 0x0400, 0x30d495e9 )
 	ROM_LOAD( "medlanes.4b", 0x5400, 0x0400, 0xa4abb5db )
 
-	ROM_REGION( 0x0c00, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c00, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "medlanes.8b", 0x0a00, 0x0200, 0x44e5de8f )
 ROM_END
 

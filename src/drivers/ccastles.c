@@ -131,8 +131,13 @@ static WRITE_HANDLER( ccastles_bankswitch_w )
 	else { cpu_setbank(1,&RAM[0xa000]); }
 }
 
-static struct MemoryReadAddress readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+
+static MEMORY_READ_START( readmem )
 	{ 0x0002, 0x0002, ccastles_bitmode_r },
 	{ 0x0000, 0x8fff, MRA_RAM },
 	{ 0x9000, 0x90ff, MRA_RAM },
@@ -147,11 +152,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x9a00, 0x9a0f, pokey2_r }, /* Random #, IN1 */
 	{ 0xa000, 0xdfff, MRA_BANK1 },
 	{ 0xe000, 0xffff, MRA_ROM },	/* ROMs/interrupt vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x0001, MWA_RAM, &ccastles_screen_addr },
 	{ 0x0002, 0x0002, ccastles_bitmode_w },
 	{ 0x0003, 0x0bff, MWA_RAM },
@@ -176,8 +179,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x9f07, 0x9f07, MWA_RAM, &ccastles_sprite_bank },
 	{ 0x9f80, 0x9fbf, ccastles_paletteram_w },
 	{ 0xa000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 INPUT_PORTS_START( ccastles )
 	PORT_START	/* IN0 */
@@ -295,27 +297,27 @@ static const struct MachineDriver machine_driver_ccastles =
 ***************************************************************************/
 
 ROM_START( ccastles )
-     ROM_REGION( 0x14000, REGION_CPU1 )	/* 64k for code */
+     ROM_REGION( 0x14000, REGION_CPU1, 0 )	/* 64k for code */
      ROM_LOAD( "ccastles.303", 0x0a000, 0x2000, 0x10e39fce )
      ROM_LOAD( "ccastles.304", 0x0c000, 0x2000, 0x74510f72 )
      ROM_LOAD( "ccastles.305", 0x0e000, 0x2000, 0x9418cf8a )
      ROM_LOAD( "ccastles.102", 0x10000, 0x2000, 0xf6ccfbd4 )	/* Bank switched ROMs */
      ROM_LOAD( "ccastles.101", 0x12000, 0x2000, 0xe2e17236 )	/* containing level data. */
 
-     ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+     ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
      ROM_LOAD( "ccastles.107", 0x0000, 0x2000, 0x39960b7d )
      ROM_LOAD( "ccastles.106", 0x2000, 0x2000, 0x9d1d89fc )
 ROM_END
 
 ROM_START( ccastle2 )
-     ROM_REGION( 0x14000, REGION_CPU1 )	/* 64k for code */
+     ROM_REGION( 0x14000, REGION_CPU1, 0 )	/* 64k for code */
      ROM_LOAD( "ccastles.203", 0x0a000, 0x2000, 0x348a96f0 )
      ROM_LOAD( "ccastles.204", 0x0c000, 0x2000, 0xd48d8c1f )
      ROM_LOAD( "ccastles.205", 0x0e000, 0x2000, 0x0e4883cc )
      ROM_LOAD( "ccastles.102", 0x10000, 0x2000, 0xf6ccfbd4 )	/* Bank switched ROMs */
      ROM_LOAD( "ccastles.101", 0x12000, 0x2000, 0xe2e17236 )	/* containing level data. */
 
-     ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+     ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
      ROM_LOAD( "ccastles.107", 0x0000, 0x2000, 0x39960b7d )
      ROM_LOAD( "ccastles.106", 0x2000, 0x2000, 0x9d1d89fc )
 ROM_END

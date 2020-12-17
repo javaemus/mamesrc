@@ -98,35 +98,33 @@ WRITE_HANDLER( pengo_sound_w );
 extern unsigned char *pengo_soundregs;
 
 
-
-static struct MemoryReadAddress readmem_cpu1[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+
+static MEMORY_READ_START( readmem_cpu1 )
 	{ 0x8000, 0x9fff, galaga_sharedram_r },
 	{ 0x6800, 0x6807, galaga_dsw_r },
 	{ 0x7000, 0x700f, galaga_customio_data_r },
 	{ 0x7100, 0x7100, galaga_customio_r },
 	{ 0x0000, 0x3fff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_cpu2[] =
-{
+static MEMORY_READ_START( readmem_cpu2 )
 	{ 0x8000, 0x9fff, galaga_sharedram_r },
 	{ 0x6800, 0x6807, galaga_dsw_r },
 	{ 0x0000, 0x1fff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_cpu3[] =
-{
+static MEMORY_READ_START( readmem_cpu3 )
 	{ 0x8000, 0x9fff, galaga_sharedram_r },
 	{ 0x6800, 0x6807, galaga_dsw_r },
 	{ 0x0000, 0x1fff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_cpu1[] =
-{
+static MEMORY_WRITE_START( writemem_cpu1 )
 	{ 0x8000, 0x9fff, galaga_sharedram_w, &galaga_sharedram },
 	{ 0x6830, 0x6830, MWA_NOP },
 	{ 0x7000, 0x700f, galaga_customio_data_w },
@@ -142,25 +140,20 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x9b80, 0x9bff, MWA_RAM, &spriteram_3 },      /* handled by galaga_sharedram_w() */
 	{ 0x8000, 0x83ff, MWA_RAM, &videoram, &videoram_size }, /* dirtybuffer[] handling is not needed because */
 	{ 0x8400, 0x87ff, MWA_RAM, &colorram }, /* characters are redrawn every frame */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x8000, 0x9fff, galaga_sharedram_w },
 	{ 0x6821, 0x6821, galaga_interrupt_enable_2_w },
 	{ 0x0000, 0x1fff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_cpu3[] =
-{
+static MEMORY_WRITE_START( writemem_cpu3 )
 	{ 0x8000, 0x9fff, galaga_sharedram_w },
 	{ 0x6800, 0x681f, pengo_sound_w, &pengo_soundregs },
 	{ 0x6822, 0x6822, galaga_interrupt_enable_3_w },
 	{ 0x0000, 0x1fff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -453,221 +446,221 @@ static const struct MachineDriver machine_driver_galaga =
 ***************************************************************************/
 
 ROM_START( galaga )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "04m_g01.bin",  0x0000, 0x1000, 0xa3a0f743 )
 	ROM_LOAD( "04k_g02.bin",  0x1000, 0x1000, 0x43bb0d5c )
 	ROM_LOAD( "04j_g03.bin",  0x2000, 0x1000, 0x753ce503 )
 	ROM_LOAD( "04h_g04.bin",  0x3000, 0x1000, 0x83874442 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "04e_g05.bin",  0x0000, 0x1000, 0x3102fccd )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
 	ROM_LOAD( "04d_g06.bin",  0x0000, 0x1000, 0x8995088d )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "07m_g08.bin",  0x0000, 0x1000, 0x58b2f47c )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "07e_g10.bin",  0x0000, 0x1000, 0xad447c80 )
 	ROM_LOAD( "07h_g09.bin",  0x1000, 0x1000, 0xdd6f1afc )
 
-	ROM_REGION( 0x0320, REGION_PROMS )
+	ROM_REGION( 0x0320, REGION_PROMS, 0 )
 	ROM_LOAD( "5n.bin",       0x0000, 0x0020, 0x54603c6b )	/* palette */
 	ROM_LOAD( "2n.bin",       0x0020, 0x0100, 0xa547d33b )	/* char lookup table */
 	ROM_LOAD( "1c.bin",       0x0120, 0x0100, 0xb6f585fb )	/* sprite lookup table */
 	ROM_LOAD( "5c.bin",       0x0220, 0x0100, 0x8bd565f6 )	/* unknown */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "1d.bin",       0x0000, 0x0100, 0x86d92b24 )
 ROM_END
 
 ROM_START( galagamw )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "3200a.bin",    0x0000, 0x1000, 0x3ef0b053 )
 	ROM_LOAD( "3300b.bin",    0x1000, 0x1000, 0x1b280831 )
 	ROM_LOAD( "3400c.bin",    0x2000, 0x1000, 0x16233d33 )
 	ROM_LOAD( "3500d.bin",    0x3000, 0x1000, 0x0aaf5c23 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "3600e.bin",    0x0000, 0x1000, 0xbc556e76 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
 	ROM_LOAD( "3700g.bin",    0x0000, 0x1000, 0xb07f0aa4 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "07m_g08.bin",  0x0000, 0x1000, 0x58b2f47c )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "07e_g10.bin",  0x0000, 0x1000, 0xad447c80 )
 	ROM_LOAD( "07h_g09.bin",  0x1000, 0x1000, 0xdd6f1afc )
 
-	ROM_REGION( 0x0320, REGION_PROMS )
+	ROM_REGION( 0x0320, REGION_PROMS, 0 )
 	ROM_LOAD( "5n.bin",       0x0000, 0x0020, 0x54603c6b )	/* palette */
 	ROM_LOAD( "2n.bin",       0x0020, 0x0100, 0xa547d33b )	/* char lookup table */
 	ROM_LOAD( "1c.bin",       0x0120, 0x0100, 0xb6f585fb )	/* sprite lookup table */
 	ROM_LOAD( "5c.bin",       0x0220, 0x0100, 0x8bd565f6 )	/* unknown */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "1d.bin",       0x0000, 0x0100, 0x86d92b24 )
 ROM_END
 
 ROM_START( galagads )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "3200a.bin",    0x0000, 0x1000, 0x3ef0b053 )
 	ROM_LOAD( "3300b.bin",    0x1000, 0x1000, 0x1b280831 )
 	ROM_LOAD( "3400c.bin",    0x2000, 0x1000, 0x16233d33 )
 	ROM_LOAD( "3500d.bin",    0x3000, 0x1000, 0x0aaf5c23 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "3600fast.bin", 0x0000, 0x1000, 0x23d586e5 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
 	ROM_LOAD( "3700g.bin",    0x0000, 0x1000, 0xb07f0aa4 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "07m_g08.bin",  0x0000, 0x1000, 0x58b2f47c )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "07e_g10.bin",  0x0000, 0x1000, 0xad447c80 )
 	ROM_LOAD( "07h_g09.bin",  0x1000, 0x1000, 0xdd6f1afc )
 
-	ROM_REGION( 0x0320, REGION_PROMS )
+	ROM_REGION( 0x0320, REGION_PROMS, 0 )
 	ROM_LOAD( "5n.bin",       0x0000, 0x0020, 0x54603c6b )	/* palette */
 	ROM_LOAD( "2n.bin",       0x0020, 0x0100, 0xa547d33b )	/* char lookup table */
 	ROM_LOAD( "1c.bin",       0x0120, 0x0100, 0xb6f585fb )	/* sprite lookup table */
 	ROM_LOAD( "5c.bin",       0x0220, 0x0100, 0x8bd565f6 )	/* unknown */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "1d.bin",       0x0000, 0x0100, 0x86d92b24 )
 ROM_END
 
 ROM_START( gallag )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "04m_g01.bin",  0x0000, 0x1000, 0xa3a0f743 )
 	ROM_LOAD( "gallag.2",     0x1000, 0x1000, 0x5eda60a7 )
 	ROM_LOAD( "04j_g03.bin",  0x2000, 0x1000, 0x753ce503 )
 	ROM_LOAD( "04h_g04.bin",  0x3000, 0x1000, 0x83874442 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "04e_g05.bin",  0x0000, 0x1000, 0x3102fccd )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
 	ROM_LOAD( "04d_g06.bin",  0x0000, 0x1000, 0x8995088d )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
 	ROM_LOAD( "gallag.6",     0x0000, 0x1000, 0x001b70bc )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gallag.8",     0x0000, 0x1000, 0x169a98a4 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "07e_g10.bin",  0x0000, 0x1000, 0xad447c80 )
 	ROM_LOAD( "07h_g09.bin",  0x1000, 0x1000, 0xdd6f1afc )
 
-	ROM_REGION( 0x0320, REGION_PROMS )
+	ROM_REGION( 0x0320, REGION_PROMS, 0 )
 	ROM_LOAD( "5n.bin",       0x0000, 0x0020, 0x54603c6b )	/* palette */
 	ROM_LOAD( "2n.bin",       0x0020, 0x0100, 0xa547d33b )	/* char lookup table */
 	ROM_LOAD( "1c.bin",       0x0120, 0x0100, 0xb6f585fb )	/* sprite lookup table */
 	ROM_LOAD( "5c.bin",       0x0220, 0x0100, 0x8bd565f6 )	/* unknown */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "1d.bin",       0x0000, 0x0100, 0x86d92b24 )
 ROM_END
 
 ROM_START( galagab2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "g1",           0x0000, 0x1000, 0xab036c9f )
 	ROM_LOAD( "g2",           0x1000, 0x1000, 0xd9232240 )
 	ROM_LOAD( "04j_g03.bin",  0x2000, 0x1000, 0x753ce503 )
 	ROM_LOAD( "g4",           0x3000, 0x1000, 0x499fcc76 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "04e_g05.bin",  0x0000, 0x1000, 0x3102fccd )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
 	ROM_LOAD( "04d_g06.bin",  0x0000, 0x1000, 0x8995088d )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
 	ROM_LOAD( "10h_g07.bin",  0x0000, 0x1000, 0x035e300c )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gallag.8",     0x0000, 0x1000, 0x169a98a4 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "07e_g10.bin",  0x0000, 0x1000, 0xad447c80 )
 	ROM_LOAD( "07h_g09.bin",  0x1000, 0x1000, 0xdd6f1afc )
 
-	ROM_REGION( 0x0320, REGION_PROMS )
+	ROM_REGION( 0x0320, REGION_PROMS, 0 )
 	ROM_LOAD( "5n.bin",       0x0000, 0x0020, 0x54603c6b )	/* palette */
 	ROM_LOAD( "2n.bin",       0x0020, 0x0100, 0xa547d33b )	/* char lookup table */
 	ROM_LOAD( "1c.bin",       0x0120, 0x0100, 0xb6f585fb )	/* sprite lookup table */
 	ROM_LOAD( "5c.bin",       0x0220, 0x0100, 0x8bd565f6 )	/* unknown */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "1d.bin",       0x0000, 0x0100, 0x86d92b24 )
 ROM_END
 
 ROM_START( galaga84 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "g1",           0x0000, 0x1000, 0xab036c9f )
 	ROM_LOAD( "gal84_u2",     0x1000, 0x1000, 0x4d832a30 )
 	ROM_LOAD( "04j_g03.bin",  0x2000, 0x1000, 0x753ce503 )
 	ROM_LOAD( "g4",           0x3000, 0x1000, 0x499fcc76 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "gal84_u5",     0x0000, 0x1000, 0xbb5caae3 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
 	ROM_LOAD( "04d_g06.bin",  0x0000, 0x1000, 0x8995088d )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
 	ROM_LOAD( "10h_g07.bin",  0x0000, 0x1000, 0x035e300c )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "07m_g08.bin",  0x0000, 0x1000, 0x58b2f47c )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gal84u4d",     0x0000, 0x1000, 0x22e339d5 )
 	ROM_LOAD( "gal84u4e",     0x1000, 0x1000, 0x60dcf940 )
 
-	ROM_REGION( 0x0320, REGION_PROMS )
+	ROM_REGION( 0x0320, REGION_PROMS, 0 )
 	ROM_LOAD( "5n.bin",       0x0000, 0x0020, 0x54603c6b )	/* palette */
 	ROM_LOAD( "2n.bin",       0x0020, 0x0100, 0xa547d33b )	/* char lookup table */
 	ROM_LOAD( "1c.bin",       0x0120, 0x0100, 0xb6f585fb )	/* sprite lookup table */
 	ROM_LOAD( "5c.bin",       0x0220, 0x0100, 0x8bd565f6 )	/* unknown */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "1d.bin",       0x0000, 0x0100, 0x86d92b24 )
 ROM_END
 
 ROM_START( nebulbee )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code for the first CPU  */
 	ROM_LOAD( "nebulbee.01",  0x0000, 0x1000, 0xf405f2c4 )
 	ROM_LOAD( "nebulbee.02",  0x1000, 0x1000, 0x31022b60 )
 	ROM_LOAD( "04j_g03.bin",  0x2000, 0x1000, 0x753ce503 )
 	ROM_LOAD( "nebulbee.04",  0x3000, 0x1000, 0xd76788a5 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "04e_g05.bin",  0x0000, 0x1000, 0x3102fccd )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
 	ROM_LOAD( "04d_g06.bin",  0x0000, 0x1000, 0x8995088d )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "07m_g08.bin",  0x0000, 0x1000, 0x58b2f47c )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "07e_g10.bin",  0x0000, 0x1000, 0xad447c80 )
 	ROM_LOAD( "07h_g09.bin",  0x1000, 0x1000, 0xdd6f1afc )
 
-	ROM_REGION( 0x0320, REGION_PROMS )
+	ROM_REGION( 0x0320, REGION_PROMS, 0 )
 	ROM_LOAD( "5n.bin",       0x0000, 0x0020, 0x54603c6b )	/* palette */
 	ROM_LOAD( "2n.bin",       0x0020, 0x0100, 0xa547d33b )	/* char lookup table */
 	ROM_LOAD( "1c.bin",       0x0120, 0x0100, 0xb6f585fb )	/* sprite lookup table */
 	ROM_LOAD( "5c.bin",       0x0220, 0x0100, 0x8bd565f6 )	/* unknown */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "1d.bin",       0x0000, 0x0100, 0x86d92b24 )
 ROM_END
 

@@ -139,8 +139,7 @@ static READ_HANDLER( speedup_r )
 
 /********************************************/
 
-static struct MemoryReadAddress parodius_readmem[] =
-{
+static MEMORY_READ_START( parodius_readmem )
 	{ 0x0000, 0x07ff, bankedram_r },
 	{ 0x1837, 0x1837, speedup_r },
 	{ 0x0800, 0x1fff, MRA_RAM },
@@ -156,11 +155,9 @@ static struct MemoryReadAddress parodius_readmem[] =
 	{ 0x2000, 0x5fff, K052109_r },
 	{ 0x6000, 0x9fff, MRA_BANK1 },			/* banked ROM */
 	{ 0xa000, 0xffff, MRA_ROM },			/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress parodius_writemem[] =
-{
+static MEMORY_WRITE_START( parodius_writemem )
 	{ 0x0000, 0x07ff, bankedram_w, &ram },
 	{ 0x0800, 0x1fff, MWA_RAM },
 	{ 0x3fa0, 0x3faf, K053244_w },
@@ -173,28 +170,23 @@ static struct MemoryWriteAddress parodius_writemem[] =
 	{ 0x2000, 0x5fff, K052109_w },
 	{ 0x6000, 0x9fff, MWA_ROM },					/* banked ROM */
 	{ 0xa000, 0xffff, MWA_ROM },					/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress parodius_readmem_sound[] =
-{
+static MEMORY_READ_START( parodius_readmem_sound )
 	{ 0x0000, 0xefff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf801, 0xf801, YM2151_status_port_0_r },
 	{ 0xfc00, 0xfc2f, K053260_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress parodius_writemem_sound[] =
-{
+static MEMORY_WRITE_START( parodius_writemem_sound )
 	{ 0x0000, 0xefff, MWA_ROM },
 	{ 0xf000, 0xf7ff, MWA_RAM },
 	{ 0xf800, 0xf800, YM2151_register_port_0_w },
 	{ 0xf801, 0xf801, YM2151_data_port_0_w },
 	{ 0xfa00, 0xfa00, sound_arm_nmi_w },
 	{ 0xfc00, 0xfc2f, K053260_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /***************************************************************************
 
@@ -380,23 +372,23 @@ static const struct MachineDriver machine_driver_parodius =
 ***************************************************************************/
 
 ROM_START( parodius )
-	ROM_REGION( 0x51000, REGION_CPU1 ) /* code + banked roms + palette RAM */
+	ROM_REGION( 0x51000, REGION_CPU1, 0 ) /* code + banked roms + palette RAM */
 	ROM_LOAD( "955e01.bin", 0x10000, 0x20000, 0x49baa334 )
 	ROM_LOAD( "955e02.bin", 0x30000, 0x18000, 0x14010d6f )
 	ROM_CONTINUE(           0x08000, 0x08000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the sound CPU */
 	ROM_LOAD( "955e03.bin", 0x0000, 0x10000, 0x940aa356 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x100000, REGION_GFX1, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "955d07.bin", 0x000000, 0x080000, 0x89473fec ) /* characters */
 	ROM_LOAD( "955d08.bin", 0x080000, 0x080000, 0x43d5cda1 ) /* characters */
 
-	ROM_REGION( 0x100000, REGION_GFX2 ) /* graphics ( don't dispose as the program can read them ) */
+	ROM_REGION( 0x100000, REGION_GFX2, 0 ) /* graphics ( don't dispose as the program can read them, 0 ) */
 	ROM_LOAD( "955d05.bin", 0x000000, 0x080000, 0x7a1e55e0 )	/* sprites */
 	ROM_LOAD( "955d06.bin", 0x080000, 0x080000, 0xf4252875 )	/* sprites */
 
-	ROM_REGION( 0x80000, REGION_SOUND1 ) /* 053260 samples */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 ) /* 053260 samples */
 	ROM_LOAD( "955d04.bin", 0x00000, 0x80000, 0xe671491a )
 ROM_END
 

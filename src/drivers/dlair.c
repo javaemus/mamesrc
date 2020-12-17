@@ -140,16 +140,13 @@ void dlair_init_machine(void)
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xa000, 0xa7ff, MRA_RAM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xa000, 0xa7ff, MWA_RAM },
 	{ 0xc000, 0xc3ff, videoram_w, &videoram, &videoram_size },
@@ -157,8 +154,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xe000, 0xe000, dlair_led0_w },
 	{ 0xe008, 0xe008, dlair_led1_w },
 	{ 0xe030, 0xe030, watchdog_reset_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 static unsigned char pip[4];
 static READ_HANDLER( pip_r )
@@ -173,19 +169,15 @@ logerror("PC %04x: write %02x to I/O port %02x\n",cpu_get_pc(),data,offset);
 z80ctc_0_w(offset,data);
 }
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x03, pip_r },
 //	{ 0x80, 0x83, z80ctc_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x03, pip_w },
 //	{ 0x80, 0x83, z80ctc_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -265,13 +257,13 @@ static const struct MachineDriver machine_driver_dlair =
 ***************************************************************************/
 
 ROM_START( dlair )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "u45",          0x0000, 0x2000, 0x329b354a )
 	ROM_LOAD( "u46",          0x2000, 0x2000, 0x8479612b )
 	ROM_LOAD( "u47",          0x4000, 0x2000, 0x6a66f6b4 )
 	ROM_LOAD( "u48",          0x6000, 0x2000, 0x36575106 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "u33",          0x0000, 0x2000, 0xe7506d96 )
 ROM_END
 

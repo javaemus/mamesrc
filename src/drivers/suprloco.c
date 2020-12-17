@@ -15,10 +15,6 @@ TODO:
 #include "vidhrdw/system1.h"
 #include "cpu/z80/z80.h"
 
-
-extern unsigned char *spriteram;
-extern size_t spriteram_size;
-
 extern unsigned char *suprloco_videoram;
 
 void suprloco_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
@@ -44,8 +40,7 @@ static WRITE_HANDLER( suprloco_soundport_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc1ff, MRA_RAM },
 	{ 0xc800, 0xc800, input_port_0_r },
@@ -57,11 +52,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xf000, 0xf6ff, MRA_RAM },
 	{ 0xf7e0, 0xf7ff, suprloco_scrollram_r },
 	{ 0xf800, 0xffff, MRA_RAM },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc1ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xe800, 0xe800, suprloco_soundport_w },
@@ -69,26 +62,21 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xf000, 0xf6ff, suprloco_videoram_w, &suprloco_videoram },
 	{ 0xf7e0, 0xf7ff, suprloco_scrollram_w },
 	{ 0xf800, 0xffff, MWA_RAM },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xe000, 0xe000, soundlatch_r },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0xa000, 0xa003, SN76496_0_w },
 	{ 0xc000, 0xc003, SN76496_1_w },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
 
 
@@ -254,26 +242,26 @@ static const struct MachineDriver machine_driver_suprloco =
 ***************************************************************************/
 
 ROM_START( suprloco )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )	/* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )	/* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "ic37.bin",     0x0000, 0x4000, 0x57f514dd )	/* encrypted */
 	ROM_LOAD( "ic15.bin",     0x4000, 0x4000, 0x5a1d2fb0 )	/* encrypted */
 	ROM_LOAD( "ic28.bin",     0x8000, 0x4000, 0xa597828a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu */
 	ROM_LOAD( "ic64.bin",     0x0000, 0x2000, 0x0aa57207 )
 
-	ROM_REGION( 0xe000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0xe000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic63.bin",     0x0000, 0x2000, 0xe571fe81 )
 	ROM_LOAD( "ic62.bin",     0x2000, 0x2000, 0x6130f93c )
 	ROM_LOAD( "ic61.bin",     0x4000, 0x2000, 0x3b03004e )
 							/*0x6000- 0xe000 will be created by init_suprloco */
 
-	ROM_REGION( 0x8000, REGION_GFX2 )	/* 32k for sprites data used at runtime */
+	ROM_REGION( 0x8000, REGION_GFX2, 0 )	/* 32k for sprites data used at runtime */
 	ROM_LOAD( "ic55.bin",     0x0000, 0x4000, 0xee2d3ed3 )
 	ROM_LOAD( "ic56.bin",     0x4000, 0x2000, 0xf04a4b50 )
 							/*0x6000 empty */
 
-	ROM_REGION( 0x0620, REGION_PROMS )
+	ROM_REGION( 0x0620, REGION_PROMS, 0 )
 	ROM_LOAD( "ic100.bin",    0x0100, 0x0080, 0x7b0c8ce5 )  /* color PROM */
 	ROM_CONTINUE(             0x0000, 0x0080 )
 	ROM_CONTINUE(             0x0180, 0x0080 )

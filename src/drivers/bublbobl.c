@@ -167,19 +167,16 @@ WRITE_HANDLER( bublbobl_sh_nmi_enable_w );
 
 
 
-static struct MemoryReadAddress bublbobl_readmem[] =
-{
+static MEMORY_READ_START( bublbobl_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xdfff, MRA_RAM },
 	{ 0xe000, 0xf7ff, bublbobl_sharedram1_r },
 	{ 0xf800, 0xf9ff, paletteram_r },
 	{ 0xfc00, 0xffff, bublbobl_sharedram2_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress bublbobl_writemem[] =
-{
+static MEMORY_WRITE_START( bublbobl_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xdcff, MWA_RAM, &videoram, &videoram_size },
 	{ 0xdd00, 0xdfff, MWA_RAM, &bublbobl_objectram, &bublbobl_objectram_size },
@@ -191,33 +188,27 @@ static struct MemoryWriteAddress bublbobl_writemem[] =
 	{ 0xfb00, 0xfb00, bublbobl_nmitrigger_w },	/* not used by Bubble Bobble, only by Tokio */
 	{ 0xfb40, 0xfb40, bublbobl_bankswitch_w },
 	{ 0xfc00, 0xffff, bublbobl_sharedram2_w, &bublbobl_sharedram2 },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress m68705_readmem[] =
-{
+static MEMORY_READ_START( m68705_readmem )
 	{ 0x0000, 0x0000, bublbobl_68705_portA_r },
 	{ 0x0001, 0x0001, bublbobl_68705_portB_r },
 	{ 0x0002, 0x0002, input_port_0_r },	/* COIN */
 	{ 0x0010, 0x007f, MRA_RAM },
 	{ 0x0080, 0x07ff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress m68705_writemem[] =
-{
+static MEMORY_WRITE_START( m68705_writemem )
 	{ 0x0000, 0x0000, bublbobl_68705_portA_w },
 	{ 0x0001, 0x0001, bublbobl_68705_portB_w },
 	{ 0x0004, 0x0004, bublbobl_68705_ddrA_w },
 	{ 0x0005, 0x0005, bublbobl_68705_ddrB_w },
 	{ 0x0010, 0x007f, MWA_RAM },
 	{ 0x0080, 0x07ff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress boblbobl_readmem[] =
-{
+static MEMORY_READ_START( boblbobl_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xdfff, MRA_RAM },
@@ -228,11 +219,9 @@ static struct MemoryReadAddress boblbobl_readmem[] =
 	{ 0xff01, 0xff01, input_port_1_r },
 	{ 0xff02, 0xff02, input_port_2_r },
 	{ 0xff03, 0xff03, input_port_3_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress boblbobl_writemem[] =
-{
+static MEMORY_WRITE_START( boblbobl_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xdcff, MWA_RAM, &videoram, &videoram_size },
 	{ 0xdd00, 0xdfff, MWA_RAM, &bublbobl_objectram, &bublbobl_objectram_size },
@@ -243,26 +232,20 @@ static struct MemoryWriteAddress boblbobl_writemem[] =
 	{ 0xfb00, 0xfb00, bublbobl_nmitrigger_w },	/* not used by Bubble Bobble, only by Tokio */
 	{ 0xfb40, 0xfb40, bublbobl_bankswitch_w },
 	{ 0xfc00, 0xfcff, bublbobl_sharedram2_w, &bublbobl_sharedram2 },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress bublbobl_readmem2[] =
-{
+static MEMORY_READ_START( bublbobl_readmem2 )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xe000, 0xf7ff, bublbobl_sharedram1_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress bublbobl_writemem2[] =
-{
+static MEMORY_WRITE_START( bublbobl_writemem2 )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xe000, 0xf7ff, bublbobl_sharedram1_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8fff, MRA_RAM },
 	{ 0x9000, 0x9000, YM2203_status_port_0_r },
@@ -272,11 +255,9 @@ static struct MemoryReadAddress sound_readmem[] =
 	{ 0xb001, 0xb001, MRA_NOP },	/* bit 0: message pending for main cpu */
 									/* bit 1: message pending for sound cpu */
 	{ 0xe000, 0xefff, MRA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8fff, MWA_RAM },
 	{ 0x9000, 0x9000, YM2203_control_port_0_w },
@@ -287,12 +268,10 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0xb001, 0xb001, bublbobl_sh_nmi_enable_w },
 	{ 0xb002, 0xb002, bublbobl_sh_nmi_disable_w },
 	{ 0xe000, 0xefff, MWA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress tokio_readmem[] =
-{
+static MEMORY_READ_START( tokio_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xdfff, MRA_RAM },
@@ -304,11 +283,9 @@ static struct MemoryReadAddress tokio_readmem[] =
 	{ 0xfa06, 0xfa06, input_port_3_r },
 	{ 0xfa07, 0xfa07, input_port_4_r },
 	{ 0xfe00, 0xfe00, tokio_fake_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress tokio_writemem[] =
-{
+static MEMORY_WRITE_START( tokio_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xdcff, MWA_RAM, &videoram, &videoram_size },
 	{ 0xdd00, 0xdfff, MWA_RAM, &bublbobl_objectram, &bublbobl_objectram_size },
@@ -320,25 +297,19 @@ static struct MemoryWriteAddress tokio_writemem[] =
 	{ 0xfb80, 0xfb80, bublbobl_nmitrigger_w },
 	{ 0xfc00, 0xfc00, bublbobl_sound_command_w },
 	{ 0xfe00, 0xfe00, MWA_NOP }, /* ??? */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress tokio_readmem2[] =
-{
+static MEMORY_READ_START( tokio_readmem2 )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x97ff, bublbobl_sharedram1_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress tokio_writemem2[] =
-{
+static MEMORY_WRITE_START( tokio_writemem2 )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x97ff, bublbobl_sharedram1_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress tokio_sound_readmem[] =
-{
+static MEMORY_READ_START( tokio_sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8fff, MRA_RAM },
 	{ 0x9000, 0x9000, soundlatch_r },
@@ -346,11 +317,9 @@ static struct MemoryReadAddress tokio_sound_readmem[] =
 	{ 0xb000, 0xb000, YM2203_status_port_0_r },
 	{ 0xb001, 0xb001, YM2203_read_port_0_r },
 	{ 0xe000, 0xefff, MRA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress tokio_sound_writemem[] =
-{
+static MEMORY_WRITE_START( tokio_sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8fff, MWA_RAM },
 //	{ 0x9000, 0x9000, MWA_NOP },	/* ??? */
@@ -359,8 +328,7 @@ static struct MemoryWriteAddress tokio_sound_writemem[] =
 	{ 0xb000, 0xb000, YM2203_control_port_0_w },
 	{ 0xb001, 0xb001, YM2203_write_port_0_w },
 	{ 0xe000, 0xefff, MWA_ROM },	/* space for diagnostic ROM? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -889,22 +857,22 @@ static const struct MachineDriver machine_driver_tokio =
 ***************************************************************************/
 
 ROM_START( bublbobl )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "a78-06.51",    0x00000, 0x08000, 0x32c8305b )
     /* ROMs banked at 8000-bfff */
 	ROM_LOAD( "a78-05.52",    0x10000, 0x10000, 0x53f4bc6e )
 	/* 20000-2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a78-08.37",    0x0000, 0x08000, 0xae11a07b )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU */
 	ROM_LOAD( "a78-07.46",    0x0000, 0x08000, 0x4f9a26e8 )
 
-	ROM_REGION( 0x0800, REGION_CPU4 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU4, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "68705.bin",    0x0000, 0x0800, 0x78caa635 )	/* from a pirate board */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a78-09.12",    0x00000, 0x8000, 0x20358c22 )    /* 1st plane */
 	ROM_LOAD( "a78-10.13",    0x08000, 0x8000, 0x930168a9 )
 	ROM_LOAD( "a78-11.14",    0x10000, 0x8000, 0x9773e512 )
@@ -920,27 +888,27 @@ ROM_START( bublbobl )
 	ROM_LOAD( "a78-20.35",    0x68000, 0x8000, 0x9ef863ad )
 	/* 0x70000-0x7ffff empty */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a71-25.41",    0x0000, 0x0100, 0x2d0f8545 )	/* video timing */
 ROM_END
 
 ROM_START( bublbobr )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "a78-25.51",    0x00000, 0x08000, 0x2d901c9d )
     /* ROMs banked at 8000-bfff */
 	ROM_LOAD( "a78-24.52",    0x10000, 0x10000, 0xb7afedc4 )
 	/* 20000-2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a78-08.37",    0x0000, 0x08000, 0xae11a07b )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU */
 	ROM_LOAD( "a78-07.46",    0x0000, 0x08000, 0x4f9a26e8 )
 
-	ROM_REGION( 0x0800, REGION_CPU4 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU4, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "68705.bin",    0x0000, 0x0800, 0x78caa635 )	/* from a pirate board */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a78-09.12",    0x00000, 0x8000, 0x20358c22 )    /* 1st plane */
 	ROM_LOAD( "a78-10.13",    0x08000, 0x8000, 0x930168a9 )
 	ROM_LOAD( "a78-11.14",    0x10000, 0x8000, 0x9773e512 )
@@ -956,27 +924,27 @@ ROM_START( bublbobr )
 	ROM_LOAD( "a78-20.35",    0x68000, 0x8000, 0x9ef863ad )
 	/* 0x70000-0x7ffff empty */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a71-25.41",    0x0000, 0x0100, 0x2d0f8545 )	/* video timing */
 ROM_END
 
 ROM_START( bubbobr1 )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "a78-06.51",    0x00000, 0x08000, 0x32c8305b )
     /* ROMs banked at 8000-bfff */
 	ROM_LOAD( "a78-21.52",    0x10000, 0x10000, 0x2844033d )
 	/* 20000-2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a78-08.37",    0x0000, 0x08000, 0xae11a07b )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU */
 	ROM_LOAD( "a78-07.46",    0x0000, 0x08000, 0x4f9a26e8 )
 
-	ROM_REGION( 0x0800, REGION_CPU4 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU4, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "68705.bin",    0x0000, 0x0800, 0x78caa635 )	/* from a pirate board */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a78-09.12",    0x00000, 0x8000, 0x20358c22 )    /* 1st plane */
 	ROM_LOAD( "a78-10.13",    0x08000, 0x8000, 0x930168a9 )
 	ROM_LOAD( "a78-11.14",    0x10000, 0x8000, 0x9773e512 )
@@ -992,25 +960,25 @@ ROM_START( bubbobr1 )
 	ROM_LOAD( "a78-20.35",    0x68000, 0x8000, 0x9ef863ad )
 	/* 0x70000-0x7ffff empty */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a71-25.41",    0x0000, 0x0100, 0x2d0f8545 )	/* video timing */
 ROM_END
 
 ROM_START( boblbobl )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "bb3",          0x00000, 0x08000, 0x01f81936 )
     /* ROMs banked at 8000-bfff */
 	ROM_LOAD( "bb5",          0x10000, 0x08000, 0x13118eb1 )
 	ROM_LOAD( "bb4",          0x18000, 0x08000, 0xafda99d8 )
 	/* 20000-2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a78-08.37",    0x0000, 0x08000, 0xae11a07b )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU */
 	ROM_LOAD( "a78-07.46",    0x0000, 0x08000, 0x4f9a26e8 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a78-09.12",    0x00000, 0x8000, 0x20358c22 )    /* 1st plane */
 	ROM_LOAD( "a78-10.13",    0x08000, 0x8000, 0x930168a9 )
 	ROM_LOAD( "a78-11.14",    0x10000, 0x8000, 0x9773e512 )
@@ -1026,25 +994,25 @@ ROM_START( boblbobl )
 	ROM_LOAD( "a78-20.35",    0x68000, 0x8000, 0x9ef863ad )
 	/* 0x70000-0x7ffff empty */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a71-25.41",    0x0000, 0x0100, 0x2d0f8545 )	/* video timing */
 ROM_END
 
 ROM_START( sboblbob )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "bbb-3.rom",    0x00000, 0x08000, 0xf304152a )
     /* ROMs banked at 8000-bfff */
 	ROM_LOAD( "bb5",          0x10000, 0x08000, 0x13118eb1 )
 	ROM_LOAD( "bbb-4.rom",    0x18000, 0x08000, 0x94c75591 )
 	/* 20000-2ffff empty */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "a78-08.37",    0x0000, 0x08000, 0xae11a07b )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU */
 	ROM_LOAD( "a78-07.46",    0x0000, 0x08000, 0x4f9a26e8 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a78-09.12",    0x00000, 0x8000, 0x20358c22 )    /* 1st plane */
 	ROM_LOAD( "a78-10.13",    0x08000, 0x8000, 0x930168a9 )
 	ROM_LOAD( "a78-11.14",    0x10000, 0x8000, 0x9773e512 )
@@ -1060,12 +1028,12 @@ ROM_START( sboblbob )
 	ROM_LOAD( "a78-20.35",    0x68000, 0x8000, 0x9ef863ad )
 	/* 0x70000-0x7ffff empty */
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a71-25.41",    0x0000, 0x0100, 0x2d0f8545 )	/* video timing */
 ROM_END
 
 ROM_START( tokio )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* main CPU */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* main CPU */
 	ROM_LOAD( "a71-27-1.256", 0x00000, 0x8000, 0x8c180896 )
     /* ROMs banked at 8000-bfff */
 	ROM_LOAD( "a71-28-1.256", 0x10000, 0x8000, 0x1b447527 )
@@ -1073,13 +1041,13 @@ ROM_START( tokio )
 	ROM_LOAD( "a71-05.256",   0x20000, 0x8000, 0x6da0b945 )
 	ROM_LOAD( "a71-06-1.256", 0x28000, 0x8000, 0x56927b3f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* video CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* video CPU */
 	ROM_LOAD( "a71-01.256",   0x00000, 0x8000, 0x0867c707 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* audio CPU */
 	ROM_LOAD( "a71-07.256",   0x0000, 0x08000, 0xf298cc7b )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a71-08.256",   0x00000, 0x8000, 0x0439ab13 )    /* 1st plane */
 	ROM_LOAD( "a71-09.256",   0x08000, 0x8000, 0xedb3d2ff )
 	ROM_LOAD( "a71-10.256",   0x10000, 0x8000, 0x69f0888c )
@@ -1097,12 +1065,12 @@ ROM_START( tokio )
 	ROM_LOAD( "a71-22.256",   0x70000, 0x8000, 0xfb98eac0 )
 	ROM_LOAD( "a71-23.256",   0x78000, 0x8000, 0x30bd46ad )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a71-25.bin",   0x0000, 0x0100, 0x2d0f8545 )	/* video timing */
 ROM_END
 
 ROM_START( tokiob )
-	ROM_REGION( 0x30000, REGION_CPU1 ) /* main CPU */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 ) /* main CPU */
 	ROM_LOAD( "2",            0x00000, 0x8000, 0xf583b1ef )
     /* ROMs banked at 8000-bfff */
 	ROM_LOAD( "3",            0x10000, 0x8000, 0x69dacf44 )
@@ -1110,13 +1078,13 @@ ROM_START( tokiob )
 	ROM_LOAD( "a71-05.256",   0x20000, 0x8000, 0x6da0b945 )
 	ROM_LOAD( "6",            0x28000, 0x8000, 0x1490e95b )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* video CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* video CPU */
 	ROM_LOAD( "a71-01.256",   0x00000, 0x8000, 0x0867c707 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* audio CPU */
 	ROM_LOAD( "a71-07.256",   0x0000, 0x08000, 0xf298cc7b )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a71-08.256",   0x00000, 0x8000, 0x0439ab13 )    /* 1st plane */
 	ROM_LOAD( "a71-09.256",   0x08000, 0x8000, 0xedb3d2ff )
 	ROM_LOAD( "a71-10.256",   0x10000, 0x8000, 0x69f0888c )
@@ -1134,7 +1102,7 @@ ROM_START( tokiob )
 	ROM_LOAD( "a71-22.256",   0x70000, 0x8000, 0xfb98eac0 )
 	ROM_LOAD( "a71-23.256",   0x78000, 0x8000, 0x30bd46ad )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "a71-25.bin",   0x0000, 0x0100, 0x2d0f8545 )	/* video timing */
 ROM_END
 

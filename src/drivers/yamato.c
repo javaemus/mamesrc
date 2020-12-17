@@ -130,8 +130,18 @@ static READ_HANDLER( p1_r )
 	return p1;
 }
 
-static struct MemoryReadAddress yamato_readmem[] =
+static WRITE_HANDLER( flip_screen_x_w )
 {
+	flip_screen_x_set(data);
+}
+
+static WRITE_HANDLER( flip_screen_y_w )
+{
+	flip_screen_y_set(data);
+}
+
+
+static MEMORY_READ_START( yamato_readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6000, 0x67ff, MRA_RAM },
 	{ 0x7000, 0x7fff, MRA_ROM },
@@ -144,11 +154,9 @@ static struct MemoryReadAddress yamato_readmem[] =
 	{ 0xb000, 0xb000, input_port_2_r },     /* DSW */
 	{ 0xb800, 0xb800, input_port_3_r },     /* IN2 */
 	{ 0xba00, 0xba00, input_port_4_r },     /* IN3 (maybe a mirror of b800) */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress yamato_writemem[] =
-{
+static MEMORY_WRITE_START( yamato_writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x6000, 0x67ff, MWA_RAM },
 	{ 0x7000, 0x7fff, MWA_ROM },
@@ -169,50 +177,34 @@ static struct MemoryWriteAddress yamato_writemem[] =
 //{ 0xa004, 0xa004, cclimber_sample_trigger_w },
 //{ 0xa800, 0xa800, cclimber_sample_rate_w },
 //{ 0xb000, 0xb000, cclimber_sample_volume_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort yamato_readport[] =
-{
-	{ -1 }	/* end of table */
-};
-
-static struct IOWritePort yamato_writeport[] =
-{
+static PORT_WRITE_START( yamato_writeport )
 	{ 0x00, 0x00, p0_w },	/* ??? */
 	{ 0x01, 0x01, p1_w },	/* ??? */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress yamato_sound_readmem[] =
-{
+static MEMORY_READ_START( yamato_sound_readmem )
 	{ 0x0000, 0x07ff, MRA_ROM },
 	{ 0x5000, 0x53ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress yamato_sound_writemem[] =
-{
+static MEMORY_WRITE_START( yamato_sound_writemem )
 	{ 0x0000, 0x07ff, MWA_ROM },
 	{ 0x5000, 0x53ff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort yamato_sound_readport[] =
-{
+static PORT_READ_START( yamato_sound_readport )
 	{ 0x04, 0x04, p0_r },	/* ??? */
 	{ 0x08, 0x08, p1_r },	/* ??? */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort yamato_sound_writeport[] =
-{
+static PORT_WRITE_START( yamato_sound_writeport )
 	{ 0x00, 0x00, AY8910_control_port_0_w },
 	{ 0x01, 0x01, AY8910_write_port_0_w },
 	{ 0x02, 0x02, AY8910_control_port_1_w },
 	{ 0x03, 0x03, AY8910_write_port_1_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -350,7 +342,7 @@ static const struct MachineDriver machine_driver_yamato =
 		{
 			CPU_Z80,
 			3072000,	/* 3.072 MHz ? */
-			yamato_readmem,yamato_writemem,yamato_readport,yamato_writeport,
+			yamato_readmem,yamato_writemem,0,yamato_writeport,
 			nmi_interrupt,1
 		},
 		{
@@ -389,7 +381,7 @@ static const struct MachineDriver machine_driver_yamato =
 
 
 ROM_START( yamato )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )	/* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )	/* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "2.5de",        0x0000, 0x2000, 0x20895096 )
 	ROM_LOAD( "3.5f",         0x2000, 0x2000, 0x57a696f9 )
 	ROM_LOAD( "4.5jh",        0x4000, 0x2000, 0x59a468e8 )
@@ -400,16 +392,16 @@ ROM_START( yamato )
 	ROM_LOAD( "5.5lm",        0xf000, 0x1000, 0x7761ad24 )	/* ?? */
 	ROM_LOAD( "6.5n",         0xf000, 0x1000, 0xda48444c )	/* ?? */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu */
 	ROM_LOAD( "1.5v",         0x0000, 0x0800, 0x3aad9e3c )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "10.11k",       0x0000, 0x1000, 0x161121f5 )
 	ROM_CONTINUE(             0x2000, 0x1000 )
 	ROM_LOAD( "9.11h",        0x1000, 0x1000, 0x56e84cc4 )
 	ROM_CONTINUE(             0x3000, 0x1000 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	/* TODO: I'm swapping the two halves of the ROMs to use only the bottom */
 	/* 256 chars. There must be a way for the game to address both halves */
 	ROM_LOAD( "8.11c",        0x0800, 0x0800, 0x28024d9a )
@@ -417,7 +409,7 @@ ROM_START( yamato )
 	ROM_LOAD( "7.11a",        0x1800, 0x0800, 0x4a179790 )
 	ROM_CONTINUE(             0x1000, 0x0800 )
 
-	ROM_REGION( 0x00a0, REGION_PROMS )
+	ROM_REGION( 0x00a0, REGION_PROMS, 0 )
 	ROM_LOAD( "1.bpr",        0x0000, 0x0020, 0xef2053ab )
 	ROM_LOAD( "2.bpr",        0x0020, 0x0020, 0x2281d39f )
 	ROM_LOAD( "3.bpr",        0x0040, 0x0020, 0x9e6341e3 )
@@ -426,7 +418,7 @@ ROM_START( yamato )
 ROM_END
 
 ROM_START( yamato2 )
-	ROM_REGION( 2*0x10000, REGION_CPU1 )	/* 64k for code + 64k for decrypted opcodes */
+	ROM_REGION( 2*0x10000, REGION_CPU1, 0 )	/* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "2-2.5de",      0x0000, 0x2000, 0x93da1d52 )
 	ROM_LOAD( "3-2.5f",       0x2000, 0x2000, 0x31e73821 )
 	ROM_LOAD( "4-2.5jh",      0x4000, 0x2000, 0xfd7bcfc3 )
@@ -437,16 +429,16 @@ ROM_START( yamato2 )
 	ROM_LOAD( "5.5lm",        0xf000, 0x1000, 0x7761ad24 )	/* ?? */
 	ROM_LOAD( "6.5n",         0xf000, 0x1000, 0xda48444c )	/* ?? */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu */
 	ROM_LOAD( "1.5v",         0x0000, 0x0800, 0x3aad9e3c )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "10.11k",       0x0000, 0x1000, 0x161121f5 )
 	ROM_CONTINUE(             0x2000, 0x1000 )
 	ROM_LOAD( "9.11h",        0x1000, 0x1000, 0x56e84cc4 )
 	ROM_CONTINUE(             0x3000, 0x1000 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	/* TODO: I'm swapping the two halves of the ROMs to use only the bottom */
 	/* 256 chars. There must be a way for the game to address both halves */
 	ROM_LOAD( "8.11c",        0x0800, 0x0800, 0x28024d9a )
@@ -454,7 +446,7 @@ ROM_START( yamato2 )
 	ROM_LOAD( "7.11a",        0x1800, 0x0800, 0x4a179790 )
 	ROM_CONTINUE(             0x1000, 0x0800 )
 
-	ROM_REGION( 0x00a0, REGION_PROMS )
+	ROM_REGION( 0x00a0, REGION_PROMS, 0 )
 	ROM_LOAD( "1.bpr",        0x0000, 0x0020, 0xef2053ab )
 	ROM_LOAD( "2.bpr",        0x0020, 0x0020, 0x2281d39f )
 	ROM_LOAD( "3.bpr",        0x0040, 0x0020, 0x9e6341e3 )

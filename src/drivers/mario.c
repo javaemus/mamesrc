@@ -135,8 +135,7 @@ WRITE_HANDLER( masao_sh_irqtrigger_w )
 	last = data;
 }
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6000, 0x6fff, MRA_RAM },
 	{ 0x7400, 0x77ff, MRA_RAM },	/* video RAM */
@@ -144,12 +143,10 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x7c80, 0x7c80, input_port_1_r },	/* IN1 */
 	{ 0x7f80, 0x7f80, input_port_2_r },	/* DSW */
 	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x6000, 0x68ff, MWA_RAM },
 	{ 0x6a80, 0x6fff, MWA_RAM },
@@ -171,11 +168,9 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x7000, 0x73ff, MWA_NOP },	/* ??? */
 //	{ 0x7e85, 0x7e85, MWA_RAM },	/* Sets alternative 1 and 0 */
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress masao_writemem[] =
-{
+static MEMORY_WRITE_START( masao_writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x6000, 0x68ff, MWA_RAM },
 	{ 0x6a80, 0x6fff, MWA_RAM },
@@ -189,41 +184,30 @@ static struct MemoryWriteAddress masao_writemem[] =
 	{ 0x7000, 0x73ff, MWA_NOP },	/* ??? */
 	{ 0x7f00, 0x7f00, masao_sh_irqtrigger_w },
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort mario_writeport[] =
-{
+static PORT_WRITE_START( mario_writeport )
 	{ 0x00,   0x00,   IOWP_NOP },  /* unknown... is this a trigger? */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x0fff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
-static struct MemoryWriteAddress writemem_sound[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x0fff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
-static struct IOReadPort readport_sound[] =
-{
+MEMORY_END
+static PORT_READ_START( readport_sound )
 	{ 0x00,     0xff,     mario_sh_tune_r },
 	{ I8039_p1, I8039_p1, mario_sh_p1_r },
 	{ I8039_p2, I8039_p2, mario_sh_p2_r },
 	{ I8039_t0, I8039_t0, mario_sh_t0_r },
 	{ I8039_t1, I8039_t1, mario_sh_t1_r },
-	{ -1 }	/* end of table */
-};
-static struct IOWritePort writeport_sound[] =
-{
+PORT_END
+static PORT_WRITE_START( writeport_sound )
 	{ 0x00,     0xff,     mario_sh_sound_w },
 	{ I8039_p1, I8039_p1, mario_sh_p1_w },
 	{ I8039_p2, I8039_p2, mario_sh_p2_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -397,22 +381,18 @@ static struct AY8910interface ay8910_interface =
 	{ 0 }
 };
 
-static struct MemoryReadAddress masao_sound_readmem[] =
-{
+static MEMORY_READ_START( masao_sound_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
 	{ 0x2000, 0x23ff, MRA_RAM },
 	{ 0x4000, 0x4000, AY8910_read_port_0_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress masao_sound_writemem[] =
-{
+static MEMORY_WRITE_START( masao_sound_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
 	{ 0x2000, 0x23ff, MWA_RAM },
 	{ 0x6000, 0x6000, AY8910_control_port_0_w },
 	{ 0x4000, 0x4000, AY8910_write_port_0_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 static const struct MachineDriver machine_driver_mario =
@@ -515,20 +495,20 @@ static const struct MachineDriver machine_driver_masao =
 ***************************************************************************/
 
 ROM_START( mario )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "mario.7f",     0x0000, 0x2000, 0xc0c6e014 )
 	ROM_LOAD( "mario.7e",     0x2000, 0x2000, 0x116b3856 )
 	ROM_LOAD( "mario.7d",     0x4000, 0x2000, 0xdcceb6c1 )
 	ROM_LOAD( "mario.7c",     0xf000, 0x1000, 0x4a63d96b )
 
-	ROM_REGION( 0x1000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x1000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "tma1c-a.6k",   0x0000, 0x1000, 0x06b9ff85 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mario.3f",     0x0000, 0x1000, 0x28b0c42c )
 	ROM_LOAD( "mario.3j",     0x1000, 0x1000, 0x0c8cc04d )
 
-	ROM_REGION( 0x6000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mario.7m",     0x0000, 0x1000, 0x22b7372e )
 	ROM_LOAD( "mario.7n",     0x1000, 0x1000, 0x4f3a1f47 )
 	ROM_LOAD( "mario.7p",     0x2000, 0x1000, 0x56be6ccd )
@@ -536,25 +516,25 @@ ROM_START( mario )
 	ROM_LOAD( "mario.7t",     0x4000, 0x1000, 0x641f0008 )
 	ROM_LOAD( "mario.7u",     0x5000, 0x1000, 0x7baf5309 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "mario.4p",     0x0000, 0x0200, 0xafc9bd41 )
 ROM_END
 
 ROM_START( mariojp )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "tma1c-a1.7f",  0x0000, 0x2000, 0xb64b6330 )
 	ROM_LOAD( "tma1c-a2.7e",  0x2000, 0x2000, 0x290c4977 )
 	ROM_LOAD( "tma1c-a1.7d",  0x4000, 0x2000, 0xf8575f31 )
 	ROM_LOAD( "tma1c-a2.7c",  0xf000, 0x1000, 0xa3c11e9e )
 
-	ROM_REGION( 0x1000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x1000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "tma1c-a.6k",   0x0000, 0x1000, 0x06b9ff85 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tma1v-a.3f",   0x0000, 0x1000, 0xadf49ee0 )
 	ROM_LOAD( "tma1v-a.3j",   0x1000, 0x1000, 0xa5318f2d )
 
-	ROM_REGION( 0x6000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tma1v-a.7m",   0x0000, 0x1000, 0x186762f8 )
 	ROM_LOAD( "tma1v-a.7n",   0x1000, 0x1000, 0xe0e08bba )
 	ROM_LOAD( "tma1v-a.7p",   0x2000, 0x1000, 0x7b27c8c1 )
@@ -562,25 +542,25 @@ ROM_START( mariojp )
 	ROM_LOAD( "tma1v-a.7t",   0x4000, 0x1000, 0x5cbb92a5 )
 	ROM_LOAD( "tma1v-a.7u",   0x5000, 0x1000, 0x13afb9ed )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "mario.4p",     0x0000, 0x0200, 0xafc9bd41 )
 ROM_END
 
 ROM_START( masao )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code */
 	ROM_LOAD( "masao-4.rom",  0x0000, 0x2000, 0x07a75745 )
 	ROM_LOAD( "masao-3.rom",  0x2000, 0x2000, 0x55c629b6 )
 	ROM_LOAD( "masao-2.rom",  0x4000, 0x2000, 0x42e85240 )
 	ROM_LOAD( "masao-1.rom",  0xf000, 0x1000, 0xb2817af9 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for sound */
 	ROM_LOAD( "masao-5.rom",  0x0000, 0x1000, 0xbd437198 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "masao-6.rom",  0x0000, 0x1000, 0x1c9e0be2 )
 	ROM_LOAD( "masao-7.rom",  0x1000, 0x1000, 0x747c1349 )
 
-	ROM_REGION( 0x6000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tma1v-a.7m",   0x0000, 0x1000, 0x186762f8 )
 	ROM_LOAD( "masao-9.rom",  0x1000, 0x1000, 0x50be3918 )
 	ROM_LOAD( "mario.7p",     0x2000, 0x1000, 0x56be6ccd )
@@ -588,7 +568,7 @@ ROM_START( masao )
 	ROM_LOAD( "tma1v-a.7t",   0x4000, 0x1000, 0x5cbb92a5 )
 	ROM_LOAD( "tma1v-a.7u",   0x5000, 0x1000, 0x13afb9ed )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "mario.4p",     0x0000, 0x0200, 0xafc9bd41 )
 ROM_END
 

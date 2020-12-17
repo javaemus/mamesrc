@@ -94,16 +94,19 @@ static READ_HANDLER( sauro_sound_command_r )
 	return ret;
 }
 
-static struct MemoryReadAddress readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+
+static MEMORY_READ_START( readmem )
         { 0x0000, 0xdfff, MRA_ROM },
 		{ 0xe000, 0xebff, MRA_RAM },
 		{ 0xf000, 0xffff, MRA_RAM },
-        { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
         { 0x0000, 0xdfff, MWA_ROM },
 		{ 0xe000, 0xe7ff, MWA_RAM },
 		{ 0xe800, 0xebff, MWA_RAM, &spriteram, &spriteram_size },
@@ -111,47 +114,38 @@ static struct MemoryWriteAddress writemem[] =
 		{ 0xf400, 0xf7ff, colorram_w, &colorram },
 		{ 0xf800, 0xfbff, MWA_RAM, &sauro_videoram2 },
 		{ 0xfc00, 0xffff, MWA_RAM, &sauro_colorram2 },
-        { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 		{ 0x00, 0x00, input_port_2_r },
 		{ 0x20, 0x20, input_port_3_r },
 		{ 0x40, 0x40, input_port_0_r },
 		{ 0x60, 0x60, input_port_1_r },
-		{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 		{ 0xa0, 0xa0, sauro_scroll1_w, },
 		{ 0xa1, 0xa1, sauro_scroll2_w, },
 		{ 0x80, 0x80, sauro_sound_command_w, },
 		{ 0xc0, 0xc0, flip_screen_w, },
 		{ 0xc1, 0xce, MWA_NOP, },
 		{ 0xe0, 0xe0, watchdog_reset_w },
-		{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
         { 0x0000, 0x7fff, MRA_ROM },
 		{ 0x8000, 0x87ff, MRA_RAM },
 		{ 0xe000, 0xe000, sauro_sound_command_r },
-        { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0xc000, 0xc000, YM3812_control_port_0_w },
 	{ 0xc001, 0xc001, YM3812_write_port_0_w },
 //	{ 0xa000, 0xa000, ADPCM_trigger },
 	{ 0xe000, 0xe006, MWA_NOP },
 	{ 0xe00e, 0xe00f, MWA_NOP },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 INPUT_PORTS_START( sauro )
@@ -177,7 +171,7 @@ INPUT_PORTS_START( sauro )
 
 	PORT_START
 	PORT_SERVICE( 0x01, IP_ACTIVE_HIGH )
-	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x02, DEF_STR( On ) )
 	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Cabinet ) )
@@ -322,28 +316,28 @@ static const struct MachineDriver machine_driver_sauro =
 ***************************************************************************/
 
 ROM_START( sauro )
-	ROM_REGION( 0x10000, REGION_CPU1 )          /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )          /* 64k for code */
 	ROM_LOAD( "sauro-2.bin",     0x00000, 0x8000, 0x19f8de25 )
 	ROM_LOAD( "sauro-1.bin",     0x08000, 0x8000, 0x0f8b876f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )          /* 64k for sound CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )          /* 64k for sound CPU */
 	ROM_LOAD( "sauro-3.bin",     0x00000, 0x8000, 0x0d501e1b )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sauro-4.bin",     0x00000, 0x8000, 0x9b617cda )
 	ROM_LOAD( "sauro-5.bin",     0x08000, 0x8000, 0xa6e2640d )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sauro-6.bin",     0x00000, 0x8000, 0x4b77cb0f )
 	ROM_LOAD( "sauro-7.bin",     0x08000, 0x8000, 0x187da060 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sauro-8.bin",     0x00000, 0x8000, 0xe08b5d5e )
 	ROM_LOAD( "sauro-9.bin",     0x08000, 0x8000, 0x7c707195 )
 	ROM_LOAD( "sauro-10.bin",    0x10000, 0x8000, 0xc93380d1 )
 	ROM_LOAD( "sauro-11.bin",    0x18000, 0x8000, 0xf47982a8 )
 
-	ROM_REGION( 0x0c00, REGION_PROMS )
+	ROM_REGION( 0x0c00, REGION_PROMS, 0 )
 	ROM_LOAD( "82s137-3.bin",    0x0000, 0x0400, 0xd52c4cd0 )  /* Red component */
 	ROM_LOAD( "82s137-2.bin",    0x0400, 0x0400, 0xc3e96d5d )  /* Green component */
 	ROM_LOAD( "82s137-1.bin",    0x0800, 0x0400, 0xbdfcf00c )  /* Blue component */

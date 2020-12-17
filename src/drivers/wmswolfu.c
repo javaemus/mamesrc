@@ -51,16 +51,12 @@
 
 
 /* code-related variables */
-extern UINT8 *	wms_code_rom;
-extern UINT8 *	wms_scratch_ram;
+extern data16_t *wms_code_rom;
+extern data16_t *wms_scratch_ram;
 extern UINT8 *	wms_wolfu_decode_memory;
 
 /* CMOS-related variables */
-extern UINT8 *	wms_cmos_ram;
-
-/* graphics-related variables */
-extern UINT8 *	wms_gfx_rom;
-extern size_t 	wms_gfx_rom_size;
+extern data16_t *wms_cmos_ram;
 
 
 /* driver-specific initialization */
@@ -79,24 +75,26 @@ void wms_wolfu_init_machine(void);
 
 
 /* external read handlers */
-READ_HANDLER( wms_tunit_dma_r );
-READ_HANDLER( wms_tunit_vram_r );
-READ_HANDLER( wms_wolfu_cmos_r );
-READ_HANDLER( wms_wolfu_input_r );
-READ_HANDLER( wms_wolfu_sound_r );
-READ_HANDLER( wms_wolfu_gfxrom_r );
-READ_HANDLER( wms_wolfu_control_r );
-READ_HANDLER( wms_wolfu_security_r );
+READ16_HANDLER( wms_wolfu_io_r );
+READ16_HANDLER( wms_tunit_dma_r );
+READ16_HANDLER( wms_tunit_vram_r );
+READ16_HANDLER( wms_wolfu_cmos_r );
+READ16_HANDLER( wms_wolfu_input_r );
+READ16_HANDLER( wms_wolfu_sound_r );
+READ16_HANDLER( wms_wolfu_gfxrom_r );
+READ16_HANDLER( wms_wolfu_control_r );
+READ16_HANDLER( wms_wolfu_security_r );
 
 /* external write handlers */
-WRITE_HANDLER( wms_tunit_dma_w );
-WRITE_HANDLER( wms_tunit_vram_w );
-WRITE_HANDLER( wms_wolfu_cmos_w );
-WRITE_HANDLER( wms_wolfu_cmos_enable_w );
-WRITE_HANDLER( wms_wolfu_control_w );
-WRITE_HANDLER( wms_wolfu_sound_w );
-WRITE_HANDLER( wms_wolfu_security_w );
-WRITE_HANDLER( wms_tunit_paletteram_w );
+WRITE16_HANDLER( wms_wolfu_io_w );
+WRITE16_HANDLER( wms_tunit_dma_w );
+WRITE16_HANDLER( wms_tunit_vram_w );
+WRITE16_HANDLER( wms_wolfu_cmos_w );
+WRITE16_HANDLER( wms_wolfu_cmos_enable_w );
+WRITE16_HANDLER( wms_wolfu_control_w );
+WRITE16_HANDLER( wms_wolfu_sound_w );
+WRITE16_HANDLER( wms_wolfu_security_w );
+WRITE16_HANDLER( wms_tunit_paletteram_w );
 
 
 /* external video routines */
@@ -133,40 +131,38 @@ static void nvram_handler(void *file, int read_or_write)
  *
  *************************************/
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ16_START( readmem )
 	{ TOBYTE(0x00000000), TOBYTE(0x003fffff), wms_tunit_vram_r },
-	{ TOBYTE(0x01000000), TOBYTE(0x013fffff), MRA_BANK2 },
+	{ TOBYTE(0x01000000), TOBYTE(0x013fffff), MRA16_RAM },
 	{ TOBYTE(0x01400000), TOBYTE(0x0145ffff), wms_wolfu_cmos_r },
 	{ TOBYTE(0x01600000), TOBYTE(0x0160001f), wms_wolfu_security_r },
 	{ TOBYTE(0x01680000), TOBYTE(0x0168001f), wms_wolfu_sound_r },
-	{ TOBYTE(0x01880000), TOBYTE(0x018fffff), paletteram_word_r },
+	{ TOBYTE(0x01800000), TOBYTE(0x0187ffff), wms_wolfu_io_r },
+	{ TOBYTE(0x01880000), TOBYTE(0x018fffff), MRA16_RAM },
 	{ TOBYTE(0x01a00000), TOBYTE(0x01a000ff), wms_tunit_dma_r },
 	{ TOBYTE(0x01a80000), TOBYTE(0x01a800ff), wms_tunit_dma_r },
 	{ TOBYTE(0x01b00000), TOBYTE(0x01b0001f), wms_wolfu_control_r },
 	{ TOBYTE(0x02000000), TOBYTE(0x06ffffff), wms_wolfu_gfxrom_r },
 	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), tms34010_io_register_r },
-	{ TOBYTE(0xff800000), TOBYTE(0xffffffff), MRA_BANK1 },
-	{ -1 }  /* end of table */
-};
+	{ TOBYTE(0xff800000), TOBYTE(0xffffffff), MRA16_RAM },
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE16_START( writemem )
 	{ TOBYTE(0x00000000), TOBYTE(0x003fffff), wms_tunit_vram_w },
-	{ TOBYTE(0x01000000), TOBYTE(0x013fffff), MWA_BANK2, &wms_scratch_ram },
+	{ TOBYTE(0x01000000), TOBYTE(0x013fffff), MWA16_RAM, &wms_scratch_ram },
 	{ TOBYTE(0x01400000), TOBYTE(0x0145ffff), wms_wolfu_cmos_w, &wms_cmos_ram },
 	{ TOBYTE(0x01480000), TOBYTE(0x014fffff), wms_wolfu_cmos_enable_w },
 	{ TOBYTE(0x01600000), TOBYTE(0x0160001f), wms_wolfu_security_w },
 	{ TOBYTE(0x01680000), TOBYTE(0x0168001f), wms_wolfu_sound_w },
-	{ TOBYTE(0x01880000), TOBYTE(0x018fffff), wms_tunit_paletteram_w, &paletteram },
+	{ TOBYTE(0x01800000), TOBYTE(0x0187ffff), wms_wolfu_io_w },
+	{ TOBYTE(0x01880000), TOBYTE(0x018fffff), wms_tunit_paletteram_w, &paletteram16 },
 	{ TOBYTE(0x01a00000), TOBYTE(0x01a000ff), wms_tunit_dma_w },
 	{ TOBYTE(0x01a80000), TOBYTE(0x01a800ff), wms_tunit_dma_w },
 	{ TOBYTE(0x01b00000), TOBYTE(0x01b0001f), wms_wolfu_control_w },
-	{ TOBYTE(0x02000000), TOBYTE(0x06ffffff), MWA_ROM, &wms_wolfu_decode_memory },
+	{ TOBYTE(0x02000000), TOBYTE(0x06ffffff), MWA16_ROM, (data16_t **)&wms_wolfu_decode_memory },
 	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), tms34010_io_register_w },
-	{ TOBYTE(0xff800000), TOBYTE(0xffffffff), MWA_ROM, &wms_code_rom },
-	{ -1 }  /* end of table */
-};
+	{ TOBYTE(0xff800000), TOBYTE(0xffffffff), MWA16_ROM, &wms_code_rom },
+MEMORY_END
 
 
 
@@ -727,19 +723,19 @@ static const struct MachineDriver machine_driver_wolfu =
  *************************************/
 
 ROM_START( mk3 )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "umk3-u2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, 0x3838cfe5 )
 	ROM_LOAD( "umk3-u3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, 0x856fe411 )
 	ROM_LOAD( "umk3-u4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, 0x428a406f )
 	ROM_LOAD( "umk3-u5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, 0x3b98a09f )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "mk321u54.bin",  0x00000, 0x80000, 0x9e344401 )
-	ROM_LOAD_EVEN( "mk321u63.bin",  0x00000, 0x80000, 0x64d34776 )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "mk321u54.bin",  0x00000, 0x80000, 0x9e344401 )
+	ROM_LOAD16_BYTE( "mk321u63.bin",  0x00001, 0x80000, 0x64d34776 )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "umk-u133.bin",  0x0000000, 0x100000, 0x79b94667 )
 	ROM_LOAD( "umk-u132.bin",  0x0100000, 0x100000, 0x13e95228 )
 	ROM_LOAD( "umk-u131.bin",  0x0200000, 0x100000, 0x41001e30 )
@@ -767,19 +763,19 @@ ROM_START( mk3 )
 ROM_END
 
 ROM_START( mk3r20 )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "umk3-u2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, 0x3838cfe5 )
 	ROM_LOAD( "umk3-u3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, 0x856fe411 )
 	ROM_LOAD( "umk3-u4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, 0x428a406f )
 	ROM_LOAD( "umk3-u5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, 0x3b98a09f )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "mk320u54.bin",  0x00000, 0x80000, 0x453da302 )
-	ROM_LOAD_EVEN( "mk320u63.bin",  0x00000, 0x80000, 0xf8dc0600 )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "mk320u54.bin",  0x00000, 0x80000, 0x453da302 )
+	ROM_LOAD16_BYTE( "mk320u63.bin",  0x00001, 0x80000, 0xf8dc0600 )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "umk-u133.bin",  0x0000000, 0x100000, 0x79b94667 )
 	ROM_LOAD( "umk-u132.bin",  0x0100000, 0x100000, 0x13e95228 )
 	ROM_LOAD( "umk-u131.bin",  0x0200000, 0x100000, 0x41001e30 )
@@ -807,19 +803,19 @@ ROM_START( mk3r20 )
 ROM_END
 
 ROM_START( mk3r10 )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "umk3-u2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, 0x3838cfe5 )
 	ROM_LOAD( "umk3-u3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, 0x856fe411 )
 	ROM_LOAD( "umk3-u4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, 0x428a406f )
 	ROM_LOAD( "umk3-u5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, 0x3b98a09f )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "mk310u54.bin",  0x00000, 0x80000, 0x41829228 )
-	ROM_LOAD_EVEN( "mk310u63.bin",  0x00000, 0x80000, 0xb074e1e8 )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "mk310u54.bin",  0x00000, 0x80000, 0x41829228 )
+	ROM_LOAD16_BYTE( "mk310u63.bin",  0x00001, 0x80000, 0xb074e1e8 )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "umk-u133.bin",  0x0000000, 0x100000, 0x79b94667 )
 	ROM_LOAD( "umk-u132.bin",  0x0100000, 0x100000, 0x13e95228 )
 	ROM_LOAD( "umk-u131.bin",  0x0200000, 0x100000, 0x41001e30 )
@@ -847,19 +843,19 @@ ROM_START( mk3r10 )
 ROM_END
 
 ROM_START( umk3 )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "umk3-u2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, 0x3838cfe5 )
 	ROM_LOAD( "umk3-u3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, 0x856fe411 )
 	ROM_LOAD( "umk3-u4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, 0x428a406f )
 	ROM_LOAD( "umk3-u5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, 0x3b98a09f )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "um312u54.bin",  0x00000, 0x80000, 0x712b4db6 )
-	ROM_LOAD_EVEN( "um312u63.bin",  0x00000, 0x80000, 0x6d301faf )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "um312u54.bin",  0x00000, 0x80000, 0x712b4db6 )
+	ROM_LOAD16_BYTE( "um312u63.bin",  0x00001, 0x80000, 0x6d301faf )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "umk-u133.bin",  0x0000000, 0x100000, 0x79b94667 )
 	ROM_LOAD( "umk-u132.bin",  0x0100000, 0x100000, 0x13e95228 )
 	ROM_LOAD( "umk-u131.bin",  0x0200000, 0x100000, 0x41001e30 )
@@ -887,19 +883,19 @@ ROM_START( umk3 )
 ROM_END
 
 ROM_START( umk3r11 )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "umk3-u2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, 0x3838cfe5 )
 	ROM_LOAD( "umk3-u3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, 0x856fe411 )
 	ROM_LOAD( "umk3-u4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, 0x428a406f )
 	ROM_LOAD( "umk3-u5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, 0x3b98a09f )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "um311u54.bin",  0x00000, 0x80000, 0x8bb27659 )
-	ROM_LOAD_EVEN( "um311u63.bin",  0x00000, 0x80000, 0xea731783 )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "um311u54.bin",  0x00000, 0x80000, 0x8bb27659 )
+	ROM_LOAD16_BYTE( "um311u63.bin",  0x00001, 0x80000, 0xea731783 )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "umk-u133.bin",  0x0000000, 0x100000, 0x79b94667 )
 	ROM_LOAD( "umk-u132.bin",  0x0100000, 0x100000, 0x13e95228 )
 	ROM_LOAD( "umk-u131.bin",  0x0200000, 0x100000, 0x41001e30 )
@@ -927,19 +923,19 @@ ROM_START( umk3r11 )
 ROM_END
 
 ROM_START( openice )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "oiceu2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, 0x8adb5aab )
 	ROM_LOAD( "oiceu3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, 0x11c61ad6 )
 	ROM_LOAD( "oiceu4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, 0x04279290 )
 	ROM_LOAD( "oiceu5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, 0xe90ad61f )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "oiceu54.bin",  0x00000, 0x80000, 0xe4225284 )
-	ROM_LOAD_EVEN( "oiceu63.bin",  0x00000, 0x80000, 0x97d308a3 )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "oiceu54.bin",  0x00000, 0x80000, 0xe4225284 )
+	ROM_LOAD16_BYTE( "oiceu63.bin",  0x00001, 0x80000, 0x97d308a3 )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "oiceu133.bin",  0x0000000, 0x100000, 0x8a81605c )
 	ROM_LOAD( "oiceu132.bin",  0x0100000, 0x100000, 0xcfdd6702 )
 	ROM_LOAD( "oiceu131.bin",  0x0200000, 0x100000, 0xcc428eb7 )
@@ -962,19 +958,19 @@ ROM_START( openice )
 ROM_END
 
 ROM_START( nbamaxht )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "mhtu2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, 0x3f0b0d0a )
 	ROM_LOAD( "mhtu3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, 0xec1db988 )
 	ROM_LOAD( "mhtu4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, 0xc7f847a3 )
 	ROM_LOAD( "mhtu5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, 0xef19316a )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "mhtu54.bin",  0x00000, 0x80000, 0xdfb6b3ae )
-	ROM_LOAD_EVEN( "mhtu63.bin",  0x00000, 0x80000, 0x78da472c )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "mhtu54.bin",  0x00000, 0x80000, 0xdfb6b3ae )
+	ROM_LOAD16_BYTE( "mhtu63.bin",  0x00001, 0x80000, 0x78da472c )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "mhtu133.bin",  0x0000000, 0x100000, 0x3163feed )
 	ROM_LOAD( "mhtu132.bin",  0x0100000, 0x100000, 0x428eaf44 )
 	ROM_LOAD( "mhtu131.bin",  0x0200000, 0x100000, 0x5f7c5111 )
@@ -1002,19 +998,19 @@ ROM_START( nbamaxht )
 ROM_END
 
 ROM_START( rmpgwt )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "rwt.2",  ADSP2100_SIZE + 0x000000, 0x100000, 0x0e82f83d )
 	ROM_LOAD( "rwt.3",  ADSP2100_SIZE + 0x100000, 0x100000, 0x3ff54d15 )
 	ROM_LOAD( "rwt.4",  ADSP2100_SIZE + 0x200000, 0x100000, 0x5c7f5656 )
 	ROM_LOAD( "rwt.5",  ADSP2100_SIZE + 0x300000, 0x100000, 0xfd9aaf24 )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "rwtr13.54",  0x00000, 0x80000, 0x2a8f6e1e )
-	ROM_LOAD_EVEN( "rwtr13.63",  0x00000, 0x80000, 0x403ae41e )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "rwtr13.54",  0x00000, 0x80000, 0x2a8f6e1e )
+	ROM_LOAD16_BYTE( "rwtr13.63",  0x00001, 0x80000, 0x403ae41e )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "rwt.133",  0x0000000, 0x100000, 0x5b5ac449 )
 	ROM_LOAD( "rwt.132",  0x0100000, 0x100000, 0x7b3f09c6 )
 	ROM_LOAD( "rwt.131",  0x0200000, 0x100000, 0xfdecf12e )
@@ -1037,19 +1033,19 @@ ROM_START( rmpgwt )
 ROM_END
 
 ROM_START( rmpgwt11 )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "rwt.2",  ADSP2100_SIZE + 0x000000, 0x100000, 0x0e82f83d )
 	ROM_LOAD( "rwt.3",  ADSP2100_SIZE + 0x100000, 0x100000, 0x3ff54d15 )
 	ROM_LOAD( "rwt.4",  ADSP2100_SIZE + 0x200000, 0x100000, 0x5c7f5656 )
 	ROM_LOAD( "rwt.5",  ADSP2100_SIZE + 0x300000, 0x100000, 0xfd9aaf24 )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "rwtr11.54",  0x00000, 0x80000, 0x3aa514eb )
-	ROM_LOAD_EVEN( "rwtr11.63",  0x00000, 0x80000, 0x031c908f )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "rwtr11.54",  0x00000, 0x80000, 0x3aa514eb )
+	ROM_LOAD16_BYTE( "rwtr11.63",  0x00001, 0x80000, 0x031c908f )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "rwt.133",  0x0000000, 0x100000, 0x5b5ac449 )
 	ROM_LOAD( "rwt.132",  0x0100000, 0x100000, 0x7b3f09c6 )
 	ROM_LOAD( "rwt.131",  0x0200000, 0x100000, 0xfdecf12e )
@@ -1072,19 +1068,19 @@ ROM_START( rmpgwt11 )
 ROM_END
 
 ROM_START( wwfmania )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34010 dummy region */
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
-	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2 )	/* ADSP-2105 data */
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
 	ROM_LOAD( "wwf.2",  ADSP2100_SIZE + 0x000000, 0x100000, 0xa9acb250 )
 	ROM_LOAD( "wwf.3",  ADSP2100_SIZE + 0x100000, 0x100000, 0x9442b6c9 )
 	ROM_LOAD( "wwf.4",  ADSP2100_SIZE + 0x200000, 0x100000, 0xcee78fac )
 	ROM_LOAD( "wwf.5",  ADSP2100_SIZE + 0x300000, 0x100000, 0x5b31fd40 )
 
-	ROM_REGION( 0x100000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34010 code */
-	ROM_LOAD_ODD ( "wwf.54",  0x00000, 0x80000, 0xeeb7bf58 )
-	ROM_LOAD_EVEN( "wwf.63",  0x00000, 0x80000, 0x09759529 )
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "wwf.54",  0x00000, 0x80000, 0xeeb7bf58 )
+	ROM_LOAD16_BYTE( "wwf.63",  0x00001, 0x80000, 0x09759529 )
 
-	ROM_REGION( 0x2000000, REGION_GFX1 )
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "wwf.133",  0x0000000, 0x100000, 0x5e1b1e3d )
 	ROM_LOAD( "wwf.132",  0x0100000, 0x100000, 0x5943b3b2 )
 	ROM_LOAD( "wwf.131",  0x0200000, 0x100000, 0x0815db22 )
@@ -1125,64 +1121,3 @@ GAME( 1995, openice, 0,         wolfu, openice, openice, ROT0_16BIT, "Midway", "
 GAME( 1996, nbamaxht,0,         wolfu, nbamaxht,nbamaxht,ROT0_16BIT, "Midway", "NBA Maximum Hangtime (rev 1.0)" )
 GAME( 1997, rmpgwt,  0,         wolfu, rmpgwt,  rmpgwt,  ROT0_16BIT, "Midway", "Rampage: World Tour (rev 1.3)" )
 GAME( 1997, rmpgwt11,rmpgwt,    wolfu, rmpgwt,  rmpgwt,  ROT0_16BIT, "Midway", "Rampage: World Tour (rev 1.1)" )
-
-
-#if 0
-/** Revolution X actually doesn't run on this platform   **/
-/** It appears to use a 34020 and a different memory map **/
-/** This information is currently here just to note how  **/
-/** the ROMs might be mapped.                            **/
-
-ROM_START( revx )
-	ROM_REGION( 0x10, REGION_CPU1 )		/* 34020 dummy region */
-
-	ROM_REGION( 0x100000, REGION_SOUND1 )	/* ADSP-2105 data */
-	ROM_LOAD( "revx_snd.2",  0x000000, 0x80000, 0x4ed9e803 )
-	ROM_LOAD( "revx_snd.3",  0x000000, 0x80000, 0xaf8f253b )
-	ROM_LOAD( "revx_snd.4",  0x000000, 0x80000, 0x3ccce59c )
-	ROM_LOAD( "revx_snd.5",  0x000000, 0x80000, 0xa0438006 )
-	ROM_LOAD( "revx_snd.6",  0x000000, 0x80000, 0xb7b34f60 )
-	ROM_LOAD( "revx_snd.7",  0x000000, 0x80000, 0x6795fd88 )
-	ROM_LOAD( "revx_snd.8",  0x000000, 0x80000, 0x793a7eb5 )
-	ROM_LOAD( "revx_snd.9",  0x000000, 0x80000, 0x14ddbea1 )
-
-	ROM_REGION( 0x200000, REGION_USER1 | REGIONFLAG_DISPOSE )	/* 34020 code */
-	ROM_LOAD_QUAD( "revx.52",  0x00000, 0x80000, 0xfbf55510 )
-	ROM_LOAD_QUAD( "revx.51",  0x00000, 0x80000, 0x9960ac7c )
-	ROM_LOAD_QUAD( "revx.54",  0x00000, 0x80000, 0x24471269 )
-	ROM_LOAD_QUAD( "revx.53",  0x00000, 0x80000, 0xa045b265 )
-
-	ROM_REGION( 0x2000000, REGION_GFX1 )
-	ROM_LOAD( "revx.63",  0x0000000, 0x80000, 0x3066e3f3 )
-	ROM_LOAD( "revx.64",  0x0080000, 0x80000, 0xc33f5309 )
-	ROM_LOAD( "revx.65",  0x0100000, 0x80000, 0x6eee3e71 )
-	ROM_LOAD( "revx.66",  0x0180000, 0x80000, 0xb43d6fff )
-
-	ROM_LOAD( "revx.71",  0x0200000, 0x80000, 0x2b29fddb )
-	ROM_LOAD( "revx.72",  0x0280000, 0x80000, 0x2680281b )
-	ROM_LOAD( "revx.73",  0x0300000, 0x80000, 0x420bde4d )
-	ROM_LOAD( "revx.74",  0x0380000, 0x80000, 0x26627410 )
-
-	ROM_LOAD( "revx.81",  0x0400000, 0x80000, 0x729eacb1 )
-	ROM_LOAD( "revx.82",  0x0480000, 0x80000, 0x19acb904 )
-	ROM_LOAD( "revx.83",  0x0500000, 0x80000, 0x0e223456 )
-	ROM_LOAD( "revx.84",  0x0580000, 0x80000, 0xd3de0192 )
-
-	ROM_LOAD( "revx.91",  0x0600000, 0x80000, 0x52a63713 )
-	ROM_LOAD( "revx.92",  0x0680000, 0x80000, 0xfae3621b )
-	ROM_LOAD( "revx.93",  0x0700000, 0x80000, 0x7065cf95 )
-	ROM_LOAD( "revx.94",  0x0780000, 0x80000, 0x600d5b98 )
-
-	ROM_LOAD( "revx.110",  0x0800000, 0x80000, 0xe3f7f0af )
-	ROM_LOAD( "revx.111",  0x0880000, 0x80000, 0x49fe1a69 )
-	ROM_LOAD( "revx.112",  0x0900000, 0x80000, 0x7e3ba175 )
-	ROM_LOAD( "revx.113",  0x0980000, 0x80000, 0xc0817583 )
-
-	ROM_LOAD( "revx.120",  0x0a00000, 0x80000, 0x523af1f0 )
-	ROM_LOAD( "revx.121",  0x0a80000, 0x80000, 0x78201d93 )
-	ROM_LOAD( "revx.122",  0x0b00000, 0x80000, 0x2cf36144 )
-	ROM_LOAD( "revx.123",  0x0b80000, 0x80000, 0x6912e1fb )
-ROM_END
-
-GAMEX(1993, revx,   0,         wolfu, mk3,     mk3,      ROT0_16BIT, "Midway",   "Revolution X", GAME_NOT_WORKING )
-#endif

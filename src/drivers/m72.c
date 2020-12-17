@@ -16,34 +16,34 @@ Dragon Breed                        M81        Y         Y
 R-Type II                           M82/M84(2) Y         N
 Major Title                         M84        Y         N
 Hammerin' Harry	/ Daiku no Gensan   M82(3)     Y         N
+                  Daiku no Gensan   M72(4)     Y         Y
 Ken-Go                              ?          N      Encrypted
 Pound for Pound                     M85        Y         N
 Air Duel                            M72?       Y         Y
-Gallop - Armed Police Unit          M73?(4)    Y         N
+Gallop - Armed Police Unit          M73?(5)    Y         N
 
 (1) different addressing PALs, so different memory map
 (2) rtype2j has M84 written on the board, but it's the same hardware as rtype2
 (3) multiple versions supported, running on different hardware
-(4) there is also a M84 version of Gallop
+(4) normal M72 memory map, but IRQ vectors and sprite control as in X-Multiply
+(5) there is also a M84 version of Gallop
 
 
-Notes:
+TODO:
+- majtitle_gfx_ctrl_w is unknown, it seems to be used to disable rowscroll,
+  and maybe other things
 
-Major Title is supposed to disable rowscroll after a shot, but I haven't found how
+- Maybe there is a layer enable register, e.g. nspirit shows (for an instant)
+  incomplete screens with bad colors when you start a game.
 
-Sprite/tile priorities are not completely understood.
+- Sound doesn't work in Gallop
 
-Sound doesn't work in Gallop
+- Samples are missing in Gallop. The NMI handler for the sound CPU is just RETN,
+  so the hardware has to be different. I also can't make a good sample start
+  offset table. Same thing with Air Duel and dkgenm72.
 
-Samples are missing in Gallop. The NMI handler for the sound CPU is just RETN, so
-the hardware has to be different. I also can't make a good sample start offset
-table. Same thing with Air Duel.
-
-Maybe there is a layer enable register, e.g. nspirit shows (for an instant)
-incomplete screens with bad colors when you start a game.
-
-No samples in Pound for Pound, I haven't checked why; there are a lot of unknown
-I/O writes.
+- No samples in Pound for Pound, I haven't checked why; there are a lot of unknown
+  I/O writes.
 
 ***************************************************************************/
 
@@ -59,7 +59,6 @@ void xmultipl_init_machine(void);
 void poundfor_init_machine(void);
 int m72_interrupt(void);
 int m72_vh_start(void);
-int dbreed_vh_start(void);
 int rtype2_vh_start(void);
 int majtitle_vh_start(void);
 int hharry_vh_start(void);
@@ -72,7 +71,6 @@ READ_HANDLER( m72_videoram1_r );
 READ_HANDLER( m72_videoram2_r );
 WRITE_HANDLER( m72_videoram1_w );
 WRITE_HANDLER( m72_videoram2_w );
-WRITE_HANDLER( majtitle_videoram2_w );
 WRITE_HANDLER( m72_irq_line_w );
 WRITE_HANDLER( m72_scrollx1_w );
 WRITE_HANDLER( m72_scrollx2_w );
@@ -81,8 +79,10 @@ WRITE_HANDLER( m72_scrolly2_w );
 WRITE_HANDLER( m72_spritectrl_w );
 WRITE_HANDLER( hharry_spritectrl_w );
 WRITE_HANDLER( hharryu_spritectrl_w );
+WRITE_HANDLER( m72_port02_w );
+WRITE_HANDLER( rtype2_port02_w );
+WRITE_HANDLER( majtitle_gfx_ctrl_w );
 void m72_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void dbreed_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void majtitle_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void m72_eof_callback(void);
 
@@ -335,6 +335,14 @@ static unsigned char airduel_code[CODE_LEN] =
 static unsigned char airduel_crc[CRC_LEN] =	  {	0x72,0x9c,0xca,0x85, 0xc9,0x12,0xcc,0xea,
 												0x00,0x00 };
 
+/* Daiku no Gensan */
+static unsigned char dkgenm72_code[CODE_LEN] =
+{
+	0xea,0x3d,0x00,0x00,0x10	// jmp  1000:$003d
+};
+static unsigned char dkgenm72_crc[CRC_LEN] =  {	0xc8,0xb4,0xdc,0xf8, 0xd3,0xba,0x48,0xed,
+												0x79,0x08,0x1c,0xb3, 0x00,0x00 };
+
 
 unsigned char *protection_code,*protection_crc;
 
@@ -426,6 +434,14 @@ static void init_airduel(void)
 	install_port_write_handler(0,0xc0,0xc0,airduel_sample_trigger_w);
 }
 
+static void init_dkgenm72(void)
+{
+	install_protection_handler(dkgenm72_code,dkgenm72_crc);
+
+//	install_port_write_handler(0,0xc0,0xc0,airduel_sample_trigger_w);
+}
+
+
 static void init_gallop(void)
 {
 	install_port_write_handler(0,0xc0,0xc0,gallop_sample_trigger_w);
@@ -445,46 +461,6 @@ static READ_HANDLER( soundram_r )
 static WRITE_HANDLER( soundram_w )
 {
 	soundram[offset] = data;
-}
-
-static WRITE_HANDLER( m72_port02_w )
-{
-	if (offset != 0)
-	{
-		if (data) logerror("write %02x to port 03\n",data);
-		return;
-	}
-	if (data & 0xec) logerror("write %02x to port 02\n",data);
-
-	/* bits 0/1 are coin counters */
-	coin_counter_w(0,data & 0x01);
-	coin_counter_w(1,data & 0x02);
-
-	/* bit 3 is used but unknown */
-
-	/* bit 4 resets sound CPU (active low) */
-	if (data & 0x10)
-		cpu_set_reset_line(1,CLEAR_LINE);
-	else
-		cpu_set_reset_line(1,ASSERT_LINE);
-
-	/* other bits unknown */
-}
-
-static WRITE_HANDLER( rtype2_port02_w )
-{
-	if (offset != 0)
-	{
-		if (data) logerror("write %02x to port 03\n",data);
-		return;
-	}
-	if (data & 0xfc) logerror("write %02x to port 02\n",data);
-
-	/* bits 0/1 are coin counters */
-	coin_counter_w(0,data & 0x01);
-	coin_counter_w(1,data & 0x02);
-
-	/* other bits unknown */
 }
 
 
@@ -512,9 +488,9 @@ static READ_HANDLER( poundfor_trackball_r )
 		case 1:
 			return 0;
 		case 2:
-			return ((diff[0] >> 8) & 0x1f) | (readinputport(4) & 0xe0);
+			return ((diff[0] >> 8) & 0x1f) | (readinputport(0) & 0xe0);
 		case 3:
-			return ((diff[2] >> 8) & 0x1f) | (readinputport(5) & 0xe0);
+			return ((diff[2] >> 8) & 0x1f) | (readinputport(1) & 0xe0);
 		case 4:
 			return diff[1] & 0xff;
 		case 5:
@@ -529,8 +505,7 @@ static READ_HANDLER( poundfor_trackball_r )
 
 
 #define CPU1_MEMORY(NAME,ROMSIZE,WORKRAM) 						\
-static struct MemoryReadAddress NAME##_readmem[] =				\
-{																\
+static MEMORY_READ_START( NAME##_readmem )						\
 	{ 0x00000, ROMSIZE-1, MRA_ROM },							\
 	{ WORKRAM, WORKRAM+0x3fff, MRA_RAM },						\
 	{ 0xc0000, 0xc03ff, MRA_RAM },								\
@@ -539,10 +514,9 @@ static struct MemoryReadAddress NAME##_readmem[] =				\
 	{ 0xd0000, 0xd3fff, m72_videoram1_r },						\
 	{ 0xd8000, 0xdbfff, m72_videoram2_r },						\
 	{ 0xe0000, 0xeffff, soundram_r },							\
-	{ -1 }	/* end of table */									\
-};																\
-static struct MemoryWriteAddress NAME##_writemem[] =			\
-{																\
+MEMORY_END														\
+																\
+static MEMORY_WRITE_START( NAME##_writemem )					\
 	{ 0x00000, ROMSIZE-1, MWA_ROM },							\
 	{ WORKRAM, WORKRAM+0x3fff, MWA_RAM },	/* work RAM */		\
 	{ 0xc0000, 0xc03ff, MWA_RAM, &spriteram, &spriteram_size },	\
@@ -551,8 +525,8 @@ static struct MemoryWriteAddress NAME##_writemem[] =			\
 	{ 0xd0000, 0xd3fff, m72_videoram1_w, &m72_videoram1 },		\
 	{ 0xd8000, 0xdbfff, m72_videoram2_w, &m72_videoram2 },		\
 	{ 0xe0000, 0xeffff, soundram_w },							\
-	{ -1 }	/* end of table */									\
-};
+MEMORY_END
+
 
 /*                     ROMSIZE  WORKRAM */
 CPU1_MEMORY( rtype,    0x40000, 0x40000 )
@@ -561,8 +535,7 @@ CPU1_MEMORY( xmultipl, 0x80000, 0x80000 )
 CPU1_MEMORY( dbreed,   0x80000, 0x90000 )
 
 
-static struct MemoryReadAddress rtype2_readmem[] =
-{
+static MEMORY_READ_START( rtype2_readmem )
 	{ 0x00000, 0x7ffff, MRA_ROM },
 	{ 0xc0000, 0xc03ff, MRA_RAM },
 	{ 0xc8000, 0xc8bff, m72_palette1_r },
@@ -570,11 +543,9 @@ static struct MemoryReadAddress rtype2_readmem[] =
 	{ 0xd4000, 0xd7fff, m72_videoram2_r },
 	{ 0xd8000, 0xd8bff, m72_palette2_r },
 	{ 0xe0000, 0xe3fff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress rtype2_writemem[] =
-{
+static MEMORY_WRITE_START( rtype2_writemem )
 	{ 0x00000, 0x7ffff, MWA_ROM },
 	{ 0xb0000, 0xb0001, m72_irq_line_w },
 	{ 0xbc000, 0xbc001, m72_spritectrl_w },
@@ -584,11 +555,9 @@ static struct MemoryWriteAddress rtype2_writemem[] =
 	{ 0xd4000, 0xd7fff, m72_videoram2_w, &m72_videoram2 },
 	{ 0xd8000, 0xd8bff, m72_palette2_w, &paletteram_2 },
 	{ 0xe0000, 0xe3fff, MWA_RAM },	/* work RAM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress majtitle_readmem[] =
-{
+static MEMORY_READ_START( majtitle_readmem )
 	{ 0x00000, 0x7ffff, MRA_ROM },
 	{ 0xa0000, 0xa03ff, MRA_RAM },
 	{ 0xa4000, 0xa4bff, m72_palette2_r },
@@ -598,28 +567,24 @@ static struct MemoryReadAddress majtitle_readmem[] =
 	{ 0xc8000, 0xc83ff, MRA_RAM },
 	{ 0xcc000, 0xccbff, m72_palette1_r },
 	{ 0xd0000, 0xd3fff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress majtitle_writemem[] =
-{
+static MEMORY_WRITE_START( majtitle_writemem )
 	{ 0x00000, 0x7ffff, MWA_ROM },
 	{ 0xa0000, 0xa03ff, MWA_RAM, &majtitle_rowscrollram },
 	{ 0xa4000, 0xa4bff, m72_palette2_w, &paletteram_2 },
 	{ 0xac000, 0xaffff, m72_videoram1_w, &m72_videoram1 },
-	{ 0xb0000, 0xbffff, majtitle_videoram2_w, &m72_videoram2 },
+	{ 0xb0000, 0xbffff, m72_videoram2_w, &m72_videoram2 },	/* larger than the other games */
 	{ 0xc0000, 0xc03ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xc8000, 0xc83ff, MWA_RAM, &spriteram_2 },
 	{ 0xcc000, 0xccbff, m72_palette1_w, &paletteram },
 	{ 0xd0000, 0xd3fff, MWA_RAM },	/* work RAM */
 	{ 0xe0000, 0xe0001, m72_irq_line_w },
-//	{ 0xe4000, 0xe4001, MWA_RAM },	/* playfield enable? 1 during screen transitions, 0 otherwise */
+	{ 0xe4000, 0xe4001, MWA_RAM },	/* playfield enable? 1 during screen transitions, 0 otherwise */
 	{ 0xec000, 0xec001, hharryu_spritectrl_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress hharry_readmem[] =
-{
+static MEMORY_READ_START( hharry_readmem )
 	{ 0x00000, 0x7ffff, MRA_ROM },
 	{ 0xa0000, 0xa3fff, MRA_RAM },
 	{ 0xc0000, 0xc03ff, MRA_RAM },
@@ -627,11 +592,9 @@ static struct MemoryReadAddress hharry_readmem[] =
 	{ 0xcc000, 0xccbff, m72_palette2_r },
 	{ 0xd0000, 0xd3fff, m72_videoram1_r },
 	{ 0xd8000, 0xdbfff, m72_videoram2_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress hharry_writemem[] =
-{
+static MEMORY_WRITE_START( hharry_writemem )
 	{ 0x00000, 0x7ffff, MWA_ROM },
 	{ 0xa0000, 0xa3fff, MWA_RAM },	/* work RAM */
 	{ 0xb0ffe, 0xb0fff, MWA_RAM },	/* leftover from protection?? */
@@ -640,11 +603,9 @@ static struct MemoryWriteAddress hharry_writemem[] =
 	{ 0xcc000, 0xccbff, m72_palette2_w, &paletteram_2 },
 	{ 0xd0000, 0xd3fff, m72_videoram1_w, &m72_videoram1 },
 	{ 0xd8000, 0xdbfff, m72_videoram2_w, &m72_videoram2 },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress hharryu_readmem[] =
-{
+static MEMORY_READ_START( hharryu_readmem )
 	{ 0x00000, 0x7ffff, MRA_ROM },
 	{ 0xa0000, 0xa0bff, m72_palette1_r },
 	{ 0xa8000, 0xa8bff, m72_palette2_r },
@@ -652,11 +613,9 @@ static struct MemoryReadAddress hharryu_readmem[] =
 	{ 0xd0000, 0xd3fff, m72_videoram1_r },
 	{ 0xd4000, 0xd7fff, m72_videoram2_r },
 	{ 0xe0000, 0xe3fff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress hharryu_writemem[] =
-{
+static MEMORY_WRITE_START( hharryu_writemem )
 	{ 0x00000, 0x7ffff, MWA_ROM },
 	{ 0xa0000, 0xa0bff, m72_palette1_w, &paletteram },
 	{ 0xa8000, 0xa8bff, m72_palette2_w, &paletteram_2 },
@@ -667,33 +626,27 @@ static struct MemoryWriteAddress hharryu_writemem[] =
 	{ 0xd0000, 0xd3fff, m72_videoram1_w, &m72_videoram1 },
 	{ 0xd4000, 0xd7fff, m72_videoram2_w, &m72_videoram2 },
 	{ 0xe0000, 0xe3fff, MWA_RAM },	/* work RAM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, input_port_0_r },
 	{ 0x01, 0x01, input_port_1_r },
 	{ 0x02, 0x02, input_port_2_r },
 	{ 0x03, 0x03, input_port_3_r },
 	{ 0x04, 0x04, input_port_4_r },
 	{ 0x05, 0x05, input_port_5_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOReadPort poundfor_readport[] =
-{
-	{ 0x02, 0x02, input_port_0_r },
-	{ 0x03, 0x03, input_port_1_r },
-	{ 0x04, 0x04, input_port_2_r },
-	{ 0x05, 0x05, input_port_3_r },
+static PORT_READ_START( poundfor_readport )
+	{ 0x02, 0x02, input_port_2_r },
+	{ 0x03, 0x03, input_port_3_r },
+	{ 0x04, 0x04, input_port_4_r },
+	{ 0x05, 0x05, input_port_5_r },
 	{ 0x08, 0x0f, poundfor_trackball_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x01, m72_sound_command_w },
 	{ 0x02, 0x03, m72_port02_w },	/* coin counters, reset sound cpu, other stuff? */
 	{ 0x04, 0x05, m72_spritectrl_w },
@@ -703,11 +656,9 @@ static struct IOWritePort writeport[] =
 	{ 0x84, 0x85, m72_scrolly2_w },
 	{ 0x86, 0x87, m72_scrollx2_w },
 /*	{ 0xc0, 0xc0      trigger sample, filled by init_ function */
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort xmultipl_writeport[] =
-{
+static PORT_WRITE_START( xmultipl_writeport )
 	{ 0x00, 0x01, m72_sound_command_w },
 	{ 0x02, 0x03, m72_port02_w },	/* coin counters, reset sound cpu, other stuff? */
 	{ 0x04, 0x04, hharry_spritectrl_w },
@@ -717,22 +668,28 @@ static struct IOWritePort xmultipl_writeport[] =
 	{ 0x84, 0x85, m72_scrolly2_w },
 	{ 0x86, 0x87, m72_scrollx2_w },
 /*	{ 0xc0, 0xc0      trigger sample, filled by init_ function */
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort rtype2_writeport[] =
-{
+static PORT_WRITE_START( rtype2_writeport )
 	{ 0x00, 0x01, m72_sound_command_w },
 	{ 0x02, 0x03, rtype2_port02_w },
 	{ 0x80, 0x81, m72_scrolly1_w },
 	{ 0x82, 0x83, m72_scrollx1_w },
 	{ 0x84, 0x85, m72_scrolly2_w },
 	{ 0x86, 0x87, m72_scrollx2_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort hharry_writeport[] =
-{
+static PORT_WRITE_START( majtitle_writeport )
+	{ 0x00, 0x01, m72_sound_command_w },
+	{ 0x02, 0x03, rtype2_port02_w },
+	{ 0x80, 0x81, m72_scrolly1_w },
+	{ 0x82, 0x83, m72_scrollx1_w },
+	{ 0x84, 0x85, m72_scrolly2_w },
+	{ 0x86, 0x87, m72_scrollx2_w },
+	{ 0x8e, 0x8f, majtitle_gfx_ctrl_w },
+PORT_END
+
+static PORT_WRITE_START( hharry_writeport )
 	{ 0x00, 0x01, m72_sound_command_w },
 	{ 0x02, 0x03, rtype2_port02_w },	/* coin counters, reset sound cpu, other stuff? */
 	{ 0x04, 0x04, hharry_spritectrl_w },
@@ -741,74 +698,57 @@ static struct IOWritePort hharry_writeport[] =
 	{ 0x82, 0x83, m72_scrollx1_w },
 	{ 0x84, 0x85, m72_scrolly2_w },
 	{ 0x86, 0x87, m72_scrollx2_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xffff, MWA_RAM, &soundram },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x01, 0x01, YM2151_status_port_0_r },
 	{ 0x02, 0x02, soundlatch_r },
 	{ 0x84, 0x84, m72_sample_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, YM2151_register_port_0_w },
 	{ 0x01, 0x01, YM2151_data_port_0_w },
 	{ 0x06, 0x06, m72_sound_irq_ack_w },
 	{ 0x82, 0x82, m72_sample_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOReadPort rtype2_sound_readport[] =
-{
+static PORT_READ_START( rtype2_sound_readport )
 	{ 0x01, 0x01, YM2151_status_port_0_r },
 	{ 0x80, 0x80, soundlatch_r },
 	{ 0x84, 0x84, m72_sample_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort rtype2_sound_writeport[] =
-{
+static PORT_WRITE_START( rtype2_sound_writeport )
 	{ 0x00, 0x00, YM2151_register_port_0_w },
 	{ 0x01, 0x01, YM2151_data_port_0_w },
 	{ 0x80, 0x81, rtype2_sample_addr_w },
 	{ 0x82, 0x82, m72_sample_w },
 	{ 0x83, 0x83, m72_sound_irq_ack_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOReadPort poundfor_sound_readport[] =
-{
+static PORT_READ_START( poundfor_sound_readport )
 	{ 0x41, 0x41, YM2151_status_port_0_r },
 	{ 0x42, 0x42, soundlatch_r },
 //	{ 0x84, 0x84, m72_sample_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort poundfor_sound_writeport[] =
-{
+static PORT_WRITE_START( poundfor_sound_writeport )
 	{ 0x40, 0x40, YM2151_register_port_0_w },
 	{ 0x41, 0x41, YM2151_data_port_0_w },
 	{ 0x42, 0x42, m72_sound_irq_ack_w },
 //	{ 0x80, 0x81, _sample_addr_w },
 //	{ 0x82, 0x82, m72_sample_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -1033,12 +973,12 @@ INPUT_PORTS_START( bchopper )
 	PORT_DIPSETTING(    0x02, "2" )
 	PORT_DIPSETTING(    0x03, "3" )
 	PORT_DIPSETTING(    0x01, "4" )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x08, "80k, 200k, 350k" )
+	PORT_DIPSETTING(    0x00, "100k, 250k, 400k" )
     /* Coin Mode 1 */
     COIN_MODE_1
     /* Coin Mode 2, not supported yet */
@@ -1054,9 +994,9 @@ INPUT_PORTS_START( bchopper )
 	PORT_DIPNAME( 0x04, 0x04, "Coin Mode" )
 	PORT_DIPSETTING(    0x04, "Mode 1" )
 	PORT_DIPSETTING(    0x00, "Mode 2" )
-	PORT_DIPNAME( 0x08, 0x08, "Weapons Cost" )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Difficulty ) )
 	PORT_DIPSETTING(    0x08, "Normal" )
-	PORT_DIPSETTING(    0x00, "Double" )
+	PORT_DIPSETTING(    0x00, "Hard" )
 	PORT_DIPNAME( 0x10, 0x10, "Allow Continue" )
 	PORT_DIPSETTING(    0x00, DEF_STR( No ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Yes ) )
@@ -1104,12 +1044,11 @@ INPUT_PORTS_START( nspirit )
 	PORT_DIPSETTING(    0x03, "3" )
 	PORT_DIPSETTING(    0x01, "4" )
 	PORT_DIPSETTING(    0x00, "5" )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) ) /* Probably Bonus Life */
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x08, "Easy" )
+	PORT_DIPSETTING(    0x0c, "Normal" )
+	PORT_DIPSETTING(    0x04, "Hard" )
+	PORT_DIPSETTING(    0x00, "Hardest" )
     /* Coin Mode 1 */
     COIN_MODE_1
     /* Coin Mode 2, not supported yet */
@@ -1175,12 +1114,11 @@ INPUT_PORTS_START( imgfight )
 	PORT_DIPSETTING(    0x03, "3" )
 	PORT_DIPSETTING(    0x01, "4" )
 	PORT_DIPSETTING(    0x00, "5" )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x0c, "Normal" )
+	PORT_DIPSETTING(    0x08, "Hard" )
+	PORT_DIPSETTING(    0x04, "Hardest" )
+	PORT_DIPSETTING(    0x00, "Debug mode 2lap" )
     /* Coin Mode 1 */
     COIN_MODE_1
     /* Coin Mode 2, not supported yet */
@@ -1386,12 +1324,11 @@ INPUT_PORTS_START( dbreed )
 	PORT_DIPSETTING(    0x03, "3" )
 	PORT_DIPSETTING(    0x01, "4" )
 	PORT_DIPSETTING(    0x00, "5" )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x08, "Easy" )
+	PORT_DIPSETTING(    0x0c, "Normal" )
+	PORT_DIPSETTING(    0x04, "Hard" )
+	PORT_DIPSETTING(    0x00, "Hardest" )
     /* Coin Mode 1 */
     COIN_MODE_1
     /* Coin Mode 2, not supported yet */
@@ -1458,7 +1395,7 @@ INPUT_PORTS_START( rtype2 )
 	PORT_DIPSETTING(    0x01, "4" )
 	PORT_DIPSETTING(    0x00, "5" )
 	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
-	PORT_DIPSETTING(    0x00, "Very Easy" )
+	PORT_DIPSETTING(    0x00, "Easiest" )
 	PORT_DIPSETTING(    0x08, "Easy" )
 	PORT_DIPSETTING(    0x0c, "Normal" )
 	PORT_DIPSETTING(    0x04, "Hard" )
@@ -1578,6 +1515,18 @@ INPUT_PORTS_END
 
 INPUT_PORTS_START( poundfor )
 	PORT_START
+	PORT_BIT( 0x1f, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* high bits of trackball X */
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+
+	PORT_START
+	PORT_BIT( 0x1f, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* high bits of trackball X */
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+
+	PORT_START
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
@@ -1615,7 +1564,7 @@ INPUT_PORTS_START( poundfor )
 	PORT_SERVICE( 0x80, IP_ACTIVE_LOW )
 
 	PORT_START
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Flip_Screen ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
@@ -1648,18 +1597,6 @@ INPUT_PORTS_START( poundfor )
 	PORT_DIPSETTING(    0x00, DEF_STR( Free_Play ) )
     /* Coin Mode 2, not supported yet */
     // COIN_MODE_2
-
-	PORT_START
-	PORT_BIT( 0x1f, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* high bits of trackball X */
-	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_BUTTON2 | IPF_PLAYER1 )
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_PLAYER1 )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
-
-	PORT_START
-	PORT_BIT( 0x1f, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* high bits of trackball X */
-	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_BUTTON2 | IPF_PLAYER2 )
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_PLAYER2 )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 
 	PORT_START
 	PORT_ANALOG( 0xffff, 0x0000, IPT_TRACKBALL_X | IPF_PLAYER1, 50, 30, 0, 0 )
@@ -2005,6 +1942,54 @@ static const struct MachineDriver machine_driver_m72 =
 	}
 };
 
+static const struct MachineDriver machine_driver_dkgenm72 =
+{
+	/* basic machine hardware */
+	{
+		{
+			CPU_V30,
+			16000000,	/* ?? */
+			m72_readmem,m72_writemem,readport,xmultipl_writeport,
+			m72_interrupt,256
+		},
+		{
+			CPU_Z80 | CPU_AUDIO_CPU,
+			3579545,	/* 3.579545 MHz */
+			sound_readmem,sound_writemem,sound_readport,sound_writeport,
+			nmi_interrupt,128	/* clocked by V1? (Vigilante) */
+								/* IRQs are generated by main Z80 and YM2151 */
+		}
+	},
+	55, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
+	1,	/* 1 CPU slice per frame - interleaving is forced when a sound command is written */
+	xmultipl_init_machine,
+
+	/* video hardware */
+	512, 512, { 8*8, (64-8)*8-1, 16*8, (64-16)*8-1 },
+	m72_gfxdecodeinfo,
+	1024, 1024,
+	0,
+
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	m72_eof_callback,
+	m72_vh_start,
+	m72_vh_stop,
+	m72_vh_screenrefresh,
+
+	/* sound hardware */
+	SOUND_SUPPORTS_STEREO,0,0,0,
+	{
+		{
+			SOUND_YM2151,
+			&ym2151_interface
+		},
+		{
+			SOUND_DAC,
+			&dac_interface
+		}
+	}
+};
+
 static const struct MachineDriver machine_driver_xmultipl =
 {
 	/* basic machine hardware */
@@ -2083,9 +2068,9 @@ static const struct MachineDriver machine_driver_dbreed =
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
 	m72_eof_callback,
-	dbreed_vh_start,
+	m72_vh_start,
 	m72_vh_stop,
-	dbreed_vh_screenrefresh,
+	m72_vh_screenrefresh,
 
 	/* sound hardware */
 	SOUND_SUPPORTS_STEREO,0,0,0,
@@ -2156,7 +2141,7 @@ static const struct MachineDriver machine_driver_majtitle =
 		{
 			CPU_V30,
 			16000000,	/* ?? */
-			majtitle_readmem,majtitle_writemem,readport,rtype2_writeport,
+			majtitle_readmem,majtitle_writemem,readport,majtitle_writeport,
 			m72_interrupt,256
 		},
 		{
@@ -2350,18 +2335,18 @@ static const struct MachineDriver machine_driver_poundfor =
 ***************************************************************************/
 
 ROM_START( rtype )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "rt_r-h0-.bin", 0x00000, 0x10000, 0xc2940df2 )
-	ROM_LOAD_V20_ODD ( "rt_r-l0-.bin", 0x00000, 0x10000, 0x858cc0f6 )
-	ROM_LOAD_V20_EVEN( "rt_r-h1-.bin", 0x20000, 0x10000, 0x5bcededa )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "rt_r-l1-.bin", 0x20000, 0x10000, 0x4821141c )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "rt_r-h0-.bin", 0x00001, 0x10000, 0xc2940df2 )
+	ROM_LOAD16_BYTE( "rt_r-l0-.bin", 0x00000, 0x10000, 0x858cc0f6 )
+	ROM_LOAD16_BYTE( "rt_r-h1-.bin", 0x20001, 0x10000, 0x5bcededa )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "rt_r-l1-.bin", 0x20000, 0x10000, 0x4821141c )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-00.bin",   0x00000, 0x10000, 0xdad53bc0 )	/* sprites */
 	ROM_LOAD( "cpu-01.bin",   0x10000, 0x10000, 0xb28d1a60 )
 	ROM_LOAD( "cpu-10.bin",   0x20000, 0x10000, 0xd6a66298 )
@@ -2371,13 +2356,13 @@ ROM_START( rtype )
 	ROM_LOAD( "cpu-30.bin",   0x60000, 0x10000, 0xeb02a1cb )
 	ROM_LOAD( "cpu-31.bin",   0x70000, 0x10000, 0x2bec510a )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-a0.bin",   0x00000, 0x08000, 0x4e212fb0 )	/* tiles #1 */
 	ROM_LOAD( "cpu-a1.bin",   0x08000, 0x08000, 0x8a65bdff )
 	ROM_LOAD( "cpu-a2.bin",   0x10000, 0x08000, 0x5a4ae5b9 )
 	ROM_LOAD( "cpu-a3.bin",   0x18000, 0x08000, 0x73327606 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-b0.bin",   0x00000, 0x08000, 0xa7b17491 )	/* tiles #2 */
 	ROM_LOAD( "cpu-b1.bin",   0x08000, 0x08000, 0xb9709686 )
 	ROM_LOAD( "cpu-b2.bin",   0x10000, 0x08000, 0x433b229a )
@@ -2385,18 +2370,18 @@ ROM_START( rtype )
 ROM_END
 
 ROM_START( rtypepj )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "db_b1.bin",   0x00000, 0x10000, 0xc1865141 )
-	ROM_LOAD_V20_ODD ( "db_a1.bin",   0x00000, 0x10000, 0x5ad2bd90 )
-	ROM_LOAD_V20_EVEN( "db_b2.bin",   0x20000, 0x10000, 0xb4f6407e )
-	ROM_RELOAD_V20_EVEN(              0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "db_a2.bin",   0x20000, 0x10000, 0x6098d86f )
-	ROM_RELOAD_V20_ODD (              0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "db_b1.bin",   0x00001, 0x10000, 0xc1865141 )
+	ROM_LOAD16_BYTE( "db_a1.bin",   0x00000, 0x10000, 0x5ad2bd90 )
+	ROM_LOAD16_BYTE( "db_b2.bin",   0x20001, 0x10000, 0xb4f6407e )
+	ROM_RELOAD(                     0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "db_a2.bin",   0x20000, 0x10000, 0x6098d86f )
+	ROM_RELOAD(                     0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-00.bin",   0x00000, 0x10000, 0xdad53bc0 )	/* sprites */
 	ROM_LOAD( "cpu-01.bin",   0x10000, 0x10000, 0xb28d1a60 )
 	ROM_LOAD( "cpu-10.bin",   0x20000, 0x10000, 0xd6a66298 )
@@ -2406,13 +2391,13 @@ ROM_START( rtypepj )
 	ROM_LOAD( "cpu-30.bin",   0x60000, 0x10000, 0xeb02a1cb )
 	ROM_LOAD( "cpu-31.bin",   0x70000, 0x10000, 0x2bec510a )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-a0.bin",   0x00000, 0x08000, 0x4e212fb0 )	/* tiles #1 */
 	ROM_LOAD( "cpu-a1.bin",   0x08000, 0x08000, 0x8a65bdff )
 	ROM_LOAD( "cpu-a2.bin",   0x10000, 0x08000, 0x5a4ae5b9 )
 	ROM_LOAD( "cpu-a3.bin",   0x18000, 0x08000, 0x73327606 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-b0.bin",   0x00000, 0x08000, 0xa7b17491 )	/* tiles #2 */
 	ROM_LOAD( "cpu-b1.bin",   0x08000, 0x08000, 0xb9709686 )
 	ROM_LOAD( "cpu-b2.bin",   0x10000, 0x08000, 0x433b229a )
@@ -2420,18 +2405,18 @@ ROM_START( rtypepj )
 ROM_END
 
 ROM_START( rtypeu )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "aud-h0.bin",   0x00000, 0x10000, 0x36008a4e )
-	ROM_LOAD_V20_ODD ( "aud-l0.bin",   0x00000, 0x10000, 0x4aaa668e )
-	ROM_LOAD_V20_EVEN( "aud-h1.bin",   0x20000, 0x10000, 0x7ebb2a53 )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "aud-l1.bin",   0x20000, 0x10000, 0xc28b103b )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "aud-h0.bin",   0x00001, 0x10000, 0x36008a4e )
+	ROM_LOAD16_BYTE( "aud-l0.bin",   0x00000, 0x10000, 0x4aaa668e )
+	ROM_LOAD16_BYTE( "aud-h1.bin",   0x20001, 0x10000, 0x7ebb2a53 )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "aud-l1.bin",   0x20000, 0x10000, 0xc28b103b )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-00.bin",   0x00000, 0x10000, 0xdad53bc0 )	/* sprites */
 	ROM_LOAD( "cpu-01.bin",   0x10000, 0x10000, 0xb28d1a60 )
 	ROM_LOAD( "cpu-10.bin",   0x20000, 0x10000, 0xd6a66298 )
@@ -2441,13 +2426,13 @@ ROM_START( rtypeu )
 	ROM_LOAD( "cpu-30.bin",   0x60000, 0x10000, 0xeb02a1cb )
 	ROM_LOAD( "cpu-31.bin",   0x70000, 0x10000, 0x2bec510a )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-a0.bin",   0x00000, 0x08000, 0x4e212fb0 )	/* tiles #1 */
 	ROM_LOAD( "cpu-a1.bin",   0x08000, 0x08000, 0x8a65bdff )
 	ROM_LOAD( "cpu-a2.bin",   0x10000, 0x08000, 0x5a4ae5b9 )
 	ROM_LOAD( "cpu-a3.bin",   0x18000, 0x08000, 0x73327606 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cpu-b0.bin",   0x00000, 0x08000, 0xa7b17491 )	/* tiles #2 */
 	ROM_LOAD( "cpu-b1.bin",   0x08000, 0x08000, 0xb9709686 )
 	ROM_LOAD( "cpu-b2.bin",   0x10000, 0x08000, 0x433b229a )
@@ -2455,20 +2440,20 @@ ROM_START( rtypeu )
 ROM_END
 
 ROM_START( bchopper )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "c-h0-b.rom",   0x00000, 0x10000, 0xf2feab16 )
-	ROM_LOAD_V20_ODD ( "c-l0-b.rom",   0x00000, 0x10000, 0x9f887096 )
-	ROM_LOAD_V20_EVEN( "c-h1-b.rom",   0x20000, 0x10000, 0xa995d64f )
-	ROM_LOAD_V20_ODD ( "c-l1-b.rom",   0x20000, 0x10000, 0x41dda999 )
-	ROM_LOAD_V20_EVEN( "c-h3-b.rom",   0x60000, 0x10000, 0xab9451ca )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "c-l3-b.rom",   0x60000, 0x10000, 0x11562221 )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "c-h0-b.rom",   0x00001, 0x10000, 0xf2feab16 )
+	ROM_LOAD16_BYTE( "c-l0-b.rom",   0x00000, 0x10000, 0x9f887096 )
+	ROM_LOAD16_BYTE( "c-h1-b.rom",   0x20001, 0x10000, 0xa995d64f )
+	ROM_LOAD16_BYTE( "c-l1-b.rom",   0x20000, 0x10000, 0x41dda999 )
+	ROM_LOAD16_BYTE( "c-h3-b.rom",   0x60001, 0x10000, 0xab9451ca )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "c-l3-b.rom",   0x60000, 0x10000, 0x11562221 )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c-00-a.rom",   0x00000, 0x10000, 0xf6e6e660 )	/* sprites */
 	ROM_LOAD( "c-01-b.rom",   0x10000, 0x10000, 0x708cdd37 )
 	ROM_LOAD( "c-10-a.rom",   0x20000, 0x10000, 0x292c8520 )
@@ -2478,216 +2463,216 @@ ROM_START( bchopper )
 	ROM_LOAD( "c-30-a.rom",   0x60000, 0x10000, 0x11f6c56b )
 	ROM_LOAD( "c-31-b.rom",   0x70000, 0x10000, 0x23134ec5 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "b-a0-b.rom",   0x00000, 0x10000, 0xe46ed7bf )	/* tiles #1 */
 	ROM_LOAD( "b-a1-b.rom",   0x10000, 0x10000, 0x590605ff )
 	ROM_LOAD( "b-a2-b.rom",   0x20000, 0x10000, 0xf8158226 )
 	ROM_LOAD( "b-a3-b.rom",   0x30000, 0x10000, 0x0f07b9b7 )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "b-b0-.rom",    0x00000, 0x10000, 0xb5b95776 )	/* tiles #2 */
 	ROM_LOAD( "b-b1-.rom",    0x10000, 0x10000, 0x74ca16ee )
 	ROM_LOAD( "b-b2-.rom",    0x20000, 0x10000, 0xb82cca04 )
 	ROM_LOAD( "b-b3-.rom",    0x30000, 0x10000, 0xa7afc920 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "c-v0-b.rom",   0x00000, 0x10000, 0xd0c27e58 )
 ROM_END
 
 ROM_START( mrheli )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "mh-c-h0.bin",  0x00000, 0x10000, 0xe2ca5646 )
-	ROM_LOAD_V20_ODD ( "mh-c-l0.bin",  0x00000, 0x10000, 0x643e23cd )
-	ROM_LOAD_V20_EVEN( "mh-c-h1.bin",  0x20000, 0x10000, 0x8974e84d )
-	ROM_LOAD_V20_ODD ( "mh-c-l1.bin",  0x20000, 0x10000, 0x5f8bda69 )
-	ROM_LOAD_V20_EVEN( "mh-c-h3.bin",  0x60000, 0x10000, 0x143f596e )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "mh-c-l3.bin",  0x60000, 0x10000, 0xc0982536 )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "mh-c-h0.bin",  0x00001, 0x10000, 0xe2ca5646 )
+	ROM_LOAD16_BYTE( "mh-c-l0.bin",  0x00000, 0x10000, 0x643e23cd )
+	ROM_LOAD16_BYTE( "mh-c-h1.bin",  0x20001, 0x10000, 0x8974e84d )
+	ROM_LOAD16_BYTE( "mh-c-l1.bin",  0x20000, 0x10000, 0x5f8bda69 )
+	ROM_LOAD16_BYTE( "mh-c-h3.bin",  0x60001, 0x10000, 0x143f596e )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "mh-c-l3.bin",  0x60000, 0x10000, 0xc0982536 )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mh-c-00.bin",  0x00000, 0x20000, 0xdec4e121 )	/* sprites */
 	ROM_LOAD( "mh-c-10.bin",  0x20000, 0x20000, 0x7aaa151e )
 	ROM_LOAD( "mh-c-20.bin",  0x40000, 0x20000, 0xeae0de74 )
 	ROM_LOAD( "mh-c-30.bin",  0x60000, 0x20000, 0x01d5052f )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mh-b-a0.bin",  0x00000, 0x10000, 0x6a0db256 )	/* tiles #1 */
 	ROM_LOAD( "mh-b-a1.bin",  0x10000, 0x10000, 0x14ec9795 )
 	ROM_LOAD( "mh-b-a2.bin",  0x20000, 0x10000, 0xdfcb510e )
 	ROM_LOAD( "mh-b-a3.bin",  0x30000, 0x10000, 0x957e329b )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "b-b0-.rom",    0x00000, 0x10000, 0xb5b95776 )	/* tiles #2 */
 	ROM_LOAD( "b-b1-.rom",    0x10000, 0x10000, 0x74ca16ee )
 	ROM_LOAD( "b-b2-.rom",    0x20000, 0x10000, 0xb82cca04 )
 	ROM_LOAD( "b-b3-.rom",    0x30000, 0x10000, 0xa7afc920 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "c-v0-b.rom",   0x00000, 0x10000, 0xd0c27e58 )
 ROM_END
 
 ROM_START( nspirit )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "nin-c-h0.rom", 0x00000, 0x10000, 0x035692fa )
-	ROM_LOAD_V20_ODD ( "nin-c-l0.rom", 0x00000, 0x10000, 0x9a405898 )
-	ROM_LOAD_V20_EVEN( "nin-c-h1.rom", 0x20000, 0x10000, 0xcbc10586 )
-	ROM_LOAD_V20_ODD ( "nin-c-l1.rom", 0x20000, 0x10000, 0xb75c9a4d )
-	ROM_LOAD_V20_EVEN( "nin-c-h2.rom", 0x40000, 0x10000, 0x8ad818fa )
-	ROM_LOAD_V20_ODD ( "nin-c-l2.rom", 0x40000, 0x10000, 0xc52ca78c )
-	ROM_LOAD_V20_EVEN( "nin-c-h3.rom", 0x60000, 0x10000, 0x501104ef )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "nin-c-l3.rom", 0x60000, 0x10000, 0xfd7408b8 )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "nin-c-h0.rom", 0x00001, 0x10000, 0x035692fa )
+	ROM_LOAD16_BYTE( "nin-c-l0.rom", 0x00000, 0x10000, 0x9a405898 )
+	ROM_LOAD16_BYTE( "nin-c-h1.rom", 0x20001, 0x10000, 0xcbc10586 )
+	ROM_LOAD16_BYTE( "nin-c-l1.rom", 0x20000, 0x10000, 0xb75c9a4d )
+	ROM_LOAD16_BYTE( "nin-c-h2.rom", 0x40001, 0x10000, 0x8ad818fa )
+	ROM_LOAD16_BYTE( "nin-c-l2.rom", 0x40000, 0x10000, 0xc52ca78c )
+	ROM_LOAD16_BYTE( "nin-c-h3.rom", 0x60001, 0x10000, 0x501104ef )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "nin-c-l3.rom", 0x60000, 0x10000, 0xfd7408b8 )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "nin-r00.rom",  0x00000, 0x20000, 0x5f61d30b )	/* sprites */
 	ROM_LOAD( "nin-r10.rom",  0x20000, 0x20000, 0x0caad107 )
 	ROM_LOAD( "nin-r20.rom",  0x40000, 0x20000, 0xef3617d3 )
 	ROM_LOAD( "nin-r30.rom",  0x60000, 0x20000, 0x175d2a24 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "nin-b-a0.rom", 0x00000, 0x10000, 0x63f8f658 )	/* tiles #1 */
 	ROM_LOAD( "nin-b-a1.rom", 0x10000, 0x10000, 0x75eb8306 )
 	ROM_LOAD( "nin-b-a2.rom", 0x20000, 0x10000, 0xdf532172 )
 	ROM_LOAD( "nin-b-a3.rom", 0x30000, 0x10000, 0x4dedd64c )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "nin-b0.rom",   0x00000, 0x10000, 0x1b0e08a6 )	/* tiles #2 */
 	ROM_LOAD( "nin-b1.rom",   0x10000, 0x10000, 0x728727f0 )
 	ROM_LOAD( "nin-b2.rom",   0x20000, 0x10000, 0xf87efd75 )
 	ROM_LOAD( "nin-b3.rom",   0x30000, 0x10000, 0x98856cb4 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "nin-v0.rom",   0x00000, 0x10000, 0xa32e8caf )
 ROM_END
 
 ROM_START( nspiritj )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "c-h0",         0x00000, 0x10000, 0x8603fab2 )
-	ROM_LOAD_V20_ODD ( "c-l0",         0x00000, 0x10000, 0xe520fa35 )
-	ROM_LOAD_V20_EVEN( "nin-c-h1.rom", 0x20000, 0x10000, 0xcbc10586 )
-	ROM_LOAD_V20_ODD ( "nin-c-l1.rom", 0x20000, 0x10000, 0xb75c9a4d )
-	ROM_LOAD_V20_EVEN( "nin-c-h2.rom", 0x40000, 0x10000, 0x8ad818fa )
-	ROM_LOAD_V20_ODD ( "nin-c-l2.rom", 0x40000, 0x10000, 0xc52ca78c )
-	ROM_LOAD_V20_EVEN( "c-h3",         0x60000, 0x10000, 0x95b63a61 )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "c-l3",         0x60000, 0x10000, 0xe754a87a )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "c-h0",         0x00001, 0x10000, 0x8603fab2 )
+	ROM_LOAD16_BYTE( "c-l0",         0x00000, 0x10000, 0xe520fa35 )
+	ROM_LOAD16_BYTE( "nin-c-h1.rom", 0x20001, 0x10000, 0xcbc10586 )
+	ROM_LOAD16_BYTE( "nin-c-l1.rom", 0x20000, 0x10000, 0xb75c9a4d )
+	ROM_LOAD16_BYTE( "nin-c-h2.rom", 0x40001, 0x10000, 0x8ad818fa )
+	ROM_LOAD16_BYTE( "nin-c-l2.rom", 0x40000, 0x10000, 0xc52ca78c )
+	ROM_LOAD16_BYTE( "c-h3",         0x60001, 0x10000, 0x95b63a61 )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "c-l3",         0x60000, 0x10000, 0xe754a87a )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "nin-r00.rom",  0x00000, 0x20000, 0x5f61d30b )	/* sprites */
 	ROM_LOAD( "nin-r10.rom",  0x20000, 0x20000, 0x0caad107 )
 	ROM_LOAD( "nin-r20.rom",  0x40000, 0x20000, 0xef3617d3 )
 	ROM_LOAD( "nin-r30.rom",  0x60000, 0x20000, 0x175d2a24 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "nin-b-a0.rom", 0x00000, 0x10000, 0x63f8f658 )	/* tiles #1 */
 	ROM_LOAD( "nin-b-a1.rom", 0x10000, 0x10000, 0x75eb8306 )
 	ROM_LOAD( "nin-b-a2.rom", 0x20000, 0x10000, 0xdf532172 )
 	ROM_LOAD( "nin-b-a3.rom", 0x30000, 0x10000, 0x4dedd64c )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "nin-b0.rom",   0x00000, 0x10000, 0x1b0e08a6 )	/* tiles #2 */
 	ROM_LOAD( "nin-b1.rom",   0x10000, 0x10000, 0x728727f0 )
 	ROM_LOAD( "nin-b2.rom",   0x20000, 0x10000, 0xf87efd75 )
 	ROM_LOAD( "nin-b3.rom",   0x30000, 0x10000, 0x98856cb4 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "nin-v0.rom",   0x00000, 0x10000, 0xa32e8caf )
 ROM_END
 
 ROM_START( imgfight )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "if-c-h0.bin",  0x00000, 0x10000, 0x592d2d80 )
-	ROM_LOAD_V20_ODD ( "if-c-l0.bin",  0x00000, 0x10000, 0x61f89056 )
-	ROM_LOAD_V20_EVEN( "if-c-h3.bin",  0x40000, 0x20000, 0xea030541 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "if-c-l3.bin",  0x40000, 0x20000, 0xc66ae348 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "if-c-h0.bin",  0x00001, 0x10000, 0x592d2d80 )
+	ROM_LOAD16_BYTE( "if-c-l0.bin",  0x00000, 0x10000, 0x61f89056 )
+	ROM_LOAD16_BYTE( "if-c-h3.bin",  0x40001, 0x20000, 0xea030541 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "if-c-l3.bin",  0x40000, 0x20000, 0xc66ae348 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "if-c-00.bin",  0x00000, 0x20000, 0x745e6638 )	/* sprites */
 	ROM_LOAD( "if-c-10.bin",  0x20000, 0x20000, 0xb7108449 )
 	ROM_LOAD( "if-c-20.bin",  0x40000, 0x20000, 0xaef33cba )
 	ROM_LOAD( "if-c-30.bin",  0x60000, 0x20000, 0x1f98e695 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "if-a-a0.bin",  0x00000, 0x10000, 0x34ee2d77 )	/* tiles #1 */
 	ROM_LOAD( "if-a-a1.bin",  0x10000, 0x10000, 0x6bd2845b )
 	ROM_LOAD( "if-a-a2.bin",  0x20000, 0x10000, 0x090d50e5 )
 	ROM_LOAD( "if-a-a3.bin",  0x30000, 0x10000, 0x3a8e3083 )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "if-a-b0.bin",  0x00000, 0x10000, 0xb425c829 )	/* tiles #2 */
 	ROM_LOAD( "if-a-b1.bin",  0x10000, 0x10000, 0xe9bfe23e )
 	ROM_LOAD( "if-a-b2.bin",  0x20000, 0x10000, 0x256e50f2 )
 	ROM_LOAD( "if-a-b3.bin",  0x30000, 0x10000, 0x4c682785 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "if-c-v0.bin",  0x00000, 0x10000, 0xcb64a194 )
 	ROM_LOAD( "if-c-v1.bin",  0x10000, 0x10000, 0x45b68bf5 )
 ROM_END
 
 ROM_START( loht )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "tom_c-h0.rom", 0x00000, 0x20000, 0xa63204b6 )
-	ROM_LOAD_V20_ODD ( "tom_c-l0.rom", 0x00000, 0x20000, 0xe788002f )
-	ROM_LOAD_V20_EVEN( "tom_c-h3.rom", 0x40000, 0x20000, 0x714778b5 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "tom_c-l3.rom", 0x40000, 0x20000, 0x2f049b03 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "tom_c-h0.rom", 0x00001, 0x20000, 0xa63204b6 )
+	ROM_LOAD16_BYTE( "tom_c-l0.rom", 0x00000, 0x20000, 0xe788002f )
+	ROM_LOAD16_BYTE( "tom_c-h3.rom", 0x40001, 0x20000, 0x714778b5 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "tom_c-l3.rom", 0x40000, 0x20000, 0x2f049b03 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tom_m53.rom",  0x00000, 0x20000, 0x0b83265f )	/* sprites */
 	ROM_LOAD( "tom_m51.rom",  0x20000, 0x20000, 0x8ec5f6f3 )
 	ROM_LOAD( "tom_m49.rom",  0x40000, 0x20000, 0xa41d3bfd )
 	ROM_LOAD( "tom_m47.rom",  0x60000, 0x20000, 0x9d81a25b )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tom_m21.rom",  0x00000, 0x10000, 0x3ca3e771 )	/* tiles #1 */
 	ROM_LOAD( "tom_m22.rom",  0x10000, 0x10000, 0x7a05ee2f )
 	ROM_LOAD( "tom_m20.rom",  0x20000, 0x10000, 0x79aa2335 )
 	ROM_LOAD( "tom_m23.rom",  0x30000, 0x10000, 0x789e8b24 )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "tom_m26.rom",  0x00000, 0x10000, 0x44626bf6 )	/* tiles #2 */
 	ROM_LOAD( "tom_m27.rom",  0x10000, 0x10000, 0x464952cf )
 	ROM_LOAD( "tom_m25.rom",  0x20000, 0x10000, 0x3db9b2c7 )
 	ROM_LOAD( "tom_m24.rom",  0x30000, 0x10000, 0xf01fe899 )
 
-	ROM_REGION( 0x10000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "tom_m44.rom",  0x00000, 0x10000, 0x3ed51d1f )
 ROM_END
 
 ROM_START( xmultipl )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "ch3.h3",       0x00000, 0x20000, 0x20685021 )
-	ROM_LOAD_V20_ODD ( "cl3.l3",       0x00000, 0x20000, 0x93fdd200 )
-	ROM_LOAD_V20_EVEN( "ch0.h0",       0x40000, 0x10000, 0x9438dd8a )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "cl0.l0",       0x40000, 0x10000, 0x06a9e213 )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "ch3.h3",       0x00001, 0x20000, 0x20685021 )
+	ROM_LOAD16_BYTE( "cl3.l3",       0x00000, 0x20000, 0x93fdd200 )
+	ROM_LOAD16_BYTE( "ch0.h0",       0x40001, 0x10000, 0x9438dd8a )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "cl0.l0",       0x40000, 0x10000, 0x06a9e213 )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "t44.00",       0x00000, 0x20000, 0xdb45186e )	/* sprites */
 	ROM_LOAD( "t45.01",       0x20000, 0x20000, 0x4d0764d4 )
 	ROM_LOAD( "t46.10",       0x40000, 0x20000, 0xf0c465a4 )
@@ -2697,75 +2682,75 @@ ROM_START( xmultipl )
 	ROM_LOAD( "t50.30",       0xc0000, 0x20000, 0xe322543e )
 	ROM_LOAD( "t51.31",       0xe0000, 0x20000, 0x229bf7b1 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "t53.a0",       0x00000, 0x20000, 0x1a082494 )	/* tiles #1 */
 	ROM_LOAD( "t54.a1",       0x20000, 0x20000, 0x076c16c5 )
 	ROM_LOAD( "t55.a2",       0x40000, 0x20000, 0x25d877a5 )
 	ROM_LOAD( "t56.a3",       0x60000, 0x20000, 0x5b1213f5 )
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "t57.b0",       0x00000, 0x20000, 0x0a84e0c7 )	/* tiles #2 */
 	ROM_LOAD( "t58.b1",       0x20000, 0x20000, 0xa874121d )
 	ROM_LOAD( "t59.b2",       0x40000, 0x20000, 0x69deb990 )
 	ROM_LOAD( "t60.b3",       0x60000, 0x20000, 0x14c69f99 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "t52.v0",       0x00000, 0x20000, 0x2db1bd80 )
 ROM_END
 
 ROM_START( dbreed )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "db_c-h3.rom",  0x00000, 0x20000, 0x4bf3063c )
-	ROM_LOAD_V20_ODD ( "db_c-l3.rom",  0x00000, 0x20000, 0xe4b89b79 )
-	ROM_LOAD_V20_EVEN( "db_c-h0.rom",  0x60000, 0x10000, 0x5aa79fb2 )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "db_c-l0.rom",  0x60000, 0x10000, 0xed0f5e06 )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "db_c-h3.rom",  0x00001, 0x20000, 0x4bf3063c )
+	ROM_LOAD16_BYTE( "db_c-l3.rom",  0x00000, 0x20000, 0xe4b89b79 )
+	ROM_LOAD16_BYTE( "db_c-h0.rom",  0x60001, 0x10000, 0x5aa79fb2 )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "db_c-l0.rom",  0x60000, 0x10000, 0xed0f5e06 )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "db_k800m.rom", 0x00000, 0x20000, 0xc027a8cf )	/* sprites */
 	ROM_LOAD( "db_k801m.rom", 0x20000, 0x20000, 0x093faf33 )
 	ROM_LOAD( "db_k802m.rom", 0x40000, 0x20000, 0x055b4c59 )
 	ROM_LOAD( "db_k803m.rom", 0x60000, 0x20000, 0x8ed63922 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "db_a0m.rom",   0x00000, 0x20000, 0x4c83e92e )	/* tiles #1 */
 	ROM_LOAD( "db_a1m.rom",   0x20000, 0x20000, 0x835ef268 )
 	ROM_LOAD( "db_a2m.rom",   0x40000, 0x20000, 0x5117f114 )
 	ROM_LOAD( "db_a3m.rom",   0x60000, 0x20000, 0x8eb0c978 )
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "db_b0m.rom",   0x00000, 0x20000, 0x4c83e92e )	/* tiles #2 */
 	ROM_LOAD( "db_b1m.rom",   0x20000, 0x20000, 0x835ef268 )
 	ROM_LOAD( "db_b2m.rom",   0x40000, 0x20000, 0x5117f114 )
 	ROM_LOAD( "db_b3m.rom",   0x60000, 0x20000, 0x8eb0c978 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "db_c-v0.rom",  0x00000, 0x20000, 0x312f7282 )
 ROM_END
 
 ROM_START( rtype2 )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "ic54.8d",      0x00000, 0x20000, 0xd8ece6f4 )
-	ROM_LOAD_V20_ODD ( "ic60.9d",      0x00000, 0x20000, 0x32cfb2e4 )
-	ROM_LOAD_V20_EVEN( "ic53.8b",      0x40000, 0x20000, 0x4f6e9b15 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "ic59.9b",      0x40000, 0x20000, 0x0fd123bf )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "ic54.8d",      0x00001, 0x20000, 0xd8ece6f4 )
+	ROM_LOAD16_BYTE( "ic60.9d",      0x00000, 0x20000, 0x32cfb2e4 )
+	ROM_LOAD16_BYTE( "ic53.8b",      0x40001, 0x20000, 0x4f6e9b15 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "ic59.9b",      0x40000, 0x20000, 0x0fd123bf )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic17.4f",      0x0000, 0x10000, 0x73ffecb4 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic31.6l",      0x00000, 0x20000, 0x2cd8f913 )	/* sprites */
 	ROM_LOAD( "ic21.4l",      0x20000, 0x20000, 0x5033066d )
 	ROM_LOAD( "ic32.6m",      0x40000, 0x20000, 0xec3a0450 )
 	ROM_LOAD( "ic22.4m",      0x60000, 0x20000, 0xdb6176fc )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic50.7s",      0x00000, 0x20000, 0xf3f8736e )	/* tiles */
 	ROM_LOAD( "ic51.7u",      0x20000, 0x20000, 0xb4c543af )
 	ROM_LOAD( "ic56.8s",      0x40000, 0x20000, 0x4cb80d66 )
@@ -2775,29 +2760,29 @@ ROM_START( rtype2 )
 	ROM_LOAD( "ic63.9m",      0xc0000, 0x20000, 0xa6ad67f2 )
 	ROM_LOAD( "ic64.9p",      0xe0000, 0x20000, 0x3686d555 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ic14.4c",      0x00000, 0x20000, 0x637172d5 )
 ROM_END
 
 ROM_START( rtype2j )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "rt2-a-h0.54",  0x00000, 0x20000, 0x7857ccf6 )
-	ROM_LOAD_V20_ODD ( "rt2-a-l0.60",  0x00000, 0x20000, 0xcb22cd6e )
-	ROM_LOAD_V20_EVEN( "rt2-a-h1.53",  0x40000, 0x20000, 0x49e75d28 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "rt2-a-l1.59",  0x40000, 0x20000, 0x12ec1676 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "rt2-a-h0.54",  0x00001, 0x20000, 0x7857ccf6 )
+	ROM_LOAD16_BYTE( "rt2-a-l0.60",  0x00000, 0x20000, 0xcb22cd6e )
+	ROM_LOAD16_BYTE( "rt2-a-h1.53",  0x40001, 0x20000, 0x49e75d28 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "rt2-a-l1.59",  0x40000, 0x20000, 0x12ec1676 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic17.4f",      0x0000, 0x10000, 0x73ffecb4 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic31.6l",      0x00000, 0x20000, 0x2cd8f913 )	/* sprites */
 	ROM_LOAD( "ic21.4l",      0x20000, 0x20000, 0x5033066d )
 	ROM_LOAD( "ic32.6m",      0x40000, 0x20000, 0xec3a0450 )
 	ROM_LOAD( "ic22.4m",      0x60000, 0x20000, 0xdb6176fc )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic50.7s",      0x00000, 0x20000, 0xf3f8736e )	/* tiles */
 	ROM_LOAD( "ic51.7u",      0x20000, 0x20000, 0xb4c543af )
 	ROM_LOAD( "ic56.8s",      0x40000, 0x20000, 0x4cb80d66 )
@@ -2807,275 +2792,309 @@ ROM_START( rtype2j )
 	ROM_LOAD( "ic63.9m",      0xc0000, 0x20000, 0xa6ad67f2 )
 	ROM_LOAD( "ic64.9p",      0xe0000, 0x20000, 0x3686d555 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ic14.4c",      0x00000, 0x20000, 0x637172d5 )
 ROM_END
 
 ROM_START( majtitle )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "mt_m0.bin",    0x00000, 0x20000, 0xb9682c70 )
-	ROM_LOAD_V20_ODD ( "mt_l0.bin",    0x00000, 0x20000, 0x702c9fd6 )
-	ROM_LOAD_V20_EVEN( "mt_m1.bin",    0x40000, 0x20000, 0xd9e97c30 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "mt_l1.bin",    0x40000, 0x20000, 0x8dbd91b5 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "mt_m0.bin",    0x00001, 0x20000, 0xb9682c70 )
+	ROM_LOAD16_BYTE( "mt_l0.bin",    0x00000, 0x20000, 0x702c9fd6 )
+	ROM_LOAD16_BYTE( "mt_m1.bin",    0x40001, 0x20000, 0xd9e97c30 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "mt_l1.bin",    0x40000, 0x20000, 0x8dbd91b5 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "mt_sp.bin",    0x0000, 0x10000, 0xe44260a9 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mt_n0.bin",    0x00000, 0x40000, 0x5618cddc )	/* sprites #1 */
 	ROM_LOAD( "mt_n1.bin",    0x40000, 0x40000, 0x483b873b )
 	ROM_LOAD( "mt_n2.bin",    0x80000, 0x40000, 0x4f5d665b )
 	ROM_LOAD( "mt_n3.bin",    0xc0000, 0x40000, 0x83571549 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mt_c0.bin",    0x00000, 0x20000, 0x780e7a02 )	/* tiles */
 	ROM_LOAD( "mt_c1.bin",    0x20000, 0x20000, 0x45ad1381 )
 	ROM_LOAD( "mt_c2.bin",    0x40000, 0x20000, 0x5df5856d )
 	ROM_LOAD( "mt_c3.bin",    0x60000, 0x20000, 0xf5316cc8 )
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "mt_f0.bin",    0x00000, 0x20000, 0x2d5e05d5 )	/* sprites #2 */
 	ROM_LOAD( "mt_f1.bin",    0x20000, 0x20000, 0xc68cd65f )
 	ROM_LOAD( "mt_f2.bin",    0x40000, 0x20000, 0xa71feb2d )
 	ROM_LOAD( "mt_f3.bin",    0x60000, 0x20000, 0x179f7562 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "mt_vo.bin",    0x00000, 0x20000, 0xeb24bb2c )
 ROM_END
 
 ROM_START( hharry )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "a-h0-v.rom",   0x00000, 0x20000, 0xc52802a5 )
-	ROM_LOAD_V20_ODD ( "a-l0-v.rom",   0x00000, 0x20000, 0xf463074c )
-	ROM_LOAD_V20_EVEN( "a-h1-0.rom",   0x60000, 0x10000, 0x3ae21335 )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "a-l1-0.rom",   0x60000, 0x10000, 0xbc6ac5f9 )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "a-h0-v.rom",   0x00001, 0x20000, 0xc52802a5 )
+	ROM_LOAD16_BYTE( "a-l0-v.rom",   0x00000, 0x20000, 0xf463074c )
+	ROM_LOAD16_BYTE( "a-h1-0.rom",   0x60001, 0x10000, 0x3ae21335 )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "a-l1-0.rom",   0x60000, 0x10000, 0xbc6ac5f9 )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "a-sp-0.rom",   0x0000, 0x10000, 0x80e210e7 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "hh_00.rom",    0x00000, 0x20000, 0xec5127ef )	/* sprites */
 	ROM_LOAD( "hh_10.rom",    0x20000, 0x20000, 0xdef65294 )
 	ROM_LOAD( "hh_20.rom",    0x40000, 0x20000, 0xbb0d6ad4 )
 	ROM_LOAD( "hh_30.rom",    0x60000, 0x20000, 0x4351044e )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "hh_a0.rom",    0x00000, 0x20000, 0xc577ba5f )	/* tiles */
 	ROM_LOAD( "hh_a1.rom",    0x20000, 0x20000, 0x429d12ab )
 	ROM_LOAD( "hh_a2.rom",    0x40000, 0x20000, 0xb5b163b0 )
 	ROM_LOAD( "hh_a3.rom",    0x60000, 0x20000, 0x8ef566a1 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "a-v0-0.rom",   0x00000, 0x20000, 0xfaaacaff )
 ROM_END
 
 ROM_START( hharryu )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "a-ho-u.8d",    0x00000, 0x20000, 0xede7f755 )
-	ROM_LOAD_V20_ODD ( "a-lo-u.9d",    0x00000, 0x20000, 0xdf0726ae )
-	ROM_LOAD_V20_EVEN( "a-h1-f.8b",    0x60000, 0x10000, 0x31b741c5 )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "a-l1-f.9b",    0x60000, 0x10000, 0xb23e966c )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "a-ho-u.8d",    0x00001, 0x20000, 0xede7f755 )
+	ROM_LOAD16_BYTE( "a-lo-u.9d",    0x00000, 0x20000, 0xdf0726ae )
+	ROM_LOAD16_BYTE( "a-h1-f.8b",    0x60001, 0x10000, 0x31b741c5 )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "a-l1-f.9b",    0x60000, 0x10000, 0xb23e966c )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "a-sp-0.rom",   0x0000, 0x10000, 0x80e210e7 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "hh_00.rom",    0x00000, 0x20000, 0xec5127ef )	/* sprites */
 	ROM_LOAD( "hh_10.rom",    0x20000, 0x20000, 0xdef65294 )
 	ROM_LOAD( "hh_20.rom",    0x40000, 0x20000, 0xbb0d6ad4 )
 	ROM_LOAD( "hh_30.rom",    0x60000, 0x20000, 0x4351044e )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "hh_a0.rom",    0x00000, 0x20000, 0xc577ba5f )	/* tiles */
 	ROM_LOAD( "hh_a1.rom",    0x20000, 0x20000, 0x429d12ab )
 	ROM_LOAD( "hh_a2.rom",    0x40000, 0x20000, 0xb5b163b0 )
 	ROM_LOAD( "hh_a3.rom",    0x60000, 0x20000, 0x8ef566a1 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "a-v0-0.rom",   0x00000, 0x20000, 0xfaaacaff )
 ROM_END
 
 ROM_START( dkgensan )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "gen-a-h0.bin", 0x00000, 0x20000, 0x07a45f6d )
-	ROM_LOAD_V20_ODD ( "gen-a-l0.bin", 0x00000, 0x20000, 0x46478fea )
-	ROM_LOAD_V20_EVEN( "gen-a-h1.bin", 0x60000, 0x10000, 0x54e5b73c )
-	ROM_RELOAD_V20_EVEN(               0xe0000, 0x10000 )
-	ROM_LOAD_V20_ODD ( "gen-a-l1.bin", 0x60000, 0x10000, 0x894f8a9f )
-	ROM_RELOAD_V20_ODD (               0xe0000, 0x10000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "gen-a-h0.bin", 0x00001, 0x20000, 0x07a45f6d )
+	ROM_LOAD16_BYTE( "gen-a-l0.bin", 0x00000, 0x20000, 0x46478fea )
+	ROM_LOAD16_BYTE( "gen-a-h1.bin", 0x60001, 0x10000, 0x54e5b73c )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "gen-a-l1.bin", 0x60000, 0x10000, 0x894f8a9f )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "gen-a-sp.bin", 0x0000, 0x10000, 0xe83cfc2c )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "hh_00.rom",    0x00000, 0x20000, 0xec5127ef )	/* sprites */
 	ROM_LOAD( "hh_10.rom",    0x20000, 0x20000, 0xdef65294 )
 	ROM_LOAD( "hh_20.rom",    0x40000, 0x20000, 0xbb0d6ad4 )
 	ROM_LOAD( "hh_30.rom",    0x60000, 0x20000, 0x4351044e )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "hh_a0.rom",    0x00000, 0x20000, 0xc577ba5f )	/* tiles */
 	ROM_LOAD( "hh_a1.rom",    0x20000, 0x20000, 0x429d12ab )
 	ROM_LOAD( "hh_a2.rom",    0x40000, 0x20000, 0xb5b163b0 )
 	ROM_LOAD( "hh_a3.rom",    0x60000, 0x20000, 0x8ef566a1 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
+	ROM_LOAD( "gen-vo.bin",   0x00000, 0x20000, 0xd8595c66 )
+ROM_END
+
+ROM_START( dkgenm72 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "ge72-h0.bin",  0x00001, 0x20000, 0xa0ad992c )
+	ROM_LOAD16_BYTE( "ge72-l0.bin",  0x00000, 0x20000, 0x996396f0 )
+	ROM_LOAD16_BYTE( "ge72-h3.bin",  0x60001, 0x10000, 0xd8b86005 )
+	ROM_RELOAD(                      0xe0001, 0x10000 )
+	ROM_LOAD16_BYTE( "ge72-l3.bin",  0x60000, 0x10000, 0x23d303a5 )
+	ROM_RELOAD(                      0xe0000, 0x10000 )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
+	/* no ROM, program will be copied by the main CPU */
+
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "hh_00.rom",    0x00000, 0x20000, 0xec5127ef )	/* sprites */
+	ROM_LOAD( "hh_10.rom",    0x20000, 0x20000, 0xdef65294 )
+	ROM_LOAD( "hh_20.rom",    0x40000, 0x20000, 0xbb0d6ad4 )
+	ROM_LOAD( "hh_30.rom",    0x60000, 0x20000, 0x4351044e )
+
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD( "ge72b-a0.bin", 0x00000, 0x10000, 0xf5f56b2a )	/* tiles #1 */
+	ROM_LOAD( "ge72-a1.bin",  0x10000, 0x10000, 0xd194ea08 )
+	ROM_LOAD( "ge72-a2.bin",  0x20000, 0x10000, 0x2b06bcc3 )
+	ROM_LOAD( "ge72-a3.bin",  0x30000, 0x10000, 0x94b96bfa )
+
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
+	ROM_LOAD( "ge72-b0.bin",  0x00000, 0x10000, 0x208796b3 )	/* tiles #2 */
+	ROM_LOAD( "ge72-b1.bin",  0x10000, 0x10000, 0xb4a7f490 )
+	ROM_LOAD( "ge72b-b2.bin", 0x20000, 0x10000, 0x34fe8f7f )
+	ROM_LOAD( "ge72b-b3.bin", 0x30000, 0x10000, 0x4b0e92f4 )
+
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "gen-vo.bin",   0x00000, 0x20000, 0xd8595c66 )
 ROM_END
 
 ROM_START( kengo )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "ken_d-h0.rom", 0x00000, 0x20000, 0xf4ddeea5 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "ken_d-l0.rom", 0x00000, 0x20000, 0x04dc0f81 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "ken_d-h0.rom", 0x00001, 0x20000, 0xf4ddeea5 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "ken_d-l0.rom", 0x00000, 0x20000, 0x04dc0f81 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ken_d-sp.rom", 0x0000, 0x10000, 0x233ca1cf )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ken_m21.rom",  0x00000, 0x20000, 0xd7722f87 )	/* sprites */
 	ROM_LOAD( "ken_m22.rom",  0x20000, 0x20000, 0xa00dac85 )
 	ROM_LOAD( "ken_m31.rom",  0x40000, 0x20000, 0xe00b95a6 )
 	ROM_LOAD( "ken_m32.rom",  0x60000, 0x20000, 0x30a844c4 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ken_m51.rom",  0x00000, 0x20000, 0x1646cf4f )	/* tiles */
 	ROM_LOAD( "ken_m57.rom",  0x20000, 0x20000, 0xa9f88d90 )
 	ROM_LOAD( "ken_m66.rom",  0x40000, 0x20000, 0xe9d17645 )
 	ROM_LOAD( "ken_m64.rom",  0x60000, 0x20000, 0xdf46709b )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ken_m14.rom",  0x00000, 0x20000, 0x6651e9b7 )
 ROM_END
 
 ROM_START( poundfor )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "ppa-h0-b.bin", 0x00000, 0x20000, 0x50d4a2d8 )
-	ROM_LOAD_V20_ODD ( "ppa-l0-b.bin", 0x00000, 0x20000, 0xbd997942 )
-	ROM_LOAD_V20_EVEN( "ppa-h1.9f",    0x40000, 0x20000, 0xf6c82f48 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "ppa-l1.9c",    0x40000, 0x20000, 0x5b07b087 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "ppa-h0-b.bin", 0x00001, 0x20000, 0x50d4a2d8 )
+	ROM_LOAD16_BYTE( "ppa-l0-b.bin", 0x00000, 0x20000, 0xbd997942 )
+	ROM_LOAD16_BYTE( "ppa-h1.9f",    0x40001, 0x20000, 0xf6c82f48 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "ppa-l1.9c",    0x40000, 0x20000, 0x5b07b087 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ppa-sp.4j",    0x0000, 0x10000, 0x3f458a5b )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ppb-n0.bin",   0x00000, 0x40000, 0x951a41f8 )	/* sprites */
 	ROM_LOAD( "ppb-n1.bin",   0x40000, 0x40000, 0xc609b7f2 )
 	ROM_LOAD( "ppb-n2.bin",   0x80000, 0x40000, 0x318c0b5f )
 	ROM_LOAD( "ppb-n3.bin",   0xc0000, 0x40000, 0x93dc9490 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ppa-g00.bin",  0x00000, 0x20000, 0x8a88a174 )	/* tiles */
 	ROM_LOAD( "ppa-g10.bin",  0x20000, 0x20000, 0xe48a66ac )
 	ROM_LOAD( "ppa-g20.bin",  0x40000, 0x20000, 0x12b93e79 )
 	ROM_LOAD( "ppa-g30.bin",  0x60000, 0x20000, 0xfaa39aee )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ppa-v0.bin",   0x00000, 0x40000, 0x03321664 )
 ROM_END
 
 ROM_START( poundfou )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "ppa-ho-a.9e",  0x00000, 0x20000, 0xff4c83a4 )
-	ROM_LOAD_V20_ODD ( "ppa-lo-a.9d",  0x00000, 0x20000, 0x3374ce8f )
-	ROM_LOAD_V20_EVEN( "ppa-h1.9f",    0x40000, 0x20000, 0xf6c82f48 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "ppa-l1.9c",    0x40000, 0x20000, 0x5b07b087 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "ppa-ho-a.9e",  0x00001, 0x20000, 0xff4c83a4 )
+	ROM_LOAD16_BYTE( "ppa-lo-a.9d",  0x00000, 0x20000, 0x3374ce8f )
+	ROM_LOAD16_BYTE( "ppa-h1.9f",    0x40001, 0x20000, 0xf6c82f48 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "ppa-l1.9c",    0x40000, 0x20000, 0x5b07b087 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ppa-sp.4j",    0x0000, 0x10000, 0x3f458a5b )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ppb-n0.bin",   0x00000, 0x40000, 0x951a41f8 )	/* sprites */
 	ROM_LOAD( "ppb-n1.bin",   0x40000, 0x40000, 0xc609b7f2 )
 	ROM_LOAD( "ppb-n2.bin",   0x80000, 0x40000, 0x318c0b5f )
 	ROM_LOAD( "ppb-n3.bin",   0xc0000, 0x40000, 0x93dc9490 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ppa-g00.bin",  0x00000, 0x20000, 0x8a88a174 )	/* tiles */
 	ROM_LOAD( "ppa-g10.bin",  0x20000, 0x20000, 0xe48a66ac )
 	ROM_LOAD( "ppa-g20.bin",  0x40000, 0x20000, 0x12b93e79 )
 	ROM_LOAD( "ppa-g30.bin",  0x60000, 0x20000, 0xfaa39aee )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ppa-v0.bin",   0x00000, 0x40000, 0x03321664 )
 ROM_END
 
 ROM_START( airduel )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "ad-c-h0.bin",  0x00000, 0x20000, 0x12140276 )
-	ROM_LOAD_V20_ODD ( "ad-c-l0.bin",  0x00000, 0x20000, 0x4ac0b91d )
-	ROM_LOAD_V20_EVEN( "ad-c-h3.bin",  0x40000, 0x20000, 0x9f7cfca3 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "ad-c-l3.bin",  0x40000, 0x20000, 0x9dd343f7 )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "ad-c-h0.bin",  0x00001, 0x20000, 0x12140276 )
+	ROM_LOAD16_BYTE( "ad-c-l0.bin",  0x00000, 0x20000, 0x4ac0b91d )
+	ROM_LOAD16_BYTE( "ad-c-h3.bin",  0x40001, 0x20000, 0x9f7cfca3 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "ad-c-l3.bin",  0x40000, 0x20000, 0x9dd343f7 )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ad-00.bin",    0x00000, 0x20000, 0x2f0d599b )	/* sprites */
 	ROM_LOAD( "ad-10.bin",    0x20000, 0x20000, 0x9865856b )
 	ROM_LOAD( "ad-20.bin",    0x40000, 0x20000, 0xd392aef2 )
 	ROM_LOAD( "ad-30.bin",    0x60000, 0x20000, 0x923240c3 )
 
-	ROM_REGION( 0x080000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ad-a0.bin",    0x00000, 0x20000, 0xce134b47 )	/* tiles #1 */
 	ROM_LOAD( "ad-a1.bin",    0x20000, 0x20000, 0x097fd853 )
 	ROM_LOAD( "ad-a2.bin",    0x40000, 0x20000, 0x6a94c1b9 )
 	ROM_LOAD( "ad-a3.bin",    0x60000, 0x20000, 0x6637c349 )
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "ad-b0.bin",    0x00000, 0x20000, 0xce134b47 )	/* tiles #2 */
 	ROM_LOAD( "ad-b1.bin",    0x20000, 0x20000, 0x097fd853 )
 	ROM_LOAD( "ad-b2.bin",    0x40000, 0x20000, 0x6a94c1b9 )
 	ROM_LOAD( "ad-b3.bin",    0x60000, 0x20000, 0x6637c349 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "ad-v0.bin",    0x00000, 0x20000, 0x339f474d )
 ROM_END
 
 ROM_START( gallop )
-	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_V20_EVEN( "cc-c-h0.bin",  0x00000, 0x20000, 0x2217dcd0 )
-	ROM_LOAD_V20_ODD ( "cc-c-l0.bin",  0x00000, 0x20000, 0xff39d7fb )
-	ROM_LOAD_V20_EVEN( "cc-c-h3.bin",  0x40000, 0x20000, 0x9b2bbab9 )
-	ROM_RELOAD_V20_EVEN(               0xc0000, 0x20000 )
-	ROM_LOAD_V20_ODD ( "cc-c-l3.bin",  0x40000, 0x20000, 0xacd3278e )
-	ROM_RELOAD_V20_ODD (               0xc0000, 0x20000 )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "cc-c-h0.bin",  0x00001, 0x20000, 0x2217dcd0 )
+	ROM_LOAD16_BYTE( "cc-c-l0.bin",  0x00000, 0x20000, 0xff39d7fb )
+	ROM_LOAD16_BYTE( "cc-c-h3.bin",  0x40001, 0x20000, 0x9b2bbab9 )
+	ROM_RELOAD(                      0xc0001, 0x20000 )
+	ROM_LOAD16_BYTE( "cc-c-l3.bin",  0x40000, 0x20000, 0xacd3278e )
+	ROM_RELOAD(                      0xc0000, 0x20000 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	/* no ROM, program will be copied by the main CPU */
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cc-c-00.bin",  0x00000, 0x20000, 0x9d99deaa )	/* sprites */
 	ROM_LOAD( "cc-c-10.bin",  0x20000, 0x20000, 0x7eb083ed )
 	ROM_LOAD( "cc-c-20.bin",  0x40000, 0x20000, 0x9421489e )
 	ROM_LOAD( "cc-c-30.bin",  0x60000, 0x20000, 0x920ec735 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cc-b-a0.bin",  0x00000, 0x10000, 0xa33472bd )	/* tiles #1 */
 	ROM_LOAD( "cc-b-a1.bin",  0x10000, 0x10000, 0x118b1f2d )
 	ROM_LOAD( "cc-b-a2.bin",  0x20000, 0x10000, 0x83cebf48 )
 	ROM_LOAD( "cc-b-a3.bin",  0x30000, 0x10000, 0x572903fc )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cc-b-b0.bin",  0x00000, 0x10000, 0x0df5b439 )	/* tiles #2 */
 	ROM_LOAD( "cc-b-b1.bin",  0x10000, 0x10000, 0x010b778f )
 	ROM_LOAD( "cc-b-b2.bin",  0x20000, 0x10000, 0xbda9f6fb )
 	ROM_LOAD( "cc-b-b3.bin",  0x30000, 0x10000, 0xd361ba3f )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* samples */
 	ROM_LOAD( "cc-c-v0.bin",  0x00000, 0x20000, 0x6247bade )
 ROM_END
 
@@ -3094,10 +3113,11 @@ GAMEX( 1989, xmultipl, 0,        xmultipl, xmultipl, xmultipl, ROT0,   "Irem", "
 GAMEX( 1989, dbreed,   0,        dbreed,   dbreed,   dbreed,   ROT0,   "Irem", "Dragon Breed", GAME_NO_COCKTAIL )
 GAMEX( 1989, rtype2,   0,        rtype2,   rtype2,   0,        ROT0,   "Irem", "R-Type II", GAME_NO_COCKTAIL )
 GAMEX( 1989, rtype2j,  rtype2,   rtype2,   rtype2,   0,        ROT0,   "Irem", "R-Type II (Japan)", GAME_NO_COCKTAIL )
-GAMEX( 1990, majtitle, 0,        majtitle, rtype2,   0,        ROT0,   "Irem", "Major Title (Japan)", GAME_NOT_WORKING | GAME_NO_COCKTAIL )
+GAMEX( 1990, majtitle, 0,        majtitle, rtype2,   0,        ROT0,   "Irem", "Major Title (Japan)", GAME_NO_COCKTAIL )
 GAMEX( 1990, hharry,   0,        hharry,   hharry,   0,        ROT0,   "Irem", "Hammerin' Harry (World)", GAME_NO_COCKTAIL )
 GAMEX( 1990, hharryu,  hharry,   hharryu,  hharry,   0,        ROT0,   "Irem America", "Hammerin' Harry (US)", GAME_NO_COCKTAIL )
 GAMEX( 1990, dkgensan, hharry,   hharryu,  hharry,   0,        ROT0,   "Irem", "Daiku no Gensan (Japan)", GAME_NO_COCKTAIL )
+GAMEX( 1990, dkgenm72, hharry,   dkgenm72, hharry,   dkgenm72, ROT0,   "Irem", "Daiku no Gensan (Japan, M72)", GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL )
 GAMEX( 1991, kengo,    0,        hharry,   hharry,   0,        ROT0,   "Irem", "Ken-Go", GAME_NOT_WORKING | GAME_NO_COCKTAIL )
 GAMEX( 1990, poundfor, 0,        poundfor, poundfor, 0,        ROT270, "Irem", "Pound for Pound (World)", GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL )
 GAMEX( 1990, poundfou, poundfor, poundfor, poundfor, 0,        ROT270, "Irem America", "Pound for Pound (US)", GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL )

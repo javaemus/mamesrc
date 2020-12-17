@@ -41,6 +41,7 @@ TODO:
 
 #include "driver.h"
 #include "cpu/z80/z80.h"
+#include "sndhrdw/taitosnd.h"
 
 void taitol_eof_callback(void);
 int taitol_vh_start(void);
@@ -64,14 +65,6 @@ READ_HANDLER( taitol_control_r );
 WRITE_HANDLER( horshoes_bankg_w );
 WRITE_HANDLER( taitol_bankc_w );
 READ_HANDLER( taitol_bankc_r );
-
-
-WRITE_HANDLER( rastan_sound_port_w );
-WRITE_HANDLER( rastan_sound_comm_w );
-READ_HANDLER( rastan_sound_comm_r );
-READ_HANDLER( rastan_a001_r );
-WRITE_HANDLER( rastan_a000_w );
-WRITE_HANDLER( rastan_a001_w );
 
 
 
@@ -622,114 +615,93 @@ static READ_HANDLER( horshoes_trackx_hi_r )
 
 
 
-static struct MemoryReadAddress fhawk_readmem[] =
-{
+static MEMORY_READ_START( fhawk_readmem )
 	COMMON_BANKS_READ,
 	{ 0x8000, 0x9fff, MRA_RAM },
 	{ 0xa000, 0xbfff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress fhawk_writemem[] =
-{
+static MEMORY_WRITE_START( fhawk_writemem )
 	COMMON_BANKS_WRITE,
 	{ 0x8000, 0x9fff, MWA_RAM, &shared_ram },
 	{ 0xa000, 0xbfff, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress fhawk_2_readmem[] =
-{
+static MEMORY_READ_START( fhawk_2_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK6 },
 	{ 0xc800, 0xc800, MRA_NOP },
-	{ 0xc801, 0xc801, rastan_sound_comm_r },
+	{ 0xc801, 0xc801, taitosound_comm_r },
 	{ 0xe000, 0xffff, shared_r },
 	{ 0xd000, 0xd000, input_port_0_r },
 	{ 0xd001, 0xd001, input_port_1_r },
 	{ 0xd002, 0xd002, input_port_2_r },
 	{ 0xd003, 0xd003, input_port_3_r },
 	{ 0xd007, 0xd007, input_port_4_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress fhawk_2_writemem[] =
-{
+static MEMORY_WRITE_START( fhawk_2_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc000, rombank2switch_w },
-	{ 0xc800, 0xc800, rastan_sound_port_w },
-	{ 0xc801, 0xc801, rastan_sound_comm_w },
+	{ 0xc800, 0xc800, taitosound_port_w },
+	{ 0xc801, 0xc801, taitosound_comm_w },
 	{ 0xd000, 0xd000, MWA_NOP },	// Direct copy of input port 0
 	{ 0xd004, 0xd004, control2_w },
 	{ 0xd005, 0xd006, MWA_NOP },	// Always 0
 	{ 0xe000, 0xffff, shared_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress fhawk_3_readmem[] =
-{
+static MEMORY_READ_START( fhawk_3_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x7fff, MRA_BANK7 },
 	{ 0x8000, 0x9fff, MRA_RAM },
 	{ 0xe000, 0xe000, MRA_NOP },
-	{ 0xe001, 0xe001, rastan_a001_r },
+	{ 0xe001, 0xe001, taitosound_slave_comm_r },
 	{ 0xf000, 0xf000, YM2203_status_port_0_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress fhawk_3_writemem[] =
-{
+static MEMORY_WRITE_START( fhawk_3_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x9fff, MWA_RAM },
-	{ 0xe000, 0xe000, rastan_a000_w },
-	{ 0xe001, 0xe001, rastan_a001_w },
+	{ 0xe000, 0xe000, taitosound_slave_port_w },
+	{ 0xe001, 0xe001, taitosound_slave_comm_w },
 	{ 0xf000, 0xf000, YM2203_control_port_0_w },
 	{ 0xf001, 0xf001, YM2203_write_port_0_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress raimais_readmem[] =
-{
+static MEMORY_READ_START( raimais_readmem )
 	COMMON_BANKS_READ,
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0x8800, 0x8800, mux_r },
 	{ 0x8801, 0x8801, MRA_NOP },	// Watchdog or interrupt ack (value ignored)
 	{ 0x8c00, 0x8c00, MRA_NOP },
-	{ 0x8c01, 0x8c01, rastan_sound_comm_r },
+	{ 0x8c01, 0x8c01, taitosound_comm_r },
 	{ 0xa000, 0xbfff, MRA_RAM },
-	{ -1 }
-};
-static struct MemoryWriteAddress raimais_writemem[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( raimais_writemem )
 	COMMON_BANKS_WRITE,
 	{ 0x8000, 0x87ff, MWA_RAM, &shared_ram },
 	{ 0x8800, 0x8800, mux_w },
 	{ 0x8801, 0x8801, mux_ctrl_w },
-	{ 0x8c00, 0x8c00, rastan_sound_port_w },
-	{ 0x8c01, 0x8c01, rastan_sound_comm_w },
+	{ 0x8c00, 0x8c00, taitosound_port_w },
+	{ 0x8c01, 0x8c01, taitosound_comm_w },
 	{ 0xa000, 0xbfff, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress raimais_2_readmem[] =
-{
+static MEMORY_READ_START( raimais_2_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xdfff, MRA_RAM },
 	{ 0xe000, 0xe7ff, shared_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress raimais_2_writemem[] =
-{
+static MEMORY_WRITE_START( raimais_2_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xdfff, MWA_RAM },
 	{ 0xe000, 0xe7ff, shared_w },
-	{ -1 }
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress raimais_3_readmem[] =
-{
+static MEMORY_READ_START( raimais_3_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x7fff, MRA_BANK7 },
 	{ 0xc000, 0xdfff, MRA_RAM },
@@ -737,9 +709,8 @@ static struct MemoryReadAddress raimais_3_readmem[] =
 	{ 0xe001, 0xe001, YM2610_read_port_0_r },
 	{ 0xe002, 0xe002, YM2610_status_port_0_B_r },
 	{ 0xe200, 0xe200, MRA_NOP },
-	{ 0xe201, 0xe201, rastan_a001_r },
-	{ -1 }  /* end of table */
-};
+	{ 0xe201, 0xe201, taitosound_slave_comm_r },
+MEMORY_END
 
 static WRITE_HANDLER( sound_bankswitch_w )
 {
@@ -749,44 +720,37 @@ static WRITE_HANDLER( sound_bankswitch_w )
 	cpu_setbank (7, &RAM [0x10000 + (banknum * 0x4000)]);
 }
 
-static struct MemoryWriteAddress raimais_3_writemem[] =
-{
+static MEMORY_WRITE_START( raimais_3_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xc000, 0xdfff, MWA_RAM },
 	{ 0xe000, 0xe000, YM2610_control_port_0_A_w },
 	{ 0xe001, 0xe001, YM2610_data_port_0_A_w },
 	{ 0xe002, 0xe002, YM2610_control_port_0_B_w },
 	{ 0xe003, 0xe003, YM2610_data_port_0_B_w },
-	{ 0xe200, 0xe200, rastan_a000_w },
-	{ 0xe201, 0xe201, rastan_a001_w },
+	{ 0xe200, 0xe200, taitosound_slave_port_w },
+	{ 0xe201, 0xe201, taitosound_slave_comm_w },
 	{ 0xe400, 0xe403, MWA_NOP }, /* pan */
 	{ 0xe600, 0xe600, MWA_NOP }, /* ? */
 	{ 0xee00, 0xee00, MWA_NOP }, /* ? */
 	{ 0xf000, 0xf000, MWA_NOP }, /* ? */
 	{ 0xf200, 0xf200, sound_bankswitch_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress champwr_readmem[] =
-{
+static MEMORY_READ_START( champwr_readmem )
 	COMMON_BANKS_READ,
 	{ 0x8000, 0x9fff, MRA_RAM },
 	{ 0xa000, 0xbfff, MRA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress champwr_writemem[] =
-{
+static MEMORY_WRITE_START( champwr_writemem )
 	COMMON_BANKS_WRITE,
 	{ 0x8000, 0x9fff, MWA_RAM },
 	{ 0xa000, 0xbfff, MWA_RAM, &shared_ram },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress champwr_2_readmem[] =
-{
+static MEMORY_READ_START( champwr_2_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK6 },
 	{ 0xc000, 0xdfff, shared_r },
@@ -797,69 +761,57 @@ static struct MemoryReadAddress champwr_2_readmem[] =
 	{ 0xe007, 0xe007, input_port_4_r },
 	{ 0xe008, 0xe00f, MRA_NOP },
 	{ 0xe800, 0xe800, MRA_NOP },
-	{ 0xe801, 0xe801, rastan_sound_comm_r },
+	{ 0xe801, 0xe801, taitosound_comm_r },
 	{ 0xf000, 0xf000, rombank2switch_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress champwr_2_writemem[] =
-{
+static MEMORY_WRITE_START( champwr_2_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xdfff, shared_w },
 	{ 0xe000, 0xe000, MWA_NOP },	// Watchdog
 	{ 0xe004, 0xe004, control2_w },
-	{ 0xe800, 0xe800, rastan_sound_port_w },
-	{ 0xe801, 0xe801, rastan_sound_comm_w },
+	{ 0xe800, 0xe800, taitosound_port_w },
+	{ 0xe801, 0xe801, taitosound_comm_w },
 	{ 0xf000, 0xf000, rombank2switch_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress champwr_3_readmem[] =
-{
+static MEMORY_READ_START( champwr_3_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x7fff, MRA_BANK7 },
 	{ 0x8000, 0x8fff, MRA_RAM },
 	{ 0x9000, 0x9000, YM2203_status_port_0_r },
 	{ 0xa000, 0xa000, MRA_NOP },
-	{ 0xa001, 0xa001, rastan_a001_r },
-	{ -1 }
-};
+	{ 0xa001, 0xa001, taitosound_slave_comm_r },
+MEMORY_END
 
-static struct MemoryWriteAddress champwr_3_writemem[] =
-{
+static MEMORY_WRITE_START( champwr_3_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8fff, MWA_RAM },
 	{ 0x9000, 0x9000, YM2203_control_port_0_w },
 	{ 0x9001, 0x9001, YM2203_write_port_0_w },
-	{ 0xa000, 0xa000, rastan_a000_w },
-	{ 0xa001, 0xa001, rastan_a001_w },
-	{ -1 }
-};
+	{ 0xa000, 0xa000, taitosound_slave_port_w },
+	{ 0xa001, 0xa001, taitosound_slave_comm_w },
+MEMORY_END
 
 
 
-static struct MemoryReadAddress kurikint_readmem[] =
-{
+static MEMORY_READ_START( kurikint_readmem )
 	COMMON_BANKS_READ,
 	{ 0x8000, 0x9fff, MRA_RAM },
 	{ 0xa000, 0xa7ff, MRA_RAM },
 	{ 0xa800, 0xa800, mux_r },
 	{ 0xa801, 0xa801, MRA_NOP },	// Watchdog or interrupt ack (value ignored)
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress kurikint_writemem[] =
-{
+static MEMORY_WRITE_START( kurikint_writemem )
 	COMMON_BANKS_WRITE,
 	{ 0x8000, 0x9fff, MWA_RAM },
 	{ 0xa000, 0xa7ff, MWA_RAM, &shared_ram },
 	{ 0xa800, 0xa800, mux_w },
 	{ 0xa801, 0xa801, mux_ctrl_w },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress kurikint_2_readmem[] =
-{
+static MEMORY_READ_START( kurikint_2_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xc000, 0xdfff, MRA_RAM },
 	{ 0xe000, 0xe7ff, shared_r },
@@ -871,11 +823,9 @@ static struct MemoryReadAddress kurikint_2_readmem[] =
 	{ 0xd003, 0xd003, input_port_3_r },
 	{ 0xd007, 0xd007, input_port_4_r },
 #endif
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress kurikint_2_writemem[] =
-{
+static MEMORY_WRITE_START( kurikint_2_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xc000, 0xdfff, MWA_RAM },
 	{ 0xe000, 0xe7ff, shared_w },
@@ -884,74 +834,60 @@ static struct MemoryWriteAddress kurikint_2_writemem[] =
 #if 0
 	{ 0xc000, 0xc000, rombank2switch_w },
 #endif
-	{ -1 }
-};
+MEMORY_END
 
 
 
-static struct MemoryReadAddress puzznic_readmem[] =
-{
+static MEMORY_READ_START( puzznic_readmem )
 	COMMON_BANKS_READ,
 	COMMON_SINGLE_READ,
 	{ 0xa800, 0xa800, MRA_NOP },	// Watchdog
 	{ 0xb000, 0xb7ff, MRA_RAM },	// Wrong, used to overcome protection
 	{ 0xb800, 0xb800, mcu_data_r },
 	{ 0xb801, 0xb801, mcu_control_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress puzznic_writemem[] =
-{
+static MEMORY_WRITE_START( puzznic_writemem )
 	COMMON_BANKS_WRITE,
 	COMMON_SINGLE_WRITE,
 	{ 0xb000, 0xb7ff, MWA_RAM },	// Wrong, used to overcome protection
 	{ 0xb800, 0xb800, mcu_data_w },
 	{ 0xb801, 0xb801, mcu_control_w },
 	{ 0xbc00, 0xbc00, MWA_NOP },	// Control register, function unknown
-	{ -1 }
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress plotting_readmem[] =
-{
+static MEMORY_READ_START( plotting_readmem )
 	COMMON_BANKS_READ,
 	COMMON_SINGLE_READ,
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress plotting_writemem[] =
-{
+static MEMORY_WRITE_START( plotting_writemem )
 	COMMON_BANKS_WRITE,
 	COMMON_SINGLE_WRITE,
 	{ 0xa800, 0xa800, MWA_NOP },	// Watchdog or interrupt ack
 	{ 0xb800, 0xb800, MWA_NOP },	// Control register, function unknown
-	{ -1 }
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress palamed_readmem[] =
-{
+static MEMORY_READ_START( palamed_readmem )
 	COMMON_BANKS_READ,
 	COMMON_SINGLE_READ,
 	{ 0xa800, 0xa800, input_port_2_r },
 	{ 0xa801, 0xa801, input_port_3_r },
 	{ 0xa802, 0xa802, input_port_4_r },
 	{ 0xb001, 0xb001, MRA_NOP },	// Watchdog or interrupt ack
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress palamed_writemem[] =
-{
+static MEMORY_WRITE_START( palamed_writemem )
 	COMMON_BANKS_WRITE,
 	COMMON_SINGLE_WRITE,
 	{ 0xa803, 0xa803, MWA_NOP },	// Control register, function unknown
 	{ 0xb000, 0xb000, MWA_NOP },	// Control register, function unknown (copy of 8822)
-	{ -1 }
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress cachat_readmem[] =
-{
+static MEMORY_READ_START( cachat_readmem )
 	COMMON_BANKS_READ,
 	COMMON_SINGLE_READ,
 	{ 0xa800, 0xa800, input_port_2_r },
@@ -959,22 +895,18 @@ static struct MemoryReadAddress cachat_readmem[] =
 	{ 0xa802, 0xa802, input_port_4_r },
 	{ 0xb001, 0xb001, MRA_NOP },	// Watchdog or interrupt ack (value ignored)
 	{ 0xfff8, 0xfff8, rombankswitch_r },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress cachat_writemem[] =
-{
+static MEMORY_WRITE_START( cachat_writemem )
 	COMMON_BANKS_WRITE,
 	COMMON_SINGLE_WRITE,
 	{ 0xa803, 0xa803, MWA_NOP },	// Control register, function unknown
 	{ 0xb000, 0xb000, MWA_NOP },	// Control register, function unknown
 	{ 0xfff8, 0xfff8, rombankswitch_w },
-	{ -1 }
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress horshoes_readmem[] =
-{
+static MEMORY_READ_START( horshoes_readmem )
 	COMMON_BANKS_READ,
 	COMMON_SINGLE_READ,
 	{ 0xa800, 0xa800, horshoes_tracky_lo_r },
@@ -984,21 +916,75 @@ static struct MemoryReadAddress horshoes_readmem[] =
 	{ 0xa808, 0xa808, horshoes_trackx_lo_r },
 	{ 0xa80c, 0xa80c, horshoes_trackx_hi_r },
 	{ 0xb801, 0xb801, MRA_NOP },	// Watchdog or interrupt ack
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress horshoes_writemem[] =
-{
+static MEMORY_WRITE_START( horshoes_writemem )
 	COMMON_BANKS_WRITE,
 	COMMON_SINGLE_WRITE,
 	{ 0xb802, 0xb802, horshoes_bankg_w },
 	{ 0xbc00, 0xbc00, MWA_NOP },
-	{ -1 }
-};
+MEMORY_END
 
 
 
+/***********************************************************
+			 INPUT PORTS, DIPs
+***********************************************************/
 
+#define TAITO_COINAGE_WORLD_8 \
+	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 4C_1C ) ) \
+	PORT_DIPSETTING(    0x10, DEF_STR( 3C_1C ) ) \
+	PORT_DIPSETTING(    0x20, DEF_STR( 2C_1C ) ) \
+	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) ) \
+	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) ) \
+	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_2C ) ) \
+	PORT_DIPSETTING(    0x80, DEF_STR( 1C_3C ) ) \
+	PORT_DIPSETTING(    0x40, DEF_STR( 1C_4C ) ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 1C_6C ) )
+
+#define TAITO_COINAGE_JAPAN_8 \
+	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) ) \
+	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) ) \
+	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) ) \
+	PORT_DIPSETTING(    0x20, DEF_STR( 1C_2C ) ) \
+	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) ) \
+	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) ) \
+	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_1C ) ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) ) \
+	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+
+#define TAITO_COINAGE_JAPAN_NEW_8 \
+	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) ) \
+	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) ) \
+	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) ) \
+	PORT_DIPSETTING(    0x20, DEF_STR( 1C_2C ) ) \
+	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) ) \
+	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) ) \
+	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_1C ) ) \
+	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+
+#define TAITO_COINAGE_US_8 \
+	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coinage ) ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 4C_1C ) ) \
+	PORT_DIPSETTING(    0x10, DEF_STR( 3C_1C ) ) \
+	PORT_DIPSETTING(    0x20, DEF_STR( 2C_1C ) ) \
+	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) ) \
+	PORT_DIPNAME( 0xc0, 0xc0, "Price to Continue" ) \
+	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) ) \
+	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) ) \
+	PORT_DIPSETTING(    0x80, DEF_STR( 1C_1C ) ) \
+	PORT_DIPSETTING(    0xc0, "Same as Start" )
+
+#define TAITO_DIFFICULTY_8 \
+	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) ) \
+	PORT_DIPSETTING(    0x02, "Easy" ) \
+	PORT_DIPSETTING(    0x03, "Medium" ) \
+	PORT_DIPSETTING(    0x01, "Hard" ) \
+	PORT_DIPSETTING(    0x00, "Hardest" )
 
 INPUT_PORTS_START( fhawk )
 	PORT_START
@@ -1012,28 +998,14 @@ INPUT_PORTS_START( fhawk )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 1C_2C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+	TAITO_COINAGE_JAPAN_8
 
 	PORT_START
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
+	TAITO_DIFFICULTY_8
+	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unused ) )  // all in manual
 	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Lives ) )
@@ -1041,10 +1013,10 @@ INPUT_PORTS_START( fhawk )
 	PORT_DIPSETTING(    0x20, "4" )
 	PORT_DIPSETTING(    0x10, "5" )
 	PORT_DIPSETTING(    0x00, "6" )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 
@@ -1091,30 +1063,15 @@ INPUT_PORTS_START( raimais )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 1C_2C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+	TAITO_COINAGE_JAPAN_8
 
 	PORT_START
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	TAITO_DIFFICULTY_8
+	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x08, "80k and 160k" )
+	PORT_DIPSETTING(    0x0c, "80k only" )
+	PORT_DIPSETTING(    0x04, "160k only" )
+	PORT_DIPSETTING(    0x00, "None" )
 	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Lives ) )
 	PORT_DIPSETTING(    0x30, "3" )
 	PORT_DIPSETTING(    0x20, "4" )
@@ -1160,7 +1117,7 @@ INPUT_PORTS_END
 
 INPUT_PORTS_START( champwr )
 	PORT_START
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unused ) )  // all 2 in manual
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Flip_Screen ) )
@@ -1170,39 +1127,24 @@ INPUT_PORTS_START( champwr )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 4C_1C ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_2C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_3C ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 1C_4C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 1C_6C ) )
+	TAITO_COINAGE_WORLD_8
 
 	PORT_START
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	TAITO_DIFFICULTY_8
 	PORT_DIPNAME( 0x0c, 0x0c, "Time" )
 	PORT_DIPSETTING(    0x08, "2 minutes" )
 	PORT_DIPSETTING(    0x0c, "3 minutes" )
 	PORT_DIPSETTING(    0x04, "4 minutes" )
 	PORT_DIPSETTING(    0x00, "5 minutes" )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x30, 0x30, "1 minute Lenght" )
+	PORT_DIPSETTING(    0x00, "30 sec" )
+	PORT_DIPSETTING(    0x10, "40 sec" )
+	PORT_DIPSETTING(    0x30, "50 sec" )
+	PORT_DIPSETTING(    0x20, "60 sec" )
 	PORT_DIPNAME( 0x40, 0x40, "Allow Continue" )
 	PORT_DIPSETTING(    0x00, DEF_STR( No ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Yes ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 
@@ -1237,6 +1179,133 @@ INPUT_PORTS_START( champwr )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
 INPUT_PORTS_END
 
+INPUT_PORTS_START( champwrj )
+	PORT_START
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unused ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Flip_Screen ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_SERVICE( 0x04, IP_ACTIVE_LOW )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	TAITO_COINAGE_JAPAN_8
+
+	PORT_START
+	TAITO_DIFFICULTY_8
+	PORT_DIPNAME( 0x0c, 0x0c, "Time" )
+	PORT_DIPSETTING(    0x08, "2 minutes" )
+	PORT_DIPSETTING(    0x0c, "3 minutes" )
+	PORT_DIPSETTING(    0x04, "4 minutes" )
+	PORT_DIPSETTING(    0x00, "5 minutes" )
+	PORT_DIPNAME( 0x30, 0x30, "1 minute Lenght" )
+	PORT_DIPSETTING(    0x00, "30 sec" )
+	PORT_DIPSETTING(    0x10, "40 sec" )
+	PORT_DIPSETTING(    0x30, "50 sec" )
+	PORT_DIPSETTING(    0x20, "60 sec" )
+	PORT_DIPNAME( 0x40, 0x40, "Allow Continue" )
+	PORT_DIPSETTING(    0x00, DEF_STR( No ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( Yes ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unused ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+
+ 	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_TILT )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE1 )
+
+	PORT_START
+	PORT_BIT_IMPULSE( 0x01, IP_ACTIVE_LOW, IPT_COIN2, 1 )
+	PORT_BIT_IMPULSE( 0x02, IP_ACTIVE_LOW, IPT_COIN1, 1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
+INPUT_PORTS_END
+
+INPUT_PORTS_START( champwru )
+	PORT_START
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unused ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Flip_Screen ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_SERVICE( 0x04, IP_ACTIVE_LOW )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	TAITO_COINAGE_US_8
+
+	PORT_START
+	TAITO_DIFFICULTY_8
+	PORT_DIPNAME( 0x0c, 0x0c, "Time" )
+	PORT_DIPSETTING(    0x08, "2 minutes" )
+	PORT_DIPSETTING(    0x0c, "3 minutes" )
+	PORT_DIPSETTING(    0x04, "4 minutes" )
+	PORT_DIPSETTING(    0x00, "5 minutes" )
+	PORT_DIPNAME( 0x30, 0x30, "1 minute Lenght" )
+	PORT_DIPSETTING(    0x00, "30 sec" )
+	PORT_DIPSETTING(    0x10, "40 sec" )
+	PORT_DIPSETTING(    0x30, "50 sec" )
+	PORT_DIPSETTING(    0x20, "60 sec" )
+	PORT_DIPNAME( 0x40, 0x40, "Allow Continue" )
+	PORT_DIPSETTING(    0x00, DEF_STR( No ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( Yes ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unused ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+
+ 	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_TILT )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE1 )
+
+	PORT_START
+	PORT_BIT_IMPULSE( 0x01, IP_ACTIVE_LOW, IPT_COIN2, 1 )
+	PORT_BIT_IMPULSE( 0x02, IP_ACTIVE_LOW, IPT_COIN1, 1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
+INPUT_PORTS_END
 
 INPUT_PORTS_START( kurikint )
 	PORT_START
@@ -1250,16 +1319,7 @@ INPUT_PORTS_START( kurikint )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 4C_1C ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_2C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_3C ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 1C_4C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 1C_6C ) )
+	TAITO_COINAGE_WORLD_8
 
 	PORT_START
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
@@ -1283,9 +1343,9 @@ INPUT_PORTS_START( kurikint )
 	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x80, 0x80, "Allow Continue" )
+	PORT_DIPSETTING(    0x80, "5 Times" )
+	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
 
 	PORT_START
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
@@ -1332,16 +1392,7 @@ INPUT_PORTS_START( kurikina )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 4C_1C ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_2C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_3C ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 1C_4C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 1C_6C ) )
+	TAITO_COINAGE_WORLD_8
 
 	PORT_START
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
@@ -1400,7 +1451,6 @@ INPUT_PORTS_START( kurikina )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START2 )
 INPUT_PORTS_END
 
-
 INPUT_PORTS_START( puzznic )
 	PORT_START
 	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Cabinet ) )
@@ -1413,23 +1463,22 @@ INPUT_PORTS_START( puzznic )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
+	/* There is no Coin B in the Manuals */
+	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coinage ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
 	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( 1C_2C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 2C_3C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unused ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unused ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 
 	PORT_START
-	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x00, "40" )
-	PORT_DIPSETTING(    0x01, "50" )
-	PORT_DIPSETTING(    0x03, "60" )
-	PORT_DIPSETTING(    0x02, "70" )
+	/* Difficulty control the Timer Speed (how many seconds are in a minute) */
+	TAITO_DIFFICULTY_8
 	PORT_DIPNAME( 0x0c, 0x0c, "Retries" )
 	PORT_DIPSETTING(    0x00, "0" )
 	PORT_DIPSETTING(    0x04, "1" )
@@ -1441,18 +1490,11 @@ INPUT_PORTS_START( puzznic )
 	PORT_DIPNAME( 0x20, 0x20, "Girls" )
 	PORT_DIPSETTING(    0x00, DEF_STR( No ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Yes ) )
-    /* These two last dips seems to be dependant */
-    /* I think that when 0x40 is 0x00, 0x80 should be 0x80 */
-    /* and when 0x40 is 0x40, 0x80 should be 0x00 */
-    /* Maybe these two dips could be joined with on two values: */
-    /* Retry from Begining with Timer Reset */
-    /* Retry Before Last Explosion without Reseting Timer */
-	PORT_DIPNAME( 0x40, 0x00, "Reset Timer on Retry" )
-	PORT_DIPSETTING(    0x40, DEF_STR( No ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
-	PORT_DIPNAME( 0x80, 0x80, "Retry" )
-	PORT_DIPSETTING(    0x80, "From Begining" )
-	PORT_DIPSETTING(    0x00, "Before Last Explosion" )
+	PORT_DIPNAME( 0xc0, 0xc0, "Terms of Replay" )
+	PORT_DIPSETTING(    0x40, "Stage one step back/Timer continuous" )
+	PORT_DIPSETTING(    0xc0, "Stage reset to start/Timer continuous" )
+	PORT_DIPSETTING(    0x80, "Stage reset to start/Timer reset to start" )
+//	PORT_DIPSETTING(    0x00, "No Use" )
 
 	PORT_START
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_SERVICE1 )
@@ -1474,7 +1516,7 @@ INPUT_PORTS_START( puzznic )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
 
-	PORT_START /* Not read yet. Coin 2 and Tilt are probably here */
+	PORT_START /* Not read yet. There is no Coin_B in manual */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -1497,23 +1539,10 @@ INPUT_PORTS_START( plotting )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 4C_1C ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_2C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_3C ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 1C_4C ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 1C_6C ) )
+	TAITO_COINAGE_WORLD_8
 
 	PORT_START
-	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) )
-	PORT_DIPSETTING(    0x02, "Easy" )
-	PORT_DIPSETTING(    0x03, "Medium" )
-	PORT_DIPSETTING(    0x01, "Hard" )
-	PORT_DIPSETTING(    0x00, "Hardest" )
+	TAITO_DIFFICULTY_8
 	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -1565,23 +1594,10 @@ INPUT_PORTS_START( palamed )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 1C_2C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+	TAITO_COINAGE_JAPAN_NEW_8
 
 	PORT_START
-	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) )
-	PORT_DIPSETTING(    0x02, "Easy" )
-	PORT_DIPSETTING(    0x03, "Medium" )
-	PORT_DIPSETTING(    0x00, "Hard" )
-	PORT_DIPSETTING(    0x01, "Hardest" )
+	TAITO_DIFFICULTY_8
 	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -1644,6 +1660,7 @@ INPUT_PORTS_START( cachat )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	TAITO_COINAGE_JAPAN_NEW_8
 	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
@@ -1656,11 +1673,7 @@ INPUT_PORTS_START( cachat )
 	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
 
 	PORT_START
-	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) )
-	PORT_DIPSETTING(    0x02, "Easy" )
-	PORT_DIPSETTING(    0x03, "Medium" )
-	PORT_DIPSETTING(    0x01, "Hard" )
-	PORT_DIPSETTING(    0x00, "Hardest" )
+	TAITO_DIFFICULTY_8
 	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -1723,16 +1736,7 @@ INPUT_PORTS_START( horshoes )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0x30, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( 1C_2C ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Coin_B ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( 3C_1C ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) )
-	PORT_DIPSETTING(    0xc0, DEF_STR( 1C_1C ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( 1C_2C ) )
+	TAITO_COINAGE_US_8
 
 	PORT_START
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
@@ -1881,18 +1885,7 @@ INPUT_PORTS_START( plgirls2 )
 	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	TAITO_COINAGE_JAPAN_8
 
 	PORT_START
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
@@ -2295,103 +2288,103 @@ MCH_SINGLE(cachat)
 
 
 ROM_START( raimais )
-	ROM_REGION( 0xb0000, REGION_CPU1 )
+	ROM_REGION( 0xb0000, REGION_CPU1, 0 )
 	ROM_LOAD( "b36-08-1.bin", 0x00000, 0x20000, 0x6cc8f79f )
 	ROM_RELOAD(               0x10000, 0x20000 )
 	ROM_LOAD( "b36-09.bin",   0x30000, 0x20000, 0x9c466e43 )
 
-	ROM_REGION( 0x1c000, REGION_CPU2 )	/* sound (sndhrdw/rastan.c wants it as #2 */
+	ROM_REGION( 0x1c000, REGION_CPU2, 0 )	/* sound (sndhrdw/rastan.c wants it as #2 */
 	ROM_LOAD( "b36-06.bin",   0x00000, 0x4000, 0x29bbc4f8 )
 	ROM_CONTINUE(             0x10000, 0xc000 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )
 	ROM_LOAD( "b36-07.bin",   0x00000, 0x10000, 0x4f3737e6 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "b36-01.bin",   0x00000, 0x80000, 0x89355cb2 )
 	ROM_LOAD( "b36-02.bin",   0x80000, 0x80000, 0xe71da5db )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )
 	ROM_LOAD( "b36-03.bin",   0x00000, 0x80000, 0x96166516 )
 ROM_END
 
 ROM_START( fhawk )
-	ROM_REGION( 0xb0000, REGION_CPU1 )
+	ROM_REGION( 0xb0000, REGION_CPU1, 0 )
 	ROM_LOAD( "b70-07.bin", 0x00000, 0x20000, 0x939114af )
 	ROM_RELOAD(             0x10000, 0x20000 )
 	ROM_LOAD( "b70-03.bin", 0x30000, 0x80000, 0x42d5a9b8 )
 
-	ROM_REGION( 0x1c000, REGION_CPU2 )	/* sound (sndhrdw/rastan.c wants it as #2 */
+	ROM_REGION( 0x1c000, REGION_CPU2, 0 )	/* sound (sndhrdw/rastan.c wants it as #2 */
 	ROM_LOAD( "b70-09.bin", 0x00000, 0x4000, 0x85cccaa2 )
 	ROM_CONTINUE(           0x10000, 0xc000 )
 
-	ROM_REGION( 0x30000, REGION_CPU3 )
+	ROM_REGION( 0x30000, REGION_CPU3, 0 )
 	ROM_LOAD( "b70-08.bin", 0x00000, 0x20000, 0x4d795f48 )
 	ROM_RELOAD(             0x10000, 0x20000 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "b70-01.bin", 0x00000, 0x80000, 0xfcdf67e2 )
 	ROM_LOAD( "b70-02.bin", 0x80000, 0x80000, 0x35f7172e )
 ROM_END
 
 ROM_START( champwr )
-	ROM_REGION( 0xf0000, REGION_CPU1 )
+	ROM_REGION( 0xf0000, REGION_CPU1, 0 )
 	ROM_LOAD( "c01-13.rom", 0x00000, 0x20000, 0x7ef47525 )
 	ROM_RELOAD(             0x10000, 0x20000 )
 	ROM_LOAD( "c01-04.rom", 0x30000, 0x20000, 0x358bd076 )
 	ROM_LOAD( "c01-05.rom", 0x50000, 0x20000, 0x22efad4a )
 
-	ROM_REGION( 0x1c000, REGION_CPU2 )	/* sound (sndhrdw/rastan.c wants it as #2 */
+	ROM_REGION( 0x1c000, REGION_CPU2, 0 )	/* sound (sndhrdw/rastan.c wants it as #2 */
 	ROM_LOAD( "c01-08.rom", 0x00000, 0x4000, 0x810efff8 )
 	ROM_CONTINUE(           0x10000, 0xc000 )
 
-	ROM_REGION( 0x30000, REGION_CPU3 )
+	ROM_REGION( 0x30000, REGION_CPU3, 0 )
 	ROM_LOAD( "c01-07.rom", 0x00000, 0x20000, 0x5117c98f )
 	ROM_RELOAD(             0x10000, 0x20000 )
 
-	ROM_REGION( 0x180000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x180000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c01-01.rom", 0x000000, 0x80000, 0xf302e6e9 )
 	ROM_LOAD( "c01-02.rom", 0x080000, 0x80000, 0x1e0476c4 )
 	ROM_LOAD( "c01-03.rom", 0x100000, 0x80000, 0x2a142dbc )
 ROM_END
 
 ROM_START( champwru )
-	ROM_REGION( 0xf0000, REGION_CPU1 )
+	ROM_REGION( 0xf0000, REGION_CPU1, 0 )
 	ROM_LOAD( "c01-12.rom", 0x00000, 0x20000, 0x09f345b3 )
 	ROM_RELOAD(             0x10000, 0x20000 )
 	ROM_LOAD( "c01-04.rom", 0x30000, 0x20000, 0x358bd076 )
 	ROM_LOAD( "c01-05.rom", 0x50000, 0x20000, 0x22efad4a )
 
-	ROM_REGION( 0x1c000, REGION_CPU2 )	/* sound (sndhrdw/rastan.c wants it as #2 */
+	ROM_REGION( 0x1c000, REGION_CPU2, 0 )	/* sound (sndhrdw/rastan.c wants it as #2 */
 	ROM_LOAD( "c01-08.rom", 0x00000, 0x4000, 0x810efff8 )
 	ROM_CONTINUE(           0x10000, 0xc000 )
 
-	ROM_REGION( 0x30000, REGION_CPU3 )
+	ROM_REGION( 0x30000, REGION_CPU3, 0 )
 	ROM_LOAD( "c01-07.rom", 0x00000, 0x20000, 0x5117c98f )
 	ROM_RELOAD(             0x10000, 0x20000 )
 
-	ROM_REGION( 0x180000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x180000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c01-01.rom", 0x000000, 0x80000, 0xf302e6e9 )
 	ROM_LOAD( "c01-02.rom", 0x080000, 0x80000, 0x1e0476c4 )
 	ROM_LOAD( "c01-03.rom", 0x100000, 0x80000, 0x2a142dbc )
 ROM_END
 
 ROM_START( champwrj )
-	ROM_REGION( 0xf0000, REGION_CPU1 )
+	ROM_REGION( 0xf0000, REGION_CPU1, 0 )
 	ROM_LOAD( "c01-06.bin", 0x00000, 0x20000, 0x90fa1409 )
 	ROM_RELOAD(             0x10000, 0x20000 )
 	ROM_LOAD( "c01-04.rom", 0x30000, 0x20000, 0x358bd076 )
 	ROM_LOAD( "c01-05.rom", 0x50000, 0x20000, 0x22efad4a )
 
-	ROM_REGION( 0x1c000, REGION_CPU2 )	/* sound (sndhrdw/rastan.c wants it as #2 */
+	ROM_REGION( 0x1c000, REGION_CPU2, 0 )	/* sound (sndhrdw/rastan.c wants it as #2 */
 	ROM_LOAD( "c01-08.rom", 0x00000, 0x4000, 0x810efff8 )
 	ROM_CONTINUE(           0x10000, 0xc000 )
 
-	ROM_REGION( 0x30000, REGION_CPU3 )
+	ROM_REGION( 0x30000, REGION_CPU3, 0 )
 	ROM_LOAD( "c01-07.rom", 0x00000, 0x20000, 0x5117c98f )
 	ROM_RELOAD(             0x10000, 0x20000 )
 
-	ROM_REGION( 0x180000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x180000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c01-01.rom", 0x000000, 0x80000, 0xf302e6e9 )
 	ROM_LOAD( "c01-02.rom", 0x080000, 0x80000, 0x1e0476c4 )
 	ROM_LOAD( "c01-03.rom", 0x100000, 0x80000, 0x2a142dbc )
@@ -2399,15 +2392,15 @@ ROM_END
 
 
 ROM_START( kurikint )
-	ROM_REGION( 0xb0000, REGION_CPU1 )
+	ROM_REGION( 0xb0000, REGION_CPU1, 0 )
 	ROM_LOAD( "b42-09.2",    0x00000, 0x20000, 0xe97c4394 )
 	ROM_RELOAD(              0x10000, 0x20000 )
 	ROM_LOAD( "b42-06.6",    0x30000, 0x20000, 0xfa15fd65 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "b42-07.22",   0x00000, 0x10000, 0x0f2719c0 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "kk_1-1l.rom", 0x00000, 0x20000, 0xdf1d4fcd )
 	ROM_LOAD( "kk_2-2l.rom", 0x20000, 0x20000, 0xfca7f647 )
 	ROM_LOAD( "kk_5-3l.rom", 0x40000, 0x20000, 0xd080fde1 )
@@ -2419,15 +2412,15 @@ ROM_START( kurikint )
 ROM_END
 
 ROM_START( kurikina )
-	ROM_REGION( 0xb0000, REGION_CPU1 )
+	ROM_REGION( 0xb0000, REGION_CPU1, 0 )
 	ROM_LOAD( "kk_ic2.rom",  0x00000, 0x20000, 0x908603f2 )
 	ROM_RELOAD(              0x10000, 0x20000 )
 	ROM_LOAD( "kk_ic6.rom",  0x30000, 0x20000, 0xa4a957b1 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "b42-07.22",   0x00000, 0x10000, 0x0f2719c0 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "kk_1-1l.rom", 0x00000, 0x20000, 0xdf1d4fcd )
 	ROM_LOAD( "kk_2-2l.rom", 0x20000, 0x20000, 0xfca7f647 )
 	ROM_LOAD( "kk_5-3l.rom", 0x40000, 0x20000, 0xd080fde1 )
@@ -2440,34 +2433,34 @@ ROM_END
 
 
 ROM_START( plotting )
-	ROM_REGION( 0x20000, REGION_CPU1 )
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )
 	ROM_LOAD( "plot01.bin", 0x00000, 0x10000, 0x5b30bc25 )
 	ROM_RELOAD(             0x10000, 0x10000 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "plot07.bin", 0x00000, 0x10000, 0x6e0bad2a )
 	ROM_LOAD( "plot08.bin", 0x10000, 0x10000, 0xfb5f3ca4 )
 ROM_END
 
 ROM_START( puzznic )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "u11.rom",  0x00000, 0x20000, 0xa4150b6c )
 	ROM_RELOAD(           0x10000, 0x20000 )
 
-	ROM_REGION( 0x0800, REGION_CPU2 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU2, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "mc68705p", 0x0000, 0x0800, 0x00000000 )
 
-	ROM_REGION( 0x40000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "u10.rom",  0x00000, 0x20000, 0x4264056c )
 	ROM_LOAD( "u09.rom",  0x20000, 0x20000, 0x3c115f8b )
 ROM_END
 
 ROM_START( horshoes )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "c47.03", 0x00000, 0x20000, 0x37e15b20 )
 	ROM_RELOAD(         0x10000, 0x20000 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c47.02", 0x00000, 0x10000, 0x35f96526 )
 	ROM_CONTINUE (      0x20000, 0x10000 )
 	ROM_LOAD( "c47.04", 0x40000, 0x10000, 0xaeac7121 )
@@ -2479,21 +2472,21 @@ ROM_START( horshoes )
 ROM_END
 
 ROM_START( palamed )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "c63.02", 0x00000, 0x20000, 0x55a82bb2 )
 	ROM_RELOAD(         0x10000, 0x20000 )
 
-	ROM_REGION( 0x40000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "c63.04", 0x00000, 0x20000, 0xc7bbe460 )
 	ROM_LOAD( "c63.03", 0x20000, 0x20000, 0xfcd86e44 )
 ROM_END
 
 ROM_START( cachat )
-	ROM_REGION( 0x30000, REGION_CPU1 )
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )
 	ROM_LOAD( "cac6",  0x00000, 0x20000, 0x8105cf5f )
 	ROM_RELOAD(        0x10000, 0x20000 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cac9",  0x00000, 0x20000, 0xbc462914 )
 	ROM_LOAD( "cac10", 0x20000, 0x20000, 0xecc64b31 )
 	ROM_LOAD( "cac7",  0x40000, 0x20000, 0x7fb71578 )
@@ -2501,21 +2494,21 @@ ROM_START( cachat )
 ROM_END
 
 ROM_START( plgirls )
-	ROM_REGION( 0x50000, REGION_CPU1 )
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )
 	ROM_LOAD( "pg03.ic6",    0x00000, 0x40000, 0x6ca73092 )
 	ROM_RELOAD(              0x10000, 0x40000 )
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pg02.ic9",    0x00000, 0x40000, 0x3cf05ca9 )
 	ROM_LOAD( "pg01.ic7",    0x40000, 0x40000, 0x79e41e74 )
 ROM_END
 
 ROM_START( plgirls2 )
-	ROM_REGION( 0x50000, REGION_CPU1 )
+	ROM_REGION( 0x50000, REGION_CPU1, 0 )
 	ROM_LOAD( "pg2_1j.ic6",  0x00000, 0x40000, 0xf924197a )
 	ROM_RELOAD(              0x10000, 0x40000 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cho-l.ic9",   0x00000, 0x80000, 0x956384ec )
 	ROM_LOAD( "cho-h.ic7",   0x80000, 0x80000, 0x992f99b1 )
 ROM_END
@@ -2549,8 +2542,8 @@ static void init_plotting(void)
 GAME( 1988, raimais,  0,        raimais,  raimais,  0,        ROT0,   "Taito Corporation", "Raimais (Japan)" )
 GAME( 1988, fhawk,    0,        fhawk,    fhawk,    0,        ROT270, "Taito Corporation", "Fighting Hawk (Japan)" )
 GAME( 1989, champwr,  0,        champwr,  champwr,  0,        ROT0,   "Taito Corporation Japan", "Champion Wrestler (World)" )
-GAME( 1989, champwru, champwr,  champwr,  champwr,  0,        ROT0,   "Taito America Corporation", "Champion Wrestler (US)" )
-GAME( 1989, champwrj, champwr,  champwr,  champwr,  0,        ROT0,   "Taito Corporation", "Champion Wrestler (Japan)" )
+GAME( 1989, champwru, champwr,  champwr,  champwru, 0,        ROT0,   "Taito America Corporation", "Champion Wrestler (US)" )
+GAME( 1989, champwrj, champwr,  champwr,  champwrj, 0,        ROT0,   "Taito Corporation", "Champion Wrestler (Japan)" )
 
 GAME( 1988, kurikint, 0,        kurikint, kurikint, 0,        ROT0,   "Taito Corporation Japan", "Kuri Kinton (World)" )
 GAME( 1988, kurikina, kurikint, kurikint, kurikina, 0,        ROT0,   "Taito Corporation Japan", "Kuri Kinton (prototype?)" )

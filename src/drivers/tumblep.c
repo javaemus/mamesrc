@@ -20,26 +20,26 @@ int  tumblep_vh_start(void);
 void tumblep_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void tumblepb_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-WRITE_HANDLER( tumblep_pf1_data_w );
-WRITE_HANDLER( tumblep_pf2_data_w );
-WRITE_HANDLER( tumblep_control_0_w );
+WRITE16_HANDLER( tumblep_pf1_data_w );
+WRITE16_HANDLER( tumblep_pf2_data_w );
+WRITE16_HANDLER( tumblep_control_0_w );
 
-extern unsigned char *tumblep_pf1_data,*tumblep_pf2_data;
+extern data16_t *tumblep_pf1_data,*tumblep_pf2_data;
 
 /******************************************************************************/
 
-static WRITE_HANDLER( tumblep_oki_w )
+static WRITE16_HANDLER( tumblep_oki_w )
 {
 	OKIM6295_data_0_w(0,data&0xff);
     /* STUFF IN OTHER BYTE TOO..*/
 }
 
-static READ_HANDLER( tumblep_prot_r )
+static READ16_HANDLER( tumblep_prot_r )
 {
-	return 0xffff;
+	return ~0;
 }
 
-static WRITE_HANDLER( tumblep_sound_w )
+static WRITE16_HANDLER( tumblep_sound_w )
 {
 	soundlatch_w(0,data & 0xff);
 	cpu_cause_interrupt(1,H6280_INT_IRQ1);
@@ -47,9 +47,9 @@ static WRITE_HANDLER( tumblep_sound_w )
 
 /******************************************************************************/
 
-static READ_HANDLER( tumblepop_controls_r )
+static READ16_HANDLER( tumblepop_controls_r )
 {
- 	switch (offset)
+ 	switch (offset<<1)
 	{
 		case 0: /* Player 1 & Player 2 joysticks & fire buttons */
 			return (readinputport(0) + (readinputport(1) << 8));
@@ -62,74 +62,66 @@ static READ_HANDLER( tumblepop_controls_r )
         	return 0;
 	}
 
-	return 0xffff;
+	return ~0;
 }
 
-static READ_HANDLER( tumblep_pf1_data_r ) { return READ_WORD(&tumblep_pf1_data[offset]); }
-static READ_HANDLER( tumblep_pf2_data_r ) { return READ_WORD(&tumblep_pf2_data[offset]); }
+static READ16_HANDLER( tumblep_pf1_data_r ) { return tumblep_pf1_data[offset]; }
+static READ16_HANDLER( tumblep_pf2_data_r ) { return tumblep_pf2_data[offset]; }
 
 /******************************************************************************/
 
-static struct MemoryReadAddress tumblepop_readmem[] =
-{
-	{ 0x000000, 0x07ffff, MRA_ROM },
-	{ 0x120000, 0x123fff, MRA_BANK1 },
-	{ 0x140000, 0x1407ff, paletteram_word_r },
+static MEMORY_READ16_START( tumblepop_readmem )
+	{ 0x000000, 0x07ffff, MRA16_ROM },
+	{ 0x120000, 0x123fff, MRA16_RAM },
+	{ 0x140000, 0x1407ff, MRA16_RAM },
 	{ 0x180000, 0x18000f, tumblepop_controls_r },
-	{ 0x1a0000, 0x1a07ff, MRA_BANK2 },
+	{ 0x1a0000, 0x1a07ff, MRA16_RAM },
 	{ 0x320000, 0x320fff, tumblep_pf1_data_r },
 	{ 0x322000, 0x322fff, tumblep_pf2_data_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress tumblepop_writemem[] =
-{
-	{ 0x000000, 0x07ffff, MWA_ROM },
+static MEMORY_WRITE16_START( tumblepop_writemem )
+	{ 0x000000, 0x07ffff, MWA16_ROM },
 	{ 0x100000, 0x100001, tumblep_sound_w },
-	{ 0x120000, 0x123fff, MWA_BANK1 },
-	{ 0x140000, 0x1407ff, paletteram_xxxxBBBBGGGGRRRR_word_w, &paletteram },
-	{ 0x18000c, 0x18000d, MWA_NOP },
-	{ 0x1a0000, 0x1a07ff, MWA_BANK2, &spriteram },
+	{ 0x120000, 0x123fff, MWA16_RAM },
+	{ 0x140000, 0x1407ff, paletteram16_xxxxBBBBGGGGRRRR_word_w, &paletteram16 },
+	{ 0x18000c, 0x18000d, MWA16_NOP },
+	{ 0x1a0000, 0x1a07ff, MWA16_RAM, &spriteram16 },
 	{ 0x300000, 0x30000f, tumblep_control_0_w },
 	{ 0x320000, 0x320fff, tumblep_pf1_data_w, &tumblep_pf1_data },
 	{ 0x322000, 0x322fff, tumblep_pf2_data_w, &tumblep_pf2_data },
-	{ 0x340000, 0x3401ff, MWA_NOP }, /* Unused row scroll */
-	{ 0x340400, 0x34047f, MWA_NOP }, /* Unused col scroll */
-	{ 0x342000, 0x3421ff, MWA_NOP },
-	{ 0x342400, 0x34247f, MWA_NOP },
-	{ -1 }  /* end of table */
-};
+	{ 0x340000, 0x3401ff, MWA16_NOP }, /* Unused row scroll */
+	{ 0x340400, 0x34047f, MWA16_NOP }, /* Unused col scroll */
+	{ 0x342000, 0x3421ff, MWA16_NOP },
+	{ 0x342400, 0x34247f, MWA16_NOP },
+MEMORY_END
 
-static struct MemoryReadAddress tumblepopb_readmem[] =
-{
-	{ 0x000000, 0x07ffff, MRA_ROM },
+static MEMORY_READ16_START( tumblepopb_readmem )
+	{ 0x000000, 0x07ffff, MRA16_ROM },
 	{ 0x100000, 0x100001, tumblep_prot_r },
-	{ 0x120000, 0x123fff, MRA_BANK1 },
-	{ 0x140000, 0x1407ff, paletteram_word_r },
-	{ 0x160000, 0x1607ff, MRA_BANK5 },
+	{ 0x120000, 0x123fff, MRA16_RAM },
+	{ 0x140000, 0x1407ff, MRA16_RAM },
+	{ 0x160000, 0x1607ff, MRA16_RAM },
 	{ 0x180000, 0x18000f, tumblepop_controls_r },
-	{ 0x1a0000, 0x1a07ff, MRA_BANK2 },
-	{ -1 }  /* end of table */
-};
+	{ 0x1a0000, 0x1a07ff, MRA16_RAM },
+MEMORY_END
 
-static struct MemoryWriteAddress tumblepopb_writemem[] =
-{
-	{ 0x000000, 0x07ffff, MWA_ROM },
+static MEMORY_WRITE16_START( tumblepopb_writemem )
+	{ 0x000000, 0x07ffff, MWA16_ROM },
 	{ 0x100000, 0x100001, tumblep_oki_w },
-	{ 0x120000, 0x123fff, MWA_BANK1 },
-	{ 0x140000, 0x1407ff, paletteram_xxxxBBBBGGGGRRRR_word_w, &paletteram },
-	{ 0x160000, 0x160807, MWA_BANK5, &spriteram }, /* Bootleg sprite buffer */
-	{ 0x18000c, 0x18000d, MWA_NOP },
-	{ 0x1a0000, 0x1a07ff, MWA_BANK2 },
+	{ 0x120000, 0x123fff, MWA16_RAM },
+	{ 0x140000, 0x1407ff, paletteram16_xxxxBBBBGGGGRRRR_word_w, &paletteram16 },
+	{ 0x160000, 0x160807, MWA16_RAM, &spriteram16 }, /* Bootleg sprite buffer */
+	{ 0x18000c, 0x18000d, MWA16_NOP },
+	{ 0x1a0000, 0x1a07ff, MWA16_RAM },
 	{ 0x300000, 0x30000f, tumblep_control_0_w },
 	{ 0x320000, 0x320fff, tumblep_pf1_data_w, &tumblep_pf1_data },
 	{ 0x322000, 0x322fff, tumblep_pf2_data_w, &tumblep_pf2_data },
-	{ 0x340000, 0x3401ff, MWA_NOP }, /* Unused row scroll */
-	{ 0x340400, 0x34047f, MWA_NOP }, /* Unused col scroll */
-	{ 0x342000, 0x3421ff, MWA_NOP },
-	{ 0x342400, 0x34247f, MWA_NOP },
-	{ -1 }  /* end of table */
-};
+	{ 0x340000, 0x3401ff, MWA16_NOP }, /* Unused row scroll */
+	{ 0x340400, 0x34047f, MWA16_NOP }, /* Unused col scroll */
+	{ 0x342000, 0x3421ff, MWA16_NOP },
+	{ 0x342400, 0x34247f, MWA16_NOP },
+MEMORY_END
 
 /******************************************************************************/
 
@@ -146,8 +138,7 @@ static WRITE_HANDLER( YM2151_w )
 }
 
 /* Physical memory map (21 bits) */
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x000000, 0x00ffff, MRA_ROM },
 	{ 0x100000, 0x100001, MRA_NOP },
 	{ 0x110000, 0x110001, YM2151_status_port_0_r },
@@ -155,11 +146,9 @@ static struct MemoryReadAddress sound_readmem[] =
 	{ 0x130000, 0x130001, MRA_NOP }, /* This board only has 1 oki chip */
 	{ 0x140000, 0x140001, soundlatch_r },
 	{ 0x1f0000, 0x1f1fff, MRA_BANK8 },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x000000, 0x00ffff, MWA_ROM },
 	{ 0x100000, 0x100001, MWA_NOP }, /* YM2203 - this board doesn't have one */
 	{ 0x110000, 0x110001, YM2151_w },
@@ -168,8 +157,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0x1f0000, 0x1f1fff, MWA_BANK8 },
 	{ 0x1fec00, 0x1fec01, H6280_timer_w },
 	{ 0x1ff402, 0x1ff403, H6280_irq_status_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 /******************************************************************************/
 
@@ -424,84 +412,84 @@ static const struct MachineDriver machine_driver_tumblepb =
 /******************************************************************************/
 
 ROM_START( tumblep )
-	ROM_REGION( 0x80000, REGION_CPU1 ) /* 68000 code */
-	ROM_LOAD_ODD ("hl01-1.f13", 0x00000, 0x40000, 0xd5a62a3f )
-	ROM_LOAD_EVEN("hl00-1.f12", 0x00000, 0x40000, 0xfd697c1b )
+	ROM_REGION( 0x80000, REGION_CPU1, 0 ) /* 68000 code */
+	ROM_LOAD16_BYTE("hl01-1.f13", 0x00001, 0x40000, 0xd5a62a3f )
+	ROM_LOAD16_BYTE("hl00-1.f12", 0x00000, 0x40000, 0xfd697c1b )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* Sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* Sound cpu */
 	ROM_LOAD( "hl02-.f16",  0x00000,  0x10000, 0xa5cab888 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.19",  0x000000, 0x40000, 0x0795aab4 )
 	ROM_LOAD( "thumbpop.18",  0x040000, 0x40000, 0xad58df43 )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.15",  0x00000,  0x40000, 0xac3d8349 )
 	ROM_LOAD( "thumbpop.14",  0x40000,  0x40000, 0x79a29725 )
 	ROM_LOAD( "thumbpop.17",  0x80000,  0x40000, 0x87cffb06 )
 	ROM_LOAD( "thumbpop.16",  0xc0000,  0x40000, 0xee91db18 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 ) /* Oki samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 ) /* Oki samples */
 	ROM_LOAD( "hl03-.j15",  0x00000,  0x20000, 0x01b81da0 )
 ROM_END
 
 ROM_START( tumblepj )
-	ROM_REGION( 0x80000, REGION_CPU1 ) /* 68000 code */
-	ROM_LOAD_ODD ("hk01-1.f13", 0x00000, 0x40000, 0x56912a00 )
-	ROM_LOAD_EVEN("hk00-1.f12", 0x00000, 0x40000, 0x2d3e4d3d )
+	ROM_REGION( 0x80000, REGION_CPU1, 0 ) /* 68000 code */
+	ROM_LOAD16_BYTE("hk01-1.f13", 0x00001, 0x40000, 0x56912a00 )
+	ROM_LOAD16_BYTE("hk00-1.f12", 0x00000, 0x40000, 0x2d3e4d3d )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* Sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* Sound cpu */
 	ROM_LOAD( "hl02-.f16",  0x00000,  0x10000, 0xa5cab888 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.19",  0x000000, 0x40000, 0x0795aab4 )
 	ROM_LOAD( "thumbpop.18",  0x040000, 0x40000, 0xad58df43 )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.15",  0x00000,  0x40000, 0xac3d8349 )
 	ROM_LOAD( "thumbpop.14",  0x40000,  0x40000, 0x79a29725 )
 	ROM_LOAD( "thumbpop.17",  0x80000,  0x40000, 0x87cffb06 )
 	ROM_LOAD( "thumbpop.16",  0xc0000,  0x40000, 0xee91db18 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 ) /* Oki samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 ) /* Oki samples */
 	ROM_LOAD( "hl03-.j15",  0x00000,  0x20000, 0x01b81da0 )
 ROM_END
 
 ROM_START( tumblepb )
-	ROM_REGION( 0x80000, REGION_CPU1 ) /* 68000 code */
-	ROM_LOAD_EVEN ("thumbpop.12", 0x00000, 0x40000, 0x0c984703 )
-	ROM_LOAD_ODD ( "thumbpop.13", 0x00000, 0x40000, 0x864c4053 )
+	ROM_REGION( 0x80000, REGION_CPU1, 0 ) /* 68000 code */
+	ROM_LOAD16_BYTE ("thumbpop.12", 0x00000, 0x40000, 0x0c984703 )
+	ROM_LOAD16_BYTE( "thumbpop.13", 0x00001, 0x40000, 0x864c4053 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.19",  0x000000, 0x40000, 0x0795aab4 )
 	ROM_LOAD( "thumbpop.18",  0x040000, 0x40000, 0xad58df43 )
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.15",  0x00000,  0x40000, 0xac3d8349 )
 	ROM_LOAD( "thumbpop.14",  0x40000,  0x40000, 0x79a29725 )
 	ROM_LOAD( "thumbpop.17",  0x80000,  0x40000, 0x87cffb06 )
 	ROM_LOAD( "thumbpop.16",  0xc0000,  0x40000, 0xee91db18 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 ) /* Oki samples */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 ) /* Oki samples */
 	ROM_LOAD( "thumbpop.snd",  0x00000,  0x80000, 0xfabbf15d )
 ROM_END
 
 ROM_START( tumblep2 )
-	ROM_REGION( 0x80000, REGION_CPU1 ) /* 68000 code */
-	ROM_LOAD_EVEN ("thumbpop.2", 0x00000, 0x40000, 0x34b016e1 )
-	ROM_LOAD_ODD ( "thumbpop.3", 0x00000, 0x40000, 0x89501c71 )
+	ROM_REGION( 0x80000, REGION_CPU1, 0 ) /* 68000 code */
+	ROM_LOAD16_BYTE ("thumbpop.2", 0x00000, 0x40000, 0x34b016e1 )
+	ROM_LOAD16_BYTE( "thumbpop.3", 0x00001, 0x40000, 0x89501c71 )
 
-	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.19",  0x000000, 0x40000, 0x0795aab4 )
 	ROM_LOAD( "thumbpop.18",  0x040000, 0x40000, 0xad58df43 )
 
- 	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+ 	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "thumbpop.5",   0x00000,  0x40000, 0xdda8932e )
 	ROM_LOAD( "thumbpop.14",  0x40000,  0x40000, 0x79a29725 )
 	ROM_LOAD( "thumbpop.17",  0x80000,  0x40000, 0x87cffb06 )
 	ROM_LOAD( "thumbpop.16",  0xc0000,  0x40000, 0xee91db18 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 ) /* Oki samples */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 ) /* Oki samples */
 	ROM_LOAD( "thumbpop.snd",  0x00000,  0x80000, 0xfabbf15d )
 ROM_END
 
@@ -509,7 +497,7 @@ ROM_END
 
 static void init_tumblep(void)
 {
-	unsigned char *RAM = memory_region(REGION_CPU1);
+	unsigned char *RAM;
 	int i,x,a;
     char z[64];
 

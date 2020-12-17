@@ -172,7 +172,14 @@ b73	checks lives. If zero, writes 0 to port 04 then jp 0000h.
 	routine, to not alter the credit counter.
 1523	put name in hi-scores?
 
----------------------------------------------------------------------------
+-------------------------------Performan-----------------------------------
+                 Interesting RAM locations (Main CPU).
+                 -------------------------------------
+
+$8056            Hero counter
+$8057            Level counter
+$8006 - $8035    High score table
+$8609 - $860f    High score characters to display to screen for highest score
 
 
 ***************************************************************************/
@@ -189,7 +196,15 @@ extern unsigned char *slapfight_colorram;
 extern size_t slapfight_videoram_size;
 extern unsigned char *slapfight_scrollx_lo,*slapfight_scrollx_hi,*slapfight_scrolly;
 void slapfight_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void perfrman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void slapfight_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
+int slapfight_vh_start (void);
+int perfrman_vh_start (void);
+WRITE_HANDLER( slapfight_flipscreen_w );
+WRITE_HANDLER( slapfight_fixram_w );
+WRITE_HANDLER( slapfight_fixcol_w );
+WRITE_HANDLER( slapfight_videoram_w );
+WRITE_HANDLER( slapfight_colorram_w );
 
 /* MACHINE */
 
@@ -213,14 +228,32 @@ WRITE_HANDLER( slapfight_port_09_w );
 
 READ_HANDLER( getstar_e803_r );
 WRITE_HANDLER( getstar_sh_intenable_w );
-extern int getstar_sequence_index;
 int getstar_interrupt(void);
 
 
 /* Driver structure definition */
 
-static struct MemoryReadAddress tigerh_readmem[] =
-{
+static MEMORY_READ_START( perfrman_readmem )
+	{ 0x0000, 0x7fff, MRA_ROM },
+	{ 0x8000, 0x87ff, MRA_RAM },
+	{ 0x8800, 0x880f, slapfight_dpram_r },
+	{ 0x8810, 0x8fff, MRA_BANK1 },
+	{ 0x9000, 0x97ff, MRA_RAM },
+	{ 0x9800, 0x9fff, MRA_RAM },
+	{ 0xa000, 0xa7ff, MRA_RAM },
+MEMORY_END
+
+static MEMORY_WRITE_START( perfrman_writemem )
+	{ 0x0000, 0x7fff, MWA_ROM },
+	{ 0x8000, 0x87ff, MWA_RAM },
+	{ 0x8800, 0x880f, slapfight_dpram_w, &slapfight_dpram, &slapfight_dpram_size },
+	{ 0x8810, 0x8fff, MWA_BANK1 },	/* Shared RAM with sound CPU */
+	{ 0x9000, 0x97ff, slapfight_videoram_w, &videoram, &videoram_size },
+	{ 0x9800, 0x9fff, slapfight_colorram_w, &colorram },
+	{ 0xa000, 0xa7ff, MWA_RAM, &spriteram, &spriteram_size },
+MEMORY_END
+
+static MEMORY_READ_START( tigerh_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xc800, 0xc80f, slapfight_dpram_r },
@@ -229,11 +262,9 @@ static struct MemoryReadAddress tigerh_readmem[] =
 	{ 0xd800, 0xdfff, MRA_RAM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xffff, MRA_RAM },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xc7ff, MRA_RAM },
@@ -245,83 +276,91 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xe803, 0xe803, getstar_e803_r }, /* LE 151098 */
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf800, 0xffff, MRA_RAM },
-	{ -1 } /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xc800, 0xc80f, slapfight_dpram_w, &slapfight_dpram, &slapfight_dpram_size },
 	{ 0xc810, 0xcfff, MWA_RAM },
-	{ 0xd000, 0xd7ff, videoram_w, &videoram, &videoram_size },
-	{ 0xd800, 0xdfff, colorram_w, &colorram },
+	{ 0xd000, 0xd7ff, slapfight_videoram_w, &videoram, &videoram_size },
+	{ 0xd800, 0xdfff, slapfight_colorram_w, &colorram },
 	{ 0xe000, 0xe7ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xe800, 0xe800, MWA_RAM, &slapfight_scrollx_lo },
 	{ 0xe801, 0xe801, MWA_RAM, &slapfight_scrollx_hi },
 	{ 0xe802, 0xe802, MWA_RAM, &slapfight_scrolly },
-	{ 0xf000, 0xf7ff, MWA_RAM, &slapfight_videoram, &slapfight_videoram_size },
-	{ 0xf800, 0xffff, MWA_RAM, &slapfight_colorram },
-	{ -1 } /* end of table */
-};
+	{ 0xf000, 0xf7ff, slapfight_fixram_w, &slapfight_videoram, &slapfight_videoram_size },
+	{ 0xf800, 0xffff, slapfight_fixcol_w, &slapfight_colorram },
+MEMORY_END
 
-static struct MemoryWriteAddress slapbtuk_writemem[] =
-{
+static MEMORY_WRITE_START( slapbtuk_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
 	{ 0xc800, 0xc80f, slapfight_dpram_w, &slapfight_dpram, &slapfight_dpram_size },
 	{ 0xc810, 0xcfff, MWA_RAM },
-	{ 0xd000, 0xd7ff, videoram_w, &videoram, &videoram_size },
-	{ 0xd800, 0xdfff, colorram_w, &colorram },
+	{ 0xd000, 0xd7ff, slapfight_videoram_w, &videoram, &videoram_size },
+	{ 0xd800, 0xdfff, slapfight_colorram_w, &colorram },
 	{ 0xe000, 0xe7ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xe800, 0xe800, MWA_RAM, &slapfight_scrollx_hi },
 	{ 0xe802, 0xe802, MWA_RAM, &slapfight_scrolly },
 	{ 0xe803, 0xe803, MWA_RAM, &slapfight_scrollx_lo },
-	{ 0xf000, 0xf7ff, MWA_RAM, &slapfight_videoram, &slapfight_videoram_size },
-	{ 0xf800, 0xffff, MWA_RAM, &slapfight_colorram },
-	{ -1 } /* end of table */
-};
+	{ 0xf000, 0xf7ff, slapfight_fixram_w, &slapfight_videoram, &slapfight_videoram_size },
+	{ 0xf800, 0xffff, slapfight_fixcol_w, &slapfight_colorram },
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x00, slapfight_port_00_r },	/* status register */
-	{ -1 } /* end of table */
-};
+PORT_END
 
-static struct IOWritePort tigerh_writeport[] =
-{
+static PORT_WRITE_START( tigerh_writeport )
 	{ 0x00, 0x00, slapfight_port_00_w },
 	{ 0x01, 0x01, slapfight_port_01_w },
+	{ 0x02, 0x03, slapfight_flipscreen_w },
 	{ 0x06, 0x06, slapfight_port_06_w },
 	{ 0x07, 0x07, slapfight_port_07_w },
-	{ -1 } /* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, slapfight_port_00_w },
 	{ 0x01, 0x01, slapfight_port_01_w },
+	{ 0x02, 0x03, slapfight_flipscreen_w },
 //	{ 0x04, 0x04, getstar_port_04_w   },
 	{ 0x06, 0x06, slapfight_port_06_w },
 	{ 0x07, 0x07, slapfight_port_07_w },
 	{ 0x08, 0x08, slapfight_port_08_w },	/* select bank 0 */
 	{ 0x09, 0x09, slapfight_port_09_w },	/* select bank 1 */
-	{ -1 } /* end of table */
-};
+PORT_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( perfrman_sound_readmem )
+	{ 0x0000, 0x1fff, MRA_ROM },
+	{ 0x8800, 0x880f, slapfight_dpram_r },
+	{ 0x8810, 0x8fff, MRA_BANK1 },
+	{ 0xa081, 0xa081, AY8910_read_port_0_r },
+	{ 0xa091, 0xa091, AY8910_read_port_1_r },
+MEMORY_END
+
+static MEMORY_WRITE_START( perfrman_sound_writemem )
+	{ 0x0000, 0x1fff, MWA_ROM },
+	{ 0x8800, 0x880f, slapfight_dpram_w },
+	{ 0x8810, 0x8fff, MWA_BANK1 },	/* Shared RAM with main CPU */
+	{ 0xa080, 0xa080, AY8910_control_port_0_w },
+	{ 0xa082, 0xa082, AY8910_write_port_0_w },
+	{ 0xa090, 0xa090, AY8910_control_port_1_w },
+	{ 0xa092, 0xa092, AY8910_write_port_1_w },
+	{ 0xa0e0, 0xa0e0, getstar_sh_intenable_w }, /* LE 151098 (maybe a0f0 also)*/
+//	{ 0xa0f0, 0xa0f0, MWA_NOP },
+MEMORY_END
+
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0xa081, 0xa081, AY8910_read_port_0_r },
 	{ 0xa091, 0xa091, AY8910_read_port_1_r },
 	{ 0xc800, 0xc80f, slapfight_dpram_r },
 	{ 0xc810, 0xcfff, MRA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0xa080, 0xa080, AY8910_control_port_0_w },
 	{ 0xa082, 0xa082, AY8910_write_port_0_w },
@@ -330,11 +369,84 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0xa0e0, 0xa0e0, getstar_sh_intenable_w }, /* LE 151098 (maybe a0f0 also)*/
 	{ 0xc800, 0xc80f, slapfight_dpram_w },
 	{ 0xc810, 0xcfff, MWA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
+INPUT_PORTS_START( perfrman )
+	PORT_START      /* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_COCKTAIL )
+
+	PORT_START      /* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN2 )
+
+	PORT_START  /* DSW1 */
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unused ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_BITX(    0x40, 0x40, IPT_DIPSWITCH_NAME | IPF_TOGGLE, "Dipswitch Test", KEYCODE_F2, IP_JOY_NONE )
+	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	/* Actually, the following DIPSW doesnt seem to do anything */
+	PORT_BITX(    0x20, 0x20, IPT_DIPSWITCH_NAME | IPF_TOGGLE, "Screen Test", KEYCODE_F1, IP_JOY_NONE )
+	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x10, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( Cocktail ) )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	PORT_DIPNAME( 0x07, 0x07, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( 3C_1C ) )
+//	PORT_DIPSETTING(    0x02, DEF_STR( 3C_1C ) )
+	PORT_DIPSETTING(    0x04, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x07, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x03, DEF_STR( 2C_3C ) )
+	PORT_DIPSETTING(    0x06, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0x05, DEF_STR( 1C_3C ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Free_Play ) )
+
+	PORT_START  /* DSW2 */
+	PORT_DIPNAME( 0xf0, 0x70, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0xb0, "20k, then each 100k" )
+	PORT_DIPSETTING(    0xa0, "40k, then each 100k" )
+	PORT_DIPSETTING(    0x90, "60k, then each 100k" )
+	PORT_DIPSETTING(    0x70, "20k, then each 200k" )
+	PORT_DIPSETTING(    0x60, "40k, then each 200k" )
+	PORT_DIPSETTING(    0x50, "60k, then each 200k" )
+	PORT_DIPSETTING(    0x30, "20k, then each 300k" )
+	PORT_DIPSETTING(    0x20, "40k, then each 300k" )
+	PORT_DIPSETTING(    0x10, "60k, then each 300k" )
+	PORT_DIPSETTING(    0xf0, "20k" )
+	PORT_DIPSETTING(    0xe0, "40k" )
+	PORT_DIPSETTING(    0xd0, "60k" )
+	PORT_DIPSETTING(    0xc0, "None" )
+	PORT_DIPNAME( 0x0c, 0x0c, "Game Level" )
+	PORT_DIPSETTING(    0x0c, "0" )
+	PORT_DIPSETTING(    0x08, "1" )
+	PORT_DIPSETTING(    0x04, "2" )
+	PORT_DIPSETTING(    0x00, "3" )
+	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x01, "1" )
+	PORT_DIPSETTING(    0x00, "2" )
+	PORT_DIPSETTING(    0x03, "3" )
+	PORT_DIPSETTING(    0x02, "5" )
+INPUT_PORTS_END
 
 INPUT_PORTS_START( tigerh )
 	PORT_START      /* IN0 */
@@ -553,56 +665,32 @@ INPUT_PORTS_END
 
 static struct GfxLayout charlayout =
 {
-	8,8,   /* 8*8 characters */
-	1024,  /* 1024 characters */
-	2,     /* 2 bits per pixel */
-	{ 0, 1024*8*8 },
+	8,8,			/* 8*8 characters */
+	RGN_FRAC(1,2),	/* 1024 characters */
+	2,				/* 2 bits per pixel */
+	{ RGN_FRAC(0,2), RGN_FRAC(1,2) },
 	{ 0, 1, 2, 3, 4, 5, 6, 7 },
 	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },
 	8*8     /* every char takes 8 consecutive bytes */
 };
 
-static struct GfxLayout tigerh_tilelayout =
-{
-	8,8,    /* 8*8 tiles */
-	2048,   /* 2048 tiles */
-	4,      /* 4 bits per pixel */
-	{ 0, 2048*8*8, 2*2048*8*8, 3*2048*8*8 },
-	{ 0, 1, 2, 3, 4, 5, 6, 7 },
-	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },
-	8*8    /* every tile takes 8 consecutive bytes */
-};
-
 static struct GfxLayout tilelayout =
 {
-	8,8,    /* 8*8 tiles */
-	4096,   /* 4096 tiles */
-	4,      /* 4 bits per pixel */
-	{ 0, 4096*8*8, 2*4096*8*8, 3*4096*8*8 },
+	8,8,			/* 8*8 tiles */
+	RGN_FRAC(1,4),	/* 2048/4096 tiles */
+	4,				/* 4 bits per pixel */
+	{ RGN_FRAC(0,4), RGN_FRAC(1,4), RGN_FRAC(2,4), RGN_FRAC(3,4) },
 	{ 0, 1, 2, 3, 4, 5, 6, 7 },
 	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },
 	8*8    /* every tile takes 8 consecutive bytes */
-};
-
-static struct GfxLayout tigerh_spritelayout =
-{
-	16,16,   /* 16*16 sprites */
-	512,     /* 512 sprites */
-	4,       /* 4 bits per pixel */
-	{ 0, 512*32*8, 2*512*32*8, 3*512*32*8 },
-	{ 0, 1, 2, 3, 4, 5, 6, 7, 8,
-			9, 10 ,11, 12, 13, 14, 15 },
-	{ 0*16, 1*16, 2*16, 3*16, 4*16, 5*16, 6*16, 7*16,
-			8*16, 9*16, 10*16, 11*16, 12*16, 13*16, 14*16, 15*16 },
-	32*8    /* every sprite takes 64 consecutive bytes */
 };
 
 static struct GfxLayout spritelayout =
 {
-	16,16,   /* 16*16 sprites */
-	1024,    /* 1024 sprites */
-	4,       /* 4 bits per pixel */
-	{ 0, 1024*32*8, 2*1024*32*8, 3*1024*32*8 },
+	16,16,			/* 16*16 sprites */
+	RGN_FRAC(1,4),	/* 512/1024 sprites */
+	4,				/* 4 bits per pixel */
+	{ RGN_FRAC(0,4), RGN_FRAC(1,4), RGN_FRAC(2,4), RGN_FRAC(3,4) },
 	{ 0, 1, 2, 3, 4, 5, 6, 7, 8,
 			9, 10 ,11, 12, 13, 14, 15 },
 	{ 0*16, 1*16, 2*16, 3*16, 4*16, 5*16, 6*16, 7*16,
@@ -610,12 +698,35 @@ static struct GfxLayout spritelayout =
 	32*8    /* every sprite takes 64 consecutive bytes */
 };
 
-
-static struct GfxDecodeInfo tigerh_gfxdecodeinfo[] =
+static struct GfxLayout perfrman_charlayout =
 {
-	{ REGION_GFX1, 0, &charlayout,          0,  64 },
-	{ REGION_GFX2, 0, &tigerh_tilelayout,   0,  16 },
-	{ REGION_GFX3, 0, &tigerh_spritelayout, 0,  16 },
+	8,8,			/* 8*8 characters */
+	RGN_FRAC(1,3),	/* 1024 characters */
+	3,				/* 3 bits per pixel */
+	{ RGN_FRAC(0,3), RGN_FRAC(1,3), RGN_FRAC(2,3) },
+	{ 0, 1, 2, 3, 4, 5, 6, 7 },
+	{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },
+	8*8     /* every char takes 8 consecutive bytes */
+};
+
+static struct GfxLayout perfrman_spritelayout =
+{
+	16,16,			/* 16*16 sprites */
+	RGN_FRAC(1,3),	/* 256 sprites */
+	3,				/* 3 bits per pixel */
+	{ RGN_FRAC(0,3), RGN_FRAC(1,3), RGN_FRAC(2,3) },
+	{ 0, 1, 2, 3, 4, 5, 6, 7, 8,
+			9, 10 ,11, 12, 13, 14, 15 },
+	{ 0*16, 1*16, 2*16, 3*16, 4*16, 5*16, 6*16, 7*16,
+			8*16, 9*16, 10*16, 11*16, 12*16, 13*16, 14*16, 15*16 },
+	32*8
+};
+
+
+static struct GfxDecodeInfo perfrman_gfxdecodeinfo[] =
+{
+	{ REGION_GFX1, 0, &perfrman_charlayout,     0, 16 },
+	{ REGION_GFX2, 0, &perfrman_spritelayout, 128, 16 },
 	{ -1 } /* end of array */
 };
 
@@ -640,6 +751,65 @@ static struct AY8910interface ay8910_interface =
 	{ 0, 0 }
 };
 
+static struct AY8910interface perfrman_ay8910_interface =
+{
+	2,				/* 2 chips */
+	16000000/8,		/* 2MHz ???, 16MHz Oscillator */
+	{ 25, 25 },
+	{ input_port_0_r, input_port_2_r },
+	{ input_port_1_r, input_port_3_r },
+	{ 0, 0 },
+	{ 0, 0 }
+};
+
+static void eof_callback(void)
+{
+	buffer_spriteram_w(0,0);
+}
+
+static struct MachineDriver machine_driver_perfrman =
+{
+	/* basic machine hardware */
+	{
+		{
+			CPU_Z80,
+			16000000/4,			/* 4MHz ???, 16MHz Oscillator */
+			perfrman_readmem,perfrman_writemem,readport,writeport,
+			interrupt,1
+		},
+		{
+			CPU_Z80,
+			16000000/8,			/* 2MHz ???, 16MHz Oscillator */
+			perfrman_sound_readmem,perfrman_sound_writemem,0,0,
+			getstar_interrupt, 6,	/* p'tit Seb 980926 this way it sound much better ! */
+			0,0						/* I think music is not so far from correct speed */
+		}
+	},
+	60, DEFAULT_REAL_60HZ_VBLANK_DURATION,
+	10,		/* 10 CPU slices per frame - enough for the sound CPU to read all commands */
+	slapfight_init_machine,
+
+	/* video hardware */
+	64*8, 32*8, { 1*8, 34*8-1, 2*8, 32*8-1 },
+	perfrman_gfxdecodeinfo,
+	256, 256,
+	slapfight_vh_convert_color_prom,
+
+	VIDEO_TYPE_RASTER | VIDEO_BUFFERS_SPRITERAM,
+	eof_callback,
+	perfrman_vh_start,
+	0,
+	perfrman_vh_screenrefresh,
+
+	/* sound hardware */
+	0,0,0,0,
+	{
+		{
+			SOUND_AY8910,
+			&perfrman_ay8910_interface
+		}
+	}
+};
 
 static const struct MachineDriver machine_driver_tigerh =
 {
@@ -658,22 +828,20 @@ static const struct MachineDriver machine_driver_tigerh =
 			nmi_interrupt,6,    /* ??? */
 		}
 	},
-	60,				/* fps - frames per second */
-//	DEFAULT_REAL_60HZ_VBLANK_DURATION,
-	5000,	/* wrong, but fixes graphics glitches */
-	10,     /* 10 CPU slices per frame - enough for the sound CPU to read all commands */
+	60, DEFAULT_REAL_60HZ_VBLANK_DURATION,
+	10,		/* 10 CPU slices per frame - enough for the sound CPU to read all commands */
 	slapfight_init_machine,
 
 	/* video hardware */
 	64*8, 32*8, { 1*8, 36*8-1, 2*8, 32*8-1 },
-	tigerh_gfxdecodeinfo,
+	gfxdecodeinfo,
 	256, 256,
 	slapfight_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER,
+	VIDEO_TYPE_RASTER | VIDEO_BUFFERS_SPRITERAM,
+	eof_callback,
+	slapfight_vh_start,
 	0,
-	generic_vh_start,
-	generic_vh_stop,
 	slapfight_vh_screenrefresh,
 
 	/* sound hardware */
@@ -706,10 +874,8 @@ static const struct MachineDriver machine_driver_slapfigh =
 			slapfight_sound_interrupt, 27306667 */
 		}
 	},
-	60,				/* fps - frames per second */
-//	DEFAULT_REAL_60HZ_VBLANK_DURATION,
-	5000,	/* wrong, but fixes graphics glitches */
-	10,     /* 10 CPU slices per frame - enough for the sound CPU to read all commands */
+	60, DEFAULT_REAL_60HZ_VBLANK_DURATION,
+	10,		/* 10 CPU slices per frame - enough for the sound CPU to read all commands */
 	slapfight_init_machine,
 
 	/* video hardware */
@@ -718,10 +884,10 @@ static const struct MachineDriver machine_driver_slapfigh =
 	256, 256,
 	slapfight_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER,
+	VIDEO_TYPE_RASTER | VIDEO_BUFFERS_SPRITERAM,
+	eof_callback,
+	slapfight_vh_start,
 	0,
-	generic_vh_start,
-	generic_vh_stop,
 	slapfight_vh_screenrefresh,
 
 	/* sound hardware */
@@ -755,10 +921,8 @@ static const struct MachineDriver machine_driver_slapbtuk =
 			slapfight_sound_interrupt, 27306667 */
 		}
 	},
-	60,				/* fps - frames per second */
-//	DEFAULT_REAL_60HZ_VBLANK_DURATION,
-	5000,	/* wrong, but fixes graphics glitches */
-	10,     /* 10 CPU slices per frame - enough for the sound CPU to read all commands */
+	60, DEFAULT_REAL_60HZ_VBLANK_DURATION,
+	10,		/* 10 CPU slices per frame - enough for the sound CPU to read all commands */
 	slapfight_init_machine,
 
 	/* video hardware */
@@ -767,10 +931,10 @@ static const struct MachineDriver machine_driver_slapbtuk =
 	256, 256,
 	slapfight_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER,
+	VIDEO_TYPE_RASTER | VIDEO_BUFFERS_SPRITERAM,
+	eof_callback,
+	slapfight_vh_start,
 	0,
-	generic_vh_start,
-	generic_vh_stop,
 	slapfight_vh_screenrefresh,
 
 	/* sound hardware */
@@ -785,398 +949,428 @@ static const struct MachineDriver machine_driver_slapbtuk =
 
 
 
+ROM_START( perfrman )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )				 /* Main CPU code */
+	ROM_LOAD( "ci07.0",    0x00000, 0x4000, 0x7ad32eea )
+	ROM_LOAD( "ci08.1",    0x04000, 0x4000, 0x90a02d5f )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )				 /* Sound CPU code */
+	ROM_LOAD( "ci06.4",    0x0000, 0x2000, 0xdf891ad0 )
+
+	ROM_REGION( 0x6000, REGION_GFX1, ROMREGION_DISPOSE ) /* Tiles */
+	ROM_LOAD( "ci02.7",     0x0000, 0x2000, 0x8efa960a )
+	ROM_LOAD( "ci01.6",     0x2000, 0x2000, 0x2e8e69df )
+	ROM_LOAD( "ci00.5",     0x4000, 0x2000, 0x79e191f8 )
+
+	ROM_REGION( 0x6000, REGION_GFX2, ROMREGION_DISPOSE ) /* Sprites */
+	ROM_LOAD( "ci05.10",    0x0000, 0x2000, 0x809a4ccc )
+	ROM_LOAD( "ci04.9",     0x2000, 0x2000, 0x026f27b3 )
+	ROM_LOAD( "ci03.8",     0x4000, 0x2000, 0x6410d9eb )
+
+	ROM_REGION( 0x300, REGION_PROMS, 0 )				 /* Color BPROMs */
+	ROM_LOAD( "ci14.16",    0x000, 0x0100, 0x515f8a3b )
+	ROM_LOAD( "ci13.15",    0x100, 0x0100, 0xa9a397eb )
+	ROM_LOAD( "ci12.14",    0x200, 0x0100, 0x67f86e3d )
+
+	ROM_REGION( 0x220, REGION_USER1, 0 )
+	ROM_LOAD( "ci11.11",    0x000, 0x0100, 0xd492e6c2 )
+	ROM_LOAD( "ci10.12",    0x100, 0x0100, 0x59490887 )
+	ROM_LOAD( "ci09.13",    0x200, 0x0020, 0xaa0ca5a5 )
+ROM_END
+
 ROM_START( tigerh )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "0.4",          0x00000, 0x4000, 0x4be73246 )
 	ROM_LOAD( "1.4",          0x04000, 0x4000, 0xaad04867 )
 	ROM_LOAD( "2.4",          0x08000, 0x4000, 0x4843f15c )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "a47_03.bin",   0x0000,  0x2000, 0xd105260f )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 8k for the 68705 (missing!) */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 8k for the 68705 (missing!) */
 	ROM_LOAD( "a47_14.mcu",   0x0000, 0x0800, 0x00000000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_05.bin",   0x00000, 0x2000, 0xc5325b49 )  /* Chars */
 	ROM_LOAD( "a47_04.bin",   0x02000, 0x2000, 0xcd59628e )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_09.bin",   0x00000, 0x4000, 0x31fae8a8 )  /* Tiles */
 	ROM_LOAD( "a47_08.bin",   0x04000, 0x4000, 0xe539af2b )
 	ROM_LOAD( "a47_07.bin",   0x08000, 0x4000, 0x02fdd429 )
 	ROM_LOAD( "a47_06.bin",   0x0c000, 0x4000, 0x11fbcc8c )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_13.bin",   0x00000, 0x4000, 0x739a7e7e )  /* Sprites */
 	ROM_LOAD( "a47_12.bin",   0x04000, 0x4000, 0xc064ecdb )
 	ROM_LOAD( "a47_11.bin",   0x08000, 0x4000, 0x744fae9b )
 	ROM_LOAD( "a47_10.bin",   0x0c000, 0x4000, 0xe1cf844e )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "82s129.12q",   0x0000,  0x0100, 0x2c69350d )
 	ROM_LOAD( "82s129.12m",   0x0100,  0x0100, 0x7142e972 )
 	ROM_LOAD( "82s129.12n",   0x0200,  0x0100, 0x25f273f2 )
 ROM_END
 
 ROM_START( tigerh2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "b0.5",         0x00000, 0x4000, 0x6ae7e13c )
 	ROM_LOAD( "a47_01.bin",   0x04000, 0x4000, 0x65df2152 )
 	ROM_LOAD( "a47_02.bin",   0x08000, 0x4000, 0x633d324b )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "a47_03.bin",   0x0000,  0x2000, 0xd105260f )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 8k for the 68705 (missing!) */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 8k for the 68705 (missing!) */
 	ROM_LOAD( "a47_14.mcu",   0x0000, 0x0800, 0x00000000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_05.bin",   0x00000, 0x2000, 0xc5325b49 )  /* Chars */
 	ROM_LOAD( "a47_04.bin",   0x02000, 0x2000, 0xcd59628e )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_09.bin",   0x00000, 0x4000, 0x31fae8a8 )  /* Tiles */
 	ROM_LOAD( "a47_08.bin",   0x04000, 0x4000, 0xe539af2b )
 	ROM_LOAD( "a47_07.bin",   0x08000, 0x4000, 0x02fdd429 )
 	ROM_LOAD( "a47_06.bin",   0x0c000, 0x4000, 0x11fbcc8c )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_13.bin",   0x00000, 0x4000, 0x739a7e7e )  /* Sprites */
 	ROM_LOAD( "a47_12.bin",   0x04000, 0x4000, 0xc064ecdb )
 	ROM_LOAD( "a47_11.bin",   0x08000, 0x4000, 0x744fae9b )
 	ROM_LOAD( "a47_10.bin",   0x0c000, 0x4000, 0xe1cf844e )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "82s129.12q",   0x0000,  0x0100, 0x2c69350d )
 	ROM_LOAD( "82s129.12m",   0x0100,  0x0100, 0x7142e972 )
 	ROM_LOAD( "82s129.12n",   0x0200,  0x0100, 0x25f273f2 )
 ROM_END
 
 ROM_START( tigerhj )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "a47_00.bin",   0x00000, 0x4000, 0xcbdbe3cc )
 	ROM_LOAD( "a47_01.bin",   0x04000, 0x4000, 0x65df2152 )
 	ROM_LOAD( "a47_02.bin",   0x08000, 0x4000, 0x633d324b )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "a47_03.bin",   0x0000,  0x2000, 0xd105260f )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 8k for the 68705 (missing!) */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 8k for the 68705 (missing!) */
 	ROM_LOAD( "a47_14.mcu",   0x0000, 0x0800, 0x00000000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_05.bin",   0x00000, 0x2000, 0xc5325b49 )  /* Chars */
 	ROM_LOAD( "a47_04.bin",   0x02000, 0x2000, 0xcd59628e )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_09.bin",   0x00000, 0x4000, 0x31fae8a8 )  /* Tiles */
 	ROM_LOAD( "a47_08.bin",   0x04000, 0x4000, 0xe539af2b )
 	ROM_LOAD( "a47_07.bin",   0x08000, 0x4000, 0x02fdd429 )
 	ROM_LOAD( "a47_06.bin",   0x0c000, 0x4000, 0x11fbcc8c )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_13.bin",   0x00000, 0x4000, 0x739a7e7e )  /* Sprites */
 	ROM_LOAD( "a47_12.bin",   0x04000, 0x4000, 0xc064ecdb )
 	ROM_LOAD( "a47_11.bin",   0x08000, 0x4000, 0x744fae9b )
 	ROM_LOAD( "a47_10.bin",   0x0c000, 0x4000, 0xe1cf844e )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "82s129.12q",   0x0000,  0x0100, 0x2c69350d )
 	ROM_LOAD( "82s129.12m",   0x0100,  0x0100, 0x7142e972 )
 	ROM_LOAD( "82s129.12n",   0x0200,  0x0100, 0x25f273f2 )
 ROM_END
 
 ROM_START( tigerhb1 )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "14",           0x00000, 0x4000, 0xca59dd73 )
 	ROM_LOAD( "13",           0x04000, 0x4000, 0x38bd54db )
 	ROM_LOAD( "a47_02.bin",   0x08000, 0x4000, 0x633d324b )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "a47_03.bin",   0x0000,  0x2000, 0xd105260f )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_05.bin",   0x00000, 0x2000, 0xc5325b49 )  /* Chars */
 	ROM_LOAD( "a47_04.bin",   0x02000, 0x2000, 0xcd59628e )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_09.bin",   0x00000, 0x4000, 0x31fae8a8 )  /* Tiles */
 	ROM_LOAD( "a47_08.bin",   0x04000, 0x4000, 0xe539af2b )
 	ROM_LOAD( "a47_07.bin",   0x08000, 0x4000, 0x02fdd429 )
 	ROM_LOAD( "a47_06.bin",   0x0c000, 0x4000, 0x11fbcc8c )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_13.bin",   0x00000, 0x4000, 0x739a7e7e )  /* Sprites */
 	ROM_LOAD( "a47_12.bin",   0x04000, 0x4000, 0xc064ecdb )
 	ROM_LOAD( "a47_11.bin",   0x08000, 0x4000, 0x744fae9b )
 	ROM_LOAD( "a47_10.bin",   0x0c000, 0x4000, 0xe1cf844e )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "82s129.12q",   0x0000,  0x0100, 0x2c69350d )
 	ROM_LOAD( "82s129.12m",   0x0100,  0x0100, 0x7142e972 )
 	ROM_LOAD( "82s129.12n",   0x0200,  0x0100, 0x25f273f2 )
 ROM_END
 
 ROM_START( tigerhb2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "rom00_09.bin", 0x00000, 0x4000, 0xef738c68 )
 	ROM_LOAD( "a47_01.bin",   0x04000, 0x4000, 0x65df2152 )
 	ROM_LOAD( "rom02_07.bin", 0x08000, 0x4000, 0x36e250b9 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "a47_03.bin",   0x0000,  0x2000, 0xd105260f )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_05.bin",   0x00000, 0x2000, 0xc5325b49 )  /* Chars */
 	ROM_LOAD( "a47_04.bin",   0x02000, 0x2000, 0xcd59628e )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_09.bin",   0x00000, 0x4000, 0x31fae8a8 )  /* Tiles */
 	ROM_LOAD( "a47_08.bin",   0x04000, 0x4000, 0xe539af2b )
 	ROM_LOAD( "a47_07.bin",   0x08000, 0x4000, 0x02fdd429 )
 	ROM_LOAD( "a47_06.bin",   0x0c000, 0x4000, 0x11fbcc8c )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "a47_13.bin",   0x00000, 0x4000, 0x739a7e7e )  /* Sprites */
 	ROM_LOAD( "a47_12.bin",   0x04000, 0x4000, 0xc064ecdb )
 	ROM_LOAD( "a47_11.bin",   0x08000, 0x4000, 0x744fae9b )
 	ROM_LOAD( "a47_10.bin",   0x0c000, 0x4000, 0xe1cf844e )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "82s129.12q",   0x0000,  0x0100, 0x2c69350d )
 	ROM_LOAD( "82s129.12m",   0x0100,  0x0100, 0x7142e972 )
 	ROM_LOAD( "82s129.12n",   0x0200,  0x0100, 0x25f273f2 )
 ROM_END
 
 ROM_START( slapfigh )
-	ROM_REGION( 0x18000, REGION_CPU1 )
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )
 	ROM_LOAD( "sf_r19.bin",   0x00000, 0x8000, 0x674c0e0f )
 	ROM_LOAD( "sf_rh.bin",    0x10000, 0x8000, 0x3c42e4a7 )	/* banked at 8000 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "sf_r05.bin",   0x0000,  0x2000, 0x87f4705a )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "68705.bin",    0x0000,  0x0800, 0x00000000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r11.bin",   0x00000, 0x2000, 0x2ac7b943 )  /* Chars */
 	ROM_LOAD( "sf_r10.bin",   0x02000, 0x2000, 0x33cadc93 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r06.bin",   0x00000, 0x8000, 0xb6358305 )  /* Tiles */
 	ROM_LOAD( "sf_r09.bin",   0x08000, 0x8000, 0xe92d9d60 )
 	ROM_LOAD( "sf_r08.bin",   0x10000, 0x8000, 0x5faeeea3 )
 	ROM_LOAD( "sf_r07.bin",   0x18000, 0x8000, 0x974e2ea9 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r03.bin",   0x00000, 0x8000, 0x8545d397 )  /* Sprites */
 	ROM_LOAD( "sf_r01.bin",   0x08000, 0x8000, 0xb1b7b925 )
 	ROM_LOAD( "sf_r04.bin",   0x10000, 0x8000, 0x422d946b )
 	ROM_LOAD( "sf_r02.bin",   0x18000, 0x8000, 0x587113ae )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "sf_col21.bin", 0x0000,  0x0100, 0xa0efaf99 )
 	ROM_LOAD( "sf_col20.bin", 0x0100,  0x0100, 0xa56d57e5 )
 	ROM_LOAD( "sf_col19.bin", 0x0200,  0x0100, 0x5cbf9fbf )
 ROM_END
 
 ROM_START( slapbtjp )
-	ROM_REGION( 0x18000, REGION_CPU1 )
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )
 	ROM_LOAD( "sf_r19jb.bin", 0x00000, 0x8000, 0x9a7ac8b3 )
 	ROM_LOAD( "sf_rh.bin",    0x10000, 0x8000, 0x3c42e4a7 )	/* banked at 8000 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "sf_r05.bin",   0x0000,  0x2000, 0x87f4705a )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r11.bin",   0x00000, 0x2000, 0x2ac7b943 )  /* Chars */
 	ROM_LOAD( "sf_r10.bin",   0x02000, 0x2000, 0x33cadc93 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r06.bin",   0x00000, 0x8000, 0xb6358305 )  /* Tiles */
 	ROM_LOAD( "sf_r09.bin",   0x08000, 0x8000, 0xe92d9d60 )
 	ROM_LOAD( "sf_r08.bin",   0x10000, 0x8000, 0x5faeeea3 )
 	ROM_LOAD( "sf_r07.bin",   0x18000, 0x8000, 0x974e2ea9 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r03.bin",   0x00000, 0x8000, 0x8545d397 )  /* Sprites */
 	ROM_LOAD( "sf_r01.bin",   0x08000, 0x8000, 0xb1b7b925 )
 	ROM_LOAD( "sf_r04.bin",   0x10000, 0x8000, 0x422d946b )
 	ROM_LOAD( "sf_r02.bin",   0x18000, 0x8000, 0x587113ae )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "sf_col21.bin", 0x0000,  0x0100, 0xa0efaf99 )
 	ROM_LOAD( "sf_col20.bin", 0x0100,  0x0100, 0xa56d57e5 )
 	ROM_LOAD( "sf_col19.bin", 0x0200,  0x0100, 0x5cbf9fbf )
 ROM_END
 
 ROM_START( slapbtuk )
-	ROM_REGION( 0x18000, REGION_CPU1 )
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )
 	ROM_LOAD( "sf_r19eb.bin", 0x00000, 0x4000, 0x2efe47af )
 	ROM_LOAD( "sf_r20eb.bin", 0x04000, 0x4000, 0xf42c7951 )
 	ROM_LOAD( "sf_rh.bin",    0x10000, 0x8000, 0x3c42e4a7 )	/* banked at 8000 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "sf_r05.bin",   0x0000,  0x2000, 0x87f4705a )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r11.bin",   0x00000, 0x2000, 0x2ac7b943 )  /* Chars */
 	ROM_LOAD( "sf_r10.bin",   0x02000, 0x2000, 0x33cadc93 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r06.bin",   0x00000, 0x8000, 0xb6358305 )  /* Tiles */
 	ROM_LOAD( "sf_r09.bin",   0x08000, 0x8000, 0xe92d9d60 )
 	ROM_LOAD( "sf_r08.bin",   0x10000, 0x8000, 0x5faeeea3 )
 	ROM_LOAD( "sf_r07.bin",   0x18000, 0x8000, 0x974e2ea9 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r03.bin",   0x00000, 0x8000, 0x8545d397 )  /* Sprites */
 	ROM_LOAD( "sf_r01.bin",   0x08000, 0x8000, 0xb1b7b925 )
 	ROM_LOAD( "sf_r04.bin",   0x10000, 0x8000, 0x422d946b )
 	ROM_LOAD( "sf_r02.bin",   0x18000, 0x8000, 0x587113ae )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "sf_col21.bin", 0x0000,  0x0100, 0xa0efaf99 )
 	ROM_LOAD( "sf_col20.bin", 0x0100,  0x0100, 0xa56d57e5 )
 	ROM_LOAD( "sf_col19.bin", 0x0200,  0x0100, 0x5cbf9fbf )
 ROM_END
 
 ROM_START( alcon )
-	ROM_REGION( 0x18000, REGION_CPU1 )
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )
 	ROM_LOAD( "00",           0x00000, 0x8000, 0x2ba82d60 )
 	ROM_LOAD( "01",           0x10000, 0x8000, 0x18bb2f12 )	/* banked at 8000 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the audio CPU */
 	ROM_LOAD( "sf_r05.bin",   0x0000,  0x2000, 0x87f4705a )
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "68705.bin",    0x0000,  0x0800, 0x00000000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "04",           0x00000, 0x2000, 0x31003483 )  /* Chars */
 	ROM_LOAD( "03",           0x02000, 0x2000, 0x404152c0 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r06.bin",   0x00000, 0x8000, 0xb6358305 )  /* Tiles */
 	ROM_LOAD( "sf_r09.bin",   0x08000, 0x8000, 0xe92d9d60 )
 	ROM_LOAD( "sf_r08.bin",   0x10000, 0x8000, 0x5faeeea3 )
 	ROM_LOAD( "sf_r07.bin",   0x18000, 0x8000, 0x974e2ea9 )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "sf_r03.bin",   0x00000, 0x8000, 0x8545d397 )  /* Sprites */
 	ROM_LOAD( "sf_r01.bin",   0x08000, 0x8000, 0xb1b7b925 )
 	ROM_LOAD( "sf_r04.bin",   0x10000, 0x8000, 0x422d946b )
 	ROM_LOAD( "sf_r02.bin",   0x18000, 0x8000, 0x587113ae )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "sf_col21.bin", 0x0000,  0x0100, 0xa0efaf99 )
 	ROM_LOAD( "sf_col20.bin", 0x0100,  0x0100, 0xa56d57e5 )
 	ROM_LOAD( "sf_col19.bin", 0x0200,  0x0100, 0x5cbf9fbf )
 ROM_END
 
 ROM_START( getstar )
-	ROM_REGION( 0x18000, REGION_CPU1 )		/* Region 0 - main cpu code */
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )		/* Region 0 - main cpu code */
 	ROM_LOAD( "rom0",         0x00000, 0x4000, 0x6a8bdc6c )
 	ROM_LOAD( "rom1",         0x04000, 0x4000, 0xebe8db3c )
 	ROM_LOAD( "rom2",         0x10000, 0x8000, 0x343e8415 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* Region 3 - sound cpu code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* Region 3 - sound cpu code */
 	ROM_LOAD( "a68-03",       0x0000,  0x2000, 0x18daa44c)
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "68705.bin",    0x0000,  0x0800, 0x00000000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68_05-1",     0x00000, 0x2000, 0x06f60107 )  /* Chars */
 	ROM_LOAD( "a68_04-1",     0x02000, 0x2000, 0x1fc8f277 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68_09",       0x00000, 0x8000, 0xa293cc2e )  /* Tiles */
 	ROM_LOAD( "a68_08",       0x08000, 0x8000, 0x37662375 )
 	ROM_LOAD( "a68_07",       0x10000, 0x8000, 0xcf1a964c )
 	ROM_LOAD( "a68_06",       0x18000, 0x8000, 0x05f9eb9a )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68-13",       0x00000, 0x8000, 0x643fb282 )  /* Sprites */
 	ROM_LOAD( "a68-12",       0x08000, 0x8000, 0x11f74e32 )
 	ROM_LOAD( "a68-11",       0x10000, 0x8000, 0xf24158cf )
 	ROM_LOAD( "a68-10",       0x18000, 0x8000, 0x83161ed0 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "rom21",        0x0000,  0x0100, 0xd6360b4d )
 	ROM_LOAD( "rom20",        0x0100,  0x0100, 0x4ca01887 )
 	ROM_LOAD( "rom19",        0x0200,  0x0100, 0x513224f0 )
 ROM_END
 
 ROM_START( getstarj )
-	ROM_REGION( 0x18000, REGION_CPU1 )		/* Region 0 - main cpu code */
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )		/* Region 0 - main cpu code */
 	ROM_LOAD( "a68_00.bin",   0x00000, 0x4000, 0xad1a0143 )
 	ROM_LOAD( "a68_01.bin",   0x04000, 0x4000, 0x3426eb7c )
 	ROM_LOAD( "a68_02.bin",   0x10000, 0x8000, 0x3567da17 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* Region 3 - sound cpu code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* Region 3 - sound cpu code */
 	ROM_LOAD( "a68-03",       0x00000, 0x2000, 0x18daa44c)
 
-	ROM_REGION( 0x0800, REGION_CPU3 )	/* 2k for the microcontroller */
+	ROM_REGION( 0x0800, REGION_CPU3, 0 )	/* 2k for the microcontroller */
 	ROM_LOAD( "68705.bin",    0x0000,  0x0800, 0x00000000 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68_05.bin",   0x00000, 0x2000, 0xe3d409e7 )  /* Chars */
 	ROM_LOAD( "a68_04.bin",   0x02000, 0x2000, 0x6e5ac9d4 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68_09",       0x00000, 0x8000, 0xa293cc2e )  /* Tiles */
 	ROM_LOAD( "a68_08",       0x08000, 0x8000, 0x37662375 )
 	ROM_LOAD( "a68_07",       0x10000, 0x8000, 0xcf1a964c )
 	ROM_LOAD( "a68_06",       0x18000, 0x8000, 0x05f9eb9a )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68-13",       0x00000, 0x8000, 0x643fb282 )  /* Sprites */
 	ROM_LOAD( "a68-12",       0x08000, 0x8000, 0x11f74e32 )
 	ROM_LOAD( "a68-11",       0x10000, 0x8000, 0xf24158cf )
 	ROM_LOAD( "a68-10",       0x18000, 0x8000, 0x83161ed0 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "rom21",        0x0000, 0x0100, 0xd6360b4d )
 	ROM_LOAD( "rom20",        0x0100, 0x0100, 0x4ca01887 )
 	ROM_LOAD( "rom19",        0x0200, 0x0100, 0x513224f0 )
 ROM_END
 
 ROM_START( getstarb )
-	ROM_REGION( 0x18000, REGION_CPU1 )		/* Region 0 - main cpu code */
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )		/* Region 0 - main cpu code */
 	ROM_LOAD( "gs_14.rom",    0x00000, 0x4000, 0x1a57a920 )
 	ROM_LOAD( "gs_13.rom",    0x04000, 0x4000, 0x805f8e77 )
 	ROM_LOAD( "a68_02.bin",   0x10000, 0x8000, 0x3567da17 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* Region 3 - sound cpu code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* Region 3 - sound cpu code */
 	ROM_LOAD( "a68-03",       0x0000, 0x2000, 0x18daa44c)
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68_05.bin",   0x00000, 0x2000, 0xe3d409e7 )  /* Chars */
 	ROM_LOAD( "a68_04.bin",   0x02000, 0x2000, 0x6e5ac9d4 )
 
-	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x20000, REGION_GFX2, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68_09",       0x00000, 0x8000, 0xa293cc2e )  /* Tiles */
 	ROM_LOAD( "a68_08",       0x08000, 0x8000, 0x37662375 )
 	ROM_LOAD( "a68_07",       0x10000, 0x8000, 0xcf1a964c )
 	ROM_LOAD( "a68_06",       0x18000, 0x8000, 0x05f9eb9a )
 
-	ROM_REGION( 0x20000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* Region 1 - temporary for gfx */
+	ROM_REGION( 0x20000, REGION_GFX3, ROMREGION_DISPOSE )	/* Region 1 - temporary for gfx */
 	ROM_LOAD( "a68-13",       0x00000, 0x8000, 0x643fb282 )  /* Sprites */
 	ROM_LOAD( "a68-12",       0x08000, 0x8000, 0x11f74e32 )
 	ROM_LOAD( "a68-11",       0x10000, 0x8000, 0xf24158cf )
 	ROM_LOAD( "a68-10",       0x18000, 0x8000, 0x83161ed0 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "rom21",        0x0000, 0x0100, 0xd6360b4d )
 	ROM_LOAD( "rom20",        0x0100, 0x0100, 0x4ca01887 )
 	ROM_LOAD( "rom19",        0x0200, 0x0100, 0x513224f0 )
 ROM_END
 
 
-
+/*   ( YEAR  NAME      PARENT    MACHINE   INPUT   INIT MONITOR COMPANY    FULLNAME     FLAGS ) */
+GAME ( 1985, perfrman, 0,        perfrman, perfrman, 0, ROT270, "[Toaplan] Data East Corporation", "Performan" )
 GAMEX( 1985, tigerh,   0,        tigerh,   tigerh,   0, ROT270, "Taito", "Tiger Heli (set 1)", GAME_NOT_WORKING | GAME_NO_COCKTAIL )
 GAMEX( 1985, tigerh2,  tigerh,   tigerh,   tigerh,   0, ROT270, "Taito", "Tiger Heli (set 2)", GAME_NOT_WORKING | GAME_NO_COCKTAIL )
 GAMEX( 1985, tigerhj,  tigerh,   tigerh,   tigerh,   0, ROT270, "Taito", "Tiger Heli (Japan)", GAME_NOT_WORKING | GAME_NO_COCKTAIL )

@@ -84,8 +84,7 @@ static WRITE_HANDLER( fastlane_K007232_write_port_1_w )
 
 
 
-static struct MemoryReadAddress fastlane_readmem[] =
-{
+static MEMORY_READ_START( fastlane_readmem )
 	{ 0x0000, 0x005f, MRA_RAM },
 	{ 0x0800, 0x0800, input_port_2_r }, 	/* DIPSW #3 */
 	{ 0x0801, 0x0801, input_port_5_r }, 	/* 2P inputs */
@@ -100,11 +99,9 @@ static struct MemoryReadAddress fastlane_readmem[] =
 	{ 0x2000, 0x3fff, MRA_RAM },			/* Video RAM + Sprite RAM */
 	{ 0x4000, 0x7fff, MRA_BANK1 },			/* banked ROM */
 	{ 0x8000, 0xffff, MRA_ROM },			/* ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress fastlane_writemem[] =
-{
+static MEMORY_WRITE_START( fastlane_writemem )
 	{ 0x0000, 0x005f, k007121_registers_w, &fastlane_k007121_regs },/* 007121 registers */
 	{ 0x0b00, 0x0b00, watchdog_reset_w },		/* watchdog reset */
 	{ 0x0c00, 0x0c00, fastlane_bankswitch_w },	/* bankswitch control */
@@ -117,8 +114,7 @@ static struct MemoryWriteAddress fastlane_writemem[] =
 	{ 0x2800, 0x2fff, fastlane_vram2_w, &fastlane_videoram2 },
 	{ 0x3000, 0x3fff, MWA_RAM, &spriteram },	/* Sprite RAM */
 	{ 0x4000, 0xffff, MWA_ROM },				/* ROM/banked ROM */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /***************************************************************************
 
@@ -319,23 +315,23 @@ static const struct MachineDriver machine_driver_fastlane =
 ***************************************************************************/
 
 ROM_START( fastlane )
-	ROM_REGION( 0x21000, REGION_CPU1 ) /* code + banked roms */
+	ROM_REGION( 0x21000, REGION_CPU1, 0 ) /* code + banked roms */
 	ROM_LOAD( "fl_e05.rom", 0x08000, 0x08000, 0xe1004489 )  /* fixed ROM */
 	ROM_LOAD( "fl_e04.rom", 0x10000, 0x10000, 0xff4d6029 )  /* banked ROM */
 
-	ROM_REGION( 0x80000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "fl_m02.rom", 0x00000, 0x80000, 0xa126e82d )  /* tiles + sprites */
 
-	ROM_REGION( 0x0400, REGION_PROMS )
+	ROM_REGION( 0x0400, REGION_PROMS, 0 )
 	ROM_LOAD( "prom1",      0x0000, 0x0100, 0x00000000 )
 	ROM_LOAD( "prom2",      0x0100, 0x0100, 0x00000000 )
 	ROM_LOAD( "prom3",      0x0200, 0x0100, 0x00000000 )
 	ROM_LOAD( "prom4",      0x0300, 0x0100, 0x00000000 )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* 007232 data */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 007232 data */
 	ROM_LOAD( "fl_m01.rom", 0x00000, 0x20000, 0x85d691ed ) /* chip 1 */
 
-	ROM_REGION( 0x80000, REGION_SOUND2 )	/* 007232 data */
+	ROM_REGION( 0x80000, REGION_SOUND2, 0 )	/* 007232 data */
 	ROM_LOAD( "fl_m03.rom", 0x00000, 0x80000, 0x119e9cbf ) /* chip 2 */
 ROM_END
 

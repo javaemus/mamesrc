@@ -127,7 +127,7 @@ static void nvram_handler(void *file,int read_or_write)
 static READ_HANDLER( pang_port5_r )
 {
 	int bit;
-	extern struct GameDriver driver_mgakuen2;
+	extern const struct GameDriver driver_mgakuen2;
 
 	bit = EEPROM_read_bit() << 7;
 
@@ -298,8 +298,7 @@ logerror("PC %04x: write %02x to port 01\n",cpu_get_pc(),data);
 
 ***************************************************************************/
 
-static struct MemoryReadAddress mgakuen_readmem[] =
-{
+static MEMORY_READ_START( mgakuen_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xc7ff, mgakuen_paletteram_r },	/* palette RAM */
@@ -307,53 +306,43 @@ static struct MemoryReadAddress mgakuen_readmem[] =
 	{ 0xd000, 0xdfff, mgakuen_videoram_r },	/* char RAM */
 	{ 0xe000, 0xefff, MRA_RAM },	/* Work RAM */
 	{ 0xf000, 0xffff, mgakuen_objram_r },	/* OBJ RAM */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress mgakuen_writemem[] =
-{
+static MEMORY_WRITE_START( mgakuen_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, mgakuen_paletteram_w },
 	{ 0xc800, 0xcfff, pang_colorram_w, &pang_colorram },
 	{ 0xd000, 0xdfff, mgakuen_videoram_w, &pang_videoram, &pang_videoram_size },
 	{ 0xe000, 0xefff, MWA_RAMROM },
 	{ 0xf000, 0xffff, mgakuen_objram_w },	/* OBJ RAM */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0xbfff, MRA_BANK1 },
 	{ 0xc000, 0xc7ff, pang_paletteram_r },	/* Banked palette RAM */
 	{ 0xc800, 0xcfff, pang_colorram_r },	/* Attribute RAM */
 	{ 0xd000, 0xdfff, pang_videoram_r },	/* Banked char / OBJ RAM */
 	{ 0xe000, 0xffff, MRA_RAM },	/* Work RAM */
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, pang_paletteram_w },
 	{ 0xc800, 0xcfff, pang_colorram_w, &pang_colorram },
 	{ 0xd000, 0xdfff, pang_videoram_w, &pang_videoram, &pang_videoram_size },
 	{ 0xe000, 0xffff, MWA_RAMROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
-	{ 0x00, 0x02, input_r },	/* Super Pang needs a kludge to initialize EEPROM;
-						the Mahjong games and Block Block need special input treatment */
+static PORT_READ_START( readport )
+	{ 0x00, 0x02, input_r },	/* Super Pang needs a kludge to initialize EEPROM.
+						The Mahjong games and Block Block need special input treatment */
 	{ 0x03, 0x03, input_port_12_r },	/* mgakuen only */
 	{ 0x04, 0x04, input_port_13_r },	/* mgakuen only */
 	{ 0x05, 0x05, pang_port5_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x00, pang_gfxctrl_w },    /* Palette bank, layer enable, coin counters, more */
 	{ 0x01, 0x01, input_w },
 	{ 0x02, 0x02, pang_bankswitch_w },      /* Code bank register */
@@ -365,8 +354,7 @@ static struct IOWritePort writeport[] =
 	{ 0x08, 0x08, eeprom_cs_w },
 	{ 0x10, 0x10, eeprom_clock_w },
 	{ 0x18, 0x18, eeprom_serial_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -1100,71 +1088,91 @@ static const struct MachineDriver machine_driver_marukin =
 
 
 ROM_START( mgakuen )
-	ROM_REGION( 0x30000, REGION_CPU1 )	/* 192k for code */
+	ROM_REGION( 0x30000, REGION_CPU1, 0 )	/* 192k for code */
 	ROM_LOAD( "mg-1.1j",      0x00000, 0x08000, 0xbf02ea6b )
 	ROM_LOAD( "mg-2.1l",      0x10000, 0x20000, 0x64141b0c )
 
-	ROM_REGION( 0x200000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mg-1.13h",     0x000000, 0x80000, 0xfd6a0805 )	/* chars */
 	ROM_LOAD( "mg-2.14h",     0x080000, 0x80000, 0xe26e871e )
 	ROM_LOAD( "mg-3.16h",     0x100000, 0x80000, 0xdd781d9a )
 	ROM_LOAD( "mg-4.17h",     0x180000, 0x80000, 0x97afcc79 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mg-6.4l",      0x000000, 0x20000, 0x34594e62 )	/* sprites */
 	ROM_LOAD( "mg-7.6l",      0x020000, 0x20000, 0xf304c806 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "mg-5.1c",      0x00000, 0x80000, 0x170332f1 )	/* banked */
 ROM_END
 
 ROM_START( mgakuen2 )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "mg2-xf.1j",    0x00000, 0x08000, 0xc8165d2d )
 	ROM_LOAD( "mg2-y.1l",     0x10000, 0x20000, 0x75bbcc14 )
 	ROM_LOAD( "mg2-z.3l",     0x30000, 0x20000, 0xbfdba961 )
 
-	ROM_REGION( 0x200000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mg2-a.13h",    0x000000, 0x80000, 0x31a0c55e )	/* chars */
 	ROM_LOAD( "mg2-b.14h",    0x080000, 0x80000, 0xc18488fa )
 	ROM_LOAD( "mg2-c.16h",    0x100000, 0x80000, 0x9425b364 )
 	ROM_LOAD( "mg2-d.17h",    0x180000, 0x80000, 0x6cc9eeba )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mg2-f.4l",     0x000000, 0x20000, 0x3172c9fe )	/* sprites */
 	ROM_LOAD( "mg2-g.6l",     0x020000, 0x20000, 0x19b8b61c )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "mg2-e.1c",     0x00000, 0x80000, 0x70fd0809 )	/* banked */
 ROM_END
 
 ROM_START( pkladies )
-	ROM_REGION( 2*0x20000, REGION_CPU1 )	/* 128k for code + 128k for decrypted opcodes */
+	ROM_REGION( 2*0x20000, REGION_CPU1, 0 )	/* 128k for code + 128k for decrypted opcodes */
 	ROM_LOAD( "pko-prg1.14f", 0x00000, 0x08000, 0x86585a94 )
 	ROM_LOAD( "pko-prg2.15f", 0x10000, 0x10000, 0x86cbe82d )
 
-	ROM_REGION( 0x200000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD_GFX_EVEN( "pko-001.8h",   0x000000, 0x80000, 0x1ead5d9b )	/* chars */
-	ROM_LOAD_GFX_ODD ( "pko-003.8j",   0x000000, 0x80000, 0x339ab4e6 )
-	ROM_LOAD_GFX_EVEN( "pko-002.9h",   0x100000, 0x80000, 0x1cf02586 )
-	ROM_LOAD_GFX_ODD ( "pko-004.9j",   0x100000, 0x80000, 0x09ccb442 )
+	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "pko-001.8h",   0x000000, 0x80000, 0x1ead5d9b )	/* chars */
+	ROM_LOAD16_BYTE( "pko-003.8j",   0x000001, 0x80000, 0x339ab4e6 )
+	ROM_LOAD16_BYTE( "pko-002.9h",   0x100000, 0x80000, 0x1cf02586 )
+	ROM_LOAD16_BYTE( "pko-004.9j",   0x100001, 0x80000, 0x09ccb442 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "pko-chr1.2j",  0x000000, 0x20000, 0x31ce33cd )	/* sprites */
 	ROM_LOAD( "pko-chr2.3j",  0x020000, 0x20000, 0xad7e055f )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
+	ROM_LOAD( "pko-voi1.2d",  0x00000, 0x20000, 0x07e0f531 )
+	ROM_LOAD( "pko-voi2.3d",  0x20000, 0x20000, 0x18398bf6 )
+ROM_END
+
+ROM_START( pkladiel )
+	ROM_REGION( 2*0x30000, REGION_CPU1, 0 )	/* 128k for code + 128k for decrypted opcodes */
+	ROM_LOAD( "pk05.14f",     0x00000, 0x08000, 0xea1740a6 )
+	ROM_LOAD( "pk06.15f",     0x10000, 0x20000, 0x3078ff5e )	/* larger than pkladies - 2nd half unused? */
+
+	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "pko-001.8h",   0x000000, 0x80000, 0x1ead5d9b )	/* chars */
+	ROM_LOAD16_BYTE( "pko-003.8j",   0x000001, 0x80000, 0x339ab4e6 )
+	ROM_LOAD16_BYTE( "pko-002.9h",   0x100000, 0x80000, 0x1cf02586 )
+	ROM_LOAD16_BYTE( "pko-004.9j",   0x100001, 0x80000, 0x09ccb442 )
+
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD( "pko-chr1.2j",  0x000000, 0x20000, 0x31ce33cd )	/* sprites */
+	ROM_LOAD( "pko-chr2.3j",  0x020000, 0x20000, 0xad7e055f )
+
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "pko-voi1.2d",  0x00000, 0x20000, 0x07e0f531 )
 	ROM_LOAD( "pko-voi2.3d",  0x20000, 0x20000, 0x18398bf6 )
 ROM_END
 
 ROM_START( dokaben )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "db06.11h",     0x00000, 0x08000, 0x413e0886 )
 	ROM_LOAD( "db07.13h",     0x10000, 0x20000, 0x8bdcf49e )
 	ROM_LOAD( "db08.14h",     0x30000, 0x20000, 0x1643bdd9 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "db02.1e",      0x000000, 0x20000, 0x9aa8470c )	/* chars */
 	ROM_LOAD( "db03.2e",      0x020000, 0x20000, 0x3324e43d )
 	/* 40000-7ffff empty */
@@ -1172,20 +1180,20 @@ ROM_START( dokaben )
 	ROM_LOAD( "db05.2g",      0x0a0000, 0x20000, 0xd2ab25f2 )
 	/* c0000-fffff empty */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "db10.2k",      0x000000, 0x20000, 0x9e70f7ae )	/* sprites */
 	ROM_LOAD( "db09.1k",      0x020000, 0x20000, 0x2d9263f7 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "db01.1d",      0x00000, 0x20000, 0x62fa6b81 )
 ROM_END
 
 ROM_START( pang )
-	ROM_REGION( 2*0x30000, REGION_CPU1 )	/* 192k for code + 192k for decrypted opcodes */
+	ROM_REGION( 2*0x30000, REGION_CPU1, 0 )	/* 192k for code + 192k for decrypted opcodes */
 	ROM_LOAD( "pang6.bin",    0x00000, 0x08000, 0x68be52cd )
 	ROM_LOAD( "pang7.bin",    0x10000, 0x20000, 0x4a2e70f6 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pang_09.bin",  0x000000, 0x20000, 0x3a5883f5 )	/* chars */
 	ROM_LOAD( "bb3.bin",      0x020000, 0x20000, 0x79a8ed08 )
 	/* 40000-7ffff empty */
@@ -1193,22 +1201,22 @@ ROM_START( pang )
 	ROM_LOAD( "bb5.bin",      0x0a0000, 0x20000, 0x2fb3db6c )
 	/* c0000-fffff empty */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "bb10.bin",     0x000000, 0x20000, 0xfdba4f6e )	/* sprites */
 	ROM_LOAD( "bb9.bin",      0x020000, 0x20000, 0x39f47a63 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "bb1.bin",      0x00000, 0x20000, 0xc52e5b8e )
 ROM_END
 
 ROM_START( pangb )
-	ROM_REGION( 2*0x30000, REGION_CPU1 )	/* 192k for code + 192k for decrypted opcodes */
+	ROM_REGION( 2*0x30000, REGION_CPU1, 0 )	/* 192k for code + 192k for decrypted opcodes */
 	ROM_LOAD( "pang_04.bin",  0x30000, 0x08000, 0xf68f88a5 )   /* Decrypted opcode + data */
 	ROM_CONTINUE(             0x00000, 0x08000 )
 	ROM_LOAD( "pang_02.bin",  0x40000, 0x20000, 0x3f15bb61 )   /* Decrypted op codes */
 	ROM_LOAD( "pang_03.bin",  0x10000, 0x20000, 0x0c8477ae )   /* Decrypted data */
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pang_09.bin",  0x000000, 0x20000, 0x3a5883f5 )	/* chars */
 	ROM_LOAD( "bb3.bin",      0x020000, 0x20000, 0x79a8ed08 )
 	/* 40000-7ffff empty */
@@ -1216,20 +1224,20 @@ ROM_START( pangb )
 	ROM_LOAD( "bb5.bin",      0x0a0000, 0x20000, 0x2fb3db6c )
 	/* c0000-fffff empty */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "bb10.bin",     0x000000, 0x20000, 0xfdba4f6e )	/* sprites */
 	ROM_LOAD( "bb9.bin",      0x020000, 0x20000, 0x39f47a63 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "bb1.bin",      0x00000, 0x20000, 0xc52e5b8e )
 ROM_END
 
 ROM_START( bbros )
-	ROM_REGION( 2*0x30000, REGION_CPU1 )	/* 192k for code + 192k for decrypted opcodes */
+	ROM_REGION( 2*0x30000, REGION_CPU1, 0 )	/* 192k for code + 192k for decrypted opcodes */
 	ROM_LOAD( "bb6.bin",      0x00000, 0x08000, 0xa3041ca4 )
 	ROM_LOAD( "bb7.bin",      0x10000, 0x20000, 0x09231c68 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "bb2.bin",      0x000000, 0x20000, 0x62f29992 )	/* chars */
 	ROM_LOAD( "bb3.bin",      0x020000, 0x20000, 0x79a8ed08 )
 	/* 40000-7ffff empty */
@@ -1237,20 +1245,20 @@ ROM_START( bbros )
 	ROM_LOAD( "bb5.bin",      0x0a0000, 0x20000, 0x2fb3db6c )
 	/* c0000-fffff empty */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "bb10.bin",     0x000000, 0x20000, 0xfdba4f6e )	/* sprites */
 	ROM_LOAD( "bb9.bin",      0x020000, 0x20000, 0x39f47a63 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "bb1.bin",      0x00000, 0x20000, 0xc52e5b8e )
 ROM_END
 
 ROM_START( pompingw )
-	ROM_REGION( 2*0x30000, REGION_CPU1 )	/* 192k for code + 192k for decrypted opcodes */
+	ROM_REGION( 2*0x30000, REGION_CPU1, 0 )	/* 192k for code + 192k for decrypted opcodes */
 	ROM_LOAD( "pwj_06.11h",   0x00000, 0x08000, 0x4a0a6426 )
 	ROM_LOAD( "pwj_07.13h",   0x10000, 0x20000, 0xa9402420 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "pw_02.1e",     0x000000, 0x20000, 0x4b5992e4 )	/* chars */
 	ROM_LOAD( "bb3.bin",      0x020000, 0x20000, 0x79a8ed08 )
 	/* 40000-7ffff empty */
@@ -1258,21 +1266,21 @@ ROM_START( pompingw )
 	ROM_LOAD( "bb5.bin",      0x0a0000, 0x20000, 0x2fb3db6c )
 	/* c0000-fffff empty */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "bb10.bin",     0x000000, 0x20000, 0xfdba4f6e )	/* sprites */
 	ROM_LOAD( "bb9.bin",      0x020000, 0x20000, 0x39f47a63 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "bb1.bin",      0x00000, 0x20000, 0xc52e5b8e )
 ROM_END
 
 ROM_START( cworld )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "cw05.bin",     0x00000, 0x08000, 0xd3c1723d )
 	ROM_LOAD( "cw06.bin",     0x10000, 0x20000, 0xd71ed4a3 )
 	ROM_LOAD( "cw07.bin",     0x30000, 0x20000, 0xd419ce08 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cw08.bin",     0x000000, 0x20000, 0x6c80da3c )	/* chars */
 	ROM_LOAD( "cw09.bin",     0x020000, 0x20000, 0x7607da71 )
 	ROM_LOAD( "cw10.bin",     0x040000, 0x20000, 0x6f0e639f )
@@ -1282,21 +1290,21 @@ ROM_START( cworld )
 	ROM_LOAD( "cw20.bin",     0x0c0000, 0x20000, 0x58381d58 )
 	ROM_LOAD( "cw21.bin",     0x0e0000, 0x20000, 0x910cc753 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cw16.bin",     0x000000, 0x20000, 0xf90217d1 )	/* sprites */
 	ROM_LOAD( "cw17.bin",     0x020000, 0x20000, 0xc953c702 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "cw01.bin",     0x00000, 0x20000, 0xf4368f5b )
 ROM_END
 
 ROM_START( hatena )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "q2-05.rom",    0x00000, 0x08000, 0x66c9e1da )
 	ROM_LOAD( "q2-06.rom",    0x10000, 0x20000, 0x5fc39916 )
 	ROM_LOAD( "q2-07.rom",    0x30000, 0x20000, 0xec6d5e5e )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "q2-08.rom",    0x000000, 0x20000, 0x6c80da3c )	/* chars */
 	ROM_LOAD( "q2-09.rom",    0x020000, 0x20000, 0xabe3e15c )
 	ROM_LOAD( "q2-10.rom",    0x040000, 0x20000, 0x6963450d )
@@ -1306,21 +1314,21 @@ ROM_START( hatena )
 	ROM_LOAD( "q2-20.rom",    0x0c0000, 0x20000, 0x21a6ff42 )
 	ROM_LOAD( "q2-21.rom",    0x0e0000, 0x20000, 0x076280c9 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "q2-16.rom",    0x000000, 0x20000, 0xec19b2f0 )	/* sprites */
 	ROM_LOAD( "q2-17.rom",    0x020000, 0x20000, 0xecd69d92 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "q2-01.rom",    0x00000, 0x20000, 0x149e7a89 )
 ROM_END
 
 ROM_START( spang )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "spe_06.rom",   0x00000, 0x08000, 0x1af106fb )
 	ROM_LOAD( "spe_07.rom",   0x10000, 0x20000, 0x208b5f54 )
 	ROM_LOAD( "spe_08.rom",   0x30000, 0x20000, 0x2bc03ade )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "spe_02.rom",   0x000000, 0x20000, 0x63c9dfd2 )	/* chars */
 	ROM_LOAD( "03.f2",        0x020000, 0x20000, 0x3ae28bc1 )
 	/* 40000-7ffff empty */
@@ -1328,21 +1336,21 @@ ROM_START( spang )
 	ROM_LOAD( "05.g2",        0x0a0000, 0x20000, 0x4a060884 )
 	/* c0000-fffff empty */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "spe_10.rom",   0x000000, 0x20000, 0xeedd0ade )	/* sprites */
 	ROM_LOAD( "spe_09.rom",   0x020000, 0x20000, 0x04b41b75 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "spe_01.rom",   0x00000, 0x20000, 0x2d19c133 )
 ROM_END
 
 ROM_START( sbbros )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "06.j12",       0x00000, 0x08000, 0x292eee6a )
 	ROM_LOAD( "07.j13",       0x10000, 0x20000, 0xf46b698d )
 	ROM_LOAD( "08.j14",       0x30000, 0x20000, 0xa75e7fbe )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "02.f1",        0x000000, 0x20000, 0x0c22ffc6 )	/* chars */
 	ROM_LOAD( "03.f2",        0x020000, 0x20000, 0x3ae28bc1 )
 	/* 40000-7ffff empty */
@@ -1350,40 +1358,40 @@ ROM_START( sbbros )
 	ROM_LOAD( "05.g2",        0x0a0000, 0x20000, 0x4a060884 )
 	/* c0000-fffff empty */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "10.l2",        0x000000, 0x20000, 0xd6675d8f )	/* sprites */
 	ROM_LOAD( "09.l1",        0x020000, 0x20000, 0x8f678bc8 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "01.d1",        0x00000, 0x20000, 0xb96ea126 )
 ROM_END
 
 ROM_START( marukin )
-	ROM_REGION( 2*0x30000, REGION_CPU1 )	/* 192k for code + 192k for decrypted opcodes */
+	ROM_REGION( 2*0x30000, REGION_CPU1, 0 )	/* 192k for code + 192k for decrypted opcodes */
 	ROM_LOAD( "mg3-01.9d",    0x00000, 0x08000, 0x04357973 )
 	ROM_LOAD( "mg3-02.10d",   0x10000, 0x20000, 0x50d08da0 )
 
-	ROM_REGION( 0x200000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mg3-a.3k",     0x000000, 0x80000, 0x420f1de7 )	/* chars */
 	ROM_LOAD( "mg3-b.4k",     0x080000, 0x80000, 0xd8de13fa )
 	ROM_LOAD( "mg3-c.6k",     0x100000, 0x80000, 0xfbeb66e8 )
 	ROM_LOAD( "mg3-d.7k",     0x180000, 0x80000, 0x8f6bd831 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mg3-05.2g",    0x000000, 0x20000, 0x7a738d2d )	/* sprites */
 	ROM_LOAD( "mg3-04.1g",    0x020000, 0x20000, 0x56f30515 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "mg3-e.1d",     0x00000, 0x80000, 0x106c2fa9 )	/* banked */
 ROM_END
 
 ROM_START( qtono1 )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "q3-05.rom",    0x00000, 0x08000, 0x1dd0a344 )
 	ROM_LOAD( "q3-06.rom",    0x10000, 0x20000, 0xbd6a2110 )
 	ROM_LOAD( "q3-07.rom",    0x30000, 0x20000, 0x61e53c4f )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "q3-08.rom",    0x000000, 0x20000, 0x1533b978 )	/* chars */
 	ROM_LOAD( "q3-09.rom",    0x020000, 0x20000, 0xa32db2f2 )
 	ROM_LOAD( "q3-10.rom",    0x040000, 0x20000, 0xed681aa8 )
@@ -1393,21 +1401,21 @@ ROM_START( qtono1 )
 	ROM_LOAD( "q3-20.rom",    0x0c0000, 0x20000, 0x6cd7f38d )
 	ROM_LOAD( "q3-21.rom",    0x0e0000, 0x20000, 0xb4aa6b4b )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "q3-16.rom",    0x000000, 0x20000, 0x863d6836 )	/* sprites */
 	ROM_LOAD( "q3-17.rom",    0x020000, 0x20000, 0x459bf59c )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "q3-01.rom",    0x00000, 0x20000, 0x6c1be591 )
 ROM_END
 
 ROM_START( qsangoku )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "q4-05c.rom",   0x00000, 0x08000, 0xe1d010b4 )
 	ROM_LOAD( "q4-06.rom",    0x10000, 0x20000, 0xa0301849 )
 	ROM_LOAD( "q4-07.rom",    0x30000, 0x20000, 0x2941ef5b )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "q4-08.rom",    0x000000, 0x20000, 0xdc84c6cb )	/* chars */
 	ROM_LOAD( "q4-09.rom",    0x020000, 0x20000, 0xcbb6234c )
 	ROM_LOAD( "q4-10.rom",    0x040000, 0x20000, 0xc20a27a8 )
@@ -1417,21 +1425,21 @@ ROM_START( qsangoku )
 	ROM_LOAD( "q4-20.rom",    0x0c0000, 0x20000, 0xb02dc6a1 )
 	ROM_LOAD( "q4-21.rom",    0x0e0000, 0x20000, 0x432b1dc1 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "q4-16.rom",    0x000000, 0x20000, 0x77342320 )	/* sprites */
 	ROM_LOAD( "q4-17.rom",    0x020000, 0x20000, 0x1275c436 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "q4-01.rom",    0x00000, 0x20000, 0x5d0d07d8 )
 ROM_END
 
 ROM_START( block )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "ble_05.rom",   0x00000, 0x08000, 0xc12e7f4c )
 	ROM_LOAD( "ble_06.rom",   0x10000, 0x20000, 0xcdb13d55 )
 	ROM_LOAD( "ble_07.rom",   0x30000, 0x20000, 0x1d114f13 )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "bl_08.rom",    0x000000, 0x20000, 0xaa0f4ff1 )	/* chars */
 	ROM_RELOAD(               0x040000, 0x20000 )
 	ROM_LOAD( "bl_09.rom",    0x020000, 0x20000, 0x6fa8c186 )
@@ -1441,21 +1449,21 @@ ROM_START( block )
 	ROM_LOAD( "bl_19.rom",    0x0a0000, 0x20000, 0x1ae942f5 )
 	ROM_RELOAD(               0x0e0000, 0x20000 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "bl_16.rom",    0x000000, 0x20000, 0xfadcaff7 )	/* sprites */
 	ROM_LOAD( "bl_17.rom",    0x020000, 0x20000, 0x5f8cab42 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "bl_01.rom",    0x00000, 0x20000, 0xc2ec2abb )
 ROM_END
 
 ROM_START( blockj )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "blj_05.rom",   0x00000, 0x08000, 0x3b55969a )
 	ROM_LOAD( "ble_06.rom",   0x10000, 0x20000, 0xcdb13d55 )
 	ROM_LOAD( "blj_07.rom",   0x30000, 0x20000, 0x1723883c )
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "bl_08.rom",    0x000000, 0x20000, 0xaa0f4ff1 )	/* chars */
 	ROM_RELOAD(               0x040000, 0x20000 )
 	ROM_LOAD( "bl_09.rom",    0x020000, 0x20000, 0x6fa8c186 )
@@ -1465,23 +1473,23 @@ ROM_START( blockj )
 	ROM_LOAD( "bl_19.rom",    0x0a0000, 0x20000, 0x1ae942f5 )
 	ROM_RELOAD(               0x0e0000, 0x20000 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "bl_16.rom",    0x000000, 0x20000, 0xfadcaff7 )	/* sprites */
 	ROM_LOAD( "bl_17.rom",    0x020000, 0x20000, 0x5f8cab42 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "bl_01.rom",    0x00000, 0x20000, 0xc2ec2abb )
 ROM_END
 
 ROM_START( blockbl )
-	ROM_REGION( 2*0x50000, REGION_CPU1 )	/* 320k for code + 320k for decrypted opcodes */
+	ROM_REGION( 2*0x50000, REGION_CPU1, 0 )	/* 320k for code + 320k for decrypted opcodes */
 	ROM_LOAD( "m7.l6",        0x50000, 0x08000, 0x3b576fd9 )   /* Decrypted opcode + data */
 	ROM_CONTINUE(             0x00000, 0x08000 )
 	ROM_LOAD( "m5.l3",        0x60000, 0x20000, 0x7c988bb7 )   /* Decrypted opcode + data */
 	ROM_CONTINUE(             0x10000, 0x20000 )
 	ROM_LOAD( "m6.l5",        0x30000, 0x20000, 0x5768d8eb )   /* Decrypted data */
 
-	ROM_REGION( 0x100000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "m12.o10",      0x000000, 0x20000, 0x963154d9 )	/* chars */
 	ROM_RELOAD(               0x040000, 0x20000 )
 	ROM_LOAD( "m13.o14",      0x020000, 0x20000, 0x069480bb )
@@ -1491,13 +1499,13 @@ ROM_START( blockbl )
 	ROM_LOAD( "m3.j20",       0x0a0000, 0x20000, 0x629d58fe )
 	ROM_RELOAD(               0x0e0000, 0x20000 )
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "m11.o7",       0x000000, 0x10000, 0x255180a5 )	/* sprites */
 	ROM_LOAD( "m10.o5",       0x010000, 0x10000, 0x3201c088 )
 	ROM_LOAD( "m9.o3",        0x020000, 0x10000, 0x29357fe4 )
 	ROM_LOAD( "m8.o2",        0x030000, 0x10000, 0xabd665d1 )
 
-	ROM_REGION( 0x80000, REGION_SOUND1 )	/* OKIM */
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* OKIM */
 	ROM_LOAD( "bl_01.rom",    0x00000, 0x20000, 0xc2ec2abb )
 ROM_END
 
@@ -1601,21 +1609,22 @@ static void init_blockbl(void)
 
 
 
-GAME( 1988, mgakuen,  0,     mgakuen, mgakuen,  mgakuen,  ROT0,   "Yuga", "Mahjong Gakuen" )
-GAME( 1989, mgakuen2, 0,     marukin, marukin,  mgakuen2, ROT0,   "Face", "Mahjong Gakuen 2 Gakuen-chou no Fukushuu" )
-GAME( 1989, pkladies, 0,     marukin, pkladies, mgakuen2, ROT0,   "Mitchell", "Poker Ladies" )
-GAME( 1989, dokaben,  0,     pang,    pang,     dokaben,  ROT0,   "Capcom", "Dokaben (Japan)" )
-GAME( 1989, pang,     0,     pang,    pang,     pang,     ROT0,   "Mitchell", "Pang (World)" )
-GAME( 1989, pangb,    pang,  pang,    pang,     pangb,    ROT0,   "bootleg", "Pang (bootleg)" )
-GAME( 1989, bbros,    pang,  pang,    pang,     pang,     ROT0,   "Capcom", "Buster Bros (US)" )
-GAME( 1989, pompingw, pang,  pang,    pang,     pang,     ROT0,   "Mitchell", "Pomping World (Japan)" )
-GAME( 1989, cworld,   0,     pang,    qtono1,   cworld,   ROT0,   "Capcom", "Capcom World (Japan)" )
-GAME( 1990, hatena,   0,     pang,    qtono1,   hatena,   ROT0,   "Capcom", "Adventure Quiz 2 Hatena Hatena no Dai-Bouken (Japan)" )
-GAME( 1990, spang,    0,     pang,    pang,     spang,    ROT0,   "Mitchell", "Super Pang (World)" )
-GAME( 1990, sbbros,   spang, pang,    pang,     sbbros,   ROT0,   "Mitchell + Capcom", "Super Buster Bros (US)" )
-GAME( 1990, marukin,  0,     marukin, marukin,  marukin,  ROT0,   "Yuga", "Super Marukin-Ban" )
-GAME( 1991, qtono1,   0,     pang,    qtono1,   qtono1,   ROT0,   "Capcom", "Quiz Tonosama no Yabou (Japan)" )
-GAME( 1991, qsangoku, 0,     pang,    qtono1,   qsangoku, ROT0,   "Capcom", "Quiz Sangokushi (Japan)" )
-GAME( 1991, block,    0,     pang,    block,    block,    ROT270, "Capcom", "Block Block (World)" )
-GAME( 1991, blockj,   block, pang,    block,    block,    ROT270, "Capcom", "Block Block (Japan)" )
-GAME( 1991, blockbl,  block, pang,    block,    blockbl,  ROT270, "bootleg", "Block Block (bootleg)" )
+GAME( 1988, mgakuen,  0,        mgakuen, mgakuen,  mgakuen,  ROT0,   "Yuga", "Mahjong Gakuen" )
+GAME( 1989, mgakuen2, 0,        marukin, marukin,  mgakuen2, ROT0,   "Face", "Mahjong Gakuen 2 Gakuen-chou no Fukushuu" )
+GAME( 1989, pkladies, 0,        marukin, pkladies, mgakuen2, ROT0,   "Mitchell", "Poker Ladies" )
+GAME( 1989, pkladiel, pkladies, marukin, pkladies, mgakuen2, ROT0,   "Leprechaun", "Poker Ladies (Leprechaun)" )
+GAME( 1989, dokaben,  0,        pang,    pang,     dokaben,  ROT0,   "Capcom", "Dokaben (Japan)" )
+GAME( 1989, pang,     0,        pang,    pang,     pang,     ROT0,   "Mitchell", "Pang (World)" )
+GAME( 1989, pangb,    pang,     pang,    pang,     pangb,    ROT0,   "bootleg", "Pang (bootleg)" )
+GAME( 1989, bbros,    pang,     pang,    pang,     pang,     ROT0,   "Capcom", "Buster Bros (US)" )
+GAME( 1989, pompingw, pang,     pang,    pang,     pang,     ROT0,   "Mitchell", "Pomping World (Japan)" )
+GAME( 1989, cworld,   0,        pang,    qtono1,   cworld,   ROT0,   "Capcom", "Capcom World (Japan)" )
+GAME( 1990, hatena,   0,        pang,    qtono1,   hatena,   ROT0,   "Capcom", "Adventure Quiz 2 Hatena Hatena no Dai-Bouken (Japan)" )
+GAME( 1990, spang,    0,        pang,    pang,     spang,    ROT0,   "Mitchell", "Super Pang (World)" )
+GAME( 1990, sbbros,   spang,    pang,    pang,     sbbros,   ROT0,   "Mitchell + Capcom", "Super Buster Bros (US)" )
+GAME( 1990, marukin,  0,        marukin, marukin,  marukin,  ROT0,   "Yuga", "Super Marukin-Ban" )
+GAME( 1991, qtono1,   0,        pang,    qtono1,   qtono1,   ROT0,   "Capcom", "Quiz Tonosama no Yabou (Japan)" )
+GAME( 1991, qsangoku, 0,        pang,    qtono1,   qsangoku, ROT0,   "Capcom", "Quiz Sangokushi (Japan)" )
+GAME( 1991, block,    0,        pang,    block,    block,    ROT270, "Capcom", "Block Block (World)" )
+GAME( 1991, blockj,   block,    pang,    block,    block,    ROT270, "Capcom", "Block Block (Japan)" )
+GAME( 1991, blockbl,  block,    pang,    block,    blockbl,  ROT270, "bootleg", "Block Block (bootleg)" )

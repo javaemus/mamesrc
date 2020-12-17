@@ -53,8 +53,7 @@ WRITE_HANDLER( exctsccr_DAC_data_w )
 
 ***************************************************************************/
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6000, 0x63ff, MRA_RAM }, /* Alpha mcu (protection) */
 	{ 0x7c00, 0x7fff, MRA_RAM }, /* work ram */
@@ -65,11 +64,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xa040, 0xa040, input_port_1_r },
 	{ 0xa080, 0xa080, input_port_3_r },
 	{ 0xa0c0, 0xa0c0, input_port_2_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x6000, 0x63ff, exctsccr_mcu_w, &exctsccr_mcu_ram }, /* Alpha mcu (protection) */
 	{ 0x7c00, 0x7fff, MWA_RAM }, /* work ram */
@@ -85,29 +82,23 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xa040, 0xa06f, MWA_RAM, &spriteram }, /* Sprite pos */
 	{ 0xa080, 0xa080, soundlatch_w },
 	{ 0xa0c0, 0xa0c0, watchdog_reset_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x8fff, MRA_ROM },
 	{ 0xa000, 0xa7ff, MRA_RAM },
 	{ 0xc00d, 0xc00d, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x8fff, MWA_ROM },
 	{ 0xa000, 0xa7ff, MWA_RAM },
 	{ 0xc008, 0xc009, exctsccr_DAC_data_w },
 	{ 0xc00c, 0xc00c, soundlatch_w }, /* used to clear the latch */
 	{ 0xc00f, 0xc00f, MWA_NOP }, /* ??? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x82, 0x82, AY8910_write_port_0_w },
 	{ 0x83, 0x83, AY8910_control_port_0_w },
 	{ 0x86, 0x86, AY8910_write_port_1_w },
@@ -116,12 +107,10 @@ static struct IOWritePort sound_writeport[] =
 	{ 0x8b, 0x8b, AY8910_control_port_2_w },
 	{ 0x8e, 0x8e, AY8910_write_port_3_w },
 	{ 0x8f, 0x8f, AY8910_control_port_3_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 /* Bootleg */
-static struct MemoryReadAddress bl_readmem[] =
-{
+static MEMORY_READ_START( bl_readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x8000, 0x83ff, videoram_r },
 	{ 0x8400, 0x87ff, colorram_r },
@@ -130,11 +119,9 @@ static struct MemoryReadAddress bl_readmem[] =
 	{ 0xa040, 0xa040, input_port_1_r },
 	{ 0xa080, 0xa080, input_port_3_r },
 	{ 0xa0c0, 0xa0c0, input_port_2_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress bl_writemem[] =
-{
+static MEMORY_WRITE_START( bl_writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x7000, 0x7000, AY8910_write_port_0_w },
 	{ 0x7001, 0x7001, AY8910_control_port_0_w },
@@ -150,26 +137,21 @@ static struct MemoryWriteAddress bl_writemem[] =
 	{ 0xa040, 0xa06f, MWA_RAM, &spriteram }, /* Sprite Pos */
 	{ 0xa080, 0xa080, soundlatch_w },
 	{ 0xa0c0, 0xa0c0, watchdog_reset_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress bl_sound_readmem[] =
-{
+static MEMORY_READ_START( bl_sound_readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6000, 0x6000, soundlatch_r },
 	{ 0xe000, 0xe3ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress bl_sound_writemem[] =
-{
+static MEMORY_WRITE_START( bl_sound_writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x8000, 0x8000, MWA_NOP }, /* 0 = DAC sound off, 1 = DAC sound on */
 	{ 0xa000, 0xa000, soundlatch_w }, /* used to clear the latch */
 	{ 0xc000, 0xc000, exctsccr_DAC_data_w },
 	{ 0xe000, 0xe3ff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /***************************************************************************
 
@@ -458,56 +440,56 @@ static const struct MachineDriver machine_driver_exctsccb =
 ***************************************************************************/
 
 ROM_START( exctsccr )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "1_g10.bin",    0x0000, 0x2000, 0xaa68df66 )
 	ROM_LOAD( "2_h10.bin",    0x2000, 0x2000, 0x2d8f8326 )
 	ROM_LOAD( "3_j10.bin",    0x4000, 0x2000, 0xdce4a04d )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for code */
 	ROM_LOAD( "0_h6.bin",     0x0000, 0x2000, 0x3babbd6b )
 	ROM_LOAD( "9_f6.bin",     0x2000, 0x2000, 0x639998f5 )
 	ROM_LOAD( "8_d6.bin",     0x4000, 0x2000, 0x88651ee1 )
 	ROM_LOAD( "7_c6.bin",     0x6000, 0x2000, 0x6d51521e )
 	ROM_LOAD( "1_a6.bin",     0x8000, 0x1000, 0x20f2207e )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "4_a5.bin",     0x0000, 0x2000, 0xc342229b )
 	ROM_LOAD( "5_b5.bin",     0x2000, 0x2000, 0x35f4f8c9 )
 	ROM_LOAD( "6_c5.bin",     0x4000, 0x2000, 0xeda40e32 )
 
-	ROM_REGION( 0x02000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "2_k5.bin",     0x0000, 0x1000, 0x7f9cace2 )
 	ROM_LOAD( "3_l5.bin",     0x1000, 0x1000, 0xdb2d9e0d )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "prom1.e1",     0x0000, 0x0020, 0xd9b10bf0 ) /* palette */
 	ROM_LOAD( "prom2.8r",     0x0020, 0x0100, 0x8a9c0edf ) /* lookup table */
 	ROM_LOAD( "prom3.k5",     0x0120, 0x0100, 0xb5db1c2c ) /* lookup table */
 ROM_END
 
 ROM_START( exctscca )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "1_g10.bin",    0x0000, 0x2000, 0xaa68df66 )
 	ROM_LOAD( "2_h10.bin",    0x2000, 0x2000, 0x2d8f8326 )
 	ROM_LOAD( "3_j10.bin",    0x4000, 0x2000, 0xdce4a04d )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for code */
 	ROM_LOAD( "exctsccc.000", 0x0000, 0x2000, 0x642fc42f )
 	ROM_LOAD( "exctsccc.009", 0x2000, 0x2000, 0xd88b3236 )
 	ROM_LOAD( "8_d6.bin",     0x4000, 0x2000, 0x88651ee1 )
 	ROM_LOAD( "7_c6.bin",     0x6000, 0x2000, 0x6d51521e )
 	ROM_LOAD( "1_a6.bin",     0x8000, 0x1000, 0x20f2207e )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "4_a5.bin",     0x0000, 0x2000, 0xc342229b )
 	ROM_LOAD( "5_b5.bin",     0x2000, 0x2000, 0x35f4f8c9 )
 	ROM_LOAD( "6_c5.bin",     0x4000, 0x2000, 0xeda40e32 )
 
-	ROM_REGION( 0x02000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "2_k5.bin",     0x0000, 0x1000, 0x7f9cace2 )
 	ROM_LOAD( "3_l5.bin",     0x1000, 0x1000, 0xdb2d9e0d )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "prom1.e1",     0x0000, 0x0020, 0xd9b10bf0 ) /* palette */
 	ROM_LOAD( "prom2.8r",     0x0020, 0x0100, 0x8a9c0edf ) /* lookup table */
 	ROM_LOAD( "prom3.k5",     0x0120, 0x0100, 0xb5db1c2c ) /* lookup table */
@@ -515,55 +497,55 @@ ROM_END
 
 /* Bootleg */
 ROM_START( exctsccb )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "es-1.e2",      0x0000, 0x2000, 0x997c6a82 )
 	ROM_LOAD( "es-2.g2",      0x2000, 0x2000, 0x5c66e792 )
 	ROM_LOAD( "es-3.h2",      0x4000, 0x2000, 0xe0d504c0 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* sound */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound */
 	ROM_LOAD( "es-a.k2",      0x0000, 0x2000, 0x99e87b78 )
 	ROM_LOAD( "es-b.l2",      0x2000, 0x2000, 0x8b3db794 )
 	ROM_LOAD( "es-c.m2",      0x4000, 0x2000, 0x7bed2f81 )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	/* I'm using the ROMs from exctscc2, national flags would be wrong otherwise */
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
+	/* I'm using the ROMs from exctscc2, national flags are wrong (ITA replaces USA) */
 	ROM_LOAD( "vr.5a",        0x0000, 0x2000, BADCRC( 0x4ff1783d ) )
 	ROM_LOAD( "vr.5b",        0x2000, 0x2000, BADCRC( 0x5605b60b ) )
 	ROM_LOAD( "vr.5c",        0x4000, 0x2000, BADCRC( 0x1fb84ee6 ) )
 
-	ROM_REGION( 0x02000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "vr.5k",        0x0000, 0x1000, BADCRC( 0x1d37edfa ) )
 	ROM_LOAD( "vr.5l",        0x1000, 0x1000, BADCRC( 0xb97f396c ) )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "prom1.e1",     0x0000, 0x0020, 0xd9b10bf0 ) /* palette */
 	ROM_LOAD( "prom2.8r",     0x0020, 0x0100, 0x8a9c0edf ) /* lookup table */
 	ROM_LOAD( "prom3.k5",     0x0120, 0x0100, 0xb5db1c2c ) /* lookup table */
 ROM_END
 
 ROM_START( exctscc2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "vr.3j",        0x0000, 0x2000, 0xc6115362 )
 	ROM_LOAD( "vr.3k",        0x2000, 0x2000, 0xde36ba00 )
 	ROM_LOAD( "vr.3l",        0x4000, 0x2000, 0x1ddfdf65 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for code */
 	ROM_LOAD( "vr.7d",        0x0000, 0x2000, 0x2c675a43 )
 	ROM_LOAD( "vr.7e",        0x2000, 0x2000, 0xe571873d )
 	ROM_LOAD( "8_d6.bin",     0x4000, 0x2000, 0x88651ee1 )	/* vr.7f */
 	ROM_LOAD( "7_c6.bin",     0x6000, 0x2000, 0x6d51521e )	/* vr.7h */
 	ROM_LOAD( "1_a6.bin",     0x8000, 0x1000, 0x20f2207e )	/* vr.7k */
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "vr.5a",        0x0000, 0x2000, 0x4ff1783d )
 	ROM_LOAD( "vr.5b",        0x2000, 0x2000, 0x5605b60b )
 	ROM_LOAD( "vr.5c",        0x4000, 0x2000, 0x1fb84ee6 )
 
-	ROM_REGION( 0x02000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "vr.5k",        0x0000, 0x1000, 0x1d37edfa )
 	ROM_LOAD( "vr.5l",        0x1000, 0x1000, 0xb97f396c )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "prom1.e1",     0x0000, 0x0020, 0xd9b10bf0 ) /* palette */
 	ROM_LOAD( "prom2.8r",     0x0020, 0x0100, 0x8a9c0edf ) /* lookup table */
 	ROM_LOAD( "prom3.k5",     0x0120, 0x0100, 0xb5db1c2c ) /* lookup table */

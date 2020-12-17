@@ -114,84 +114,65 @@ WRITE_HANDLER( ebases_trackball_select_w );
 READ_HANDLER( ebases_trackball_r );
 
 
-static struct MemoryReadAddress seawolf2_readmem[] =
-{
+static MEMORY_READ_START( seawolf2_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x4000, 0x7fff, MRA_RAM },
 	{ 0xc000, 0xcfff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
-static struct MemoryWriteAddress seawolf2_writemem[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( seawolf2_writemem )
 	{ 0x0000, 0x3fff, wow_magicram_w },
 	{ 0x4000, 0x7fff, wow_videoram_w, &wow_videoram, &videoram_size },
 	{ 0xc000, 0xcfff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x7fff, MRA_RAM },
 	{ 0x8000, 0xcfff, MRA_ROM },
 	{ 0xd000, 0xdfff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
-static struct MemoryWriteAddress writemem[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x3fff, wow_magicram_w },
 	{ 0x4000, 0x7fff, wow_videoram_w, &wow_videoram, &videoram_size },	/* ASG */
 	{ 0x8000, 0xcfff, MWA_ROM },
 	{ 0xd000, 0xdfff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress robby_readmem[] =
-{
+static MEMORY_READ_START( robby_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x7fff, MRA_RAM },
 	{ 0x8000, 0xdfff, MRA_ROM },
 	{ 0xe000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
-static struct MemoryWriteAddress robby_writemem[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( robby_writemem )
 	{ 0x0000, 0x3fff, wow_magicram_w },
 	{ 0x4000, 0x7fff, wow_videoram_w, &wow_videoram, &videoram_size },
 	{ 0x8000, 0xdfff, MWA_ROM },
 	{ 0xe000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress profpac_readmem[] =
-{
+static MEMORY_READ_START( profpac_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x8000, 0xdfff, MRA_ROM },
 	{ 0xe000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
-static struct MemoryWriteAddress profpac_writemem[] =
-{
+MEMORY_END
+static MEMORY_WRITE_START( profpac_writemem )
 	{ 0x0000, 0x3fff, wow_magicram_w },
 	{ 0x4000, 0x7fff, wow_videoram_w, &wow_videoram, &videoram_size },
 	{ 0x8000, 0xdfff, MWA_ROM },
 	{ 0xe000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x08, 0x08, wow_intercept_r },
 	{ 0x0e, 0x0e, wow_video_retrace_r },
 	{ 0x10, 0x10, input_port_0_r },
 	{ 0x11, 0x11, input_port_1_r },
   	{ 0x12, 0x12, input_port_2_r },
 	{ 0x13, 0x13, input_port_3_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort seawolf2_writeport[] =
-{
+static PORT_WRITE_START( seawolf2_writeport )
 	{ 0x00, 0x07, astrocde_colour_register_w },
 	{ 0x08, 0x08, astrocde_mode_w },
 	{ 0x09, 0x09, astrocde_colour_split_w },
@@ -202,10 +183,8 @@ static struct IOWritePort seawolf2_writeport[] =
 	{ 0x0e, 0x0e, astrocde_interrupt_enable_w },
 	{ 0x0f, 0x0f, astrocde_interrupt_w },
 	{ 0x19, 0x19, astrocde_magic_expand_color_w },
-	{ -1 }	/* end of table */
-};
-static struct IOWritePort writeport[] =
-{
+PORT_END
+static PORT_WRITE_START( writeport )
 	{ 0x00, 0x07, astrocde_colour_register_w },
 	{ 0x08, 0x08, astrocde_mode_w },
 	{ 0x09, 0x09, astrocde_colour_split_w },
@@ -221,8 +200,7 @@ static struct IOWritePort writeport[] =
 	{ 0x5b, 0x5b, MWA_NOP }, /* speech board ? Wow always sets this to a5*/
 	{ 0x78, 0x7e, astrocde_pattern_board_w },
 /*	{ 0xf8, 0xff, MWA_NOP }, */ /* Gorf uses these */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -887,7 +865,7 @@ static const struct MachineDriver machine_driver_profpac =
 
 
 ROM_START( seawolf2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "sw2x1.bin",    0x0000, 0x0800, 0xad0103f6 )
 	ROM_LOAD( "sw2x2.bin",    0x0800, 0x0800, 0xe0430f0a )
 	ROM_LOAD( "sw2x3.bin",    0x1000, 0x0800, 0x05ad1619 )
@@ -895,7 +873,7 @@ ROM_START( seawolf2 )
 ROM_END
 
 ROM_START( spacezap )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "0662.01",      0x0000, 0x1000, 0xa92de312 )
 	ROM_LOAD( "0663.xx",      0x1000, 0x1000, 0x4836ebf1 )
 	ROM_LOAD( "0664.xx",      0x2000, 0x1000, 0xd8193a80 )
@@ -903,7 +881,7 @@ ROM_START( spacezap )
 ROM_END
 
 ROM_START( ebases )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "m761a",        0x0000, 0x1000, 0x34422147 )
 	ROM_LOAD( "m761b",        0x1000, 0x1000, 0x4f28dfd6 )
 	ROM_LOAD( "m761c",        0x2000, 0x1000, 0xbff6c97e )
@@ -911,7 +889,7 @@ ROM_START( ebases )
 ROM_END
 
 ROM_START( wow )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "wow.x1",       0x0000, 0x1000, 0xc1295786 )
 	ROM_LOAD( "wow.x2",       0x1000, 0x1000, 0x9be93215 )
 	ROM_LOAD( "wow.x3",       0x2000, 0x1000, 0x75e5a22e )
@@ -923,7 +901,7 @@ ROM_START( wow )
 ROM_END
 
 ROM_START( gorf )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "gorf-a.bin",   0x0000, 0x1000, 0x5b348321 )
 	ROM_LOAD( "gorf-b.bin",   0x1000, 0x1000, 0x62d6de77 )
 	ROM_LOAD( "gorf-c.bin",   0x2000, 0x1000, 0x1d3bc9c9 )
@@ -935,7 +913,7 @@ ROM_START( gorf )
 ROM_END
 
 ROM_START( gorfpgm1 )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "873a",         0x0000, 0x1000, 0x97cb4a6a )
 	ROM_LOAD( "873b",         0x1000, 0x1000, 0x257236f8 )
 	ROM_LOAD( "873c",         0x2000, 0x1000, 0x16b0638b )
@@ -947,7 +925,7 @@ ROM_START( gorfpgm1 )
 ROM_END
 
 ROM_START( robby )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "rotox1.bin",   0x0000, 0x1000, 0xa431b85a )
 	ROM_LOAD( "rotox2.bin",   0x1000, 0x1000, 0x33cdda83 )
 	ROM_LOAD( "rotox3.bin",   0x2000, 0x1000, 0xdbf97491 )
@@ -961,14 +939,14 @@ ROM_START( robby )
 ROM_END
 
 ROM_START( profpac )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "pps1",         0x0000, 0x2000, 0xa244a62d )
 	ROM_LOAD( "pps2",         0x2000, 0x2000, 0x8a9a6653 )
 	ROM_LOAD( "pps7",         0x8000, 0x2000, 0xf9c26aba )
 	ROM_LOAD( "pps8",         0xa000, 0x2000, 0x4d201e41 )
 	ROM_LOAD( "pps9",         0xc000, 0x2000, 0x17a0b418 )
 
-	ROM_REGION( 0x04000, REGION_USER1 )
+	ROM_REGION( 0x04000, REGION_USER1, 0 )
 	ROM_LOAD( "pps3",         0x0000, 0x2000, 0x15717fd8 )
 	ROM_LOAD( "pps4",         0x0000, 0x2000, 0x36540598 )
 	ROM_LOAD( "pps5",         0x0000, 0x2000, 0x8dc89a59 )

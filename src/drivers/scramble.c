@@ -71,7 +71,7 @@ Notes:
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
-
+#include "cpu/s2650/s2650.h"
 
 extern unsigned char *galaxian_attributesram;
 extern unsigned char *galaxian_bulletsram;
@@ -111,6 +111,7 @@ READ_HANDLER( mariner_protection_2_r );
 READ_HANDLER( mariner_pip_r );
 READ_HANDLER( mariner_pap_r );
 
+static int cavelon_banksw;
 
 static READ_HANDLER( ckongs_input_port_1_r )
 {
@@ -120,6 +121,11 @@ static READ_HANDLER( ckongs_input_port_1_r )
 static READ_HANDLER( ckongs_input_port_2_r )
 {
 	return (readinputport(2) & 0xf9) | ((readinputport(1) & 0x03) << 1);
+}
+
+static WRITE_HANDLER( scramble_coin_counter_w )
+{
+	coin_counter_w(0, data);
 }
 
 static WRITE_HANDLER( scramble_coin_counter_2_w )
@@ -132,9 +138,34 @@ static WRITE_HANDLER( scramble_coin_counter_3_w )
 	coin_counter_w(2, data);
 }
 
-
-static struct MemoryReadAddress scramble_readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+/* Cavelon throws data at locations 0x8000 and 0x9000
+   I don't think the data is relevant and simply switching
+   on any write to either location seems to do the job
+   Only the lower 0x2000 is switched but we switch the
+   whole region to keep the CPU core happy at the boundaries*/
+
+WRITE_HANDLER( cavelon_banksw_w )
+{
+	unsigned char *ROM = memory_region(REGION_CPU1);
+
+	if (cavelon_banksw)
+	{
+		cavelon_banksw = 0;
+		cpu_setbank(1, &ROM[0x10000]);
+	}
+	else
+	{
+		cavelon_banksw = 1;
+		cpu_setbank(1, &ROM[0x14000]);
+	}
+}
+
+static MEMORY_READ_START( scramble_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x4bff, MRA_RAM },	/* RAM and Video RAM */
 	{ 0x4c00, 0x4fff, videoram_r },	/* mirror address */
@@ -144,11 +175,9 @@ static struct MemoryReadAddress scramble_readmem[] =
 	{ 0x8100, 0x8100, input_port_0_r },	/* IN0 */
 	{ 0x8101, 0x8101, input_port_1_r },	/* IN1 */
 	{ 0x8102, 0x8102, input_port_2_r },	/* IN2 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress ckongs_readmem[] =
-{
+static MEMORY_READ_START( ckongs_readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6000, 0x6bff, MRA_RAM },				/* RAM */
 	{ 0x7000, 0x7000, input_port_0_r },			/* IN0 */
@@ -157,12 +186,10 @@ static struct MemoryReadAddress ckongs_readmem[] =
 	{ 0x9000, 0x93ff, MRA_RAM },				/* Video RAM */
 	{ 0x9800, 0x987f, MRA_RAM },				/* screen attributes, sprites, bullets */
 	{ 0xb000, 0xb000, watchdog_reset_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /* Extra ROM and protection locations */
-static struct MemoryReadAddress mariner_readmem[] =
-{
+static MEMORY_READ_START( mariner_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x4bff, MRA_RAM },	/* RAM and Video RAM */
 	{ 0x4c00, 0x4fff, videoram_r },	/* mirror address */
@@ -174,11 +201,9 @@ static struct MemoryReadAddress mariner_readmem[] =
 	{ 0x8102, 0x8102, input_port_2_r },	/* IN2 */
 	{ 0x9008, 0x9008, mariner_protection_2_r },
 	{ 0xb401, 0xb401, mariner_protection_1_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress mars_readmem[] =
-{
+static MEMORY_READ_START( mars_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x4bff, MRA_RAM },	/* RAM and Video RAM */
 	{ 0x4c00, 0x4fff, videoram_r },	/* mirror address */
@@ -192,11 +217,9 @@ static struct MemoryReadAddress mars_readmem[] =
 	{ 0xc100, 0xc100, input_port_0_r },	/* IN0 - Sinbad 7 */
 	{ 0xc102, 0xc102, input_port_1_r },	/* IN1 - Sinbad 7 */
 	{ 0xc108, 0xc108, input_port_2_r },	/* IN2 - Sinbad 7 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress hotshock_readmem[] =
-{
+static MEMORY_READ_START( hotshock_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x4bff, MRA_RAM },	/* RAM and Video RAM */
 	{ 0x4c00, 0x4fff, videoram_r },	/* mirror address */
@@ -205,8 +228,7 @@ static struct MemoryReadAddress hotshock_readmem[] =
 	{ 0x8001, 0x8001, input_port_1_r },	/* IN1 */
 	{ 0x8002, 0x8002, input_port_2_r },	/* IN2 */
 	{ 0x8003, 0x8003, input_port_3_r },	/* IN3 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 READ_HANDLER( hunchbks_mirror_r )
 {
@@ -218,8 +240,17 @@ WRITE_HANDLER( hunchbks_mirror_w )
 	cpu_writemem16(0x1000+offset,data);
 }
 
-static struct MemoryReadAddress hunchbks_readmem[] =
+static WRITE_HANDLER( flip_screen_x_w )
 {
+	flip_screen_x_set(data);
+}
+
+static WRITE_HANDLER( flip_screen_y_w )
+{
+	flip_screen_y_set(data);
+}
+
+static MEMORY_READ_START( hunchbks_readmem )
 	{ 0x0000, 0x0fff, MRA_ROM },
 	{ 0x2000, 0x2fff, MRA_ROM },
 	{ 0x4000, 0x4fff, MRA_ROM },
@@ -234,12 +265,21 @@ static struct MemoryReadAddress hunchbks_readmem[] =
 	{ 0x3000, 0x3fff, hunchbks_mirror_r },
 	{ 0x5000, 0x5fff, hunchbks_mirror_r },
 	{ 0x7000, 0x7fff, hunchbks_mirror_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
+static MEMORY_READ_START( cavelon_readmem )
+	{ 0x0000, 0x3fff, MRA_BANK1},
+	{ 0x4000, 0x4bff, MRA_RAM },	/* RAM */
+	{ 0x4c00, 0x4fff, videoram_r },	/* Video RAM */
+	{ 0x5000, 0x507f, MRA_RAM },	/* screen attributes, sprites, bullets */
+	{ 0x7000, 0x7000, watchdog_reset_r },
+	{ 0x7800, 0x7800, watchdog_reset_r },
+	{ 0x8100, 0x8100, input_port_0_r },	/* IN0 */
+	{ 0x8101, 0x8101, input_port_1_r },	/* IN1 */
+	{ 0x8102, 0x8102, input_port_2_r },	/* IN2 */
+MEMORY_END
 
-static struct MemoryWriteAddress scramble_writemem[] =
-{
+static MEMORY_WRITE_START( scramble_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x4800, 0x4bff, videoram_w, &videoram, &videoram_size },
@@ -247,18 +287,16 @@ static struct MemoryWriteAddress scramble_writemem[] =
 	{ 0x5040, 0x505f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x5060, 0x507f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
 	{ 0x6801, 0x6801, interrupt_enable_w },
-	{ 0x6802, 0x6802, coin_counter_w },
+	{ 0x6802, 0x6802, scramble_coin_counter_w },
 	{ 0x6803, 0x6803, scramble_background_w },
 	{ 0x6804, 0x6804, galaxian_stars_w },
 	{ 0x6806, 0x6806, flip_screen_x_w },
 	{ 0x6807, 0x6807, flip_screen_y_w },
 	{ 0x8200, 0x8200, soundlatch_w },
 	{ 0x8201, 0x8201, scramble_sh_irqtrigger_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress triplep_writemem[] =
-{
+static MEMORY_WRITE_START( triplep_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x4800, 0x4bff, videoram_w, &videoram, &videoram_size },
@@ -267,16 +305,14 @@ static struct MemoryWriteAddress triplep_writemem[] =
 	{ 0x5040, 0x505f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x5060, 0x507f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
 	{ 0x6801, 0x6801, interrupt_enable_w },
-	{ 0x6802, 0x6802, coin_counter_w },
+	{ 0x6802, 0x6802, scramble_coin_counter_w },
 	{ 0x6803, 0x6803, MWA_NOP },   /* ??? (it's NOT a background enable) */
 	{ 0x6804, 0x6804, galaxian_stars_w },
 	{ 0x6806, 0x6806, flip_screen_x_w },
 	{ 0x6807, 0x6807, flip_screen_y_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress ckongs_writemem[] =
-{
+static MEMORY_WRITE_START( ckongs_writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x6000, 0x6bff, MWA_RAM },
 	{ 0x7800, 0x7800, soundlatch_w },
@@ -286,15 +322,13 @@ static struct MemoryWriteAddress ckongs_writemem[] =
 	{ 0x9840, 0x985f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x9860, 0x987f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
 	{ 0xa801, 0xa801, interrupt_enable_w },
-	{ 0xa802, 0xa802, coin_counter_w },
+	{ 0xa802, 0xa802, scramble_coin_counter_w },
 	{ 0xa804, 0xa804, galaxian_stars_w },
 	{ 0xa806, 0xa806, flip_screen_x_w },
 	{ 0xa807, 0xa807, flip_screen_y_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress mars_writemem[] =
-{
+static MEMORY_WRITE_START( mars_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x4800, 0x4bff, videoram_w, &videoram, &videoram_size },
@@ -305,7 +339,7 @@ static struct MemoryWriteAddress mars_writemem[] =
 	{ 0x6800, 0x6800, scramble_coin_counter_2_w },
 	{ 0x6801, 0x6801, galaxian_stars_w },
 	{ 0x6802, 0x6802, interrupt_enable_w },
-	{ 0x6808, 0x6808, coin_counter_w },
+	{ 0x6808, 0x6808, scramble_coin_counter_w },
 	{ 0x6809, 0x6809, flip_screen_x_w },
 	{ 0x680b, 0x680b, flip_screen_y_w },
 	{ 0x810a, 0x810a, MWA_NOP },    /* ??? */
@@ -315,11 +349,9 @@ static struct MemoryWriteAddress mars_writemem[] =
 	{ 0xa000, 0xafff, MWA_ROM },    /* Sinbad 7 */
 	{ 0xc10a, 0xc10a, MWA_NOP },    /* ??? - Sinbad 7 */
 	{ 0xc20a, 0xc20a, MWA_NOP },    /* ??? - Sinbad 7 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress hotshock_writemem[] =
-{
+static MEMORY_WRITE_START( hotshock_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x4800, 0x4bff, videoram_w, &videoram, &videoram_size },
@@ -329,17 +361,15 @@ static struct MemoryWriteAddress hotshock_writemem[] =
 	{ 0x6000, 0x6000, scramble_coin_counter_3_w },
 	{ 0x6002, 0x6002, scramble_coin_counter_2_w },
 	{ 0x6004, 0x6004, flip_screen_w },
-	{ 0x6005, 0x6005, coin_counter_w },
+	{ 0x6005, 0x6005, scramble_coin_counter_w },
 	{ 0x6006, 0x6006, pisces_gfxbank_w },
 	{ 0x6801, 0x6801, interrupt_enable_w },
 	{ 0x7000, 0x7000, watchdog_reset_w },
 	{ 0x8000, 0x8000, soundlatch_w },
 	{ 0x9000, 0x9000, hotshock_sh_irqtrigger_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress hunchbks_writemem[] =
-{
+static MEMORY_WRITE_START( hunchbks_writemem )
 	{ 0x0000, 0x0fff, MWA_ROM },
 	{ 0x2000, 0x2fff, MWA_ROM },
 	{ 0x4000, 0x4fff, MWA_ROM },
@@ -356,106 +386,108 @@ static struct MemoryWriteAddress hunchbks_writemem[] =
 	{ 0x3000, 0x3fff, hunchbks_mirror_w },
 	{ 0x5000, 0x5fff, hunchbks_mirror_w },
 	{ 0x7000, 0x7fff, hunchbks_mirror_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort triplep_readport[] =
-{
+static MEMORY_WRITE_START( cavelon_writemem )
+	{ 0x0000, 0x1fff, MWA_ROM },
+	{ 0x2000, 0x2000, MWA_NOP }, /* unknown. Debug? Protection? */
+	{ 0x2001, 0x37ff, MWA_NOP },
+	{ 0x3800, 0x3800, MWA_NOP }, /* unknown. Debug? Protection? */
+	{ 0x3801, 0x3801, MWA_NOP }, /* unknown. Debug? Protection? */
+	{ 0x3802, 0x3fff, MWA_ROM },
+	{ 0x4000, 0x47ff, MWA_RAM },
+	{ 0x4800, 0x4bff, videoram_w, &videoram, &videoram_size },
+	{ 0x5000, 0x503f, galaxian_attributes_w, &galaxian_attributesram },
+	{ 0x5040, 0x505f, MWA_RAM, &spriteram, &spriteram_size },
+	{ 0x5060, 0x507f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
+	{ 0x6801, 0x6801, interrupt_enable_w },
+	{ 0x6802, 0x6802, scramble_coin_counter_w },
+	{ 0x6803, 0x6803, scramble_background_w },
+	{ 0x6804, 0x6804, galaxian_stars_w },
+	{ 0x6806, 0x6806, flip_screen_x_w },
+	{ 0x6807, 0x6807, flip_screen_y_w },
+	{ 0x8000, 0x8000, cavelon_banksw_w },
+	{ 0x9000, 0x9000, cavelon_banksw_w },
+	{ 0x8200, 0x8200, soundlatch_w },
+	{ 0x8201, 0x8201, scramble_sh_irqtrigger_w },
+MEMORY_END
+
+static PORT_READ_START( triplep_readport )
 	{ 0x01, 0x01, AY8910_read_port_0_r },
 	{ 0x02, 0x02, mariner_pip_r },
 	{ 0x03, 0x03, mariner_pap_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort triplep_writeport[] =
-{
+static PORT_WRITE_START( triplep_writeport )
 	{ 0x01, 0x01, AY8910_control_port_0_w },
 	{ 0x00, 0x00, AY8910_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
-static struct MemoryReadAddress scramble_sound_readmem[] =
-{
+static MEMORY_READ_START( scramble_sound_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x8000, 0x83ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress scramble_sound_writemem[] =
-{
+static MEMORY_WRITE_START( scramble_sound_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x8000, 0x83ff, MWA_RAM },
 	{ 0x9000, 0x9fff, scramble_filter_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress froggers_sound_readmem[] =
-{
+static MEMORY_READ_START( froggers_sound_readmem )
 	{ 0x0000, 0x17ff, MRA_ROM },
 	{ 0x4000, 0x43ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress froggers_sound_writemem[] =
-{
+static MEMORY_WRITE_START( froggers_sound_writemem )
 	{ 0x0000, 0x17ff, MWA_ROM },
 	{ 0x4000, 0x43ff, MWA_RAM },
   //{ 0x6000, 0x6fff, scramble_filter_w },  /* There is probably a filter here,	 */
 							  	            /* but it can't possibly be the same */
-	{ -1 }	/* end of table */				/* as the one in Scramble. One 8910 only */
-};
+MEMORY_END
 
 
-static struct IOReadPort scramble_sound_readport[] =
-{
+static PORT_READ_START( scramble_sound_readport )
 	{ 0x20, 0x20, AY8910_read_port_1_r },
 	{ 0x80, 0x80, AY8910_read_port_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort scramble_sound_writeport[] =
-{
+static PORT_WRITE_START( scramble_sound_writeport )
 	{ 0x10, 0x10, AY8910_control_port_1_w },
 	{ 0x20, 0x20, AY8910_write_port_1_w },
 	{ 0x40, 0x40, AY8910_control_port_0_w },
 	{ 0x80, 0x80, AY8910_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
-static struct IOReadPort froggers_sound_readport[] =
-{
+static PORT_READ_START( froggers_sound_readport )
 	{ 0x40, 0x40, AY8910_read_port_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort froggers_sound_writeport[] =
-{
+static PORT_WRITE_START( froggers_sound_writeport )
 	{ 0x40, 0x40, AY8910_write_port_0_w },
 	{ 0x80, 0x80, AY8910_control_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
-static struct IOReadPort hotshock_sound_readport[] =
-{
+static PORT_READ_START( hotshock_sound_readport )
 	{ 0x20, 0x20, AY8910_read_port_1_r },
 	{ 0x40, 0x40, AY8910_read_port_0_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort hotshock_sound_writeport[] =
-{
+static PORT_WRITE_START( hotshock_sound_writeport )
 	{ 0x10, 0x10, AY8910_control_port_1_w },
 	{ 0x20, 0x20, AY8910_write_port_1_w },
 	{ 0x40, 0x40, AY8910_write_port_0_w },
 	{ 0x80, 0x80, AY8910_control_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
+static PORT_READ_START( hunchbks_readport )
+    { S2650_SENSE_PORT, S2650_SENSE_PORT, input_port_3_r },
+PORT_END
 
 INPUT_PORTS_START( scramble )
 	PORT_START	/* IN0 */
@@ -1006,6 +1038,51 @@ INPUT_PORTS_START( hunchbks )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* protection check? */
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* protection check? */
+
+    PORT_START /* Sense */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_VBLANK )
+
+INPUT_PORTS_END
+
+INPUT_PORTS_START( cavelon )
+	PORT_START	/* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN ) /* force UR controls in CK mode? */
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN1 )
+
+	PORT_START	/* IN1 */
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Cocktail ) )
+	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x00, "A 1/1 B 1/6" )
+	PORT_DIPSETTING(    0x02, "A 2/1 B 1/3" )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START1 )
+
+	PORT_START	/* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_COCKTAIL )
+	PORT_DIPNAME( 0x06, 0x02, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x00, "5" )
+	PORT_DIPSETTING(    0x04, "4" )
+	PORT_DIPSETTING(    0x02, "3" )
+	PORT_DIPSETTING(    0x06, "2" )
+	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Unknown) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* protection check? */
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* protection check? */
 INPUT_PORTS_END
 
 static struct GfxLayout charlayout =
@@ -1275,7 +1352,7 @@ DRIVER_2CPU(devilfsh, devilfsh,  mars,     scramble, scramble);
 DRIVER_2CPU(newsin7,  newsin7,   mars,     scramble, scramble);
 DRIVER_2CPU(ckongs,   mariner,   ckongs,   scramble, ckongs);
 DRIVER_2CPU(hotshock, mariner,   hotshock, hotshock, pisces);
-
+DRIVER_2CPU(cavelon,  mariner,   cavelon,  scramble, ckongs);
 
 /* Triple Punch and Mariner are different - only one CPU, one 8910 */
 static const struct MachineDriver machine_driver_triplep =
@@ -1364,7 +1441,7 @@ static const struct MachineDriver machine_driver_hunchbks =
 		{
 			CPU_S2650,
 			18432000/6,
-			hunchbks_readmem,hunchbks_writemem,0,0,
+			hunchbks_readmem,hunchbks_writemem,hunchbks_readport,0,
 			hunchbks_vh_interrupt,1
 		},
 		{
@@ -1407,7 +1484,7 @@ static const struct MachineDriver machine_driver_hunchbks =
 ***************************************************************************/
 
 ROM_START( scramble )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "2d.k",         0x0000, 0x0800, 0xea35ccaa )
 	ROM_LOAD( "2e.k",         0x0800, 0x0800, 0xe7bba1b3 )
 	ROM_LOAD( "2f.k",         0x1000, 0x0800, 0x12d7fc3e )
@@ -1417,21 +1494,21 @@ ROM_START( scramble )
 	ROM_LOAD( "2m.k",         0x3000, 0x0800, 0x0bb49470 )
 	ROM_LOAD( "2p.k",         0x3800, 0x0800, 0x6a5740e5 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "5c",           0x0000, 0x0800, 0xbcd297f0 )
 	ROM_LOAD( "5d",           0x0800, 0x0800, 0xde7912da )
 	ROM_LOAD( "5e",           0x1000, 0x0800, 0xba2fa933 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5f.k",         0x0000, 0x0800, 0x4708845b )
 	ROM_LOAD( "5h.k",         0x0800, 0x0800, 0x11fd2887 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.6e",    0x0000, 0x0020, 0x4e3caeab )
 ROM_END
 
 ROM_START( scrambls )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "2d",           0x0000, 0x0800, 0xb89207a1 )
 	ROM_LOAD( "2e",           0x0800, 0x0800, 0xe9b4b9eb )
 	ROM_LOAD( "2f",           0x1000, 0x0800, 0xa1f14f4c )
@@ -1441,21 +1518,21 @@ ROM_START( scrambls )
 	ROM_LOAD( "2m",           0x3000, 0x0800, 0xea26c35c )
 	ROM_LOAD( "2p",           0x3800, 0x0800, 0x94d8f5e3 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "5c",           0x0000, 0x0800, 0xbcd297f0 )
 	ROM_LOAD( "5d",           0x0800, 0x0800, 0xde7912da )
 	ROM_LOAD( "5e",           0x1000, 0x0800, 0xba2fa933 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5f",           0x0000, 0x0800, 0x5f30311a )
 	ROM_LOAD( "5h",           0x0800, 0x0800, 0x516e029e )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.6e",    0x0000, 0x0020, 0x4e3caeab )
 ROM_END
 
 ROM_START( atlantis )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "2c",           0x0000, 0x0800, 0x0e485b9a )
 	ROM_LOAD( "2e",           0x0800, 0x0800, 0xc1640513 )
 	ROM_LOAD( "2f",           0x1000, 0x0800, 0xeec265ee )
@@ -1463,21 +1540,21 @@ ROM_START( atlantis )
 	ROM_LOAD( "2j",           0x2000, 0x0800, 0x45f7cf34 )
 	ROM_LOAD( "2l",           0x2800, 0x0800, 0xf335b96b )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "5c",           0x0000, 0x0800, 0xbcd297f0 )
 	ROM_LOAD( "5d",           0x0800, 0x0800, 0xde7912da )
 	ROM_LOAD( "5e",           0x1000, 0x0800, 0xba2fa933 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5f",           0x0000, 0x0800, 0x57f9c6b9 )
 	ROM_LOAD( "5h",           0x0800, 0x0800, 0xe989f325 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.6e",    0x0000, 0x0020, 0x4e3caeab )
 ROM_END
 
 ROM_START( atlants2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "rom1",         0x0000, 0x0800, 0xad348089 )
 	ROM_LOAD( "rom2",         0x0800, 0x0800, 0xcaa705d1 )
 	ROM_LOAD( "rom3",         0x1000, 0x0800, 0xe420641d )
@@ -1487,21 +1564,21 @@ ROM_START( atlants2 )
 	ROM_LOAD( "rom7",         0x3000, 0x0800, 0xa50bf8d5 )
 	ROM_LOAD( "rom8",         0x3800, 0x0800, 0xd2c5c984 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "5c",           0x0000, 0x0800, 0xbcd297f0 )
 	ROM_LOAD( "5d",           0x0800, 0x0800, 0xde7912da )
 	ROM_LOAD( "5e",           0x1000, 0x0800, 0xba2fa933 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "rom9",         0x0000, 0x0800, 0x55cd5acd )
 	ROM_LOAD( "rom10",        0x0800, 0x0800, 0x72e773b8 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.6e",    0x0000, 0x0020, 0x4e3caeab )
 ROM_END
 
 ROM_START( theend )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ic13_1t.bin",  0x0000, 0x0800, 0x93e555ba )
 	ROM_LOAD( "ic14_2t.bin",  0x0800, 0x0800, 0x2de7ad27 )
 	ROM_LOAD( "ic15_3t.bin",  0x1000, 0x0800, 0x035f750b )
@@ -1509,20 +1586,20 @@ ROM_START( theend )
 	ROM_LOAD( "ic17_5t.bin",  0x2000, 0x0800, 0x434a8f68 )
 	ROM_LOAD( "ic18_6t.bin",  0x2800, 0x0800, 0xdc4cc786 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic56_1.bin",   0x0000, 0x0800, 0x7a141f29 )
 	ROM_LOAD( "ic55_2.bin",   0x0800, 0x0800, 0x218497c1 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic30_2c.bin",  0x0000, 0x0800, 0x68ccf7bf )
 	ROM_LOAD( "ic31_1c.bin",  0x0800, 0x0800, 0x4a48c999 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "6331-1j.86",   0x0000, 0x0020, 0x24652bc4 )
 ROM_END
 
 ROM_START( theends )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ic13",         0x0000, 0x0800, 0x90e5ab14 )
 	ROM_LOAD( "ic14",         0x0800, 0x0800, 0x950f0a07 )
 	ROM_LOAD( "ic15",         0x1000, 0x0800, 0x6786bcf5 )
@@ -1530,20 +1607,20 @@ ROM_START( theends )
 	ROM_LOAD( "ic17",         0x2000, 0x0800, 0xaf067b7f )
 	ROM_LOAD( "ic18",         0x2800, 0x0800, 0xa0411b93 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic56",         0x0000, 0x0800, 0x3b2c2f70 )
 	ROM_LOAD( "ic55",         0x0800, 0x0800, 0xe0429e50 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic30",         0x0000, 0x0800, 0x527fd384 )
 	ROM_LOAD( "ic31",         0x0800, 0x0800, 0xaf6d09b6 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "6331-1j.86",   0x0000, 0x0020, 0x24652bc4 )
 ROM_END
 
 ROM_START( froggers )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "vid_d2.bin",   0x0000, 0x0800, 0xc103066e )
 	ROM_LOAD( "vid_e2.bin",   0x0800, 0x0800, 0xf08bc094 )
 	ROM_LOAD( "vid_f2.bin",   0x1000, 0x0800, 0x637a2ff8 )
@@ -1551,21 +1628,21 @@ ROM_START( froggers )
 	ROM_LOAD( "vid_j2.bin",   0x2000, 0x0800, 0xfbdfbe74 )
 	ROM_LOAD( "vid_l2.bin",   0x2800, 0x0800, 0x8a4389e1 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "frogger.608",  0x0000, 0x0800, 0xe8ab0256 )
 	ROM_LOAD( "frogger.609",  0x0800, 0x0800, 0x7380a48f )
 	ROM_LOAD( "frogger.610",  0x1000, 0x0800, 0x31d7eb27 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "epr-1036.1k",  0x0000, 0x0800, 0x658745f8 )
 	ROM_LOAD( "frogger.607",  0x0800, 0x0800, 0x05f7d883 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "vid_e6.bin",   0x0000, 0x0020, 0x0b878b54 )
 ROM_END
 
 ROM_START( amidars )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "am2d",         0x0000, 0x0800, 0x24b79547 )
 	ROM_LOAD( "am2e",         0x0800, 0x0800, 0x4c64161e )
 	ROM_LOAD( "am2f",         0x1000, 0x0800, 0xb3987a72 )
@@ -1575,50 +1652,50 @@ ROM_START( amidars )
 	ROM_LOAD( "am2m",         0x3000, 0x0800, 0x1d7109e9 )
 	ROM_LOAD( "am2p",         0x3800, 0x0800, 0xc9163ac6 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "amidarus.5c",  0x0000, 0x1000, 0x8ca7b750 )
 	ROM_LOAD( "amidarus.5d",  0x1000, 0x1000, 0x9b5bdc0a )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "2716.a6",      0x0000, 0x0800, 0x2082ad0a )   /* Same graphics ROMs as Amigo */
 	ROM_LOAD( "2716.a5",      0x0800, 0x0800, 0x3029f94f )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "amidar.clr",   0x0000, 0x0020, 0xf940dcc3 )
 ROM_END
 
 ROM_START( triplep )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "triplep.2g",   0x0000, 0x1000, 0xc583a93d )
 	ROM_LOAD( "triplep.2h",   0x1000, 0x1000, 0xc03ddc49 )
 	ROM_LOAD( "triplep.2k",   0x2000, 0x1000, 0xe83ca6b5 )
 	ROM_LOAD( "triplep.2l",   0x3000, 0x1000, 0x982cc3b9 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "triplep.5f",   0x0000, 0x0800, 0xd51cbd6f )
 	ROM_LOAD( "triplep.5h",   0x0800, 0x0800, 0xf21c0059 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "tripprom.6e",  0x0000, 0x0020, 0x624f75df )
 ROM_END
 
 ROM_START( knockout )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "knockout.2h",   0x0000, 0x1000, 0xeaaa848e )
 	ROM_LOAD( "knockout.2k",   0x1000, 0x1000, 0xbc26d2c0 )
 	ROM_LOAD( "knockout.2l",   0x2000, 0x1000, 0x02025c10 )
 	ROM_LOAD( "knockout.2m",   0x3000, 0x1000, 0xe9abc42b )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "triplep.5f",   0x0000, 0x0800, 0xd51cbd6f )
 	ROM_LOAD( "triplep.5h",   0x0800, 0x0800, 0xf21c0059 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "tripprom.6e",  0x0000, 0x0020, 0x624f75df )
 ROM_END
 
 ROM_START( mariner )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for main CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for main CPU */
 	ROM_LOAD( "tp1.2h",       0x0000, 0x1000, 0xdac1dfd0 )
 	ROM_LOAD( "tm2.2k",       0x1000, 0x1000, 0xefe7ca28 )
 	ROM_LOAD( "tm3.2l",       0x2000, 0x1000, 0x027881a6 )
@@ -1626,22 +1703,22 @@ ROM_START( mariner )
 	ROM_LOAD( "tm5.2p",       0x6000, 0x0800, 0xd7ebcb8e )
 	ROM_CONTINUE(             0x5800, 0x0800             )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tm8.5f",       0x0000, 0x1000, 0x70ae611f )
 	ROM_LOAD( "tm9.5h",       0x1000, 0x1000, 0x8e4e999e )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "t4.6e",        0x0000, 0x0020, 0xca42b6dd )
 
-	ROM_REGION( 0x0100, REGION_USER1 )
+	ROM_REGION( 0x0100, REGION_USER1, 0 )
 	ROM_LOAD( "t6.6p",        0x0000, 0x0100, 0xad208ccc )	/* background color prom */
 
-	ROM_REGION( 0x0020, REGION_USER2 )
+	ROM_REGION( 0x0020, REGION_USER2, 0 )
 	ROM_LOAD( "t5.7p",        0x0000, 0x0020, 0x1bd88cff )	/* star placement (not emulated) */
 ROM_END
 
 ROM_START( 800fath )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for main CPU */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for main CPU */
 	ROM_LOAD( "tu1.2h",       0x0000, 0x1000, 0x5dd3d42f )
 	ROM_LOAD( "tm2.2k",       0x1000, 0x1000, 0xefe7ca28 )
 	ROM_LOAD( "tm3.2l",       0x2000, 0x1000, 0x027881a6 )
@@ -1649,22 +1726,22 @@ ROM_START( 800fath )
 	ROM_LOAD( "tu5.2p",       0x6000, 0x0800, 0xf864a8a6 )
 	ROM_CONTINUE(             0x5800, 0x0800             )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tm8.5f",       0x0000, 0x1000, 0x70ae611f )
 	ROM_LOAD( "tm9.5h",       0x1000, 0x1000, 0x8e4e999e )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "t4.6e",        0x0000, 0x0020, 0xca42b6dd )
 
-	ROM_REGION( 0x0100, REGION_USER1 )
+	ROM_REGION( 0x0100, REGION_USER1, 0 )
 	ROM_LOAD( "t6.6p",        0x0000, 0x0100, 0xad208ccc )	/* background color prom */
 
-	ROM_REGION( 0x0020, REGION_USER2 )
+	ROM_REGION( 0x0020, REGION_USER2, 0 )
 	ROM_LOAD( "t5.7p",        0x0000, 0x0020, 0x1bd88cff )	/* star placement (not emulated) */
 ROM_END
 
 ROM_START( ckongs )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "vid_2c.bin",   0x0000, 0x1000, 0x49a8c234 )
 	ROM_LOAD( "vid_2e.bin",   0x1000, 0x1000, 0xf1b667f1 )
 	ROM_LOAD( "vid_2f.bin",   0x2000, 0x1000, 0xb194b75d )
@@ -1672,20 +1749,20 @@ ROM_START( ckongs )
 	ROM_LOAD( "vid_2j.bin",   0x4000, 0x1000, 0xb377afd0 )
 	ROM_LOAD( "vid_2l.bin",   0x5000, 0x1000, 0xfe65e691 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "turt_snd.5c",  0x0000, 0x1000, 0xf0c30f9a )
 	ROM_LOAD( "snd_5d.bin",   0x1000, 0x1000, 0x892c9547 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "vid_5f.bin",   0x0000, 0x1000, 0x7866d2cb )
 	ROM_LOAD( "vid_5h.bin",   0x1000, 0x1000, 0x7311a101 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "vid_6e.bin",   0x0000, 0x0020, 0x5039af97 )
 ROM_END
 
 ROM_START( mars )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "u26.3",        0x0000, 0x0800, 0x2f88892c )
 	ROM_LOAD( "u56.4",        0x0800, 0x0800, 0x9e6bcbf7 )
 	ROM_LOAD( "u69.5",        0x1000, 0x0800, 0xdf496e6e )
@@ -1693,21 +1770,21 @@ ROM_START( mars )
 	ROM_LOAD( "u114.7",       0x2000, 0x0800, 0x497fd8d0 )
 	ROM_LOAD( "u133.8",       0x2800, 0x0800, 0x3d4cd59f )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "u39.9",        0x0000, 0x0800, 0xbb5968b9 )
 	ROM_LOAD( "u51.10",       0x0800, 0x0800, 0x75fd7720 )
 	ROM_LOAD( "u78.11",       0x1000, 0x0800, 0x72a492da )
 
-	ROM_REGION( 0x3000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x3000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "u72.1",        0x0000, 0x0800, 0x279789d0 )
 	ROM_LOAD( "u101.2",       0x0800, 0x0800, 0xc5dc627f )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.6e",    0x0000, 0x0020, 0x4e3caeab )
 ROM_END
 
 ROM_START( devilfsh )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "u26.1",        0x0000, 0x0800, 0xec047d71 )
 	ROM_LOAD( "u56.2",        0x0800, 0x0800, 0x0138ade9 )
 	ROM_LOAD( "u69.3",        0x1000, 0x0800, 0x5dd0b3fc )
@@ -1717,62 +1794,62 @@ ROM_START( devilfsh )
 	ROM_LOAD( "u143.7",       0x3000, 0x0800, 0x64676081 )
 	ROM_LOAD( "u163.8",       0x3800, 0x0800, 0xbc3d6770 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "u39.9",        0x0000, 0x0800, 0x09987e2e )
 	ROM_LOAD( "u51.10",       0x0800, 0x0800, 0x1e2b1471 )
 	ROM_LOAD( "u78.11",       0x1000, 0x0800, 0x45279aaa )
 
-	ROM_REGION( 0x3000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x3000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "u72.12",       0x0000, 0x1000, 0x5406508e )
 	ROM_LOAD( "u101.13",      0x1000, 0x1000, 0x8c4018b6 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.6e",    0x0000, 0x0020, 0x4e3caeab )
 ROM_END
 
 ROM_START( newsin7 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "newsin.1",     0x0000, 0x1000, 0xe6c23fe0 )
 	ROM_LOAD( "newsin.2",     0x1000, 0x1000, 0x3d477b5f )
 	ROM_LOAD( "newsin.3",     0x2000, 0x1000, 0x7dfa9af0 )
 	ROM_LOAD( "newsin.4",     0x3000, 0x1000, 0xd1b0ba19 )
 	ROM_LOAD( "newsin.5",     0xa000, 0x1000, 0x06275d59 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "newsin.13",    0x0000, 0x0800, 0xd88489a2 )
 	ROM_LOAD( "newsin.12",    0x0800, 0x0800, 0xb154a7af )
 	ROM_LOAD( "newsin.11",    0x1000, 0x0800, 0x7ade709b )
 
-	ROM_REGION( 0x3000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x3000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "newsin.7",     0x2000, 0x1000, 0x6bc5d64f )
 	ROM_LOAD( "newsin.8",     0x1000, 0x1000, 0x0c5b895a )
 	ROM_LOAD( "newsin.9",     0x0000, 0x1000, 0x6b87adff )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "newsin.6",     0x0000, 0x0020, 0x5cf2cd8d )
 ROM_END
 
 ROM_START( hotshock )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "hotshock.l10", 0x0000, 0x1000, 0x401078f7 )
 	ROM_LOAD( "hotshock.l9",  0x1000, 0x1000, 0xaf76c237 )
 	ROM_LOAD( "hotshock.l8",  0x2000, 0x1000, 0x30486031 )
 	ROM_LOAD( "hotshock.l7",  0x3000, 0x1000, 0x5bde9312 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "hotshock.b3",  0x0000, 0x1000, 0x0092f0e2 )
 	ROM_LOAD( "hotshock.b4",  0x1000, 0x1000, 0xc2135a44 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "hotshock.h4",  0x0000, 0x1000, 0x60bdaea9 )
 	ROM_LOAD( "hotshock.h5",  0x1000, 0x1000, 0x4ef17453 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.6e",    0x0000, 0x0020, 0x4e3caeab )
 ROM_END
 
 ROM_START( hunchbks )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "2c_hb01.bin",           0x0000, 0x0800, 0x8bebd834 )
 	ROM_LOAD( "2e_hb02.bin",           0x0800, 0x0800, 0x07de4229 )
 	ROM_LOAD( "2f_hb03.bin",           0x2000, 0x0800, 0xb75a0dfc )
@@ -1782,17 +1859,34 @@ ROM_START( hunchbks )
 	ROM_LOAD( "2m_hb07.bin",           0x6000, 0x0800, 0xc72e0e17 )
 	ROM_LOAD( "2p_hb08.bin",           0x6800, 0x0800, 0x412087b0 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "11d_snd.bin",           0x0000, 0x0800, 0x88226086 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "5f_hb09.bin",           0x0000, 0x0800, 0xdb489c3d )
 	ROM_LOAD( "5h_hb10.bin",           0x0800, 0x0800, 0x3977650e )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "6e_prom.bin",           0x0000, 0x0020, 0x01004d3f )
 ROM_END
 
+ROM_START( cavelon )
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )	/* 64k + 32K banked for code */
+	ROM_LOAD( "2.bin",           0x10000, 0x2000, 0xa3b353ac )
+	ROM_LOAD( "3.bin",           0x14000, 0x2000, 0x39d74e4e )
+	ROM_LOAD( "1.bin",           0x12000, 0x2000, 0x3f62efd6 )
+	ROM_RELOAD(                  0x16000, 0x2000)
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
+	ROM_LOAD( "1c_snd.bin",      0x0000, 0x0800, 0xf58dcf55 )
+
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "h.bin",           0x0000, 0x1000, 0xd44fcd6f )
+	ROM_LOAD( "k.bin",           0x1000, 0x1000, 0x59bc7f9e )
+
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
+	ROM_LOAD( "cavelon.clr",     0x0000, 0x0020, 0xd133356b )
+ROM_END
 
 
 static void init_scrambls(void)
@@ -1853,6 +1947,28 @@ static void init_mars(void)
 	}
 }
 
+static void init_cavelon(void)
+{
+	unsigned char *ROM = memory_region(REGION_CPU1);
+
+/* Set the initial bank. Doesn't matter which - the code sorts it out */
+	cpu_setbank(1, &ROM[0x10000]);
+
+/* Patch the IO mapping
+   I had this game as a working board (before I destroyed it) and I'm sure
+   it used a standard Scramble control mapping. As it stands, the code makes
+   no sense. Either the ROMS are bad at these locations or there is some
+   protection going on that not only re-maps but also replaces the actual
+   code the CPU uses to read the IO locations. May be thats what all the
+   writes are to 0x3800/1 and 0x2000 (ROM space) ??? */
+
+	ROM[0x14000+0x1EC6] = 0x3A;
+	ROM[0x14000+0x1EC7] = 0x00;
+
+	ROM[0x14000+0x1EFF] = 0x01;
+	ROM[0x14000+0x1F37] = 0x02;
+}
+
 
 
 GAME( 1981, scramble, 0,        scramble, scramble, scramble, ROT90, "Konami", "Scramble" )
@@ -1872,4 +1988,5 @@ GAME( 1981, mars,     0,        mars,     mars,     mars,     ROT90, "Artic", "M
 GAME( 1982, devilfsh, 0,        devilfsh, devilfsh, mars,     ROT90, "Artic", "Devil Fish" )
 GAMEX(1983, newsin7,  0,        newsin7,  newsin7,  mars,     ROT90, "ATW USA, Inc.", "New Sinbad 7", GAME_IMPERFECT_COLORS )
 GAME( 1982, hotshock, 0,        hotshock, hotshock, hotshock, ROT90, "E.G. Felaco", "Hot Shocker" )
-GAME( 1983, hunchbks, hunchbkd, hunchbks, hunchbks, 0,        ROT90, "Century", "Hunchback (Scramble hardware)" )
+GAME( 1983, hunchbks, hunchbak, hunchbks, hunchbks, 0,        ROT90, "Century", "Hunchback (Scramble hardware)" )
+GAME( 1983, cavelon,  0,        cavelon,  cavelon,  cavelon,  ROT90, "Jetsoft", "Cavelon" )

@@ -195,38 +195,30 @@ READ_HANDLER( crbaloon_IN_r )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x2fff, MRA_ROM },
 	{ 0x4000, 0x43ff, MRA_RAM },
 	{ 0x4800, 0x4bff, MRA_RAM },
 	{ 0x5000, 0x53ff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x2fff, MWA_ROM },
 	{ 0x4000, 0x43ff, MWA_RAM },
 	{ 0x4800, 0x4bff, videoram_w, &videoram, &videoram_size },
 	{ 0x5000, 0x53ff, colorram_w, &colorram },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x00, 0x0f, crbaloon_IN_r },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x02, 0x04, crbaloon_spritectrl_w },
 	{ 0x06, 0x06, crbaloon_06_w },
 	{ 0x08, 0x08, crbaloon_08_w },
 	{ 0x0a, 0x0a, crbaloon_0a_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 
@@ -402,7 +394,7 @@ static const struct MachineDriver machine_driver_crbaloon =
 ***************************************************************************/
 
 ROM_START( crbaloon )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "cl01.bin",     0x0000, 0x0800, 0x9d4eef0b )
 	ROM_LOAD( "cl02.bin",     0x0800, 0x0800, 0x10f7a6f7 )
 	ROM_LOAD( "cl03.bin",     0x1000, 0x0800, 0x44ed6030 )
@@ -410,15 +402,15 @@ ROM_START( crbaloon )
 	ROM_LOAD( "cl05.bin",     0x2000, 0x0800, 0xc8f1e2be )
 	ROM_LOAD( "cl06.bin",     0x2800, 0x0800, 0x7d465691 )
 
-	ROM_REGION( 0x0800, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cl07.bin",     0x0000, 0x0800, 0x2c1fbea8 )
 
-	ROM_REGION( 0x0800, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cl08.bin",     0x0000, 0x0800, 0xba898659 )
 ROM_END
 
 ROM_START( crbalon2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "cl01.bin",     0x0000, 0x0800, 0x9d4eef0b )
 	ROM_LOAD( "crazybal.ep2", 0x0800, 0x0800, 0x87572086 )
 	ROM_LOAD( "crazybal.ep3", 0x1000, 0x0800, 0x575fe995 )
@@ -426,10 +418,10 @@ ROM_START( crbalon2 )
 	ROM_LOAD( "cl05.bin",     0x2000, 0x0800, 0xc8f1e2be )
 	ROM_LOAD( "crazybal.ep6", 0x2800, 0x0800, 0xfed6ff5c )
 
-	ROM_REGION( 0x0800, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cl07.bin",     0x0000, 0x0800, 0x2c1fbea8 )
 
-	ROM_REGION( 0x0800, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cl08.bin",     0x0000, 0x0800, 0xba898659 )
 ROM_END
 

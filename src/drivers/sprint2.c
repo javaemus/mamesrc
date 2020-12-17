@@ -63,8 +63,7 @@ WRITE_HANDLER( sprint2_lamp1_w );
 WRITE_HANDLER( sprint2_lamp2_w );
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x03ff, MRA_RAM }, /* WRAM */
 	{ 0x0400, 0x07ff, MRA_RAM }, /* DISPLAY RAM */
 	{ 0x0800, 0x083f, sprint2_read_ports_r }, /* SWITCH */
@@ -88,11 +87,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x1400, 0x17ff, sprint2_collision2_r }, /* COLLISION 2 */
 	{ 0x2000, 0x3fff, MRA_ROM }, /* PROM1-PROM8 */
 	{ 0xfff0, 0xffff, MRA_ROM }, /* PROM8 for 6502 vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x03ff, MWA_RAM }, /* WRAM */
 	{ 0x0010, 0x0013, MWA_RAM, &sprint2_horiz_ram }, /* WRAM */
 	{ 0x0018, 0x001f, MWA_RAM, &sprint2_vert_car_ram }, /* WRAM */
@@ -110,12 +107,10 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x0e80, 0x0eff, sprint2_steering_reset2_w }, /* STEERING RESET 2 */
 	{ 0x0f00, 0x0f7f, MWA_RAM }, /* NOISE RESET */
 	{ 0x2000, 0x3fff, MWA_ROM }, /* PROM1-PROM8 */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /* The only difference is that we use "sprint1_read_ports" */
-static struct MemoryReadAddress sprint1_readmem[] =
-{
+static MEMORY_READ_START( sprint1_readmem )
 	{ 0x0000, 0x03ff, MRA_RAM }, /* WRAM */
 	{ 0x0400, 0x07ff, MRA_RAM }, /* DISPLAY RAM */
 	{ 0x0800, 0x083f, sprint1_read_ports_r }, /* SWITCH */
@@ -139,8 +134,7 @@ static struct MemoryReadAddress sprint1_readmem[] =
 	{ 0x1400, 0x17ff, sprint2_collision2_r }, /* COLLISION 2 */
 	{ 0x2000, 0x3fff, MRA_ROM }, /* PROM1-PROM8 */
 	{ 0xfff0, 0xffff, MRA_ROM }, /* PROM8 for 6502 vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 INPUT_PORTS_START( sprint2 )
 	PORT_START      /* DSW - fake port, gets mapped to Sprint2 ports */
@@ -383,7 +377,7 @@ static const struct MachineDriver machine_driver_sprint1 =
 ***************************************************************************/
 
 ROM_START( sprint1 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "6290-01.b1",   0x2000, 0x0800, 0x41fc985e )
 	ROM_LOAD( "6291-01.c1",   0x2800, 0x0800, 0x07f7a920 )
 	ROM_LOAD( "6442-01.d1",   0x3000, 0x0800, 0xe9ff0124 )
@@ -391,20 +385,20 @@ ROM_START( sprint1 )
 	ROM_LOAD( "6443-01.e1",   0x3800, 0x0800, 0xd6bb00d0 )
 	ROM_RELOAD(               0xf800, 0x0800 )
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "6396-01.p4",   0x0000, 0x0200, 0x801b42dd )
 	ROM_LOAD( "6397-01.r4",   0x0200, 0x0200, 0x135ba1aa )
 
-	ROM_REGION( 0x0400, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "6398-01.k6",   0x0000, 0x0200, 0xc9e1017e )
 	ROM_LOAD( "6399-01.j6",   0x0200, 0x0200, 0x63d685b2 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "6401-01.e2",   0x0000, 0x0020, 0x857df8db )	/* unknown */
 ROM_END
 
 ROM_START( sprint2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "6290-01.b1",   0x2000, 0x0800, 0x41fc985e )
 	ROM_LOAD( "6291-01.c1",   0x2800, 0x0800, 0x07f7a920 )
 	ROM_LOAD( "6404sp2.d1",   0x3000, 0x0800, 0xd2878ff6 )
@@ -412,15 +406,15 @@ ROM_START( sprint2 )
 	ROM_LOAD( "6405sp2.e1",   0x3800, 0x0800, 0x6c991c80 )
 	ROM_RELOAD(               0xf800, 0x0800 )
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "6396-01.p4",   0x0000, 0x0200, 0x801b42dd )
 	ROM_LOAD( "6397-01.r4",   0x0200, 0x0200, 0x135ba1aa )
 
-	ROM_REGION( 0x0400, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "6398-01.k6",   0x0000, 0x0200, 0xc9e1017e )
 	ROM_LOAD( "6399-01.j6",   0x0200, 0x0200, 0x63d685b2 )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "6401-01.e2",   0x0000, 0x0020, 0x857df8db )	/* unknown */
 ROM_END
 

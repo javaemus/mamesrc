@@ -99,8 +99,7 @@ WRITE_HANDLER( zodiac_master_soundlatch_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x4fff, MRA_ROM },
 	{ 0x5800, 0x5fff, MRA_RAM },
 	{ 0x7000, 0x7000, MRA_RAM },	/* ?? */
@@ -114,11 +113,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x6084, 0x6084, input_port_3_r },	/* IN3 */
 	{ 0x6090, 0x6090, soundlatch_r },	/* the main CPU reads the command back from the slave */
 	{ 0xc000, 0xcfff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x4fff, MWA_ROM },
 	{ 0x5800, 0x5fff, MWA_RAM },
 	{ 0x6090, 0x6090, zodiac_master_soundlatch_w },
@@ -132,33 +129,26 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x9020, 0x903f, MWA_RAM, &espial_column_scroll },
 	{ 0x9400, 0x97ff, colorram_w, &colorram },
 	{ 0xc000, 0xcfff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x23ff, MRA_RAM },
 	{ 0x6000, 0x6000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x23ff, MWA_RAM },
 	{ 0x4000, 0x4000, interrupt_enable_w },
 	{ 0x6000, 0x6000, soundlatch_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, AY8910_control_port_0_w },
 	{ 0x01, 0x01, AY8910_write_port_0_w },
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 
 INPUT_PORTS_START( espial )
@@ -323,49 +313,49 @@ static const struct MachineDriver machine_driver_espial =
 ***************************************************************************/
 
 ROM_START( espial )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "espial.3",     0x0000, 0x2000, 0x10f1da30 )
 	ROM_LOAD( "espial.4",     0x2000, 0x2000, 0xd2adbe39 )
 	ROM_LOAD( "espial.6",     0x4000, 0x1000, 0xbaa60bc1 )
 	ROM_LOAD( "espial.5",     0xc000, 0x1000, 0x6d7bbfc1 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "espial.1",     0x0000, 0x1000, 0x1e5ec20b )
 	ROM_LOAD( "espial.2",     0x1000, 0x1000, 0x3431bb97 )
 
-	ROM_REGION( 0x3000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x3000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "espial.8",     0x0000, 0x2000, 0x2f43036f )
 	ROM_LOAD( "espial.7",     0x2000, 0x1000, 0xebfef046 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "espial.10",    0x0000, 0x1000, 0xde80fbc1 )
 	ROM_LOAD( "espial.9",     0x1000, 0x1000, 0x48c258a0 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "espial.1f",    0x0000, 0x0100, 0xd12de557 ) /* palette low 4 bits */
 	ROM_LOAD( "espial.1h",    0x0100, 0x0100, 0x4c84fe70 ) /* palette high 4 bits */
 ROM_END
 
 ROM_START( espiale )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "2764.3",       0x0000, 0x2000, 0x0973c8a4 )
 	ROM_LOAD( "2764.4",       0x2000, 0x2000, 0x6034d7e5 )
 	ROM_LOAD( "2732.6",       0x4000, 0x1000, 0x357025b4 )
 	ROM_LOAD( "2732.5",       0xc000, 0x1000, 0xd03a2fc4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "2732.1",       0x0000, 0x1000, 0xfc7729e9 )
 	ROM_LOAD( "2732.2",       0x1000, 0x1000, 0xe4e256da )
 
-	ROM_REGION( 0x3000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x3000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "espial.8",     0x0000, 0x2000, 0x2f43036f )
 	ROM_LOAD( "espial.7",     0x2000, 0x1000, 0xebfef046 )
 
-	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "espial.10",    0x0000, 0x1000, 0xde80fbc1 )
 	ROM_LOAD( "espial.9",     0x1000, 0x1000, 0x48c258a0 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "espial.1f",    0x0000, 0x0100, 0xd12de557 ) /* palette low 4 bits */
 	ROM_LOAD( "espial.1h",    0x0100, 0x0100, 0x4c84fe70 ) /* palette high 4 bits */
 ROM_END

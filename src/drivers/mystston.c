@@ -52,7 +52,7 @@ static int mystston_interrupt(void)
 static WRITE_HANDLER( mystston_soundcontrol_w )
 {
 	static int last;
-	data_t soundlatch;
+	int soundlatch;
 
 
 	soundlatch = soundlatch_r(0);
@@ -81,8 +81,7 @@ static WRITE_HANDLER( mystston_soundcontrol_w )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x077f, MRA_RAM },
 	{ 0x0800, 0x0fff, MRA_RAM },	/* work RAM? */
 	{ 0x1000, 0x1fff, MRA_RAM },
@@ -91,11 +90,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x2020, 0x2020, input_port_2_r },
 	{ 0x2030, 0x2030, input_port_3_r },
 	{ 0x4000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x077f, MWA_RAM },
 	{ 0x0780, 0x07df, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x0800, 0x0fff, MWA_RAM },	/* work RAM? */
@@ -109,8 +106,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x2040, 0x2040, mystston_soundcontrol_w },
 	{ 0x2060, 0x2077, paletteram_BBGGGRRR_w, &paletteram },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -143,7 +139,7 @@ INPUT_PORTS_START( mystston )
 	PORT_DIPNAME(0x02, 0x02, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(   0x02, DEF_STR( Off ) )
 	PORT_DIPSETTING(   0x00, DEF_STR( On ) )
-	PORT_DIPNAME(0x04, 0x04, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME(0x04, 0x00, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(   0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(   0x00, DEF_STR( On ) )
 	PORT_DIPNAME(0x08, 0x08, DEF_STR( Unknown ) )
@@ -282,7 +278,7 @@ static const struct MachineDriver machine_driver_mystston =
 ***************************************************************************/
 
 ROM_START( mystston )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "ms0",          0x4000, 0x2000, 0x6dacc05f )
 	ROM_LOAD( "ms1",          0x6000, 0x2000, 0xa3546df7 )
 	ROM_LOAD( "ms2",          0x8000, 0x2000, 0x43bc6182 )
@@ -290,7 +286,7 @@ ROM_START( mystston )
 	ROM_LOAD( "ms4",          0xc000, 0x2000, 0x47cefe9b )
 	ROM_LOAD( "ms5",          0xe000, 0x2000, 0xb37ae12b )
 
-	ROM_REGION( 0x0c000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ms6",          0x00000, 0x2000, 0x85c83806 )
 	ROM_LOAD( "ms9",          0x02000, 0x2000, 0xb146c6ab )
 	ROM_LOAD( "ms7",          0x04000, 0x2000, 0xd025f84d )
@@ -298,7 +294,7 @@ ROM_START( mystston )
 	ROM_LOAD( "ms8",          0x08000, 0x2000, 0x53765d89 )
 	ROM_LOAD( "ms11",         0x0a000, 0x2000, 0x919ee527 )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ms12",         0x00000, 0x2000, 0x72d8331d )
 	ROM_LOAD( "ms13",         0x02000, 0x2000, 0x845a1f9b )
 	ROM_LOAD( "ms14",         0x04000, 0x2000, 0x822874b0 )
@@ -306,7 +302,7 @@ ROM_START( mystston )
 	ROM_LOAD( "ms16",         0x08000, 0x2000, 0x2f470b0f )
 	ROM_LOAD( "ms17",         0x0a000, 0x2000, 0x38966d1b )
 
-	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
 	ROM_LOAD( "ic61",         0x0000, 0x0020, 0xe802d6cf )
 ROM_END
 

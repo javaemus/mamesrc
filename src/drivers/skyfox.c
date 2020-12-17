@@ -23,7 +23,7 @@ extern int skyfox_bg_pos, skyfox_bg_ctrl;
 
 /* Functions defined in vidhrdw: */
 
-READ_HANDLER ( skyfox_vregs_r );
+READ_HANDLER( skyfox_vregs_r );
 WRITE_HANDLER( skyfox_vregs_w );
 
 void skyfox_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
@@ -44,8 +44,7 @@ void skyfox_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 								Sky Fox
 ***************************************************************************/
 
-static struct MemoryReadAddress skyfox_readmem[] =
-{
+static MEMORY_READ_START( skyfox_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM				},	// ROM
 	{ 0xc000, 0xdfff, MRA_RAM				},	// RAM
 	{ 0xe000, 0xe000, input_port_0_r		},	// Input Ports
@@ -53,29 +52,15 @@ static struct MemoryReadAddress skyfox_readmem[] =
 	{ 0xe002, 0xe002, input_port_2_r		},	//
 	{ 0xf001, 0xf001, input_port_3_r		},	//
 //	{ 0xff00, 0xff07, skyfox_vregs_r		},	// fake to read the vregs
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress skyfox_writemem[] =
-{
+static MEMORY_WRITE_START( skyfox_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM								},	// ROM
 	{ 0xc000, 0xcfff, MWA_RAM								},	// RAM
 	{ 0xd000, 0xd3ff, MWA_RAM, &spriteram, &spriteram_size	},	// Sprites
 	{ 0xd400, 0xdfff, MWA_RAM								},	// RAM?
 	{ 0xe008, 0xe00f, skyfox_vregs_w						},	// Video Regs
-	{ -1 }
-};
-
-
-static struct IOReadPort skyfox_readport[] =
-{
-	{ -1 }
-};
-
-static struct IOWritePort skyfox_writeport[] =
-{
-	{ -1 }
-};
+MEMORY_END
 
 
 
@@ -96,18 +81,15 @@ static struct IOWritePort skyfox_writeport[] =
 ***************************************************************************/
 
 
-static struct MemoryReadAddress skyfox_sound_readmem[] =
-{
+static MEMORY_READ_START( skyfox_sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM				},	// ROM
 	{ 0x8000, 0x87ff, MRA_RAM				},	// RAM
 	{ 0xa001, 0xa001, YM2203_read_port_0_r 	},	// YM2203 #1
 //	{ 0xc001, 0xc001, YM2203_read_port_1_r 	},	// YM2203 #2
 	{ 0xb000, 0xb000, soundlatch_r			},	// From Main CPU
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress skyfox_sound_writemem[] =
-{
+static MEMORY_WRITE_START( skyfox_sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM					},	// ROM
 	{ 0x8000, 0x87ff, MWA_RAM					},	// RAM
 //	{ 0x9000, 0x9001, MWA_NOP					},	// ??
@@ -116,18 +98,7 @@ static struct MemoryWriteAddress skyfox_sound_writemem[] =
 //	{ 0xb000, 0xb001, MWA_NOP					},	// ??
 	{ 0xc000, 0xc000, YM2203_control_port_1_w 	},	// YM2203 #2
 	{ 0xc001, 0xc001, YM2203_write_port_1_w 	},	//
-	{ -1 }
-};
-
-static struct IOReadPort skyfox_sound_readport[] =
-{
-	{ -1 }
-};
-static struct IOWritePort skyfox_sound_writeport[] =
-{
-	{ -1 }
-};
-
+MEMORY_END
 
 
 
@@ -302,13 +273,13 @@ static const struct MachineDriver machine_driver_skyfox =
 		{
 			CPU_Z80,
 			4000000,
-			skyfox_readmem,skyfox_writemem, skyfox_readport,skyfox_writeport,
+			skyfox_readmem,skyfox_writemem,0,0,
 			skyfox_interrupt, 1		/* NMI caused by coin insertion */
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
 			1748000,
-			skyfox_sound_readmem,skyfox_sound_writemem, skyfox_sound_readport,skyfox_sound_writeport,
+			skyfox_sound_readmem,skyfox_sound_writemem,0,0,
 			ignore_interrupt, 1		/* No interrupts */
 		}
 	},
@@ -411,14 +382,14 @@ Sound processor - Z80  1.748MHz
 
 
 ROM_START( skyfox )
-	ROM_REGION( 0x10000, REGION_CPU1 )		/* Main Z80 Code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )		/* Main Z80 Code */
 	ROM_LOAD( "skyfox1.bin", 0x00000, 0x8000, 0xb4d4bb6f )
 	ROM_LOAD( "skyfox2.bin", 0x08000, 0x8000, 0xe15e0263 )	// identical halves
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* Sound Z80 Code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* Sound Z80 Code */
 	ROM_LOAD( "skyfox9.bin", 0x00000, 0x8000, 0x0b283bf5 )
 
-	ROM_REGION( 0x60000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* Sprites */
+	ROM_REGION( 0x60000, REGION_GFX1, ROMREGION_DISPOSE )	/* Sprites */
 	ROM_LOAD( "skyfox3.bin", 0x00000, 0x10000, 0x3a17a929 )
 	ROM_LOAD( "skyfox4.bin", 0x10000, 0x10000, 0x358053bb )
 	ROM_LOAD( "skyfox5.bin", 0x20000, 0x10000, 0xc1215a6e )
@@ -426,24 +397,24 @@ ROM_START( skyfox )
 	ROM_LOAD( "skyfox7.bin", 0x40000, 0x10000, 0xfa2ab5b4 )
 	ROM_LOAD( "skyfox8.bin", 0x50000, 0x10000, 0x0e3edc49 )
 
-	ROM_REGION( 0x08000, REGION_GFX2 )	/* Background - do not dispose */
+	ROM_REGION( 0x08000, REGION_GFX2, 0 )	/* Background - do not dispose */
 	ROM_LOAD( "skyfox10.bin", 0x0000, 0x8000, 0x19f58f9c )
 
-	ROM_REGION( 0x300, REGION_PROMS )	/* Color Proms */
+	ROM_REGION( 0x300, REGION_PROMS, 0 )	/* Color Proms */
 	ROM_LOAD( "sfoxrprm.bin", 0x000, 0x100, 0x79913c7f )	// R
 	ROM_LOAD( "sfoxgprm.bin", 0x100, 0x100, 0xfb73d434 )	// G
 	ROM_LOAD( "sfoxbprm.bin", 0x200, 0x100, 0x60d2ab41 )	// B
 ROM_END
 
 ROM_START( exerizrb )
-	ROM_REGION( 0x10000, REGION_CPU1 )		/* Main Z80 Code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )		/* Main Z80 Code */
 	ROM_LOAD( "1-a",         0x00000, 0x8000, 0x5df72a5d )
 	ROM_LOAD( "skyfox2.bin", 0x08000, 0x8000, 0xe15e0263 )	// 1-b
 
-	ROM_REGION( 0x10000, REGION_CPU2 )		/* Sound Z80 Code */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )		/* Sound Z80 Code */
 	ROM_LOAD( "skyfox9.bin", 0x00000, 0x8000, 0x0b283bf5 )	// 1-i
 
-	ROM_REGION( 0x60000, REGION_GFX1 | REGIONFLAG_DISPOSE )	/* Sprites */
+	ROM_REGION( 0x60000, REGION_GFX1, ROMREGION_DISPOSE )	/* Sprites */
 	ROM_LOAD( "1-c",         0x00000, 0x10000, 0x450e9381 )
 	ROM_LOAD( "skyfox4.bin", 0x10000, 0x10000, 0x358053bb )	// 1-d
 	ROM_LOAD( "1-e",         0x20000, 0x10000, 0x50a38c60 )
@@ -451,10 +422,10 @@ ROM_START( exerizrb )
 	ROM_LOAD( "1-g",         0x40000, 0x10000, 0xc9bbfe5c )
 	ROM_LOAD( "skyfox8.bin", 0x50000, 0x10000, 0x0e3edc49 )	// 1-h
 
-	ROM_REGION( 0x08000, REGION_GFX2 )	/* Background - do not dispose */
+	ROM_REGION( 0x08000, REGION_GFX2, 0 )	/* Background - do not dispose */
 	ROM_LOAD( "skyfox10.bin", 0x0000, 0x8000, 0x19f58f9c )	// 1-j
 
-	ROM_REGION( 0x300, REGION_PROMS )	/* Color Proms */
+	ROM_REGION( 0x300, REGION_PROMS, 0 )	/* Color Proms */
 	ROM_LOAD( "sfoxrprm.bin", 0x000, 0x100, 0x79913c7f )	// 2-bpr
 	ROM_LOAD( "sfoxgprm.bin", 0x100, 0x100, 0xfb73d434 )	// 3-bpr
 	ROM_LOAD( "sfoxbprm.bin", 0x200, 0x100, 0x60d2ab41 )	// 1-bpr

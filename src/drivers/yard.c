@@ -31,8 +31,7 @@ READ_HANDLER( mpatrol_input_port_3_r );
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x8000, 0x8fff, MRA_RAM },        /* Video and Color ram */
 	{ 0xd000, 0xd000, input_port_0_r },	        /* IN0 */
@@ -41,11 +40,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xd003, 0xd003, mpatrol_input_port_3_r },	/* DSW1 */
 	{ 0xd004, 0xd004, input_port_4_r },	        /* DSW2 */
 	{ 0xe000, 0xefff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x8000, 0x8fff, videoram_w, &videoram, &videoram_size },
 	{ 0x9000, 0x9fff, yard_scroll_panel_w },
 	{ 0xc820, 0xc87f, MWA_RAM, &spriteram, &spriteram_size },
@@ -56,8 +53,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xd000, 0xd000, irem_sound_cmd_w },
 	{ 0xd001, 0xd001, yard_flipscreen_w },	/* + coin counters */
 	{ 0xe000, 0xefff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -343,23 +339,23 @@ static const struct MachineDriver machine_driver_yard =
 
 ***************************************************************************/
 ROM_START( yard )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "yf-a-3p",      0x0000, 0x2000, 0x4586114f )
 	ROM_LOAD( "yf-a-3n",      0x2000, 0x2000, 0x947fa760 )
 	ROM_LOAD( "yf-a-3m",      0x4000, 0x2000, 0xd4975633 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu */
 	ROM_LOAD( "yf-s-3b",      0x8000, 0x2000, 0x0392a60c )
 	ROM_LOAD( "yf-s-1b",      0xa000, 0x2000, 0x6588f41a )
 	ROM_LOAD( "yf-s-3a",      0xc000, 0x2000, 0xbd054e44 )
 	ROM_LOAD( "yf-s-1a",      0xe000, 0x2000, 0x2490d4c3 )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "yf-a-3e",      0x00000, 0x2000, 0x77e9e9cc )	/* chars */
 	ROM_LOAD( "yf-a-3d",      0x02000, 0x2000, 0x854d5ff4 )
 	ROM_LOAD( "yf-a-3c",      0x04000, 0x2000, 0x0cd8ffad )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "yf-b-5b",      0x00000, 0x2000, 0x1299ae30 )	/* sprites */
 	ROM_LOAD( "yf-b-5c",      0x02000, 0x2000, 0x8708b888 )
 	ROM_LOAD( "yf-b-5f",      0x04000, 0x2000, 0xd9bb8ab8 )
@@ -367,7 +363,7 @@ ROM_START( yard )
 	ROM_LOAD( "yf-b-5j",      0x08000, 0x2000, 0x713ef31f )
 	ROM_LOAD( "yf-b-5k",      0x0a000, 0x2000, 0xf49651cc )
 
-	ROM_REGION( 0x0520, REGION_PROMS )
+	ROM_REGION( 0x0520, REGION_PROMS, 0 )
 	ROM_LOAD( "yard.1c",      0x0000, 0x0100, 0x08fa5103 ) /* chars palette low 4 bits */
 	ROM_LOAD( "yard.1d",      0x0100, 0x0100, 0x7c04994c ) /* chars palette high 4 bits */
 	ROM_LOAD( "yard.1f",      0x0200, 0x0020, 0xb8554da5 ) /* sprites palette */
@@ -377,23 +373,23 @@ ROM_START( yard )
 ROM_END
 
 ROM_START( vsyard )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "a-3p",         0x0000, 0x2000, 0x1edac08f )
 	ROM_LOAD( "vyf-a-3m",     0x2000, 0x2000, 0x3b9330f8 )
 	ROM_LOAD( "a-3m",         0x4000, 0x2000, 0xcf783dad )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu */
 	ROM_LOAD( "yf-s-3b",      0x8000, 0x2000, 0x0392a60c )
 	ROM_LOAD( "yf-s-1b",      0xa000, 0x2000, 0x6588f41a )
 	ROM_LOAD( "yf-s-3a",      0xc000, 0x2000, 0xbd054e44 )
 	ROM_LOAD( "yf-s-1a",      0xe000, 0x2000, 0x2490d4c3 )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "vyf-a-3a",     0x00000, 0x2000, 0x354d7330 )	/* chars */
 	ROM_LOAD( "vyf-a-3c",     0x02000, 0x2000, 0xf48eedca )
 	ROM_LOAD( "vyf-a-3d",     0x04000, 0x2000, 0x7d1b4d93 )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "yf-b-5b",      0x00000, 0x2000, 0x1299ae30 )	/* sprites */
 	ROM_LOAD( "yf-b-5c",      0x02000, 0x2000, 0x8708b888 )
 	ROM_LOAD( "yf-b-5f",      0x04000, 0x2000, 0xd9bb8ab8 )
@@ -401,7 +397,7 @@ ROM_START( vsyard )
 	ROM_LOAD( "yf-b-5j",      0x08000, 0x2000, 0x713ef31f )
 	ROM_LOAD( "yf-b-5k",      0x0a000, 0x2000, 0xf49651cc )
 
-	ROM_REGION( 0x0520, REGION_PROMS )
+	ROM_REGION( 0x0520, REGION_PROMS, 0 )
 	ROM_LOAD( "yard.1c",      0x0000, 0x0100, 0x08fa5103 ) /* chars palette low 4 bits */
 	ROM_LOAD( "yard.1d",      0x0100, 0x0100, 0x7c04994c ) /* chars palette high 4 bits */
 	ROM_LOAD( "yard.1f",      0x0200, 0x0020, 0xb8554da5 ) /* sprites palette */
@@ -411,23 +407,23 @@ ROM_START( vsyard )
 ROM_END
 
 ROM_START( vsyard2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "vyf-a-3n",     0x0000, 0x2000, 0x418e01fc )
 	ROM_LOAD( "vyf-a-3m",     0x2000, 0x2000, 0x3b9330f8 )
 	ROM_LOAD( "vyf-a-3k",     0x4000, 0x2000, 0xa0ec15bb )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for sound cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for sound cpu */
 	ROM_LOAD( "yf-s-3b",      0x8000, 0x2000, 0x0392a60c )
 	ROM_LOAD( "yf-s-1b",      0xa000, 0x2000, 0x6588f41a )
 	ROM_LOAD( "yf-s-3a",      0xc000, 0x2000, 0xbd054e44 )
 	ROM_LOAD( "yf-s-1a",      0xe000, 0x2000, 0x2490d4c3 )
 
-	ROM_REGION( 0x06000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x06000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "vyf-a-3a",     0x00000, 0x2000, 0x354d7330 )	/* chars */
 	ROM_LOAD( "vyf-a-3c",     0x02000, 0x2000, 0xf48eedca )
 	ROM_LOAD( "vyf-a-3d",     0x04000, 0x2000, 0x7d1b4d93 )
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "yf-b-5b",      0x00000, 0x2000, 0x1299ae30 )	/* sprites */
 	ROM_LOAD( "yf-b-5c",      0x02000, 0x2000, 0x8708b888 )
 	ROM_LOAD( "yf-b-5f",      0x04000, 0x2000, 0xd9bb8ab8 )
@@ -435,7 +431,7 @@ ROM_START( vsyard2 )
 	ROM_LOAD( "yf-b-5j",      0x08000, 0x2000, 0x713ef31f )
 	ROM_LOAD( "yf-b-5k",      0x0a000, 0x2000, 0xf49651cc )
 
-	ROM_REGION( 0x0520, REGION_PROMS )
+	ROM_REGION( 0x0520, REGION_PROMS, 0 )
 	ROM_LOAD( "yard.1c",      0x0000, 0x0100, 0x08fa5103 ) /* chars palette low 4 bits */
 	ROM_LOAD( "yard.1d",      0x0100, 0x0100, 0x7c04994c ) /* chars palette high 4 bits */
 	ROM_LOAD( "yard.1f",      0x0200, 0x0020, 0xb8554da5 ) /* sprites palette */

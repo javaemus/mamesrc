@@ -63,24 +63,19 @@ static WRITE_HANDLER( bking2_soundlatch_w )
 }
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
     { 0x0000, 0x7fff, MRA_ROM },
     { 0x8000, 0x83ff, MRA_RAM },
     { 0x9000, 0x97ff, MRA_RAM },
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
     { 0x0000, 0x7fff, MWA_ROM },
     { 0x8000, 0x83ff, MWA_RAM },
     { 0x9000, 0x97ff, videoram_w, &videoram, &videoram_size },
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
     { 0x00, 0x00, input_port_0_r },
     { 0x01, 0x01, input_port_1_r },
     { 0x02, 0x02, input_port_2_r },
@@ -89,11 +84,9 @@ static struct IOReadPort readport[] =
     { 0x05, 0x05, bking2_input_port_5_r },
     { 0x06, 0x06, bking2_input_port_6_r },
 	{ 0x07, 0x1f, bking2_pos_r },
-    { -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
     { 0x00, 0x00, bking2_xld1_w },
     { 0x01, 0x01, bking2_yld1_w },
     { 0x02, 0x02, bking2_xld2_w },
@@ -108,11 +101,9 @@ static struct IOWritePort writeport[] =
     { 0x0b, 0x0b, bking2_soundlatch_w },
   //{ 0x0c, 0x0c, bking2_eport2_w },   this is not shown to be connected anywhere
     { 0x0d, 0x0d, bking2_hitclr_w },
-    { -1 }  /* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
     { 0x0000, 0x1fff, MRA_ROM },
     { 0x4000, 0x43ff, MRA_RAM },
 	{ 0x4401, 0x4401, AY8910_read_port_0_r },
@@ -121,11 +112,9 @@ static struct MemoryReadAddress sound_readmem[] =
     { 0x4802, 0x4802, bking2_sndnmi_disable_r },
     { 0xe000, 0xefff, MRA_ROM },   /* space for some other ROM???
 									  It's checked if there is valid code there */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
     { 0x0000, 0x1fff, MWA_ROM },
     { 0x4000, 0x43ff, MWA_RAM },
 	{ 0x4400, 0x4400, AY8910_control_port_0_w },
@@ -133,8 +122,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0x4402, 0x4402, AY8910_control_port_1_w },
 	{ 0x4403, 0x4403, AY8910_write_port_1_w },
     { 0x4802, 0x4802, bking2_sndnmi_enable_w },
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
 INPUT_PORTS_START( bking2 )
     PORT_START  /* IN0 */
@@ -388,7 +376,7 @@ static const struct MachineDriver machine_driver_bking2 =
 ***************************************************************************/
 
 ROM_START( bking2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "01.13f",       0x0000, 0x1000, 0x078ada3f )
 	ROM_LOAD( "02.11f",       0x1000, 0x1000, 0xc37d110a )
 	ROM_LOAD( "03.10f",       0x2000, 0x1000, 0x2ba5c681 )
@@ -398,11 +386,11 @@ ROM_START( bking2 )
 	ROM_LOAD( "07.4f",        0x6000, 0x1000, 0xb3ed40b7 )
 	ROM_LOAD( "08.2f",        0x7000, 0x1000, 0x8fddb2e8 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )         /* Sound ROMs */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )         /* Sound ROMs */
 	ROM_LOAD( "15",           0x0000, 0x1000, 0xf045d0fe )
 	ROM_LOAD( "16",           0x1000, 0x1000, 0x92d50410 )
 
-	ROM_REGION( 0x6000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x6000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "14.5a",        0x0000, 0x1000, 0x52636a94 )
 	ROM_LOAD( "13.7a",        0x1000, 0x1000, 0x6b9e0564 )
 	ROM_LOAD( "12.8a",        0x2000, 0x1000, 0xc6d685d9 )
@@ -410,16 +398,16 @@ ROM_START( bking2 )
 	ROM_LOAD( "10.11a",       0x4000, 0x1000, 0xeb96f948 )
 	ROM_LOAD( "09.13a",       0x5000, 0x1000, 0x595e3dd4 )
 
-	ROM_REGION( 0x0800, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "17",           0x0000, 0x0800, 0xe5663f0b )	/* crow graphics */
 
-	ROM_REGION( 0x0800, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "18",           0x0000, 0x0800, 0xfc9cec31 )	/* ball 1 graphics. Only the first 128 bytes used */
 
-	ROM_REGION( 0x0800, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0800, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "19",           0x0000, 0x0800, 0xfc9cec31 )  /* ball 2 graphics. Only the first 128 bytes used */
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "82s141.2d",    0x0000, 0x0200, 0x61b7a9ff )	/* palette */
 	/* Collision detection prom 32x1 (not currently used) */
 	/* HIT0-1 go to A3-A4. Character image goes to A0-A2 */

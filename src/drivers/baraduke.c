@@ -40,7 +40,7 @@ static WRITE_HANDLER( inputport_select_w )
 		inputport_selected = data & 0x07;
 	else if ((data & 0xe0) == 0xc0)
 	{
-		coin_lockout_global_w(0,~data & 1);
+		coin_lockout_global_w(~data & 1);
 		coin_counter_w(0,data & 2);
 		coin_counter_w(1,data & 4);
 	}
@@ -90,8 +90,7 @@ WRITE_HANDLER( baraduke_sharedram_w )
 	sharedram[offset] = data;
 }
 
-static struct MemoryReadAddress baraduke_readmem[] =
-{
+static MEMORY_READ_START( baraduke_readmem )
 	{ 0x0000, 0x17ff, MRA_RAM },				/* RAM */
 	{ 0x1800, 0x1fff, MRA_RAM },				/* Sprite RAM */
 	{ 0x2000, 0x3fff, baraduke_videoram_r },	/* Video RAM */
@@ -99,11 +98,9 @@ static struct MemoryReadAddress baraduke_readmem[] =
 	{ 0x4000, 0x43ff, baraduke_sharedram_r },	/* shared RAM with the MCU */
 	{ 0x4800, 0x4fff, MRA_RAM },				/* video RAM (text layer) */
 	{ 0x6000, 0xffff, MRA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress baraduke_writemem[] =
-{
+static MEMORY_WRITE_START( baraduke_writemem )
 	{ 0x0000, 0x17ff, MWA_RAM },				/* RAM */
 	{ 0x1800, 0x1fff, MWA_RAM, &spriteram },	/* Sprite RAM */
 	{ 0x2000, 0x3fff, baraduke_videoram_w, &baraduke_videoram },/* Video RAM */
@@ -115,8 +112,7 @@ static struct MemoryWriteAddress baraduke_writemem[] =
 	{ 0xb000, 0xb002, baraduke_scroll0_w },		/* scroll (layer 0) */
 	{ 0xb004, 0xb006, baraduke_scroll1_w },		/* scroll (layer 1) */
 	{ 0x6000, 0xffff, MWA_ROM },				/* ROM */
-	{ -1 }
-};
+MEMORY_END
 
 READ_HANDLER( soundkludge_r )
 {
@@ -125,8 +121,7 @@ READ_HANDLER( soundkludge_r )
 	return ((counter++) >> 4) & 0xff;
 }
 
-static struct MemoryReadAddress mcu_readmem[] =
-{
+static MEMORY_READ_START( mcu_readmem )
 	{ 0x0000, 0x001f, hd63701_internal_registers_r },/* internal registers */
 	{ 0x0080, 0x00ff, MRA_RAM },					/* built in RAM */
 	{ 0x1000, 0x10ff, namcos1_wavedata_r },			/* PSG device, shared RAM */
@@ -136,11 +131,9 @@ static struct MemoryReadAddress mcu_readmem[] =
 	{ 0x8000, 0xbfff, MRA_ROM },					/* MCU external ROM */
 	{ 0xc000, 0xc800, MRA_RAM },					/* RAM */
 	{ 0xf000, 0xffff, MRA_ROM },					/* MCU internal ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress mcu_writemem[] =
-{
+static MEMORY_WRITE_START( mcu_writemem )
 	{ 0x0000, 0x001f, hd63701_internal_registers_w },/* internal registers */
 	{ 0x0080, 0x00ff, MWA_RAM },				/* built in RAM */
 	{ 0x1000, 0x10ff, namcos1_wavedata_w, &namco_wavedata },/* PSG device, shared RAM */
@@ -151,21 +144,16 @@ static struct MemoryWriteAddress mcu_writemem[] =
 	{ 0x8000, 0xbfff, MWA_ROM },				/* MCU external ROM */
 	{ 0xc000, 0xc800, MWA_RAM },				/* RAM */
 	{ 0xf000, 0xffff, MWA_ROM },				/* MCU internal ROM */
-	{ -1 }
-};
+MEMORY_END
 
-static struct IOReadPort mcu_readport[] =
-{
+static PORT_READ_START( mcu_readport )
 	{ HD63701_PORT1, HD63701_PORT1, inputport_r },			/* input ports read */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
-static struct IOWritePort mcu_writeport[] =
-{
+static PORT_WRITE_START( mcu_writeport )
 	{ HD63701_PORT1, HD63701_PORT1, inputport_select_w },	/* input port select */
 	{ HD63701_PORT2, HD63701_PORT2, baraduke_lamps_w },		/* lamps */
-	{ -1 }	/* end of table */
-};
+PORT_END
 
 INPUT_PORTS_START( baraduke )
 	PORT_START	/* DSW A */
@@ -527,58 +515,58 @@ static const struct MachineDriver machine_driver_metrocrs =
 };
 
 ROM_START( baraduke )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 6809 code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 6809 code */
 	ROM_LOAD( "prg1.9c",	0x6000, 0x02000, 0xea2ea790 )
 	ROM_LOAD( "prg2.9a",	0x8000, 0x04000, 0x9a0a9a87 )
 	ROM_LOAD( "prg3.9b",	0xc000, 0x04000, 0x383e5458 )
 
-	ROM_REGION(  0x10000 , REGION_CPU2 ) /* MCU code */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 ) /* MCU code */
 	ROM_LOAD( "prg4.3b",	0x8000,  0x4000, 0xabda0fe7 )	/* subprogram for the MCU */
 	ROM_LOAD( "pl1-mcu.bin",0xf000,	 0x1000, 0x6ef08fb3 )	/* The MCU internal code is missing */
 															/* Using Pacland code (probably similar) */
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ch1.3j",		0x00000, 0x2000, 0x706b7fee )	/* characters */
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ch2.4p",		0x00000, 0x4000, 0xb0bb0710 )	/* tiles */
 	ROM_LOAD( "ch3.4n",		0x04000, 0x4000, 0x0d7ebec9 )
 	ROM_LOAD( "ch4.4m",		0x08000, 0x4000, 0xe5da0896 )
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "obj1.8k",	0x00000, 0x4000, 0x87a29acc )	/* sprites */
 	ROM_LOAD( "obj2.8l",	0x04000, 0x4000, 0x72b6d20c )
 	ROM_LOAD( "obj3.8m",	0x08000, 0x4000, 0x3076af9c )
 	ROM_LOAD( "obj4.8n",	0x0c000, 0x4000, 0x8b4c09a3 )
 
-	ROM_REGION( 0x1000, REGION_PROMS )
+	ROM_REGION( 0x1000, REGION_PROMS, 0 )
 	ROM_LOAD( "prmcolbg.1n",0x0000, 0x0800, 0x0d78ebc6 )	/* Blue + Green palette */
 	ROM_LOAD( "prmcolr.2m",	0x0800, 0x0800, 0x03f7241f )	/* Red palette */
 ROM_END
 
 ROM_START( metrocrs )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 6809 code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 6809 code */
 	ROM_LOAD( "mc1-3.9c",	0x6000, 0x02000, 0x3390b33c )
 	ROM_LOAD( "mc1-1.9a",	0x8000, 0x04000, 0x10b0977e )
 	ROM_LOAD( "mc1-2.9b",	0xc000, 0x04000, 0x5c846f35 )
 
-	ROM_REGION(  0x10000 , REGION_CPU2 ) /* MCU code */
+	ROM_REGION(  0x10000 , REGION_CPU2, 0 ) /* MCU code */
 	ROM_LOAD( "mc1-4.3b",	0x8000, 0x02000, 0x9c88f898 )	/* subprogram for the MCU */
 	ROM_LOAD( "pl1-mcu.bin",0xf000,	 0x1000, 0x6ef08fb3 )	/* The MCU internal code is missing */
 															/* Using Pacland code (probably similar) */
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc1-5.3j",	0x00000, 0x2000, 0x9b5ea33a )	/* characters */
 
-	ROM_REGION( 0x0c000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0c000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc1-7.4p",	0x00000, 0x4000, 0xc9dfa003 )	/* tiles */
 	ROM_LOAD( "mc1-6.4n",	0x04000, 0x4000, 0x9686dc3c )
 	/* empty space to decode the roms as 3bpp */
 
-	ROM_REGION( 0x10000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "mc1-8.8k",	0x00000, 0x4000, 0x265b31fa )	/* sprites */
 	ROM_LOAD( "mc1-9.8l",	0x04000, 0x4000, 0x541ec029 )
 	/* 8000-ffff empty */
 
-	ROM_REGION( 0x1000, REGION_PROMS )
+	ROM_REGION( 0x1000, REGION_PROMS, 0 )
 	ROM_LOAD( "mc1-1.1n",	0x0000, 0x0800, 0x32a78a8b )	/* Blue + Green palette */
 	ROM_LOAD( "mc1-2.2m",	0x0800, 0x0800, 0x6f4dca7b )	/* Red palette */
 ROM_END

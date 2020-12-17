@@ -99,28 +99,23 @@ extern void geebee_sh_update(void);
  *
  *******************************************************/
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },	/* GeeBee uses only the first 4K */
 	{ 0x2000, 0x23ff, MRA_RAM },
 	{ 0x3000, 0x37ff, MRA_ROM },	/* GeeBee uses only the first 1K */
 	{ 0x4000, 0x40ff, MRA_RAM },
 	{ 0x5000, 0x5fff, geebee_in_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_navalone[] =
-{
+static MEMORY_READ_START( readmem_navalone )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x2000, 0x23ff, MRA_RAM },
 	{ 0x3000, 0x37ff, MRA_ROM },
 	{ 0x4000, 0x40ff, MRA_RAM },
 	{ 0x5000, 0x5fff, navalone_in_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x2000, 0x23ff, videoram_w, &videoram, &videoram_size },
 	{ 0x2400, 0x27ff, videoram_w }, /* mirror used in kaitei */
@@ -128,27 +123,20 @@ static struct MemoryWriteAddress writemem[] =
     { 0x4000, 0x40ff, MWA_RAM },
 	{ 0x6000, 0x6fff, geebee_out6_w },
 	{ 0x7000, 0x7fff, geebee_out7_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort readport[] =
-{
+static PORT_READ_START( readport )
 	{ 0x50, 0x5f, geebee_in_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOReadPort readport_navalone[] =
-{
+static PORT_READ_START( readport_navalone )
 	{ 0x50, 0x5f, navalone_in_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort writeport[] =
-{
+static PORT_WRITE_START( writeport )
 	{ 0x60, 0x6f, geebee_out6_w },
 	{ 0x70, 0x7f, geebee_out7_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 INPUT_PORTS_START( geebee )
 	PORT_START		/* IN0 SW0 */
@@ -601,26 +589,26 @@ static const struct MachineDriver machine_driver_sos =
 
 
 ROM_START( geebee )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "geebee.1k",      0x0000, 0x1000, 0x8a5577e0 )
 	ROM_LOAD( "geebee.3a",      0x3000, 0x0400, 0xf257b21b )
 ROM_END
 
 ROM_START( geebeeg )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "geebee.1k",      0x0000, 0x1000, 0x8a5577e0 )
 	ROM_LOAD( "geebeeg.3a",     0x3000, 0x0400, 0xa45932ba )
 ROM_END
 
 ROM_START( navalone )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "navalone.p1",    0x0000, 0x0800, 0x5a32016b )
 	ROM_LOAD( "navalone.p2",    0x0800, 0x0800, 0xb1c86fe3 )
 	ROM_LOAD( "navalone.chr",   0x3000, 0x0800, 0xb26c6170 )
 ROM_END
 
 ROM_START( kaitei )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "kaitei_7.1k",    0x0000, 0x0800, 0x32f70d48 )
 	ROM_RELOAD( 				0x0800, 0x0800 )
     ROM_LOAD( "kaitei_1.1m",    0x1000, 0x0400, 0x9a7ab3b9 )
@@ -632,14 +620,14 @@ ROM_START( kaitei )
 ROM_END
 
 ROM_START( kaitein )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "kaitein.p1",     0x0000, 0x0800, 0xd88e10ae )
 	ROM_LOAD( "kaitein.p2",     0x0800, 0x0800, 0xaa9b5763 )
 	ROM_LOAD( "kaitein.chr",    0x3000, 0x0800, 0x3125af4d )
 ROM_END
 
 ROM_START( sos )
-	ROM_REGION( 0x10000, REGION_CPU1 )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )
 	ROM_LOAD( "sos.p1",         0x0000, 0x0800, 0xf70bdafb )
 	ROM_LOAD( "sos.p2",         0x0800, 0x0800, 0x58e9c480 )
 	ROM_LOAD( "sos.chr",        0x3000, 0x0800, 0x66f983e4 )

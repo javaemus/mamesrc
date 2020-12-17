@@ -29,7 +29,7 @@ void mikie_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
 
-READ_HANDLER( mikie_sh_timer_r )
+static READ_HANDLER( mikie_sh_timer_r )
 {
 	int clock;
 
@@ -40,7 +40,7 @@ READ_HANDLER( mikie_sh_timer_r )
 	return clock;
 }
 
-WRITE_HANDLER( mikie_sh_irqtrigger_w )
+static WRITE_HANDLER( mikie_sh_irqtrigger_w )
 {
 	static int last;
 
@@ -54,10 +54,13 @@ WRITE_HANDLER( mikie_sh_irqtrigger_w )
 	last = data;
 }
 
-
-
-static struct MemoryReadAddress readmem[] =
+static WRITE_HANDLER( mikie_coin_counter_w )
 {
+	coin_counter_w(offset,data);
+}
+
+
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x00ff, MRA_RAM },	/* ???? */
 	{ 0x2400, 0x2400, input_port_0_r },	/* coins + selftest */
 	{ 0x2401, 0x2401, input_port_1_r },	/* player 1 controls */
@@ -70,12 +73,10 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x3800, 0x3fff, MRA_RAM },	/* video RAM */
 	{ 0x4000, 0x5fff, MRA_ROM },    /* Machine checks for extra rom */
 	{ 0x6000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
-	{ 0x2000, 0x2001, coin_counter_w },
+static MEMORY_WRITE_START( writemem )
+	{ 0x2000, 0x2001, mikie_coin_counter_w },
 	{ 0x2002, 0x2002, mikie_sh_irqtrigger_w },
 	{ 0x2006, 0x2006, mikie_flipscreen_w },
 	{ 0x2007, 0x2007, interrupt_enable_w },
@@ -87,20 +88,16 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3800, 0x3bff, colorram_w, &colorram },
 	{ 0x3c00, 0x3fff, videoram_w, &videoram, &videoram_size },
 	{ 0x6000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x4000, 0x43ff, MRA_RAM },
 	{ 0x8003, 0x8003, soundlatch_r },
 	{ 0x8005, 0x8005, mikie_sh_timer_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x43ff, MWA_RAM },
 	{ 0x8000, 0x8000, MWA_NOP },	/* sound command latch */
@@ -109,8 +106,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ 0x8004, 0x8004, SN76496_1_w },	/* trigger read of latch */
 	{ 0x8079, 0x8079, MWA_NOP },	/* ??? */
 //	{ 0xa003, 0xa003, MWA_RAM },
-	{ -1 }
-};
+MEMORY_END
 
 
 
@@ -313,24 +309,24 @@ static const struct MachineDriver machine_driver_mikie =
 
 
 ROM_START( mikie )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "11c_n14.bin",  0x6000, 0x2000, 0xf698e6dd )
 	ROM_LOAD( "12a_o13.bin",  0x8000, 0x4000, 0x826e7035 )
 	ROM_LOAD( "12d_o17.bin",  0xc000, 0x4000, 0x161c25c8 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "06e_n10.bin",  0x0000, 0x2000, 0x2cf9d670 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "o11",          0x00000, 0x4000, 0x3c82aaf3 )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "001",          0x00000, 0x4000, 0xa2ba0df5 )
 	ROM_LOAD( "003",          0x04000, 0x4000, 0x9775ab32 )
 	ROM_LOAD( "005",          0x08000, 0x4000, 0xba44aeef )
 	ROM_LOAD( "007",          0x0c000, 0x4000, 0x31afc153 )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "01i_d19.bin",  0x0000, 0x0100, 0x8b83e7cf )	/* red component */
 	ROM_LOAD( "03i_d21.bin",  0x0100, 0x0100, 0x3556304a )	/* green component */
 	ROM_LOAD( "02i_d20.bin",  0x0200, 0x0100, 0x676a0669 )	/* blue component */
@@ -339,24 +335,24 @@ ROM_START( mikie )
 ROM_END
 
 ROM_START( mikiej )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "11c_n14.bin",  0x6000, 0x2000, 0xf698e6dd )
 	ROM_LOAD( "12a_o13.bin",  0x8000, 0x4000, 0x826e7035 )
 	ROM_LOAD( "12d_o17.bin",  0xc000, 0x4000, 0x161c25c8 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "06e_n10.bin",  0x0000, 0x2000, 0x2cf9d670 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "08i_q11.bin",  0x00000, 0x4000, 0xc48b269b )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "f01_q01.bin",  0x00000, 0x4000, 0x31551987 )
 	ROM_LOAD( "f03_q03.bin",  0x04000, 0x4000, 0x34414df0 )
 	ROM_LOAD( "h01_q05.bin",  0x08000, 0x4000, 0xf9e1ebb1 )
 	ROM_LOAD( "h03_q07.bin",  0x0c000, 0x4000, 0x15dc093b )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "01i_d19.bin",  0x0000, 0x0100, 0x8b83e7cf )	/* red component */
 	ROM_LOAD( "03i_d21.bin",  0x0100, 0x0100, 0x3556304a )	/* green component */
 	ROM_LOAD( "02i_d20.bin",  0x0200, 0x0100, 0x676a0669 )	/* blue component */
@@ -365,24 +361,24 @@ ROM_START( mikiej )
 ROM_END
 
 ROM_START( mikiehs )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "11c_l14.bin",  0x6000, 0x2000, 0x633f3a6d )
 	ROM_LOAD( "12a_m13.bin",  0x8000, 0x4000, 0x9c42d715 )
 	ROM_LOAD( "12d_m17.bin",  0xc000, 0x4000, 0xcb5c03c9 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )
 	ROM_LOAD( "06e_h10.bin",  0x0000, 0x2000, 0x4ed887d2 )
 
-	ROM_REGION( 0x04000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "08i_l11.bin",  0x00000, 0x4000, 0x5ba9d86b )
 
-	ROM_REGION( 0x10000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "f01_i01.bin",  0x00000, 0x4000, 0x0c0cab5f )
 	ROM_LOAD( "f03_i03.bin",  0x04000, 0x4000, 0x694da32f )
 	ROM_LOAD( "h01_i05.bin",  0x08000, 0x4000, 0x00e357e1 )
 	ROM_LOAD( "h03_i07.bin",  0x0c000, 0x4000, 0xceeba6ac )
 
-	ROM_REGION( 0x0500, REGION_PROMS )
+	ROM_REGION( 0x0500, REGION_PROMS, 0 )
 	ROM_LOAD( "01i_d19.bin",  0x0000, 0x0100, 0x8b83e7cf )	/* red component */
 	ROM_LOAD( "03i_d21.bin",  0x0100, 0x0100, 0x3556304a )	/* green component */
 	ROM_LOAD( "02i_d20.bin",  0x0200, 0x0100, 0x676a0669 )	/* blue component */

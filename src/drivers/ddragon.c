@@ -67,7 +67,7 @@ static WRITE_HANDLER( ddragon_bankswitch_w )
 	ddragon_scrolly_hi = ( ( data & 0x02 ) << 7 );
 	ddragon_scrollx_hi = ( ( data & 0x01 ) << 8 );
 
-	flip_screen_w(0,~data & 0x04);
+	flip_screen_set(~data & 0x04);
 
 	/* bit 3 unknown */
 
@@ -166,8 +166,7 @@ static READ_HANDLER( dd_adpcm_status_r )
 
 
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x1fff, MRA_RAM },
 	{ 0x2000, 0x2fff, ddragon_spriteram_r },
 	{ 0x3000, 0x37ff, MRA_RAM },
@@ -178,11 +177,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x3804, 0x3804, input_port_3_r },
 	{ 0x4000, 0x7fff, MRA_BANK1 },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x0fff, MWA_RAM },
 	{ 0x1000, 0x11ff, paletteram_xxxxBBBBGGGGRRRR_split1_w, &paletteram },
 	{ 0x1200, 0x13ff, paletteram_xxxxBBBBGGGGRRRR_split2_w, &paletteram_2 },
@@ -197,11 +194,9 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x380e, 0x380e, cpu_sound_command_w },
 	{ 0x380f, 0x380f, ddragon_forcedIRQ_w },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress dd2_writemem[] =
-{
+static MEMORY_WRITE_START( dd2_writemem )
 	{ 0x0000, 0x17ff, MWA_RAM },
 	{ 0x1800, 0x1fff, ddragon_fgvideoram_w, &ddragon_fgvideoram },
 	{ 0x2000, 0x2fff, ddragon_spriteram_w, &ddragon_spriteram },
@@ -215,80 +210,63 @@ static struct MemoryWriteAddress dd2_writemem[] =
 	{ 0x3c00, 0x3dff, paletteram_xxxxBBBBGGGGRRRR_split1_w, &paletteram },
 	{ 0x3e00, 0x3fff, paletteram_xxxxBBBBGGGGRRRR_split2_w, &paletteram_2 },
 	{ 0x4000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sub_readmem[] =
-{
+static MEMORY_READ_START( sub_readmem )
 	{ 0x0000, 0x0fff, MRA_RAM },
 	{ 0x8000, 0x8fff, ddragon_spriteram_r },
 	{ 0xc000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sub_writemem[] =
-{
+static MEMORY_WRITE_START( sub_writemem )
 	{ 0x0000, 0x0fff, MWA_RAM },
 	{ 0x8000, 0x8fff, ddragon_spriteram_w },
 	{ 0xc000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x0fff, MRA_RAM },
 	{ 0x1000, 0x1000, soundlatch_r },
 	{ 0x1800, 0x1800, dd_adpcm_status_r },
 	{ 0x2800, 0x2801, YM2151_status_port_0_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x0fff, MWA_RAM },
 	{ 0x2800, 0x2800, YM2151_register_port_0_w },
 	{ 0x2801, 0x2801, YM2151_data_port_0_w },
 	{ 0x3800, 0x3807, dd_adpcm_w },
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress dd2_sub_readmem[] =
-{
+static MEMORY_READ_START( dd2_sub_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, ddragon_spriteram_r },
 	{ 0xd000, 0xffff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress dd2_sub_writemem[] =
-{
+static MEMORY_WRITE_START( dd2_sub_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, ddragon_spriteram_w },
 	{ 0xd000, 0xffff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress dd2_sound_readmem[] =
-{
+static MEMORY_READ_START( dd2_sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0x8801, 0x8801, YM2151_status_port_0_r },
 	{ 0x9800, 0x9800, OKIM6295_status_0_r },
 	{ 0xA000, 0xA000, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress dd2_sound_writemem[] =
-{
+static MEMORY_WRITE_START( dd2_sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0x8800, 0x8800, YM2151_register_port_0_w },
 	{ 0x8801, 0x8801, YM2151_data_port_0_w },
 	{ 0x9800, 0x9800, OKIM6295_data_0_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 
@@ -648,22 +626,22 @@ static const struct MachineDriver machine_driver_ddragon2 =
 ***************************************************************************/
 
 ROM_START( ddragon )
-	ROM_REGION( 0x28000, REGION_CPU1 )	/* 64k for code + bankswitched memory */
+	ROM_REGION( 0x28000, REGION_CPU1, 0 )	/* 64k for code + bankswitched memory */
 	ROM_LOAD( "21j-1-5",      0x08000, 0x08000, 0x42045dfd )
 	ROM_LOAD( "21j-2-3",      0x10000, 0x08000, 0x5779705e ) /* banked at 0x4000-0x8000 */
 	ROM_LOAD( "21j-3",        0x18000, 0x08000, 0x3bdea613 ) /* banked at 0x4000-0x8000 */
 	ROM_LOAD( "21j-4-1",      0x20000, 0x08000, 0x728f87b9 ) /* banked at 0x4000-0x8000 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sprite cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sprite cpu */
 	ROM_LOAD( "63701.bin",    0xc000, 0x4000, 0xf5232d03 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* audio cpu */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* audio cpu */
 	ROM_LOAD( "21j-0-1",      0x08000, 0x08000, 0x9efa95bb )
 
-	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-5",        0x00000, 0x08000, 0x7a8b8db4 )	/* chars */
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-a",        0x00000, 0x10000, 0x574face3 )	/* sprites */
 	ROM_LOAD( "21j-b",        0x10000, 0x10000, 0x40507a76 )
 	ROM_LOAD( "21j-c",        0x20000, 0x10000, 0xbb0bc76f )
@@ -673,38 +651,38 @@ ROM_START( ddragon )
 	ROM_LOAD( "21j-g",        0x60000, 0x10000, 0x3220a0b6 )
 	ROM_LOAD( "21j-h",        0x70000, 0x10000, 0x65c7517d )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-8",        0x00000, 0x10000, 0x7c435887 )	/* tiles */
 	ROM_LOAD( "21j-9",        0x10000, 0x10000, 0xc6640aed )
 	ROM_LOAD( "21j-i",        0x20000, 0x10000, 0x5effb0a0 )
 	ROM_LOAD( "21j-j",        0x30000, 0x10000, 0x5fb42e7c )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 ) /* adpcm samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 ) /* adpcm samples */
 	ROM_LOAD( "21j-6",        0x00000, 0x10000, 0x34755de3 )
 	ROM_LOAD( "21j-7",        0x10000, 0x10000, 0x904de6f8 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "21j-k-0",      0x0000, 0x0100, 0xfdb130a9 )	/* unknown */
 	ROM_LOAD( "21j-l-0",      0x0100, 0x0200, 0x46339529 )	/* unknown */
 ROM_END
 
 ROM_START( ddragonu )
-	ROM_REGION( 0x28000, REGION_CPU1 )	/* 64k for code + bankswitched memory */
+	ROM_REGION( 0x28000, REGION_CPU1, 0 )	/* 64k for code + bankswitched memory */
 	ROM_LOAD( "21a-1-5",      0x08000, 0x08000, 0xe24a6e11 )
 	ROM_LOAD( "21j-2-3",      0x10000, 0x08000, 0x5779705e ) /* banked at 0x4000-0x8000 */
 	ROM_LOAD( "21a-3",        0x18000, 0x08000, 0xdbf24897 ) /* banked at 0x4000-0x8000 */
 	ROM_LOAD( "21a-4",        0x20000, 0x08000, 0x6ea16072 ) /* banked at 0x4000-0x8000 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sprite cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sprite cpu */
 	ROM_LOAD( "63701.bin",    0xc000, 0x4000, 0xf5232d03 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* audio cpu */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* audio cpu */
 	ROM_LOAD( "21j-0-1",      0x08000, 0x08000, 0x9efa95bb )
 
-	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-5",        0x00000, 0x08000, 0x7a8b8db4 )	/* chars */
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-a",        0x00000, 0x10000, 0x574face3 )	/* sprites */
 	ROM_LOAD( "21j-b",        0x10000, 0x10000, 0x40507a76 )
 	ROM_LOAD( "21j-c",        0x20000, 0x10000, 0xbb0bc76f )
@@ -714,38 +692,38 @@ ROM_START( ddragonu )
 	ROM_LOAD( "21j-g",        0x60000, 0x10000, 0x3220a0b6 )
 	ROM_LOAD( "21j-h",        0x70000, 0x10000, 0x65c7517d )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-8",        0x00000, 0x10000, 0x7c435887 )	/* tiles */
 	ROM_LOAD( "21j-9",        0x10000, 0x10000, 0xc6640aed )
 	ROM_LOAD( "21j-i",        0x20000, 0x10000, 0x5effb0a0 )
 	ROM_LOAD( "21j-j",        0x30000, 0x10000, 0x5fb42e7c )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 ) /* adpcm samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 ) /* adpcm samples */
 	ROM_LOAD( "21j-6",        0x00000, 0x10000, 0x34755de3 )
 	ROM_LOAD( "21j-7",        0x10000, 0x10000, 0x904de6f8 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "21j-k-0",      0x0000, 0x0100, 0xfdb130a9 )	/* unknown */
 	ROM_LOAD( "21j-l-0",      0x0100, 0x0200, 0x46339529 )	/* unknown */
 ROM_END
 
 ROM_START( ddragonb )
-	ROM_REGION( 0x28000, REGION_CPU1 )	/* 64k for code + bankswitched memory */
+	ROM_REGION( 0x28000, REGION_CPU1, 0 )	/* 64k for code + bankswitched memory */
 	ROM_LOAD( "ic26",         0x08000, 0x08000, 0xae714964 )
 	ROM_LOAD( "21j-2-3",      0x10000, 0x08000, 0x5779705e ) /* banked at 0x4000-0x8000 */
 	ROM_LOAD( "21a-3",        0x18000, 0x08000, 0xdbf24897 ) /* banked at 0x4000-0x8000 */
 	ROM_LOAD( "ic23",         0x20000, 0x08000, 0x6c9f46fa ) /* banked at 0x4000-0x8000 */
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sprite cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sprite cpu */
 	ROM_LOAD( "ic38",         0x0c000, 0x04000, 0x6a6a0325 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* audio cpu */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* audio cpu */
 	ROM_LOAD( "21j-0-1",      0x08000, 0x08000, 0x9efa95bb )
 
-	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-5",        0x00000, 0x08000, 0x7a8b8db4 )	/* chars */
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x80000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-a",        0x00000, 0x10000, 0x574face3 )	/* sprites */
 	ROM_LOAD( "21j-b",        0x10000, 0x10000, 0x40507a76 )
 	ROM_LOAD( "21j-c",        0x20000, 0x10000, 0xbb0bc76f )
@@ -755,38 +733,38 @@ ROM_START( ddragonb )
 	ROM_LOAD( "21j-g",        0x60000, 0x10000, 0x3220a0b6 )
 	ROM_LOAD( "21j-h",        0x70000, 0x10000, 0x65c7517d )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "21j-8",        0x00000, 0x10000, 0x7c435887 )	/* tiles */
 	ROM_LOAD( "21j-9",        0x10000, 0x10000, 0xc6640aed )
 	ROM_LOAD( "21j-i",        0x20000, 0x10000, 0x5effb0a0 )
 	ROM_LOAD( "21j-j",        0x30000, 0x10000, 0x5fb42e7c )
 
-	ROM_REGION( 0x20000, REGION_SOUND1 ) /* adpcm samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 ) /* adpcm samples */
 	ROM_LOAD( "21j-6",        0x00000, 0x10000, 0x34755de3 )
 	ROM_LOAD( "21j-7",        0x10000, 0x10000, 0x904de6f8 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "21j-k-0",      0x0000, 0x0100, 0xfdb130a9 )	/* unknown */
 	ROM_LOAD( "21j-l-0",      0x0100, 0x0200, 0x46339529 )	/* unknown */
 ROM_END
 
 ROM_START( ddragon2 )
-	ROM_REGION( 0x28000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x28000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "26a9-04.bin",  0x08000, 0x8000, 0xf2cfc649 )
 	ROM_LOAD( "26aa-03.bin",  0x10000, 0x8000, 0x44dd5d4b )
 	ROM_LOAD( "26ab-0.bin",   0x18000, 0x8000, 0x49ddddcd )
 	ROM_LOAD( "26ac-02.bin",  0x20000, 0x8000, 0x097eaf26 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* sprite CPU 64kb (Upper 16kb = 0) */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* sprite CPU 64kb (Upper 16kb = 0) */
 	ROM_LOAD( "26ae-0.bin",   0x00000, 0x10000, 0xea437867 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* music CPU, 64kb */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* music CPU, 64kb */
 	ROM_LOAD( "26ad-0.bin",   0x00000, 0x8000, 0x75e36cd6 )
 
-	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "26a8-0.bin",   0x00000, 0x10000, 0x3ad1049c )	/* chars */
 
-	ROM_REGION( 0xc0000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0xc0000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "26j0-0.bin",   0x00000, 0x20000, 0xdb309c84 )	/* sprites */
 	ROM_LOAD( "26j1-0.bin",   0x20000, 0x20000, 0xc3081e0c )
 	ROM_LOAD( "26af-0.bin",   0x40000, 0x20000, 0x3a615aad )
@@ -794,15 +772,15 @@ ROM_START( ddragon2 )
 	ROM_LOAD( "26j3-0.bin",   0x80000, 0x20000, 0xdaf040d6 )
 	ROM_LOAD( "26a10-0.bin",  0xa0000, 0x20000, 0x6d16d889 )
 
-	ROM_REGION( 0x40000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "26j4-0.bin",   0x00000, 0x20000, 0xa8c93e76 )	/* tiles */
 	ROM_LOAD( "26j5-0.bin",   0x20000, 0x20000, 0xee555237 )
 
-	ROM_REGION( 0x40000, REGION_SOUND1 ) /* adpcm samples */
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 ) /* adpcm samples */
 	ROM_LOAD( "26j6-0.bin",   0x00000, 0x20000, 0xa84b2a29 )
 	ROM_LOAD( "26j7-0.bin",   0x20000, 0x20000, 0xbc6a48d5 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "prom.16",      0x0000, 0x0200, 0x46339529 )	/* unknown (same as ddragon) */
 ROM_END
 

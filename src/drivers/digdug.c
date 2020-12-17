@@ -145,31 +145,24 @@ extern unsigned char *pengo_soundregs;
 
 
 
-static struct MemoryReadAddress readmem_cpu1[] =
-{
+static MEMORY_READ_START( readmem_cpu1 )
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x7000, 0x700f, digdug_customio_data_r },
 	{ 0x7100, 0x7100, digdug_customio_r },
 	{ 0x8000, 0x9fff, digdug_sharedram_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_cpu2[] =
-{
+static MEMORY_READ_START( readmem_cpu2 )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x8000, 0x9fff, digdug_sharedram_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_cpu3[] =
-{
+static MEMORY_READ_START( readmem_cpu3 )
 	{ 0x0000, 0x0fff, MRA_ROM },
 	{ 0x8000, 0x9fff, digdug_sharedram_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_cpu1[] =
-{
+static MEMORY_WRITE_START( writemem_cpu1 )
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x6820, 0x6820, digdug_interrupt_enable_1_w },
 	{ 0x6821, 0x6821, digdug_interrupt_enable_2_w },
@@ -187,27 +180,22 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x9380, 0x93ff, MWA_RAM, &spriteram_2 },	          /* the pointers. The actual writes are */
 	{ 0x9b80, 0x9bff, MWA_RAM, &spriteram_3 },                /* handled by digdug_sharedram_w() */
 	{ 0xa000, 0xa00f, digdug_vh_latch_w, &digdug_vlatches },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_cpu2[] =
-{
+static MEMORY_WRITE_START( writemem_cpu2 )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x6821, 0x6821, digdug_interrupt_enable_2_w },
 	{ 0x6830, 0x6830, watchdog_reset_w },
 	{ 0x8000, 0x9fff, digdug_sharedram_w },
 	{ 0xa000, 0xa00f, digdug_vh_latch_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_cpu3[] =
-{
+static MEMORY_WRITE_START( writemem_cpu3 )
 	{ 0x0000, 0x0fff, MWA_ROM },
 	{ 0x6800, 0x681f, pengo_sound_w, &pengo_soundregs },
 	{ 0x6822, 0x6822, digdug_interrupt_enable_3_w },
 	{ 0x8000, 0x9fff, digdug_sharedram_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 /* input from the outside world */
@@ -407,156 +395,156 @@ static const struct MachineDriver machine_driver_digdug =
 ***************************************************************************/
 
 ROM_START( digdug )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code for the first CPU  */
 	ROM_LOAD( "136007.101",   0x0000, 0x1000, 0xb9198079 )
 	ROM_LOAD( "136007.102",   0x1000, 0x1000, 0xb2acbe49 )
 	ROM_LOAD( "136007.103",   0x2000, 0x1000, 0xd6407b49 )
 	ROM_LOAD( "dd1.4b",       0x3000, 0x1000, 0xf4cebc16 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "dd1.5b",       0x0000, 0x1000, 0x370ef9b4 )
 	ROM_LOAD( "dd1.6b",       0x1000, 0x1000, 0x361eeb71 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU  */
 	ROM_LOAD( "136007.107",   0x0000, 0x1000, 0xa41bce72 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "dd1.9",        0x0000, 0x0800, 0xf14a6fe1 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "136007.116",   0x0000, 0x1000, 0xe22957c8 )
 	ROM_LOAD( "dd1.14",       0x1000, 0x1000, 0x2829ec99 )
 	ROM_LOAD( "136007.118",   0x2000, 0x1000, 0x458499e9 )
 	ROM_LOAD( "136007.119",   0x3000, 0x1000, 0xc58252a0 )
 
-	ROM_REGION( 0x1000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "dd1.11",       0x0000, 0x1000, 0x7b383983 )
 
-	ROM_REGION( 0x1000, REGION_GFX4 ) /* 4k for the playfield graphics */
+	ROM_REGION( 0x1000, REGION_GFX4, 0 ) /* 4k for the playfield graphics */
 	ROM_LOAD( "dd1.10b",      0x0000, 0x1000, 0x2cf399c2 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "digdug.5n",    0x0000, 0x0020, 0x4cb9da99 )
 	ROM_LOAD( "digdug.1c",    0x0020, 0x0100, 0x00c7c419 )
 	ROM_LOAD( "digdug.2n",    0x0120, 0x0100, 0xe9b3e08e )
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "digdug.spr",   0x0000, 0x0100, 0x7a2815b4 )
 ROM_END
 
 ROM_START( digdugb )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 64k for code for the first CPU  */
 	ROM_LOAD( "dd1a.1",       0x0000, 0x1000, 0xa80ec984 )
 	ROM_LOAD( "dd1a.2",       0x1000, 0x1000, 0x559f00bd )
 	ROM_LOAD( "dd1a.3",       0x2000, 0x1000, 0x8cbc6fe1 )
 	ROM_LOAD( "dd1a.4",       0x3000, 0x1000, 0xd066f830 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the second CPU */
 	ROM_LOAD( "dd1a.5",       0x0000, 0x1000, 0x6687933b )
 	ROM_LOAD( "dd1a.6",       0x1000, 0x1000, 0x843d857f )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 64k for the third CPU  */
 	ROM_LOAD( "136007.107",   0x0000, 0x1000, 0xa41bce72 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "dd1.9",        0x0000, 0x0800, 0xf14a6fe1 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "136007.116",   0x0000, 0x1000, 0xe22957c8 )
 	ROM_LOAD( "dd1.14",       0x1000, 0x1000, 0x2829ec99 )
 	ROM_LOAD( "136007.118",   0x2000, 0x1000, 0x458499e9 )
 	ROM_LOAD( "136007.119",   0x3000, 0x1000, 0xc58252a0 )
 
-	ROM_REGION( 0x1000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "dd1.11",       0x0000, 0x1000, 0x7b383983 )
 
-	ROM_REGION( 0x1000, REGION_GFX4 ) /* 4k for the playfield graphics */
+	ROM_REGION( 0x1000, REGION_GFX4, 0 ) /* 4k for the playfield graphics */
 	ROM_LOAD( "dd1.10b",      0x0000, 0x1000, 0x2cf399c2 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "digdug.5n",    0x0000, 0x0020, 0x4cb9da99 )
 	ROM_LOAD( "digdug.1c",    0x0020, 0x0100, 0x00c7c419 )
 	ROM_LOAD( "digdug.2n",    0x0120, 0x0100, 0xe9b3e08e )
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "digdug.spr",   0x0000, 0x0100, 0x7a2815b4 )
 ROM_END
 
 ROM_START( digdugat )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code for the first CPU  */
 	ROM_LOAD( "136007.101",   0x0000, 0x1000, 0xb9198079 )
 	ROM_LOAD( "136007.102",   0x1000, 0x1000, 0xb2acbe49 )
 	ROM_LOAD( "136007.103",   0x2000, 0x1000, 0xd6407b49 )
 	ROM_LOAD( "136007.104",   0x3000, 0x1000, 0xb3ad42c3 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "136007.105",   0x0000, 0x1000, 0x0a2aef4a )
 	ROM_LOAD( "136007.106",   0x1000, 0x1000, 0xa2876d6e )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU  */
 	ROM_LOAD( "136007.107",   0x0000, 0x1000, 0xa41bce72 )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "136007.108",   0x0000, 0x0800, 0x3d24a3af )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "136007.116",   0x0000, 0x1000, 0xe22957c8 )
 	ROM_LOAD( "136007.117",   0x1000, 0x1000, 0xa3bbfd85 )
 	ROM_LOAD( "136007.118",   0x2000, 0x1000, 0x458499e9 )
 	ROM_LOAD( "136007.119",   0x3000, 0x1000, 0xc58252a0 )
 
-	ROM_REGION( 0x1000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "136007.115",   0x0000, 0x1000, 0x754539be )
 
-	ROM_REGION( 0x1000, REGION_GFX4 )	/* 4k for the playfield graphics */
+	ROM_REGION( 0x1000, REGION_GFX4, 0 )	/* 4k for the playfield graphics */
 	ROM_LOAD( "136007.114",   0x0000, 0x1000, 0xd6822397 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "digdug.5n",    0x0000, 0x0020, 0x4cb9da99 )
 	ROM_LOAD( "digdug.1c",    0x0020, 0x0100, 0x00c7c419 )
 	ROM_LOAD( "digdug.2n",    0x0120, 0x0100, 0xe9b3e08e )
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "digdug.spr",   0x0000, 0x0100, 0x7a2815b4 )
 ROM_END
 
 ROM_START( dzigzag )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code for the first CPU  */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code for the first CPU  */
 	ROM_LOAD( "136007.101",   0x0000, 0x1000, 0xb9198079 )
 	ROM_LOAD( "136007.102",   0x1000, 0x1000, 0xb2acbe49 )
 	ROM_LOAD( "136007.103",   0x2000, 0x1000, 0xd6407b49 )
 	ROM_LOAD( "zigzag4",      0x3000, 0x1000, 0xda20d2f6 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the second CPU */
 	ROM_LOAD( "zigzag5",      0x0000, 0x2000, 0xf803c748 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU  */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the third CPU  */
 	ROM_LOAD( "136007.107",   0x0000, 0x1000, 0xa41bce72 )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
 	ROM_LOAD( "zigzag7",      0x0000, 0x1000, 0x24c3510c )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "zigzag8",      0x0000, 0x0800, 0x86120541 )
 
-	ROM_REGION( 0x4000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "136007.116",   0x0000, 0x1000, 0xe22957c8 )
 	ROM_LOAD( "zigzag12",     0x1000, 0x1000, 0x386a0956 )
 	ROM_LOAD( "zigzag13",     0x2000, 0x1000, 0x69f6e395 )
 	ROM_LOAD( "136007.119",   0x3000, 0x1000, 0xc58252a0 )
 
-	ROM_REGION( 0x1000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "dd1.11",       0x0000, 0x1000, 0x7b383983 )
 
-	ROM_REGION( 0x1000, REGION_GFX4 ) /* 4k for the playfield graphics */
+	ROM_REGION( 0x1000, REGION_GFX4, 0 ) /* 4k for the playfield graphics */
 	ROM_LOAD( "dd1.10b",      0x0000, 0x1000, 0x2cf399c2 )
 
-	ROM_REGION( 0x0220, REGION_PROMS )
+	ROM_REGION( 0x0220, REGION_PROMS, 0 )
 	ROM_LOAD( "digdug.5n",    0x0000, 0x0020, 0x4cb9da99 )
 	ROM_LOAD( "digdug.1c",    0x0020, 0x0100, 0x00c7c419 )
 	ROM_LOAD( "digdug.2n",    0x0120, 0x0100, 0xe9b3e08e )
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
+	ROM_REGION( 0x0100, REGION_SOUND1, 0 )	/* sound prom */
 	ROM_LOAD( "digdug.spr",   0x0000, 0x0100, 0x7a2815b4 )
 ROM_END
 

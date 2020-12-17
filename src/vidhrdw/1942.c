@@ -7,15 +7,13 @@
 ***************************************************************************/
 
 #include "driver.h"
-
+#include "generic.h"
 
 
 unsigned char *c1942_fgvideoram;
 unsigned char *c1942_bgvideoram;
-unsigned char *c1942_spriteram;
-size_t c1942_spriteram_size;
 
-static data_t c1942_palette_bank;
+static int c1942_palette_bank;
 static struct tilemap *fg_tilemap, *bg_tilemap;
 
 
@@ -133,7 +131,7 @@ int c1942_vh_start(void)
 	if (!fg_tilemap || !bg_tilemap)
 		return 1;
 
-	fg_tilemap->transparent_pen = 0;
+	tilemap_set_transparent_pen(fg_tilemap,0);
 
 	return 0;
 }
@@ -161,9 +159,10 @@ WRITE_HANDLER( c1942_bgvideoram_w )
 WRITE_HANDLER( c1942_palette_bank_w )
 {
 	if (c1942_palette_bank != data)
+	{
+		c1942_palette_bank = data;
 		tilemap_mark_all_tiles_dirty(bg_tilemap);
-
-	c1942_palette_bank = data;
+	}
 }
 
 WRITE_HANDLER( c1942_scroll_w )
@@ -181,11 +180,11 @@ WRITE_HANDLER( c1942_c804_w )
        bit 4: cpu B reset
 	   bit 0: coin counter */
 
-	coin_counter_w(offset, data & 0x01);
+	coin_counter_w(0,data & 0x01);
 
 	cpu_set_reset_line(1,(data & 0x10) ? ASSERT_LINE : CLEAR_LINE);
 
-	flip_screen_w(offset, data & 0x80);
+	flip_screen_set(data & 0x80);
 }
 
 
@@ -200,16 +199,16 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 	int offs;
 
 
-	for (offs = c1942_spriteram_size - 4;offs >= 0;offs -= 4)
+	for (offs = spriteram_size - 4;offs >= 0;offs -= 4)
 	{
 		int i,code,col,sx,sy,dir;
 
 
-		code = (c1942_spriteram[offs] & 0x7f) + 4*(c1942_spriteram[offs + 1] & 0x20)
-				+ 2*(c1942_spriteram[offs] & 0x80);
-		col = c1942_spriteram[offs + 1] & 0x0f;
-		sx = c1942_spriteram[offs + 3] - 0x10 * (c1942_spriteram[offs + 1] & 0x10);
-		sy = c1942_spriteram[offs + 2];
+		code = (spriteram[offs] & 0x7f) + 4*(spriteram[offs + 1] & 0x20)
+				+ 2*(spriteram[offs] & 0x80);
+		col = spriteram[offs + 1] & 0x0f;
+		sx = spriteram[offs + 3] - 0x10 * (spriteram[offs + 1] & 0x10);
+		sy = spriteram[offs + 2];
 		dir = 1;
 		if (flip_screen)
 		{
@@ -219,7 +218,7 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 		}
 
 		/* handle double / quadruple height */
-		i = (c1942_spriteram[offs + 1] & 0xc0) >> 6;
+		i = (spriteram[offs + 1] & 0xc0) >> 6;
 		if (i == 2) i = 3;
 
 		do
@@ -240,9 +239,8 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 void c1942_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	tilemap_update(ALL_TILEMAPS);
-	tilemap_render(ALL_TILEMAPS);
 
-	tilemap_draw(bitmap,bg_tilemap,0);
+	tilemap_draw(bitmap,bg_tilemap,0,0);
 	draw_sprites(bitmap);
-	tilemap_draw(bitmap,fg_tilemap,0);
+	tilemap_draw(bitmap,fg_tilemap,0,0);
 }

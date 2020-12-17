@@ -138,8 +138,7 @@ INPUT_PORTS_END
 
 
 /* 17f0 on CPU1 maps to 07f0 on CPU2 */
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x03ff, MRA_RAM }, /* work ram */
 	{ 0x0400, 0x0bff, MRA_RAM }, /* videoram */
 	{ 0x0c00, 0x0c7f, MRA_RAM }, /* spriteram */
@@ -149,11 +148,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x1806, 0x1806, input_port_2_r },
 	{ 0x1807, 0x1807, input_port_3_r },
 	{ 0x8000, 0xffff, MRA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x0400, 0x0bff, lasso_videoram_w, &videoram },
 	{ 0x0c00, 0x0c7f, MWA_RAM, &spriteram },
@@ -163,46 +160,37 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x1802, 0x1802, lasso_cocktail_w },
 	{ 0x1806, 0x1806, MWA_NOP }, /* spurious write */
 	{ 0x8000, 0xffff, MWA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_coprocessor[] =
-{
+static MEMORY_READ_START( readmem_coprocessor )
 	{ 0x0000, 0x07ff, MRA_RAM },	/* shared RAM */
 	{ 0x2000, 0x3fff, MRA_RAM },
 	{ 0x8000, 0x8fff, MRA_ROM },
 	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_coprocessor[] =
-{
+static MEMORY_WRITE_START( writemem_coprocessor )
 	{ 0x0000, 0x07ff, MWA_RAM, &shareram },	/* code is executed from here */
 	{ 0x2000, 0x3fff, MWA_RAM, &lasso_vram },
 	{ 0x8000, 0x8fff, MWA_ROM },
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem_sound[] =
-{
+static MEMORY_READ_START( readmem_sound )
 	{ 0x0000, 0x01ff, MRA_RAM },
 	{ 0x5000, 0x7fff, MRA_ROM },
 	{ 0xb004, 0xb004, sound_status_r },
 	{ 0xb005, 0xb005, soundlatch_r },
 	{ 0xf000, 0xffff, MRA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
-static struct MemoryWriteAddress writemem_sound[] =
-{
+static MEMORY_WRITE_START( writemem_sound )
 	{ 0x0000, 0x01ff, MWA_RAM },
 	{ 0x5000, 0x7fff, MWA_ROM },
 	{ 0xb000, 0xb000, sound_data_w },
 	{ 0xb001, 0xb001, sound_select_w },
 	{ 0xf000, 0xffff, MWA_ROM },
-	{ -1 }
-};
+MEMORY_END
 
 
 
@@ -319,27 +307,27 @@ WM2     IC66       "      "				graphics
 WM1     IC65       "      "				graphics
 */
 ROM_START( lasso )
-	ROM_REGION( 0x10000, REGION_CPU1 ) /* 6502 code (main cpu) */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 ) /* 6502 code (main cpu) */
 	ROM_LOAD( "wm3",       0x8000, 0x2000, 0xf93addd6 )
 	ROM_RELOAD(            0xc000, 0x2000)
 	ROM_LOAD( "wm4",       0xe000, 0x2000, 0x77719859 )
 	ROM_RELOAD(            0xa000, 0x2000)
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* 6502 code (lasso image blitter) */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 6502 code (lasso image blitter) */
 	ROM_LOAD( "wm5",       0xf000, 0x1000, 0x7dc3ff07 )
 	ROM_RELOAD(            0x8000, 0x1000)
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* 6502 code (sound) */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* 6502 code (sound) */
 	ROM_LOAD( "wmc",       0x5000, 0x1000, 0x8b4eb242 )
 	ROM_LOAD( "wmb",       0x6000, 0x1000, 0x4658bcb9 )
 	ROM_LOAD( "wma",       0x7000, 0x1000, 0x2e7de3e9 )
 	ROM_RELOAD(            0xf000, 0x1000 )
 
-	ROM_REGION( 0x4000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "wm1",       0x0000, 0x2000, 0x7db77256 )
 	ROM_LOAD( "wm2",       0x2000, 0x2000, 0x9e7d0b6f )
 
-	ROM_REGION( 0x40, REGION_PROMS )
+	ROM_REGION( 0x40, REGION_PROMS, 0 )
 	ROM_LOAD( "82s123.69", 0x0000, 0x0020, 0x1eabb04d )
 	ROM_LOAD( "82s123.70", 0x0020, 0x0020, 0x09060f8c )
 ROM_END

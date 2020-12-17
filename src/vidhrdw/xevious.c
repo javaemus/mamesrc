@@ -147,7 +147,7 @@ int xevious_vh_start(void)
 	if (!bg_tilemap || !fg_tilemap)
 		return 1;
 
-	fg_tilemap->transparent_pen = 0;
+	tilemap_set_transparent_pen(fg_tilemap,0);
 
 	return 0;
 }
@@ -199,32 +199,32 @@ WRITE_HANDLER( xevious_bg_colorram_w )
 WRITE_HANDLER( xevious_vh_latch_w )
 {
 	int reg;
+	int scroll = data + ((offset&0x01)<<8);   /* A0 -> D8 */
 
-	data = data + ((offset&0x01)<<8);   /* A0 -> D8 */
 	reg = (offset&0xf0)>>4;
 
 	switch (reg)
 	{
 	case 0:
 		if (flip_screen)
-			tilemap_set_scrollx(bg_tilemap,0,data-312);
+			tilemap_set_scrollx(bg_tilemap,0,scroll-312);
 		else
-			tilemap_set_scrollx(bg_tilemap,0,data+20);
+			tilemap_set_scrollx(bg_tilemap,0,scroll+20);
 		break;
 	case 1:
-		tilemap_set_scrollx(fg_tilemap,0,data+32);
+		tilemap_set_scrollx(fg_tilemap,0,scroll+32);
 		break;
 	case 2:
-		tilemap_set_scrolly(bg_tilemap,0,data+16);
+		tilemap_set_scrolly(bg_tilemap,0,scroll+16);
 		break;
 	case 3:
-		tilemap_set_scrolly(fg_tilemap,0,data+18);
+		tilemap_set_scrolly(fg_tilemap,0,scroll+18);
 		break;
 	case 7:
-		flip_screen_w(0,data & 1);
+		flip_screen_set(scroll & 1);
 		break;
    default:
-		   logerror("CRTC WRITE REG: %x  Data: %03x\n",reg, data);
+		   logerror("CRTC WRITE REG: %x  Data: %03x\n",reg, scroll);
 		   break;
 	}
 }
@@ -371,9 +371,7 @@ void xevious_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	tilemap_update(ALL_TILEMAPS);
 
-	tilemap_render(ALL_TILEMAPS);
-
-	tilemap_draw(bitmap,bg_tilemap,0);
+	tilemap_draw(bitmap,bg_tilemap,0,0);
 	draw_sprites(bitmap);
-	tilemap_draw(bitmap,fg_tilemap,0);
+	tilemap_draw(bitmap,fg_tilemap,0,0);
 }

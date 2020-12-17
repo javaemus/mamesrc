@@ -24,13 +24,13 @@ Memory Overview:
 #include "cpu/z80/z80.h"
 
 
-WRITE_HANDLER( tigeroad_videoctrl_w );
-WRITE_HANDLER( tigeroad_scroll_w );
+WRITE16_HANDLER( tigeroad_videoctrl_w );
+WRITE16_HANDLER( tigeroad_scroll_w );
 void tigeroad_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void tigeroad_eof_callback(void);
 
 
-static unsigned char *ram;
+static data16_t *ram16;
 
 /*
  F1 Dream protection code written by Eric Hustvedt (hustvedt@ma.ultranet.com).
@@ -92,70 +92,70 @@ static void f1dream_protection_w(void)
 	if (prevpc == 0x244c)
 	{
 		/* Called once, when a race is started.*/
-		indx = READ_WORD(&ram[0x3ff0]);
-		WRITE_WORD(&ram[0x3fe6],f1dream_2450_lookup[indx]);
-		WRITE_WORD(&ram[0x3fe8],f1dream_2450_lookup[++indx]);
-		WRITE_WORD(&ram[0x3fea],f1dream_2450_lookup[++indx]);
-		WRITE_WORD(&ram[0x3fec],f1dream_2450_lookup[++indx]);
+		indx = ram16[0x3ff0/2];
+		ram16[0x3fe6/2] = f1dream_2450_lookup[indx];
+		ram16[0x3fe8/2] = f1dream_2450_lookup[++indx];
+		ram16[0x3fea/2] = f1dream_2450_lookup[++indx];
+		ram16[0x3fec/2] = f1dream_2450_lookup[++indx];
 	}
 	else if (prevpc == 0x613a)
 	{
 		/* Called for every sprite on-screen.*/
-		if ((READ_WORD(&ram[0x3ff6])) < 15)
+		if (ram16[0x3ff6/2] < 15)
 		{
-			indx = f1dream_613ea_lookup[READ_WORD(&ram[0x3ff6])] - (READ_WORD(&ram[0x3ff4]));
+			indx = f1dream_613ea_lookup[ram16[0x3ff6/2]] - ram16[0x3ff4/2];
 			if (indx > 255)
 			{
 				indx <<= 4;
-				indx += READ_WORD(&ram[0x3ff6]) & 0x00ff;
+				indx += ram16[0x3ff6/2] & 0x00ff;
 				value = f1dream_613eb_lookup[indx];
 			}
 		}
 
-		WRITE_WORD(&ram[0x3ff2],value);
+		ram16[0x3ff2/2] = value;
 	}
 	else if (prevpc == 0x17b70)
 	{
 		/* Called only before a real race, not a time trial.*/
-		if ((READ_WORD(&ram[0x3ff0])) >= 0x04) indx = 128;
-		else if ((READ_WORD(&ram[0x3ff0])) > 0x02) indx = 96;
-		else if ((READ_WORD(&ram[0x3ff0])) == 0x02) indx = 64;
-		else if ((READ_WORD(&ram[0x3ff0])) == 0x01) indx = 32;
+		if (ram16[0x3ff0/2] >= 0x04) indx = 128;
+		else if (ram16[0x3ff0/2] > 0x02) indx = 96;
+		else if (ram16[0x3ff0/2] == 0x02) indx = 64;
+		else if (ram16[0x3ff0/2] == 0x01) indx = 32;
 		else indx = 0;
 
-		indx += READ_WORD(&ram[0x3fee]);
+		indx += ram16[0x3fee/2];
 		if (indx < 128)
 		{
-			WRITE_WORD(&ram[0x3fe6],f1dream_17b74_lookup[indx]);
-			WRITE_WORD(&ram[0x3fe8],f1dream_17b74_lookup[++indx]);
-			WRITE_WORD(&ram[0x3fea],f1dream_17b74_lookup[++indx]);
-			WRITE_WORD(&ram[0x3fec],f1dream_17b74_lookup[++indx]);
+			ram16[0x3fe6/2] = f1dream_17b74_lookup[indx];
+			ram16[0x3fe8/2] = f1dream_17b74_lookup[++indx];
+			ram16[0x3fea/2] = f1dream_17b74_lookup[++indx];
+			ram16[0x3fec/2] = f1dream_17b74_lookup[++indx];
 		}
 		else
 		{
-			WRITE_WORD(&ram[0x3fe6],0x00ff);
-			WRITE_WORD(&ram[0x3fe8],0x00ff);
-			WRITE_WORD(&ram[0x3fea],0x00ff);
-			WRITE_WORD(&ram[0x3fec],0x00ff);
+			ram16[0x3fe6/2] = 0x00ff;
+			ram16[0x3fe8/2] = 0x00ff;
+			ram16[0x3fea/2] = 0x00ff;
+			ram16[0x3fec/2] = 0x00ff;
 		}
 	}
 	else if ((prevpc == 0x27f8) || (prevpc == 0x511a) || (prevpc == 0x5142) || (prevpc == 0x516a))
 	{
 		/* The main CPU stuffs the byte for the soundlatch into 0xfffffd.*/
-		soundlatch_w(2,READ_WORD(&ram[0x3ffc]));
+		soundlatch_w(2,ram16[0x3ffc/2]);
 	}
 }
 
-static WRITE_HANDLER( f1dream_control_w )
+static WRITE16_HANDLER( f1dream_control_w )
 {
-	logerror("protection write, PC: %04x  FFE1 Value:%01x\n",cpu_get_pc(), ram[0x3fe1]);
+	logerror("protection write, PC: %04x  FFE1 Value:%01x\n",cpu_get_pc(), ram16[0x3fe0/2]);
 	f1dream_protection_w();
 }
 
-static WRITE_HANDLER( tigeroad_soundcmd_w )
+static WRITE16_HANDLER( tigeroad_soundcmd_w )
 {
-	if ((data & 0xff000000) == 0)
-		soundlatch_w(offset,(data >> 8) & 0xff);
+	if (ACCESSING_MSB)
+		soundlatch_w(offset,data >> 8);
 }
 
 static WRITE_HANDLER( msm5205_w )
@@ -174,86 +174,68 @@ int tigeroad_interrupt(void)
 
 /***************************************************************************/
 
-static struct MemoryReadAddress readmem[] =
-{
-	{ 0x000000, 0x03ffff, MRA_ROM },
-	{ 0xfe0800, 0xfe0cff, MRA_BANK1 },
-	{ 0xfe0d00, 0xfe1807, MRA_BANK2 },
-	{ 0xfe4000, 0xfe4001, input_port_0_r },
-	{ 0xfe4002, 0xfe4003, input_port_1_r },
-	{ 0xfe4004, 0xfe4005, input_port_2_r },
-	{ 0xfec000, 0xfec7ff, MRA_BANK3 },
-	{ 0xff8200, 0xff867f, paletteram_word_r },
-	{ 0xffc000, 0xffffff, MRA_BANK4 },
-	{ -1 }  /* end of table */
-};
+static MEMORY_READ16_START( readmem )
+	{ 0x000000, 0x03ffff, MRA16_ROM },
+	{ 0xfe0800, 0xfe0cff, MRA16_RAM },
+	{ 0xfe0d00, 0xfe1807, MRA16_RAM },
+	{ 0xfe4000, 0xfe4001, input_port_0_word_r },
+	{ 0xfe4002, 0xfe4003, input_port_1_word_r },
+	{ 0xfe4004, 0xfe4005, input_port_2_word_r },
+	{ 0xfec000, 0xfec7ff, MRA16_RAM },
+	{ 0xff8200, 0xff867f, MRA16_RAM },
+	{ 0xffc000, 0xffffff, MRA16_RAM },
+MEMORY_END
 
-static struct MemoryWriteAddress writemem[] =
-{
-	{ 0x000000, 0x03ffff, MWA_ROM },
-	{ 0xfe0800, 0xfe0cff, MWA_BANK1, &spriteram, &spriteram_size },
-	{ 0xfe0d00, 0xfe1807, MWA_BANK2 },  /* still part of OBJ RAM */
+static MEMORY_WRITE16_START( writemem )
+	{ 0x000000, 0x03ffff, MWA16_ROM },
+	{ 0xfe0800, 0xfe0cff, MWA16_RAM, &spriteram16, &spriteram_size },
+	{ 0xfe0d00, 0xfe1807, MWA16_RAM },  /* still part of OBJ RAM */
 	{ 0xfe4000, 0xfe4001, tigeroad_videoctrl_w },	/* char bank, coin counters, + ? */
 	/*{ 0xfe4002, 0xfe4003, tigeroad_soundcmd_w }, added by init_tigeroad() */
-	{ 0xfec000, 0xfec7ff, MWA_BANK3, &videoram, &videoram_size },
+	{ 0xfec000, 0xfec7ff, MWA16_RAM, &videoram16, &videoram_size },
 	{ 0xfe8000, 0xfe8003, tigeroad_scroll_w },
-	{ 0xfe800e, 0xfe800f, MWA_NOP },    /* fe800e = watchdog or IRQ acknowledge */
-	{ 0xff8200, 0xff867f, paletteram_xxxxRRRRGGGGBBBB_word_w, &paletteram },
-	{ 0xffc000, 0xffffff, MWA_BANK4, &ram },
-	{ -1 }  /* end of table */
-};
+	{ 0xfe800e, 0xfe800f, MWA16_RAM },    /* fe800e = watchdog or IRQ acknowledge */
+	{ 0xff8200, 0xff867f, paletteram16_xxxxRRRRGGGGBBBB_word_w, &paletteram16 },
+	{ 0xffc000, 0xffffff, MWA16_RAM, &ram16 },
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x8000, YM2203_status_port_0_r },
 	{ 0xa000, 0xa000, YM2203_status_port_1_r },
 	{ 0xc000, 0xc7ff, MRA_RAM },
 	{ 0xe000, 0xe000, soundlatch_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x8000, YM2203_control_port_0_w },
 	{ 0x8001, 0x8001, YM2203_write_port_0_w },
 	{ 0xa000, 0xa000, YM2203_control_port_1_w },
 	{ 0xa001, 0xa001, YM2203_write_port_1_w },
 	{ 0xc000, 0xc7ff, MWA_RAM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x7f, 0x7f, soundlatch2_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct MemoryReadAddress sample_readmem[] =
-{
+static MEMORY_READ_START( sample_readmem )
 	{ 0x0000, 0xffff, MRA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 /* yes, no RAM */
-static struct MemoryWriteAddress sample_writemem[] =
-{
+static MEMORY_WRITE_START( sample_writemem )
 	{ 0x0000, 0xffff, MWA_ROM },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sample_readport[] =
-{
+static PORT_READ_START( sample_readport )
 	{ 0x00, 0x00, soundlatch2_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort sample_writeport[] =
-{
+static PORT_WRITE_START( sample_writeport )
 	{ 0x01, 0x01, msm5205_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 
 
@@ -679,19 +661,19 @@ static const struct MachineDriver machine_driver_toramich =
 ***************************************************************************/
 
 ROM_START( tigeroad )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 256K for 68000 code */
-	ROM_LOAD_EVEN( "tru02.bin",    0x00000, 0x20000, 0x8d283a95 )
-	ROM_LOAD_ODD ( "tru04.bin",    0x00000, 0x20000, 0x72e2ef20 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 256K for 68000 code */
+	ROM_LOAD16_BYTE( "tru02.bin",    0x00000, 0x20000, 0x8d283a95 )
+	ROM_LOAD16_BYTE( "tru04.bin",    0x00001, 0x20000, 0x72e2ef20 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* audio CPU */
 	ROM_LOAD( "tru05.bin",    0x0000, 0x8000, 0xf9a7c9bf )
 
 	/* no samples player in the English version */
 
-	ROM_REGION( 0x008000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x008000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tr01.bin",     0x00000, 0x08000, 0x74a9f08c ) /* 8x8 text */
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tr-01a.bin",   0x00000, 0x20000, 0xa8aa2e59 ) /* tiles */
 	ROM_LOAD( "tr-04a.bin",   0x20000, 0x20000, 0x8863a63c )
 	ROM_LOAD( "tr-02a.bin",   0x40000, 0x20000, 0x1a2c5f89 )
@@ -701,34 +683,34 @@ ROM_START( tigeroad )
 	ROM_LOAD( "tr-07a.bin",   0xc0000, 0x20000, 0x5f907d4d )
 	ROM_LOAD( "tr08.bin",     0xe0000, 0x20000, 0xadee35e2 )
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "tr-09a.bin",   0x00000, 0x20000, 0x3d98ad1e ) /* sprites */
 	ROM_LOAD( "tr-10a.bin",   0x20000, 0x20000, 0x8f6f03d7 )
 	ROM_LOAD( "tr-11a.bin",   0x40000, 0x20000, 0xcd9152e5 )
 	ROM_LOAD( "tr-12a.bin",   0x60000, 0x20000, 0x7d8a99d0 )
 
-	ROM_REGION( 0x08000, REGION_GFX4 )	/* background tilemaps */
+	ROM_REGION( 0x08000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "tr13.bin",     0x0000, 0x8000, 0xa79be1eb )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "trprom.bin",   0x0000, 0x0100, 0xec80ae36 )	/* priority (not used) */
 ROM_END
 
 ROM_START( toramich )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 256K for 68000 code */
-	ROM_LOAD_EVEN( "tr_02.bin",    0x00000, 0x20000, 0xb54723b1 )
-	ROM_LOAD_ODD ( "tr_04.bin",    0x00000, 0x20000, 0xab432479 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 256K for 68000 code */
+	ROM_LOAD16_BYTE( "tr_02.bin",    0x00000, 0x20000, 0xb54723b1 )
+	ROM_LOAD16_BYTE( "tr_04.bin",    0x00001, 0x20000, 0xab432479 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* audio CPU */
 	ROM_LOAD( "tr_05.bin",    0x0000, 0x8000, 0x3ebe6e62 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 ) /* samples player */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* samples player */
 	ROM_LOAD( "tr_03.bin",    0x0000, 0x10000, 0xea1807ef )
 
-	ROM_REGION( 0x008000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x008000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tr01.bin",     0x00000, 0x08000, 0x74a9f08c ) /* 8x8 text */
 
-	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "tr-01a.bin",   0x00000, 0x20000, 0xa8aa2e59 ) /* tiles */
 	ROM_LOAD( "tr-04a.bin",   0x20000, 0x20000, 0x8863a63c )
 	ROM_LOAD( "tr-02a.bin",   0x40000, 0x20000, 0x1a2c5f89 )
@@ -738,31 +720,31 @@ ROM_START( toramich )
 	ROM_LOAD( "tr-07a.bin",   0xc0000, 0x20000, 0x5f907d4d )
 	ROM_LOAD( "tr08.bin",     0xe0000, 0x20000, 0xadee35e2 )
 
-	ROM_REGION( 0x080000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "tr-09a.bin",   0x00000, 0x20000, 0x3d98ad1e ) /* sprites */
 	ROM_LOAD( "tr-10a.bin",   0x20000, 0x20000, 0x8f6f03d7 )
 	ROM_LOAD( "tr-11a.bin",   0x40000, 0x20000, 0xcd9152e5 )
 	ROM_LOAD( "tr-12a.bin",   0x60000, 0x20000, 0x7d8a99d0 )
 
-	ROM_REGION( 0x08000, REGION_GFX4 )	/* background tilemaps */
+	ROM_REGION( 0x08000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "tr13.bin",     0x0000, 0x8000, 0xa79be1eb )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "trprom.bin",   0x0000, 0x0100, 0xec80ae36 )	/* priority (not used) */
 ROM_END
 
 ROM_START( f1dream )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 256K for 68000 code */
-	ROM_LOAD_EVEN( "06j_02.bin",   0x00000, 0x20000, 0x3c2ec697 )
-	ROM_LOAD_ODD ( "06k_03.bin",   0x00000, 0x20000, 0x85ebad91 )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 256K for 68000 code */
+	ROM_LOAD16_BYTE( "06j_02.bin",   0x00000, 0x20000, 0x3c2ec697 )
+	ROM_LOAD16_BYTE( "06k_03.bin",   0x00001, 0x20000, 0x85ebad91 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* audio CPU */
 	ROM_LOAD( "12k_04.bin",   0x0000, 0x8000, 0x4b9a7524 )
 
-	ROM_REGION( 0x008000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x008000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "10d_01.bin",   0x00000, 0x08000, 0x361caf00 ) /* 8x8 text */
 
-	ROM_REGION( 0x060000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x060000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "03f_12.bin",   0x00000, 0x10000, 0xbc13e43c ) /* tiles */
 	ROM_LOAD( "01f_10.bin",   0x10000, 0x10000, 0xf7617ad9 )
 	ROM_LOAD( "03h_14.bin",   0x20000, 0x10000, 0xe33cd438 )
@@ -770,33 +752,33 @@ ROM_START( f1dream )
 	ROM_LOAD( "17f_09.bin",   0x40000, 0x10000, 0xca622155 )
 	ROM_LOAD( "02h_13.bin",   0x50000, 0x10000, 0x2a63961e )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "03b_06.bin",   0x00000, 0x10000, 0x5e54e391 ) /* sprites */
 	ROM_LOAD( "02b_05.bin",   0x10000, 0x10000, 0xcdd119fd )
 	ROM_LOAD( "03d_08.bin",   0x20000, 0x10000, 0x811f2e22 )
 	ROM_LOAD( "02d_07.bin",   0x30000, 0x10000, 0xaa9a1233 )
 
-	ROM_REGION( 0x08000, REGION_GFX4 )	/* background tilemaps */
+	ROM_REGION( 0x08000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "07l_15.bin",   0x0000, 0x8000, 0x978758b7 )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "09e_tr.bin",   0x0000, 0x0100, 0xec80ae36 )	/* priority (not used) */
 ROM_END
 
 ROM_START( f1dreamb )
-	ROM_REGION( 0x40000, REGION_CPU1 ) /* 256K for 68000 code */
-	ROM_LOAD_EVEN( "f1d_04.bin",   0x00000, 0x10000, 0x903febad )
-	ROM_LOAD_ODD( "f1d_05.bin",   0x00000, 0x10000, 0x666fa2a7 )
-	ROM_LOAD_EVEN( "f1d_02.bin",   0x20000, 0x10000, 0x98973c4c )
-	ROM_LOAD_ODD( "f1d_03.bin",   0x20000, 0x10000, 0x3d21c78a )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 ) /* 256K for 68000 code */
+	ROM_LOAD16_BYTE( "f1d_04.bin",   0x00000, 0x10000, 0x903febad )
+	ROM_LOAD16_BYTE( "f1d_05.bin",   0x00001, 0x10000, 0x666fa2a7 )
+	ROM_LOAD16_BYTE( "f1d_02.bin",   0x20000, 0x10000, 0x98973c4c )
+	ROM_LOAD16_BYTE( "f1d_03.bin",   0x20001, 0x10000, 0x3d21c78a )
 
-	ROM_REGION( 0x10000, REGION_CPU2 ) /* audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* audio CPU */
 	ROM_LOAD( "12k_04.bin",   0x0000, 0x8000, 0x4b9a7524 )
 
-	ROM_REGION( 0x008000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x008000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "10d_01.bin",   0x00000, 0x08000, 0x361caf00 ) /* 8x8 text */
 
-	ROM_REGION( 0x060000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x060000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "03f_12.bin",   0x00000, 0x10000, 0xbc13e43c ) /* tiles */
 	ROM_LOAD( "01f_10.bin",   0x10000, 0x10000, 0xf7617ad9 )
 	ROM_LOAD( "03h_14.bin",   0x20000, 0x10000, 0xe33cd438 )
@@ -804,16 +786,16 @@ ROM_START( f1dreamb )
 	ROM_LOAD( "17f_09.bin",   0x40000, 0x10000, 0xca622155 )
 	ROM_LOAD( "02h_13.bin",   0x50000, 0x10000, 0x2a63961e )
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "03b_06.bin",   0x00000, 0x10000, 0x5e54e391 ) /* sprites */
 	ROM_LOAD( "02b_05.bin",   0x10000, 0x10000, 0xcdd119fd )
 	ROM_LOAD( "03d_08.bin",   0x20000, 0x10000, 0x811f2e22 )
 	ROM_LOAD( "02d_07.bin",   0x30000, 0x10000, 0xaa9a1233 )
 
-	ROM_REGION( 0x08000, REGION_GFX4 )	/* background tilemaps */
+	ROM_REGION( 0x08000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "07l_15.bin",   0x0000, 0x8000, 0x978758b7 )
 
-	ROM_REGION( 0x0100, REGION_PROMS )
+	ROM_REGION( 0x0100, REGION_PROMS, 0 )
 	ROM_LOAD( "09e_tr.bin",   0x0000, 0x0100, 0xec80ae36 )	/* priority (not used) */
 ROM_END
 
@@ -821,12 +803,12 @@ ROM_END
 
 void init_tigeroad(void)
 {
-	install_mem_write_handler(0, 0xfe4002, 0xfe4003, tigeroad_soundcmd_w);
+	install_mem_write16_handler(0, 0xfe4002, 0xfe4003, tigeroad_soundcmd_w);
 }
 
 void init_f1dream(void)
 {
-	install_mem_write_handler(0, 0xfe4002, 0xfe4003, f1dream_control_w);
+	install_mem_write16_handler(0, 0xfe4002, 0xfe4003, f1dream_control_w);
 }
 
 

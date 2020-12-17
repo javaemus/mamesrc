@@ -6,10 +6,8 @@ Ernesto Corvi
 (ernesto@imagina.com)
 
 TODO:
-- ROM ic82_06.bin (ADPCM) is not used
-- The second YM2203 starts outputting static after a few seconds.
 - Dip switches mapping is not complete. ( Anyone has the manual handy? )
-
+- Missing drums, they might be internal to the YM2608.
 
 CPU #1 : Handles background & foreground tiles, controllers, dipswitches.
 CPU #2 : Handles sprites and palette
@@ -109,8 +107,7 @@ static WRITE_HANDLER( wc90_sound_command_w )
 	cpu_cause_interrupt(2,Z80_NMI_INT);
 }
 
-static struct MemoryReadAddress wc90_readmem1[] =
-{
+static MEMORY_READ_START( wc90_readmem1 )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x9fff, MRA_RAM }, /* Main RAM */
 	{ 0xa000, 0xa7ff, wc90_tile_colorram_r }, /* bg 1 color ram */
@@ -128,11 +125,9 @@ static struct MemoryReadAddress wc90_readmem1[] =
 	{ 0xfc05, 0xfc05, input_port_4_r }, /* Start & Coin */
 	{ 0xfc06, 0xfc06, input_port_2_r }, /* DIP Switch A */
 	{ 0xfc07, 0xfc07, input_port_3_r }, /* DIP Switch B */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress wc90_readmem2[] =
-{
+static MEMORY_READ_START( wc90_readmem2 )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xc000, 0xcfff, MRA_RAM },
 	{ 0xd000, 0xd7ff, MRA_RAM },
@@ -140,11 +135,9 @@ static struct MemoryReadAddress wc90_readmem2[] =
 	{ 0xe000, 0xe7ff, MRA_RAM },
 	{ 0xf000, 0xf7ff, MRA_BANK2 },
 	{ 0xf800, 0xfbff, wc90_shared_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress wc90_writemem1[] =
-{
+static MEMORY_WRITE_START( wc90_writemem1 )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x9fff, MWA_RAM },
 	{ 0xa000, 0xa7ff, wc90_tile_colorram_w, &wc90_tile_colorram },
@@ -172,11 +165,9 @@ static struct MemoryWriteAddress wc90_writemem1[] =
 	{ 0xfcc0, 0xfcc0, wc90_sound_command_w },
 	{ 0xfcd0, 0xfcd0, MWA_NOP },	/* ??? */
 	{ 0xfce0, 0xfce0, wc90_bankswitch_w },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress wc90_writemem2[] =
-{
+static MEMORY_WRITE_START( wc90_writemem2 )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xcfff, MWA_RAM },
 	{ 0xd000, 0xd7ff, MWA_RAM, &spriteram, &spriteram_size },
@@ -186,32 +177,25 @@ static struct MemoryWriteAddress wc90_writemem2[] =
 	{ 0xf800, 0xfbff, wc90_shared_w },
 	{ 0xfc00, 0xfc00, wc90_bankswitch1_w },
 	{ 0xfc01, 0xfc01, MWA_NOP },	/* ??? */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0xbfff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
-	{ 0xf800, 0xf800, YM2203_status_port_0_r },
-	{ 0xf801, 0xf801, YM2203_read_port_0_r },
-	{ 0xf802, 0xf802, YM2203_status_port_1_r },
-	{ 0xf803, 0xf803, YM2203_read_port_1_r },
+        { 0xf800, 0xf800, YM2608_status_port_0_A_r },
+        { 0xf802, 0xf802, YM2608_status_port_0_B_r },
 	{ 0xfc00, 0xfc00, MRA_NOP }, /* ??? adpcm ??? */
 	{ 0xfc10, 0xfc10, soundlatch_r },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0xbfff, MWA_ROM },
 	{ 0xf000, 0xf7ff, MWA_RAM },
-	{ 0xf800, 0xf800, YM2203_control_port_0_w },
-	{ 0xf801, 0xf801, YM2203_write_port_0_w },
-	{ 0xf802, 0xf802, YM2203_control_port_1_w },
-	{ 0xf803, 0xf803, YM2203_write_port_1_w },
-	{ -1 }	/* end of table */
-};
+        { 0xf800, 0xf800, YM2608_control_port_0_A_w },
+        { 0xf801, 0xf801, YM2608_data_port_0_A_w },
+        { 0xf802, 0xf802, YM2608_control_port_0_B_w },
+        { 0xf803, 0xf803, YM2608_data_port_0_B_w },
+MEMORY_END
 
 INPUT_PORTS_START( wc90 )
 	PORT_START	/* IN0 bit 0-5 */
@@ -346,23 +330,24 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 
 
 
-/* handler called by the 2203 emulator when the internal timers cause an IRQ */
+/* handler called by the 2608 emulator when the internal timers cause an IRQ */
 static void irqhandler(int irq)
 {
 	cpu_set_irq_line(2,0,irq ? ASSERT_LINE : CLEAR_LINE);
 }
 
-static struct YM2203interface ym2203_interface =
+static struct YM2608interface ym2608_interface =
 {
-	2,			/* 2 chips */
-	6000000,	/* 6 MHz ????? seems awfully fast, I don't even know if the */
-				/*  YM2203 can go at that speed */
-	{ YM2203_VOL(25,25), YM2203_VOL(25,25) },
+        1,
+        8000000,
+        { 50 },
 	{ 0 },
 	{ 0 },
 	{ 0 },
 	{ 0 },
-	{ irqhandler }
+        { irqhandler },
+        { REGION_SOUND1 },
+        { YM3012_VOL(50,MIXER_PAN_LEFT,50,MIXER_PAN_RIGHT) }
 };
 
 static const struct MachineDriver machine_driver_wc90 =
@@ -409,8 +394,8 @@ static const struct MachineDriver machine_driver_wc90 =
 	0,0,0,0,
 	{
 		{
-			SOUND_YM2203,
-			&ym2203_interface
+                        SOUND_YM2608,
+                        &ym2608_interface
 		}
 	}
 };
@@ -418,37 +403,37 @@ static const struct MachineDriver machine_driver_wc90 =
 
 
 ROM_START( wc90 )
-	ROM_REGION( 0x20000, REGION_CPU1 )	/* 128k for code */
+	ROM_REGION( 0x20000, REGION_CPU1, 0 )	/* 128k for code */
 	ROM_LOAD( "ic87_01.bin",  0x00000, 0x08000, 0x4a1affbc )	/* c000-ffff is not used */
 	ROM_LOAD( "ic95_02.bin",  0x10000, 0x10000, 0x847d439c )	/* banked at f000-f7ff */
 
-	ROM_REGION( 0x20000, REGION_CPU2 )	/* 96k for code */  /* Second CPU */
+	ROM_REGION( 0x20000, REGION_CPU2, 0 )	/* 96k for code */  /* Second CPU */
 	ROM_LOAD( "ic67_04.bin",  0x00000, 0x10000, 0xdc6eaf00 )	/* c000-ffff is not used */
 	ROM_LOAD( "ic56_03.bin",  0x10000, 0x10000, 0x1ac02b3b )	/* banked at f000-f7ff */
 
-	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the audio CPU */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "ic54_05.bin",  0x00000, 0x10000, 0x27c348b3 )
 
-	ROM_REGION( 0x010000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x010000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic85_07v.bin", 0x00000, 0x10000, 0xc5219426 )	/* characters */
 
-	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic86_08v.bin", 0x00000, 0x20000, 0x8fa1a1ff )	/* tiles #1 */
 	ROM_LOAD( "ic90_09v.bin", 0x20000, 0x20000, 0x99f8841c )	/* tiles #2 */
 
-	ROM_REGION( 0x040000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x040000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic87_10v.bin", 0x00000, 0x20000, 0x8232093d )	/* tiles #3 */
 	ROM_LOAD( "ic91_11v.bin", 0x20000, 0x20000, 0x188d3789 )	/* tiles #4 */
 
-	ROM_REGION( 0x080000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x080000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "ic50_12v.bin", 0x00000, 0x20000, 0xda1fe922 )	/* sprites  */
 	ROM_LOAD( "ic54_13v.bin", 0x20000, 0x20000, 0x9ad03c2c )	/* sprites  */
 	ROM_LOAD( "ic60_14v.bin", 0x40000, 0x20000, 0x499dfb1b )	/* sprites  */
 	ROM_LOAD( "ic65_15v.bin", 0x60000, 0x20000, 0xd8ea5c81 )	/* sprites  */
 
-	ROM_REGION( 0x20000, REGION_SOUND1 )	/* 64k for ADPCM samples */
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 64k for ADPCM samples */
 	ROM_LOAD( "ic82_06.bin",  0x00000, 0x20000, 0x2fd692ed )
 ROM_END
 
 
-GAMEX( 1989, wc90, 0, wc90, wc90, 0, ROT0, "Tecmo", "World Cup 90", GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL )
+GAMEX( 1989, wc90, 0, wc90, wc90, 0, ROT0, "Tecmo", "World Cup '90", GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL )

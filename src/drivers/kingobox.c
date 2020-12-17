@@ -67,8 +67,7 @@ static WRITE_HANDLER( sound_command_w ) {
 	cpu_cause_interrupt( 3, 0xff );
 }
 
-static struct MemoryReadAddress main_readmem[] =
-{
+static MEMORY_READ_START( main_readmem )
     { 0x0000, 0x7fff, MRA_ROM },
     { 0xc000, 0xc3ff, MRA_RAM }, /* work ram */
     { 0xe000, 0xe7ff, sprite_shared_r },
@@ -80,11 +79,9 @@ static struct MemoryReadAddress main_readmem[] =
     { 0xfc03, 0xfc03, input_port_3_r }, /* Player 2 controls */
     { 0xfc04, 0xfc04, input_port_4_r }, /* Coin & Start */
     { 0xfc05, 0xfc05, input_port_5_r }, /* Player 1 & 2 button 3 */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress main_writemem[] =
-{
+static MEMORY_WRITE_START( main_writemem )
     { 0x0000, 0x7fff, MWA_ROM },
     { 0xc000, 0xc3ff, MWA_RAM }, /* work ram */
     { 0xe000, 0xe7ff, sprite_shared_w }, /* shared with sprite cpu */
@@ -96,11 +93,9 @@ static struct MemoryWriteAddress main_writemem[] =
     { 0xf803, 0xf803, scroll_interrupt_w  },
     { 0xf804, 0xf804, video_interrupt_w },
     { 0xf807, 0xf807, sound_command_w }, /* sound latch */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress video_readmem[] =
-{
+static MEMORY_READ_START( video_readmem )
     { 0x0000, 0x3fff, MRA_ROM },
     { 0x8000, 0x87ff, MRA_RAM }, /* work ram */
     { 0xa000, 0xa7ff, video_shared_r }, /* shared with main */
@@ -108,11 +103,9 @@ static struct MemoryReadAddress video_readmem[] =
     { 0xc400, 0xc4ff, colorram_r }, /* background colorram */
     { 0xc800, 0xcbff, MRA_RAM }, /* foreground vram */
     { 0xcc00, 0xcfff, MRA_RAM }, /* foreground colorram */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress video_writemem[] =
-{
+static MEMORY_WRITE_START( video_writemem )
     { 0x0000, 0x3fff, MWA_ROM },
     { 0x8000, 0x87ff, MWA_RAM }, /* work ram */
     { 0xa000, 0xa7ff, video_shared_w, &video_shared }, /* shared with main */
@@ -120,61 +113,47 @@ static struct MemoryWriteAddress video_writemem[] =
     { 0xc400, 0xc4ff, colorram_w, &colorram }, /* background colorram */
     { 0xc800, 0xcbff, MWA_RAM, &kingobox_videoram1, &kingobox_videoram1_size }, /* foreground vram */
     { 0xcc00, 0xcfff, MWA_RAM, &kingobox_colorram1 }, /* foreground colorram */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sprite_readmem[] =
-{
+static MEMORY_READ_START( sprite_readmem )
     { 0x0000, 0x1fff, MRA_ROM },
     { 0x8000, 0x87ff, MRA_RAM }, /* work ram */
     { 0xa000, 0xa7ff, sprite_shared_r }, /* shared with main */
     { 0xc000, 0xc3ff, spriteram_r }, /* sprite ram */
     { 0xc400, 0xc43f, MRA_RAM }, /* something related to scroll? */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sprite_writemem[] =
-{
+static MEMORY_WRITE_START( sprite_writemem )
     { 0x0000, 0x1fff, MWA_ROM },
     { 0x8000, 0x87ff, MWA_RAM }, /* work ram */
     { 0xa000, 0xa7ff, sprite_shared_w, &sprite_shared }, /* shared with main */
     { 0xc000, 0xc3ff, spriteram_w, &spriteram, &spriteram_size }, /* sprite ram */
     { 0xc400, 0xc43f, MWA_RAM },  /* something related to scroll? */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
     { 0x0000, 0xbfff, MRA_ROM },
     { 0xc000, 0xc3ff, MRA_RAM }, /* work ram */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
     { 0x8000, 0x8000, MWA_NOP }, /* ??? */
     { 0x0000, 0xbfff, MWA_ROM },
     { 0xc000, 0xc3ff, MWA_RAM }, /* work ram */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort sound_readport[] =
-{
+static PORT_READ_START( sound_readport )
 	{ 0x08, 0x08, AY8910_read_port_0_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort sound_writeport[] =
-{
+static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, DAC_0_data_w },
 	{ 0x08, 0x08, AY8910_write_port_0_w },
 	{ 0x0c, 0x0c, AY8910_control_port_0_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 /* Ring King */
-static struct MemoryReadAddress rk_main_readmem[] =
-{
+static MEMORY_READ_START( rk_main_readmem )
     { 0x0000, 0xbfff, MRA_ROM },
     { 0xc000, 0xc3ff, MRA_RAM }, /* work ram */
     { 0xc800, 0xcfff, sprite_shared_r },
@@ -186,11 +165,9 @@ static struct MemoryReadAddress rk_main_readmem[] =
     { 0xe004, 0xe004, input_port_4_r }, /* Coin & Start */
     { 0xe005, 0xe005, input_port_5_r }, /* Player 1 & 2 button 3 */
     { 0xf000, 0xf7ff, MRA_RAM }, /* ???? */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress rk_main_writemem[] =
-{
+static MEMORY_WRITE_START( rk_main_writemem )
     { 0x0000, 0xbfff, MWA_ROM },
     { 0xc000, 0xc3ff, MWA_RAM }, /* work ram */
     { 0xc800, 0xcfff, sprite_shared_w },
@@ -201,11 +178,9 @@ static struct MemoryWriteAddress rk_main_writemem[] =
     { 0xd803, 0xd803, sound_command_w },
     { 0xe800, 0xe800, MWA_RAM, &kingobox_scroll_y },
     { 0xf000, 0xf7ff, MWA_RAM }, /* ???? */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress rk_video_readmem[] =
-{
+static MEMORY_READ_START( rk_video_readmem )
     { 0x0000, 0x3fff, MRA_ROM },
     { 0x8000, 0x87ff, MRA_RAM }, /* work ram */
     { 0xc000, 0xc7ff, video_shared_r }, /* shared with main */
@@ -213,11 +188,9 @@ static struct MemoryReadAddress rk_video_readmem[] =
     { 0xac00, 0xacff, colorram_r }, /* background colorram */
     { 0xa000, 0xa3ff, MRA_RAM }, /* foreground vram */
     { 0xa400, 0xa7ff, MRA_RAM }, /* foreground colorram */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress rk_video_writemem[] =
-{
+static MEMORY_WRITE_START( rk_video_writemem )
     { 0x0000, 0x3fff, MWA_ROM },
     { 0x8000, 0x87ff, MWA_RAM }, /* work ram */
     { 0xc000, 0xc7ff, video_shared_w, &video_shared }, /* shared with main */
@@ -225,42 +198,33 @@ static struct MemoryWriteAddress rk_video_writemem[] =
     { 0xac00, 0xacff, colorram_w, &colorram }, /* background colorram */
     { 0xa000, 0xa3ff, MWA_RAM, &kingobox_videoram1, &kingobox_videoram1_size }, /* foreground vram */
     { 0xa400, 0xa7ff, MWA_RAM, &kingobox_colorram1 }, /* foreground colorram */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress rk_sprite_readmem[] =
-{
+static MEMORY_READ_START( rk_sprite_readmem )
     { 0x0000, 0x1fff, MRA_ROM },
     { 0x8000, 0x87ff, MRA_RAM }, /* work ram */
     { 0xc800, 0xcfff, sprite_shared_r }, /* shared with main */
     { 0xa000, 0xa3ff, spriteram_r }, /* sprite ram */
     { 0xa400, 0xa43f, MRA_RAM }, /* something related to scroll? */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress rk_sprite_writemem[] =
-{
+static MEMORY_WRITE_START( rk_sprite_writemem )
     { 0x0000, 0x1fff, MWA_ROM },
     { 0x8000, 0x87ff, MWA_RAM }, /* work ram */
     { 0xc800, 0xcfff, sprite_shared_w, &sprite_shared }, /* shared with main */
     { 0xa000, 0xa3ff, spriteram_w, &spriteram, &spriteram_size }, /* sprite ram */
     { 0xa400, 0xa43f, MWA_RAM },  /* something related to scroll? */
-    { -1 }  /* end of table */
-};
+MEMORY_END
 
-static struct IOReadPort rk_sound_readport[] =
-{
+static PORT_READ_START( rk_sound_readport )
 	{ 0x02, 0x02, AY8910_read_port_0_r },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
-static struct IOWritePort rk_sound_writeport[] =
-{
+static PORT_WRITE_START( rk_sound_writeport )
 	{ 0x00, 0x00, DAC_0_data_w },
 	{ 0x02, 0x02, AY8910_write_port_0_w },
 	{ 0x03, 0x03, AY8910_control_port_0_w },
-	{ -1 }  /* end of table */
-};
+PORT_END
 
 INPUT_PORTS_START( kingofb )
     PORT_START /* DSW0 - 0xfc01 */
@@ -716,25 +680,25 @@ static const struct MachineDriver machine_driver_ringking =
 ***************************************************************************/
 
 ROM_START( kingofb )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "d09_22.bin",   0x00000, 0x4000, 0x6220bfa2 )
 	ROM_LOAD( "e09_23.bin",   0x04000, 0x4000, 0x5782fdd8 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the video cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the video cpu */
 	ROM_LOAD( "b09_21.bin",   0x00000, 0x4000, 0x3fb39489 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the sprite cpu */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the sprite cpu */
 	ROM_LOAD( "j09_dcr.bin",  0x00000, 0x2000, 0x379f4f84 )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )     /* 64k for the audio cpu */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )     /* 64k for the audio cpu */
 	ROM_LOAD( "f05_18.bin",   0x00000, 0x4000, 0xc057e28e )
 	ROM_LOAD( "h05_19.bin",   0x04000, 0x4000, 0x060253dd )
 	ROM_LOAD( "j05_20.bin",   0x08000, 0x4000, 0x64c137a4 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "vd15_13.bin",  0x00000, 0x2000, 0xe36d4f4f ) /* characters */
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "vb01_01.bin",  0x00000, 0x4000, 0xce6580af )
 	ROM_LOAD( "vb04_03.bin",  0x04000, 0x4000, 0xcf74ea50 )
 	ROM_LOAD( "vb07_05.bin",  0x08000, 0x4000, 0xd8b53975 )
@@ -742,7 +706,7 @@ ROM_START( kingofb )
 	ROM_LOAD( "vb05_04.bin",  0x10000, 0x4000, 0xecf95a2c )
 	ROM_LOAD( "vb08_06.bin",  0x14000, 0x4000, 0x8200cb2b )
 
-	ROM_REGION( 0xc000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* tiles */
+	ROM_REGION( 0xc000, REGION_GFX3, ROMREGION_DISPOSE )	/* tiles */
 	ROM_LOAD( "vd01_07.bin",  0x00000, 0x2000, 0x3d472a22 )
 	ROM_LOAD( "vd04_09.bin",  0x02000, 0x2000, 0xcc002ea9 )
 	ROM_LOAD( "vd07_11.bin",  0x04000, 0x2000, 0x23c1b3ee )
@@ -750,7 +714,7 @@ ROM_START( kingofb )
 	ROM_LOAD( "vd05_10.bin",  0x08000, 0x2000, 0xfce71e5a )
 	ROM_LOAD( "vd08_12.bin",  0x0a000, 0x2000, 0x3f68b991 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	ROM_LOAD( "vb14_col.bin", 0x0000, 0x0100, 0xc58e5121 )	/* red component */
 	ROM_LOAD( "vb15_col.bin", 0x0100, 0x0100, 0x5ab06f25 )	/* green component */
 	ROM_LOAD( "vb16_col.bin", 0x0200, 0x0100, 0x1171743f )	/* blue component */
@@ -758,100 +722,100 @@ ROM_END
 
 /* Ring King */
 ROM_START( ringking )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "cx13.9f",      0x00000, 0x8000, 0x93e38c02 )
 	ROM_LOAD( "cx14.11f",     0x08000, 0x4000, 0xa435acb0 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the video cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the video cpu */
 	ROM_LOAD( "cx07.10c",     0x00000, 0x4000, 0x9f074746 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the sprite cpu */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the sprite cpu */
 	ROM_LOAD( "cx00.4c",      0x00000, 0x2000, 0x880b8aa7 )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )     /* 64k for the audio cpu */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )     /* 64k for the audio cpu */
 	ROM_LOAD( "cx12.4ef",     0x00000, 0x8000, 0x1d5d6c6b )
 	ROM_LOAD( "j05_20.bin",   0x08000, 0x4000, 0x64c137a4 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx08.13b",     0x00000, 0x2000, 0xdbd7c1c2 )	/* characters */
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx04.11j",     0x00000, 0x8000, 0x506a2ed9 )
 	ROM_LOAD( "cx02.8j",      0x08000, 0x8000, 0x009dde6a )
 	ROM_LOAD( "cx06.13j",     0x10000, 0x8000, 0xd819a3b2 )
 
-	ROM_REGION( 0xc000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0xc000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx03.9j",      0x00000, 0x4000, 0x682fd1c4 )	/* sprites */
 	ROM_LOAD( "cx01.7j",      0x04000, 0x4000, 0x85130b46 )
 	ROM_LOAD( "cx05.12j",     0x08000, 0x4000, 0xf7c4f3dc )
 
-	ROM_REGION( 0x8000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx09.17d",     0x00000, 0x4000, 0x37a082cf )	/* tiles */
 	ROM_LOAD( "cx10.17e",     0x04000, 0x4000, 0xab9446c5 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "82s135.2a",    0x0000, 0x0100, 0x0e723a83 )	/* red and green component */
 	ROM_LOAD( "82s129.1a",    0x0100, 0x0100, 0xd345cbb3 )	/* blue component */
 ROM_END
 
 ROM_START( ringkin2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "rkngm1.bin",   0x00000, 0x8000, 0x086921ea )
 	ROM_LOAD( "rkngm2.bin",   0x08000, 0x4000, 0xc0b636a4 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the video cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the video cpu */
 	ROM_LOAD( "rkngtram.bin", 0x00000, 0x4000, 0xd9dc1a0a )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the sprite cpu */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the sprite cpu */
 	ROM_LOAD( "cx00.4c",      0x00000, 0x2000, 0x880b8aa7 )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )     /* 64k for the audio cpu */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )     /* 64k for the audio cpu */
 	ROM_LOAD( "cx12.4ef",     0x00000, 0x8000, 0x1d5d6c6b )
 	ROM_LOAD( "j05_20.bin",   0x08000, 0x4000, 0x64c137a4 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx08.13b",     0x00000, 0x2000, 0xdbd7c1c2 )	/* characters */
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx04.11j",     0x00000, 0x8000, 0x506a2ed9 )
 	ROM_LOAD( "cx02.8j",      0x08000, 0x8000, 0x009dde6a )
 	ROM_LOAD( "cx06.13j",     0x10000, 0x8000, 0xd819a3b2 )
 
-	ROM_REGION( 0xc000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0xc000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx03.9j",      0x00000, 0x4000, 0x682fd1c4 )	/* sprites */
 	ROM_LOAD( "cx01.7j",      0x04000, 0x4000, 0x85130b46 )
 	ROM_LOAD( "cx05.12j",     0x08000, 0x4000, 0xf7c4f3dc )
 
-	ROM_REGION( 0x8000, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX4, ROMREGION_DISPOSE )
 	ROM_LOAD( "cx09.17d",     0x00000, 0x4000, 0x37a082cf )	/* tiles */
 	ROM_LOAD( "cx10.17e",     0x04000, 0x4000, 0xab9446c5 )
 
-	ROM_REGION( 0x0200, REGION_PROMS )
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
 	ROM_LOAD( "82s135.2a",    0x0000, 0x0100, 0x0e723a83 )	/* red and green component */
 	ROM_LOAD( "82s129.1a",    0x0100, 0x0100, 0xd345cbb3 )	/* blue component */
 ROM_END
 
 ROM_START( ringkin3 )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "14.9d",        0x00000, 0x4000, 0x63627b8b )
 	ROM_LOAD( "15.9e",        0x04000, 0x4000, 0xe7557489 )
 	ROM_LOAD( "16.9f",        0x08000, 0x4000, 0xa3b3bb16 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the video cpu */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the video cpu */
 	ROM_LOAD( "13.9b",        0x00000, 0x4000, 0xf33f94a2 )
 
-	ROM_REGION( 0x10000, REGION_CPU3 )     /* 64k for the sprite cpu */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the sprite cpu */
 	ROM_LOAD( "j09_dcr.bin",  0x00000, 0x2000, 0x379f4f84 )
 
-	ROM_REGION( 0x10000, REGION_CPU4 )     /* 64k for the audio cpu */
+	ROM_REGION( 0x10000, REGION_CPU4, 0 )     /* 64k for the audio cpu */
 	ROM_LOAD( "f05_18.bin",   0x00000, 0x4000, 0xc057e28e )
 	ROM_LOAD( "h05_19.bin",   0x04000, 0x4000, 0x060253dd )
 	ROM_LOAD( "j05_20.bin",   0x08000, 0x4000, 0x64c137a4 )
 
-	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "12.15d",       0x00000, 0x2000, 0x988a77bf ) /* characters (Japanese) */
 
-	ROM_REGION( 0x18000, REGION_GFX2 | REGIONFLAG_DISPOSE )	/* sprites */
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )	/* sprites */
 	ROM_LOAD( "vb01_01.bin",  0x00000, 0x4000, 0xce6580af )
 	ROM_LOAD( "vb04_03.bin",  0x04000, 0x4000, 0xcf74ea50 )
 	ROM_LOAD( "vb07_05.bin",  0x08000, 0x4000, 0xd8b53975 )
@@ -859,7 +823,7 @@ ROM_START( ringkin3 )
 	ROM_LOAD( "vb05_04.bin",  0x10000, 0x4000, 0xecf95a2c )
 	ROM_LOAD( "vb08_06.bin",  0x14000, 0x4000, 0x8200cb2b )
 
-	ROM_REGION( 0xc000, REGION_GFX3 | REGIONFLAG_DISPOSE )	/* tiles */
+	ROM_REGION( 0xc000, REGION_GFX3, ROMREGION_DISPOSE )	/* tiles */
 	ROM_LOAD( "7.1d",         0x00000, 0x2000, 0x019a88b0 )
 	ROM_LOAD( "9.4d",         0x02000, 0x2000, 0xbfdc741a )
 	ROM_LOAD( "11.7d",        0x04000, 0x2000, 0x3cc7bdc5 )
@@ -867,7 +831,7 @@ ROM_START( ringkin3 )
 	ROM_LOAD( "10.5d",        0x08000, 0x2000, 0xaf5013e7 )
 	ROM_LOAD( "12.8d",        0x0a000, 0x2000, 0x00000000 )
 
-	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_REGION( 0x0300, REGION_PROMS, 0 )
 	/* we load the ringking PROMs and then expand the first to look like the kingobox ones... */
 	ROM_LOAD( "82s135.2a",    0x0100, 0x0100, 0x0e723a83 )	/* red and green component */
 	ROM_LOAD( "82s129.1a",    0x0200, 0x0100, 0xd345cbb3 )	/* blue component */

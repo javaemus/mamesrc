@@ -100,8 +100,7 @@ static READ_HANDLER( exerion_protection_r )
  * CPU memory structures
  *********************************************************************/
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x5fff, MRA_ROM },
 	{ 0x6008, 0x600b, exerion_protection_r },
 	{ 0x6000, 0x67ff, MRA_RAM },
@@ -110,12 +109,10 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xa800, 0xa800, input_port_2_r },
 	{ 0xb000, 0xb000, exerion_port3_r },
 	{ 0xd802, 0xd802, AY8910_read_port_1_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x5fff, MWA_ROM },
 	{ 0x6000, 0x67ff, MWA_RAM },
 	{ 0x8000, 0x87ff, videoram_w, &videoram, &videoram_size },
@@ -127,27 +124,22 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xd001, 0xd001, AY8910_write_port_0_w },
 	{ 0xd800, 0xd800, AY8910_control_port_1_w },
 	{ 0xd801, 0xd801, AY8910_write_port_1_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryReadAddress cpu2_readmem[] =
-{
+static MEMORY_READ_START( cpu2_readmem )
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x4000, 0x47ff, MRA_RAM },
 	{ 0x6000, 0x6000, soundlatch_r },
 	{ 0xa000, 0xa000, exerion_video_timing_r },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
-static struct MemoryWriteAddress cpu2_writemem[] =
-{
+static MEMORY_WRITE_START( cpu2_writemem )
 	{ 0x0000, 0x1fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x8000, 0x800c, exerion_video_latch_w },
-	{ -1 }  /* end of table */
-};
+MEMORY_END
 
 
 
@@ -350,28 +342,28 @@ static const struct MachineDriver machine_driver_exerion =
  *********************************************************************/
 
 ROM_START( exerion )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "exerion.07",   0x0000, 0x2000, 0x4c78d57d )
 	ROM_LOAD( "exerion.08",   0x2000, 0x2000, 0xdcadc1df )
 	ROM_LOAD( "exerion.09",   0x4000, 0x2000, 0x34cc4d14 )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "exerion.05",   0x0000, 0x2000, 0x32f6bff5 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.06",   0x00000, 0x2000, 0x435a85a4 ) /* fg chars */
 
-	ROM_REGION( 0x04000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.11",   0x00000, 0x2000, 0xf0633a09 ) /* sprites */
 	ROM_LOAD( "exerion.10",   0x02000, 0x2000, 0x80312de0 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.03",   0x00000, 0x2000, 0x790595b8 ) /* bg data */
 	ROM_LOAD( "exerion.04",   0x02000, 0x2000, 0xd7abd0b9 )
 	ROM_LOAD( "exerion.01",   0x04000, 0x2000, 0x5bb755cb )
 	ROM_LOAD( "exerion.02",   0x06000, 0x2000, 0xa7ecbb70 )
 
-	ROM_REGION( 0x0420, REGION_PROMS )
+	ROM_REGION( 0x0420, REGION_PROMS, 0 )
 	ROM_LOAD( "exerion.e1",   0x0000, 0x0020, 0x2befcc20 ) /* palette */
 	ROM_LOAD( "exerion.i8",   0x0020, 0x0100, 0x31db0e08 ) /* fg char lookup table */
 	ROM_LOAD( "exerion.h10",  0x0120, 0x0100, 0xcdd23f3e ) /* sprite lookup table */
@@ -380,27 +372,27 @@ ROM_START( exerion )
 ROM_END
 
 ROM_START( exeriont )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "prom5.4p",     0x0000, 0x4000, 0x58b4dc1b )
 	ROM_LOAD( "prom6.4s",     0x4000, 0x2000, 0xfca18c2d )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "exerion.05",   0x0000, 0x2000, 0x32f6bff5 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.06",   0x00000, 0x2000, 0x435a85a4 ) /* fg chars */
 
-	ROM_REGION( 0x04000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.11",   0x00000, 0x2000, 0xf0633a09 ) /* sprites */
 	ROM_LOAD( "exerion.10",   0x02000, 0x2000, 0x80312de0 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.03",   0x00000, 0x2000, 0x790595b8 ) /* bg data */
 	ROM_LOAD( "exerion.04",   0x02000, 0x2000, 0xd7abd0b9 )
 	ROM_LOAD( "exerion.01",   0x04000, 0x2000, 0x5bb755cb )
 	ROM_LOAD( "exerion.02",   0x06000, 0x2000, 0xa7ecbb70 )
 
-	ROM_REGION( 0x0420, REGION_PROMS )
+	ROM_REGION( 0x0420, REGION_PROMS, 0 )
 	ROM_LOAD( "exerion.e1",   0x0000, 0x0020, 0x2befcc20 ) /* palette */
 	ROM_LOAD( "exerion.i8",   0x0020, 0x0100, 0x31db0e08 ) /* fg char lookup table */
 	ROM_LOAD( "exerion.h10",  0x0120, 0x0100, 0xcdd23f3e ) /* sprite lookup table */
@@ -409,27 +401,27 @@ ROM_START( exeriont )
 ROM_END
 
 ROM_START( exerionb )
-	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )     /* 64k for code */
 	ROM_LOAD( "eb5.bin",      0x0000, 0x4000, 0xda175855 )
 	ROM_LOAD( "eb6.bin",      0x4000, 0x2000, 0x0dbe2eff )
 
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the second CPU */
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
 	ROM_LOAD( "exerion.05",   0x0000, 0x2000, 0x32f6bff5 )
 
-	ROM_REGION( 0x02000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x02000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.06",   0x00000, 0x2000, 0x435a85a4 ) /* fg chars */
 
-	ROM_REGION( 0x04000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x04000, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.11",   0x00000, 0x2000, 0xf0633a09 ) /* sprites */
 	ROM_LOAD( "exerion.10",   0x02000, 0x2000, 0x80312de0 )
 
-	ROM_REGION( 0x08000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x08000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "exerion.03",   0x00000, 0x2000, 0x790595b8 ) /* bg data */
 	ROM_LOAD( "exerion.04",   0x02000, 0x2000, 0xd7abd0b9 )
 	ROM_LOAD( "exerion.01",   0x04000, 0x2000, 0x5bb755cb )
 	ROM_LOAD( "exerion.02",   0x06000, 0x2000, 0xa7ecbb70 )
 
-	ROM_REGION( 0x0420, REGION_PROMS )
+	ROM_REGION( 0x0420, REGION_PROMS, 0 )
 	ROM_LOAD( "exerion.e1",   0x0000, 0x0020, 0x2befcc20 ) /* palette */
 	ROM_LOAD( "exerion.i8",   0x0020, 0x0100, 0x31db0e08 ) /* fg char lookup table */
 	ROM_LOAD( "exerion.h10",  0x0120, 0x0100, 0xcdd23f3e ) /* sprite lookup table */

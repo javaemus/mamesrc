@@ -294,42 +294,34 @@ static int sound_interrupt(void)
 /* Memory layout                                             */
 /*                                                           */
 /*************************************************************/
-static struct MemoryWriteAddress writemem[] =
-{
+static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x0bff, MWA_ROM },
 	{ 0x0c00, 0x0c03, meadows_hardware_w },
 	{ 0x0d00, 0x0d0f, meadows_sprite_w },
 	{ 0x0e00, 0x0eff, MWA_RAM },
 	{ 0x1000, 0x1bff, MWA_ROM },
 	{ 0x1c00, 0x1fff, meadows_videoram_w, &videoram, &videoram_size },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress readmem[] =
-{
+static MEMORY_READ_START( readmem )
 	{ 0x0000, 0x0bff, MRA_ROM },
 	{ 0x0c00, 0x0c03, meadows_hardware_r },
 	{ 0x0e00, 0x0eff, MRA_RAM },
 	{ 0x1000, 0x1bff, MRA_ROM },
 	{ 0x1c00, 0x1fff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress sound_writemem[] =
-{
+static MEMORY_WRITE_START( sound_writemem )
 	{ 0x0000, 0x0bff, MWA_ROM },
 	{ 0x0c00, 0x0c03, sound_hardware_w },
 	{ 0x0e00, 0x0eff, MWA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress sound_readmem[] =
-{
+static MEMORY_READ_START( sound_readmem )
 	{ 0x0000, 0x0bff, MRA_ROM },
 	{ 0x0c00, 0x0c03, sound_hardware_r },
 	{ 0x0e00, 0x0eff, MRA_RAM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 INPUT_PORTS_START( meadows )
 	PORT_START		/* IN0 buttons */
@@ -548,7 +540,7 @@ static const struct MachineDriver machine_driver_gypsyjug =
 ***************************************************************************/
 
 ROM_START( deadeye )
-	ROM_REGION( 0x08000, REGION_CPU1 ) 	/* 32K for code */
+	ROM_REGION( 0x08000, REGION_CPU1, 0 ) 	/* 32K for code */
 	ROM_LOAD( "de1.8h",       0x0000, 0x0400, 0xbd09e4dc )
 	ROM_LOAD( "de2.9h",       0x0400, 0x0400, 0xb89edec3 )
 	ROM_LOAD( "de3.10h",      0x0800, 0x0400, 0xacf24438 )
@@ -556,48 +548,48 @@ ROM_START( deadeye )
 	ROM_LOAD( "de5.12h",      0x1400, 0x0400, 0x7bdb535c )
 	ROM_LOAD( "de6.13h",      0x1800, 0x0400, 0x847f9467 )
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "de_char.15e",  0x0000, 0x0400, 0xb032bd8d )
 
-	ROM_REGION( 0x0400, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "de_mov1.5a",   0x0000, 0x0400, 0xc046b4c6 )
 
-	ROM_REGION( 0x0400, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_LOAD( "de_mov2.13a",  0x0000, 0x0400, 0xb89c5df9 )
 
-	ROM_REGION( 0x0400, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX4, ROMREGION_DISPOSE )
 	/* empty */
-	ROM_REGION( 0x0400, REGION_GFX5 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX5, ROMREGION_DISPOSE )
 	/* empty */
 
-	ROM_REGION( 0x08000, REGION_CPU2 ) 	/* 32K for code for the sound cpu */
+	ROM_REGION( 0x08000, REGION_CPU2, 0 ) 	/* 32K for code for the sound cpu */
 	ROM_LOAD( "de_snd",       0x0000, 0x0400, 0xc10a1b1a )
 ROM_END
 
 ROM_START( gypsyjug )
-	ROM_REGION( 0x08000, REGION_CPU1 ) 	/* 32K for code */
+	ROM_REGION( 0x08000, REGION_CPU1, 0 ) 	/* 32K for code */
 	ROM_LOAD( "gj.1b",        0x0000, 0x0400, 0xf6a71d9f )
 	ROM_LOAD( "gj.2b",        0x0400, 0x0400, 0x94c14455 )
 	ROM_LOAD( "gj.3b",        0x0800, 0x0400, 0x87ee0490 )
 	ROM_LOAD( "gj.4b",        0x1000, 0x0400, 0xdca519c8 )
 	ROM_LOAD( "gj.5b",        0x1400, 0x0400, 0x7d83f9d0 )
 
-	ROM_REGION( 0x0400, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "gj.e15",       0x0000, 0x0400, 0xadb25e13 )
 
-	ROM_REGION( 0x0400, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX2, ROMREGION_DISPOSE )
 	ROM_LOAD( "gj.a",         0x0000, 0x0400, 0xd3725193 )
 
-	ROM_REGION( 0x0400, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX3, ROMREGION_DISPOSE )
 	/* empty (copied from 2) */
 
-	ROM_REGION( 0x0400, REGION_GFX4 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX4, ROMREGION_DISPOSE )
 	/* empty (filled with fake data) */
 
-	ROM_REGION( 0x0400, REGION_GFX5 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x0400, REGION_GFX5, ROMREGION_DISPOSE )
 	/* empty (filled with fake data) */
 
-	ROM_REGION( 0x08000, REGION_CPU2 ) 	/* 32K for code for the sound cpu */
+	ROM_REGION( 0x08000, REGION_CPU2, 0 ) 	/* 32K for code for the sound cpu */
 	ROM_LOAD( "gj.a4s",       0x0000, 0x0400, 0x17a116bc )
 	ROM_LOAD( "gj.a5s",       0x0400, 0x0400, 0xfc23ae09 )
 	ROM_LOAD( "gj.a6s",       0x0800, 0x0400, 0x9e7bd71e )

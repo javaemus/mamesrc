@@ -53,7 +53,7 @@ int rollerg_vh_start(void)
 	sprite_colorbase = 16;
 	zoom_colorbase = 0;
 
-	if (K053245_vh_start(REGION_GFX1,NORMAL_PLANE_ORDER,sprite_callback))
+	if (K053245_vh_start(REGION_GFX1,0,NORMAL_PLANE_ORDER,sprite_callback))
 		return 1;
 	if (K051316_vh_start_0(REGION_GFX2,4,zoom_callback))
 	{
@@ -92,10 +92,7 @@ void rollerg_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	for (i = 0;i < 16;i++)
 		palette_used_colors[(zoom_colorbase + i) * 16] = PALETTE_COLOR_TRANSPARENT;
 	palette_used_colors[16 * bg_colorbase] |= PALETTE_COLOR_VISIBLE;
-	if (palette_recalc())
-		tilemap_mark_all_pixels_dirty(ALL_TILEMAPS);
-
-	tilemap_render(ALL_TILEMAPS);
+	palette_recalc();
 
 	fillbitmap(priority_bitmap,0,NULL);
 	fillbitmap(bitmap,Machine->pens[16 * bg_colorbase],&Machine->visible_area);

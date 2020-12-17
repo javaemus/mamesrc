@@ -223,8 +223,18 @@ static READ_HANDLER( centipdb_AY8910_r )
 	return AY8910_read_port_0_r(0);
 }
 
-static struct MemoryReadAddress centiped_readmem[] =
+static WRITE_HANDLER( flip_screen_w )
 {
+	flip_screen_set(data);
+}
+
+static WRITE_HANDLER( centiped_coin_counter_w )
+{
+	coin_counter_w(offset,data);
+}
+
+
+static MEMORY_READ_START( centiped_readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },
 	{ 0x0400, 0x07ff, MRA_RAM },
 	{ 0x0800, 0x0800, input_port_4_r },	/* DSW1 */
@@ -237,12 +247,10 @@ static struct MemoryReadAddress centiped_readmem[] =
 	{ 0x1700, 0x173f, atari_vg_earom_r },
 	{ 0x2000, 0x3fff, MRA_ROM },
 	{ 0xf800, 0xffff, MRA_ROM },	/* for the reset / interrupt vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /* Same as the regular one, except it uses an AY8910 and an external RNG */
-static struct MemoryReadAddress centipdb_readmem[] =
-{
+static MEMORY_READ_START( centipdb_readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },
 	{ 0x0400, 0x07ff, MRA_RAM },
 	{ 0x0800, 0x0800, input_port_4_r },	/* DSW1 */
@@ -256,11 +264,9 @@ static struct MemoryReadAddress centipdb_readmem[] =
 	{ 0x1780, 0x1780, centipdb_rand_r },
 	{ 0x2000, 0x3fff, MRA_ROM },
 	{ 0xf800, 0xffff, MRA_ROM },	/* for the reset / interrupt vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryReadAddress centipb2_readmem[] =
-{
+static MEMORY_READ_START( centipb2_readmem )
 	{ 0x0000, 0x03ff, MRA_RAM },
 	{ 0x0400, 0x07ff, MRA_RAM },
 	{ 0x0800, 0x0800, input_port_4_r },	/* DSW1 */
@@ -274,11 +280,9 @@ static struct MemoryReadAddress centipb2_readmem[] =
 	{ 0x2000, 0x3fff, MRA_ROM },
 	{ 0x6000, 0x67ff, MRA_ROM },
 	{ 0xf800, 0xffff, MRA_ROM },	/* for the reset / interrupt vectors */
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress centiped_writemem[] =
-{
+static MEMORY_WRITE_START( centiped_writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x0400, 0x07bf, videoram_w, &videoram, &videoram_size },
 	{ 0x07c0, 0x07ff, MWA_RAM, &spriteram },
@@ -287,17 +291,15 @@ static struct MemoryWriteAddress centiped_writemem[] =
 	{ 0x1600, 0x163f, atari_vg_earom_w },
 	{ 0x1680, 0x1680, atari_vg_earom_ctrl_w },
 	{ 0x1800, 0x1800, MWA_NOP },	/* IRQ acknowldege */
-	{ 0x1c00, 0x1c02, coin_counter_w },
+	{ 0x1c00, 0x1c02, centiped_coin_counter_w },
 	{ 0x1c03, 0x1c04, centiped_led_w },
 	{ 0x1c07, 0x1c07, flip_screen_w },
 	{ 0x2000, 0x2000, watchdog_reset_w },
 	{ 0x2000, 0x3fff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 /* Same as the regular one, except it uses an AY8910 */
-static struct MemoryWriteAddress centipdb_writemem[] =
-{
+static MEMORY_WRITE_START( centipdb_writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x0400, 0x07bf, videoram_w, &videoram, &videoram_size },
 	{ 0x07c0, 0x07ff, MWA_RAM, &spriteram },
@@ -306,16 +308,14 @@ static struct MemoryWriteAddress centipdb_writemem[] =
 	{ 0x1600, 0x163f, atari_vg_earom_w },
 	{ 0x1680, 0x1680, atari_vg_earom_ctrl_w },
 	{ 0x1800, 0x1800, MWA_NOP },	/* IRQ acknowldege */
-	{ 0x1c00, 0x1c02, coin_counter_w },
+	{ 0x1c00, 0x1c02, centiped_coin_counter_w },
 	{ 0x1c03, 0x1c04, centiped_led_w },
 	{ 0x1c07, 0x1c07, flip_screen_w },
 	{ 0x2000, 0x2000, watchdog_reset_w },
 	{ 0x2000, 0x3fff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
-static struct MemoryWriteAddress centipb2_writemem[] =
-{
+static MEMORY_WRITE_START( centipb2_writemem )
 	{ 0x0000, 0x03ff, MWA_RAM },
 	{ 0x0400, 0x07bf, videoram_w, &videoram, &videoram_size },
 	{ 0x07c0, 0x07ff, MWA_RAM, &spriteram },
@@ -325,14 +325,13 @@ static struct MemoryWriteAddress centipb2_writemem[] =
 	{ 0x1600, 0x163f, atari_vg_earom_w },
 	{ 0x1680, 0x1680, atari_vg_earom_ctrl_w },
 	{ 0x1800, 0x1800, MWA_NOP },	/* IRQ acknowldege */
-	{ 0x1c00, 0x1c02, coin_counter_w },
+	{ 0x1c00, 0x1c02, centiped_coin_counter_w },
 	{ 0x1c03, 0x1c04, centiped_led_w },
 	{ 0x1c07, 0x1c07, flip_screen_w },
 	{ 0x2000, 0x2000, watchdog_reset_w },
 	{ 0x2000, 0x3fff, MWA_ROM },
 	{ 0x6000, 0x67ff, MWA_ROM },
-	{ -1 }	/* end of table */
-};
+MEMORY_END
 
 
 /* The input ports are identical for the real one and the bootleg one, except
@@ -561,46 +560,46 @@ DRIVER(centipb2, SOUND_AY8910, &centipb2_ay8910_interface)
 ***************************************************************************/
 
 ROM_START( centiped )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "centiped.307", 0x2000, 0x0800, 0x5ab0d9de )
 	ROM_LOAD( "centiped.308", 0x2800, 0x0800, 0x4c07fd3e )
 	ROM_LOAD( "centiped.309", 0x3000, 0x0800, 0xff69b424 )
 	ROM_LOAD( "centiped.310", 0x3800, 0x0800, 0x44e40fa4 )
 	ROM_RELOAD(               0xf800, 0x0800 )	/* for the reset and interrupt vectors */
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "centiped.211", 0x0000, 0x0800, 0x880acfb9 )
 	ROM_LOAD( "centiped.212", 0x0800, 0x0800, 0xb1397029 )
 ROM_END
 
 ROM_START( centipd2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "centiped.207", 0x2000, 0x0800, 0xb2909e2f )
 	ROM_LOAD( "centiped.208", 0x2800, 0x0800, 0x110e04ff )
 	ROM_LOAD( "centiped.209", 0x3000, 0x0800, 0xcc2edb26 )
 	ROM_LOAD( "centiped.210", 0x3800, 0x0800, 0x93999153 )
 	ROM_RELOAD(               0xf800, 0x0800 )	/* for the reset and interrupt vectors */
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "centiped.211", 0x0000, 0x0800, 0x880acfb9 )
 	ROM_LOAD( "centiped.212", 0x0800, 0x0800, 0xb1397029 )
 ROM_END
 
 ROM_START( centipdb )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "olympia.c28",  0x2000, 0x0800, 0x8a744e57 )
 	ROM_LOAD( "olympia.c29",  0x2800, 0x0800, 0xbb897b10 )
 	ROM_LOAD( "olympia.c30",  0x3000, 0x0800, 0x2297c2ac )
 	ROM_LOAD( "olympia.c31",  0x3800, 0x0800, 0xcc529d6b )
 	ROM_RELOAD(               0xf800, 0x0800 )	/* for the reset and interrupt vectors */
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "olympia.c32",  0x0000, 0x0800, 0xd91b9724 )
 	ROM_LOAD( "olympia.c33",  0x0800, 0x0800, 0x1a6acd02 )
 ROM_END
 
 ROM_START( centipb2 )
-	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "d1",  		  0x2000, 0x0800, 0xb17b8e0b )
 	ROM_LOAD( "e1",  		  0x2800, 0x0800, 0x7684398e )
 	ROM_LOAD( "h1",  		  0x3000, 0x0800, 0x74580fe4 )
@@ -608,7 +607,7 @@ ROM_START( centipb2 )
 	ROM_RELOAD(               0xf800, 0x0800 )	/* for the reset and interrupt vectors */
 	ROM_LOAD( "k1",  		  0x6000, 0x0800, 0xf1aa329b )
 
-	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x1000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "centiped.211", 0x0000, 0x0800, 0x880acfb9 )
 	ROM_LOAD( "centiped.212", 0x0800, 0x0800, 0xb1397029 )
 ROM_END
