@@ -6,7 +6,7 @@
 ** (c) 1997,1998,1999,2000 Jarek Burczynski (s0246@priv4.onet.pl)
 ** Some of the optimizing ideas by Tatsuyuki Satoh
 **
-** Version 2.121 February, 25th 2000
+** Version 2.140 May, 19th 2000
 **
 **
 ** I would like to thank the following people for making this project possible:
@@ -76,6 +76,6 @@ int YM2151ReadStatus(int n);
 void YM2151SetIrqHandler(int n, void (*handler)(int irq));
 
 /* set port write handler on YM2151 chip number 'n'*/
-void YM2151SetPortWriteHandler(int n, void (*handler)(int offset, int data));
+void YM2151SetPortWriteHandler(int n, mem_write_handler handler);
 
 #endif /*_H_YM2151_*/

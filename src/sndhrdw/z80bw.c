@@ -34,7 +34,7 @@
 #include "driver.h"
 
 
-void invaders_flipscreen_w(int data);
+void invaders_flip_screen_w(int data);
 void invaders_screen_red_w(int data);
 
 
@@ -98,7 +98,7 @@ enum
 
 
 /* LT 20-3-1998 */
-void astinvad_sh_port_4_w(int offset, int data)
+WRITE_HANDLER( astinvad_sh_port_4_w )
 {
 	static int port4State;
 
@@ -136,12 +136,12 @@ void astinvad_sh_port_4_w(int offset, int data)
 	if ( bitsGoneHigh & OUT_PORT_4_INVADERHIT )  PLAY( SND_INVADERHIT, 0 );
 	if ( bitsGoneLow  & OUT_PORT_4_INVADERHIT )  STOP( SND_INVADERHIT );
 
-	if ((bitsChanged & OUT_PORT_4_UNUSED) && errorlog)  fprintf(errorlog, "Snd Port 4 = %02X\n", data & OUT_PORT_4_UNUSED);
+	if ( bitsChanged & OUT_PORT_4_UNUSED ) logerror("Snd Port 4 = %02X\n", data & OUT_PORT_4_UNUSED);
 }
 
 
 
-void astinvad_sh_port_5_w(int offset, int data)
+WRITE_HANDLER( astinvad_sh_port_5_w )
 {
 	static int port5State;
 
@@ -168,8 +168,8 @@ void astinvad_sh_port_5_w(int offset, int data)
 	if ( bitsGoneHigh & OUT_PORT_5_UFO2 )  PLAY( SND_UFO2, 0 );
 	if ( bitsGoneLow  & OUT_PORT_5_UFO2 )  STOP( SND_UFO2 );
 
-	if ( bitsChanged  & OUT_PORT_5_FLIP )  invaders_flipscreen_w(data & 0x20);
+	if ( bitsChanged  & OUT_PORT_5_FLIP )  invaders_flip_screen_w(data & 0x20);
 
-	if ((bitsChanged  & OUT_PORT_5_UNUSED) && errorlog)  fprintf(errorlog, "Snd Port 5 = %02X\n", data & OUT_PORT_5_UNUSED);
+	if ( bitsChanged  & OUT_PORT_5_UNUSED ) logerror("Snd Port 5 = %02X\n", data & OUT_PORT_5_UNUSED);
 }
 

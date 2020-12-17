@@ -45,6 +45,9 @@ struct MachineSound
 #if (HAS_YM2413)
 #include "sound/2413intf.h"
 #endif
+#if (HAS_YMZ280B)
+#include "sound/ymz280b.h"
+#endif
 #if (HAS_SN76477)
 #include "sound/sn76477.h"
 #endif
@@ -170,6 +173,9 @@ enum
 #if (HAS_YM3526)
 	SOUND_YM3526,	/* 100% YM3812 compatible, less features */
 #endif
+#if (HAS_YMZ280B)
+	SOUND_YMZ280B,
+#endif
 #if (HAS_Y8950)
 	SOUND_Y8950,	/* YM3526 compatible with delta-T ADPCM */
 #endif
@@ -279,18 +285,18 @@ int sound_clock(const struct MachineSound *msound);
 int sound_scalebufferpos(int value);
 
 
-void soundlatch_w(int offset,int data);
-int soundlatch_r(int offset);
-void soundlatch_clear_w(int offset,int data);
-void soundlatch2_w(int offset,int data);
-int soundlatch2_r(int offset);
-void soundlatch2_clear_w(int offset,int data);
-void soundlatch3_w(int offset,int data);
-int soundlatch3_r(int offset);
-void soundlatch3_clear_w(int offset,int data);
-void soundlatch4_w(int offset,int data);
-int soundlatch4_r(int offset);
-void soundlatch4_clear_w(int offset,int data);
+WRITE_HANDLER( soundlatch_w );
+READ_HANDLER( soundlatch_r );
+WRITE_HANDLER( soundlatch_clear_w );
+WRITE_HANDLER( soundlatch2_w );
+READ_HANDLER( soundlatch2_r );
+WRITE_HANDLER( soundlatch2_clear_w );
+WRITE_HANDLER( soundlatch3_w );
+READ_HANDLER( soundlatch3_r );
+WRITE_HANDLER( soundlatch3_clear_w );
+WRITE_HANDLER( soundlatch4_w );
+READ_HANDLER( soundlatch4_r );
+WRITE_HANDLER( soundlatch4_clear_w );
 
 /* If you're going to use soundlatchX_clear_w, and the cleared value is
    something other than 0x00, use this function from machine_init. Note

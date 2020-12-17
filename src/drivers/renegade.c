@@ -107,22 +107,22 @@ $8000 - $ffff	ROM
 
 extern void renegade_vh_screenrefresh(struct osd_bitmap *bitmap, int fullrefresh);
 extern int renegade_vh_start( void );
-extern void renegade_scroll0_w( int offset, int data );
-extern void renegade_scroll1_w( int offset, int data );
-extern void renegade_videoram_w( int offset, int data );
-extern void renegade_textram_w( int offset, int data );
-extern void renegade_flipscreen_w( int offset, int data );
+WRITE_HANDLER( renegade_scroll0_w );
+WRITE_HANDLER( renegade_scroll1_w );
+WRITE_HANDLER( renegade_videoram_w );
+WRITE_HANDLER( renegade_textram_w );
+WRITE_HANDLER( renegade_flipscreen_w );
 
 extern unsigned char *renegade_textram;
 
 /********************************************************************************************/
 
-static void adpcm_play_w( int offset, int data ){
+static WRITE_HANDLER( adpcm_play_w ){
 	data -= 0x2c;
 	if( data >= 0 ) ADPCM_play( 0, 0x2000*data, 0x2000*2 );
 }
 
-static void sound_w( int offset, int data ){
+static WRITE_HANDLER( sound_w ){
 	soundlatch_w(offset,data);
 	cpu_cause_interrupt(1,M6809_INT_IRQ);
 }
@@ -166,18 +166,18 @@ void init_renegade( void )
 
 #define MCU_BUFFER_MAX 6
 static unsigned char mcu_buffer[MCU_BUFFER_MAX];
-static int mcu_input_size;
+static size_t mcu_input_size;
 static int mcu_output_byte;
 static int mcu_key;
 
-static int mcu_reset( int offset ){
+static READ_HANDLER( mcu_reset_r ){
 	mcu_key = -1;
 	mcu_input_size = 0;
 	mcu_output_byte = 0;
 	return 0;
 }
 
-static void mcu_w( int offset, int data ){
+static WRITE_HANDLER( mcu_w ){
 	mcu_output_byte = 0;
 
 	if( mcu_key<0 ){
@@ -279,7 +279,7 @@ static void mcu_process_command( void ){
 
 			if( enemy_type<=4 || (enemy_type&1)==0 ) health = 0x18 + difficulty*8;
 			else health = 0x06 + difficulty*2;
-			if (errorlog) fprintf( errorlog, "e_type:0x%02x diff:0x%02x -> 0x%02x\n", enemy_type, difficulty, health );
+			logerror("e_type:0x%02x diff:0x%02x -> 0x%02x\n", enemy_type, difficulty, health );
 			mcu_buffer[0] = 1;
 			mcu_buffer[1] = health;
 		}
@@ -319,12 +319,12 @@ static void mcu_process_command( void ){
 		break;
 
 		default:
-		if( errorlog ) fprintf( errorlog, "unknown MCU command: %02x\n", mcu_buffer[0] );
+		logerror("unknown MCU command: %02x\n", mcu_buffer[0] );
 		break;
 	}
 }
 
-static int mcu_r( int offset ){
+static READ_HANDLER( mcu_r ){
 	int result = 1;
 
 	if( mcu_input_size ) mcu_process_command();
@@ -339,7 +339,7 @@ static int mcu_r( int offset ){
 
 static int bank;
 
-static void bankswitch_w( int offset, int data ){
+static WRITE_HANDLER( bankswitch_w ){
 	if( (data&1)!=bank ){
 		unsigned char *RAM = memory_region(REGION_CPU1);
 		bank = data&1;
@@ -376,7 +376,7 @@ static struct MemoryReadAddress main_readmem[] = {
 	{ 0x3802, 0x3802, input_port_2_r },	/* DIP2 ; various IO ports */
 	{ 0x3803, 0x3803, input_port_3_r },	/* DIP1 */
 	{ 0x3804, 0x3804, mcu_r },
-	{ 0x3805, 0x3805, mcu_reset },
+	{ 0x3805, 0x3805, mcu_reset_r },
 	{ 0x4000, 0x7fff, MRA_BANK1 },
 	{ 0x8000, 0xffff, MRA_ROM },
 	{ -1 }
@@ -620,7 +620,6 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 static void irqhandler(int linestate)
 {
 	cpu_set_irq_line(1,M6809_FIRQ_LINE,linestate);
-	//cpu_cause_interrupt(1,M6809_INT_FIRQ);
 }
 
 static struct YM3526interface ym3526_interface = {
@@ -698,10 +697,13 @@ ROM_START( renegade )
 	ROM_CONTINUE(             0x10000, 0x4000 )
 
 	ROM_REGION( 0x10000, REGION_CPU2 ) /* audio CPU (M6809) */
-	ROM_LOAD( "n0-5.bin",     0x08000, 0x08000, 0x3587de3b )
+	ROM_LOAD( "n0-5.bin",     0x8000, 0x8000, 0x3587de3b )
+
+	ROM_REGION( 0x10000, REGION_CPU3 ) /* mcu (missing) */
+	ROM_LOAD( "mcu",          0x8000, 0x8000, 0x00000000 )
 
 	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "nc-5.bin",     0x00000, 0x8000, 0x9adfaa5d )	/* characters */
+	ROM_LOAD( "nc-5.bin",     0x0000, 0x8000, 0x9adfaa5d )	/* characters */
 
 	ROM_REGION( 0x30000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "n1-5.bin",     0x00000, 0x8000, 0x4a9f47f3 )	/* tiles */
@@ -738,10 +740,13 @@ ROM_START( kuniokun )
 	ROM_CONTINUE(             0x10000, 0x4000 )
 
 	ROM_REGION( 0x10000, REGION_CPU2 ) /* audio CPU (M6809) */
-	ROM_LOAD( "n0-5.bin",     0x08000, 0x08000, 0x3587de3b )
+	ROM_LOAD( "n0-5.bin",     0x8000, 0x8000, 0x3587de3b )
+
+	ROM_REGION( 0x10000, REGION_CPU3 ) /* mcu (missing) */
+	ROM_LOAD( "mcu",          0x8000, 0x8000, 0x00000000 )
 
 	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "ta18-25.bin",  0x00000, 0x8000, 0x9bd2bea3 )	/* characters */
+	ROM_LOAD( "ta18-25.bin",  0x0000, 0x8000, 0x9bd2bea3 )	/* characters */
 
 	ROM_REGION( 0x30000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "ta18-01.bin",  0x00000, 0x8000, 0xdaf15024 )	/* tiles */
@@ -778,10 +783,10 @@ ROM_START( kuniokub )
 	ROM_CONTINUE(             0x10000, 0x4000 )
 
 	ROM_REGION( 0x10000, REGION_CPU2 ) /* audio CPU (M6809) */
-	ROM_LOAD( "n0-5.bin",     0x08000, 0x08000, 0x3587de3b )
+	ROM_LOAD( "n0-5.bin",     0x8000, 0x8000, 0x3587de3b )
 
 	ROM_REGION( 0x08000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "ta18-25.bin",  0x00000, 0x8000, 0x9bd2bea3 )	/* characters */
+	ROM_LOAD( "ta18-25.bin",  0x0000, 0x8000, 0x9bd2bea3 )	/* characters */
 
 	ROM_REGION( 0x30000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "ta18-01.bin",  0x00000, 0x8000, 0xdaf15024 )	/* tiles */

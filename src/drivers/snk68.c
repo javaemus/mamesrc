@@ -7,15 +7,11 @@
 	Street Smart (US version 1)			A8007	SNK 1989
 	Street Smart (US version 2)			A7008	SNK 1989
 	Street Smart (Japan version 1)		A8007	SNK 1989
-	Ikari III	- The Rescue (US)		A7007	SNK 1989
+	Ikari III - The Rescue (US)			A7007	SNK 1989
 
 	For some strange reason version 2 of Street Smart runs on Pow hardware!
 
 	Emulation by Bryan McPhail, mish@tendril.co.uk
-
-	To Do:
-
-	- Fix Ikari III intro.  Priority issue.
 
 ***************************************************************************/
 
@@ -23,26 +19,30 @@
 #include "vidhrdw/generic.h"
 #include "cpu/z80/z80.h"
 
-void pow_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
-void pow_paletteram_w(int offset,int data);
-void pow_flipscreen_w(int offset,int data);
 int  pow_vh_start(void);
-void pow_video_w(int offset,int data);
+int  searchar_vh_start(void);
+int  ikari3_vh_start(void);
+void pow_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
 void searchar_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
+WRITE_HANDLER( pow_paletteram_w );
+WRITE_HANDLER( pow_flipscreen_w );
+WRITE_HANDLER( pow_video_w );
+
+static int invert_controls;
 
 /******************************************************************************/
 
-static int sound_cpu_r(int offset)
+static READ_HANDLER( sound_cpu_r )
 {
 	return 0x0100;
 }
 
-static int pow_video_r(int offset)
+static READ_HANDLER( pow_video_r )
 {
 	return READ_WORD(&videoram[offset]);
 }
 
-static void pow_spriteram_w(int offset, int data)
+static WRITE_HANDLER( pow_spriteram_w )
 {
 	/* DWORD aligned bytes should be $ff */
 	if (offset & 0x02)
@@ -51,56 +51,53 @@ static void pow_spriteram_w(int offset, int data)
 		WRITE_WORD(&spriteram[offset], data | 0xff00);
 }
 
-static int pow_spriteram_r(int offset)
+static READ_HANDLER( pow_spriteram_r )
 {
 	return READ_WORD(&spriteram[offset]);
 }
 
-static int control_1_r(int offset)
+static READ_HANDLER( control_1_r )
 {
 	return (readinputport(0) + (readinputport(1) << 8));
 }
 
-static int control_2_r(int offset)
+static READ_HANDLER( control_2_r )
 {
 	return readinputport(2);
 }
 
-static int dip_1_r(int offset)
+static READ_HANDLER( dip_1_r )
 {
 	return (readinputport(3) << 8);
 }
 
-static int dip_2_r(int offset)
+static READ_HANDLER( dip_2_r )
 {
 	return (readinputport(4) << 8);
 }
 
-static int rotary_1_r(int offset)
+static READ_HANDLER( rotary_1_r )
 {
 	return (( ~(1 << (readinputport(5) * 12 / 256)) )<<8)&0xff00;
 }
 
-static int rotary_2_r(int offset)
+static READ_HANDLER( rotary_2_r )
 {
 	return (( ~(1 << (readinputport(6) * 12 / 256)) )<<8)&0xff00;
 }
 
-static int rotary_lsb_r(int offset)
+static READ_HANDLER( rotary_lsb_r )
 {
 	return ((( ~(1 << (readinputport(6) * 12 / 256))  ) <<4)&0xf000)
     	 + ((( ~(1 << (readinputport(5) * 12 / 256))  )    )&0x0f00);
 }
 
-
-static int invert_controls;
-
-static int protcontrols_r(int offset)
+static READ_HANDLER( protcontrols_r )
 {
 	return readinputport(offset / 2) ^ invert_controls;
 }
 
-static void protection_w(int offset,int data)
+static WRITE_HANDLER( protection_w )
 {
 	/* top byte is used, meaning unknown */
 	/* bottom byte is protection in ikari 3 and streetsm */
@@ -108,7 +105,7 @@ static void protection_w(int offset,int data)
 		invert_controls = ((data & 0xff) == 0x07) ? 0xff : 0x00;
 }
 
-static void sound_w(int offset, int data)
+static WRITE_HANDLER( sound_w )
 {
 	soundlatch_w(0,(data>>8)&0xff);
 	cpu_cause_interrupt(1,Z80_NMI_INT);
@@ -197,7 +194,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ -1 }	/* end of table */
 };
 
-static void D7759_write_port_0_w(int offset, int data)
+static WRITE_HANDLER( D7759_write_port_0_w )
 {
 	UPD7759_reset_w (0,0);
 	UPD7759_message_w(offset,data);
@@ -267,7 +264,7 @@ INPUT_PORTS_START( pow )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Lives ) )
 	PORT_DIPSETTING(    0x00, "2" )
 	PORT_DIPSETTING(    0x10, "3" )
-	PORT_DIPNAME( 0x20, 0x00, "Bonus Occurence" )
+	PORT_DIPNAME( 0x20, 0x00, "Bonus Occurrence" )
 	PORT_DIPSETTING(    0x00, "1st & 2nd only" )
 	PORT_DIPSETTING(    0x20, "1st & every 2nd" )
 	PORT_DIPNAME( 0x40, 0x00, "Language" )
@@ -346,7 +343,7 @@ INPUT_PORTS_START( powj )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Lives ) )
 	PORT_DIPSETTING(    0x00, "2" )
 	PORT_DIPSETTING(    0x10, "3" )
-	PORT_DIPNAME( 0x20, 0x00, "Bonus Occurence" )
+	PORT_DIPNAME( 0x20, 0x00, "Bonus Occurrence" )
 	PORT_DIPSETTING(    0x00, "1st & 2nd only" )
 	PORT_DIPSETTING(    0x20, "1st & every 2nd" )
 	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Unknown ) )
@@ -848,7 +845,7 @@ static struct MachineDriver machine_driver_ikari3 =
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
 	0,
-	pow_vh_start,
+	ikari3_vh_start,
 	0,
 	searchar_vh_screenrefresh,
 
@@ -946,7 +943,7 @@ static struct MachineDriver machine_driver_searchar =
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
 	0,
-	pow_vh_start,
+	searchar_vh_start,
 	0,
 	searchar_vh_screenrefresh,
 
@@ -1262,11 +1259,11 @@ static void init_searchar(void)
 
 /******************************************************************************/
 
-GAMEX( 1988, pow,      0,        pow,      pow,      0,        ROT0,  "SNK", "P.O.W. - Prisoners of War (US)", GAME_NO_COCKTAIL )
-GAMEX( 1988, powj,     pow,      pow,      powj,     0,        ROT0,  "SNK", "Datsugoku - Prisoners of War (Japan)", GAME_NO_COCKTAIL )
-GAMEX( 1989, searchar, 0,        searchar, searchar, searchar, ROT90, "SNK", "SAR - Search And Rescue (World)", GAME_NO_COCKTAIL )
-GAMEX( 1989, sercharu, searchar, searchar, searchar, searchar, ROT90, "SNK", "SAR - Search And Rescue (US)", GAME_NO_COCKTAIL )
-GAMEX( 1989, streetsm, 0,        streetsm, streetsm, 0,        ROT0,  "SNK", "Street Smart (US version 2)", GAME_NO_COCKTAIL )
-GAMEX( 1989, streets1, streetsm, searchar, streetsm, 0,        ROT0,  "SNK", "Street Smart (US version 1)", GAME_NO_COCKTAIL )
-GAMEX( 1989, streetsj, streetsm, searchar, streetsj, 0,        ROT0,  "SNK", "Street Smart (Japan version 1)", GAME_NO_COCKTAIL )
-GAMEX( 1989, ikari3,   0,        ikari3,   ikari3,   searchar, ROT0,  "SNK", "Ikari III - The Rescue", GAME_NO_COCKTAIL )
+GAME( 1988, pow,      0,        pow,      pow,      0,        ROT0,  "SNK", "P.O.W. - Prisoners of War (US)" )
+GAME( 1988, powj,     pow,      pow,      powj,     0,        ROT0,  "SNK", "Datsugoku - Prisoners of War (Japan)" )
+GAME( 1989, searchar, 0,        searchar, searchar, searchar, ROT90, "SNK", "SAR - Search And Rescue (World)" )
+GAME( 1989, sercharu, searchar, searchar, searchar, searchar, ROT90, "SNK", "SAR - Search And Rescue (US)" )
+GAME( 1989, streetsm, 0,        streetsm, streetsm, 0,        ROT0,  "SNK", "Street Smart (US version 2)" )
+GAME( 1989, streets1, streetsm, searchar, streetsm, 0,        ROT0,  "SNK", "Street Smart (US version 1)" )
+GAME( 1989, streetsj, streetsm, searchar, streetsj, 0,        ROT0,  "SNK", "Street Smart (Japan version 1)" )
+GAME( 1989, ikari3,   0,        ikari3,   ikari3,   searchar, ROT0,  "SNK", "Ikari III - The Rescue" )

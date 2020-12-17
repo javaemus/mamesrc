@@ -102,17 +102,15 @@ void mrdo_vh_convert_color_prom(unsigned char *palette, unsigned short *colortab
 
 ***************************************************************************/
 
-static void get_bg_tile_info(int col,int row)
+static void get_bg_tile_info(int tile_index)
 {
-	int tile_index = 32*row+col;
 	unsigned char attr = mrdo_bgvideoram[tile_index];
 	SET_TILE_INFO(1,mrdo_bgvideoram[tile_index+0x400] + ((attr & 0x80) << 1),attr & 0x3f)
 	tile_info.flags = TILE_SPLIT((attr & 0x40) >> 6);
 }
 
-static void get_fg_tile_info(int col,int row)
+static void get_fg_tile_info(int tile_index)
 {
-	int tile_index = 32*row+col;
 	unsigned char attr = mrdo_fgvideoram[tile_index];
 	SET_TILE_INFO(0,mrdo_fgvideoram[tile_index+0x400] + ((attr & 0x80) << 1),attr & 0x3f)
 	tile_info.flags = TILE_SPLIT((attr & 0x40) >> 6);
@@ -128,8 +126,8 @@ static void get_fg_tile_info(int col,int row)
 
 int mrdo_vh_start(void)
 {
-	bg_tilemap = tilemap_create(get_bg_tile_info,TILEMAP_SPLIT, 8,8,32,32);
-	fg_tilemap = tilemap_create(get_fg_tile_info,TILEMAP_SPLIT,  8,8,32,32);
+	bg_tilemap = tilemap_create(get_bg_tile_info,tilemap_scan_rows,TILEMAP_SPLIT,8,8,32,32);
+	fg_tilemap = tilemap_create(get_fg_tile_info,tilemap_scan_rows,TILEMAP_SPLIT,8,8,32,32);
 
 	if (!bg_tilemap || !fg_tilemap)
 		return 1;
@@ -150,37 +148,37 @@ int mrdo_vh_start(void)
 
 ***************************************************************************/
 
-void mrdo_bgvideoram_w(int offset,int data)
+WRITE_HANDLER( mrdo_bgvideoram_w )
 {
 	if (mrdo_bgvideoram[offset] != data)
 	{
 		mrdo_bgvideoram[offset] = data;
-		tilemap_mark_tile_dirty(bg_tilemap,offset%32,(offset&0x3ff)/32);
+		tilemap_mark_tile_dirty(bg_tilemap,offset & 0x3ff);
 	}
 }
 
-void mrdo_fgvideoram_w(int offset,int data)
+WRITE_HANDLER( mrdo_fgvideoram_w )
 {
 	if (mrdo_fgvideoram[offset] != data)
 	{
 		mrdo_fgvideoram[offset] = data;
-		tilemap_mark_tile_dirty(fg_tilemap,offset%32,(offset&0x3ff)/32);
+		tilemap_mark_tile_dirty(fg_tilemap,offset & 0x3ff);
 	}
 }
 
 
-void mrdo_scrollx_w(int offset,int data)
+WRITE_HANDLER( mrdo_scrollx_w )
 {
 	tilemap_set_scrollx(bg_tilemap,0,data);
 }
 
-void mrdo_scrolly_w(int offset,int data)
+WRITE_HANDLER( mrdo_scrolly_w )
 {
 	tilemap_set_scrolly(bg_tilemap,0,data);
 }
 
 
-void mrdo_flipscreen_w(int offset,int data)
+WRITE_HANDLER( mrdo_flipscreen_w )
 {
 	/* bits 1-3 control the playfield priority, but they are not used by */
 	/* Mr. Do! so we don't emulate them */
@@ -210,7 +208,7 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 					spriteram[offs],spriteram[offs + 2] & 0x0f,
 					spriteram[offs + 2] & 0x10,spriteram[offs + 2] & 0x20,
 					spriteram[offs + 3],256 - spriteram[offs + 1],
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 }
@@ -221,7 +219,7 @@ void mrdo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	tilemap_render(ALL_TILEMAPS);
 
-	fillbitmap(bitmap,Machine->pens[0],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 	tilemap_draw(bitmap,bg_tilemap,TILEMAP_FRONT);
 	tilemap_draw(bitmap,fg_tilemap,TILEMAP_FRONT);
 	draw_sprites(bitmap);

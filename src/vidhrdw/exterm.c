@@ -47,12 +47,12 @@ void exterm_init_palette(unsigned char *palette, unsigned short *colortable,cons
 }
 
 
-int exterm_master_videoram_r(int offset)
+READ_HANDLER( exterm_master_videoram_r )
 {
     return READ_WORD(&exterm_master_videoram[offset]);
 }
 
-static void exterm_master_videoram_16_w(int offset, int data)
+static WRITE_HANDLER( exterm_master_videoram_16_w )
 {
 	COMBINE_WORD_MEM(&exterm_master_videoram[offset], data);
 
@@ -61,7 +61,7 @@ static void exterm_master_videoram_16_w(int offset, int data)
 	((unsigned short *)tmpbitmap->line[offset >> 9])[(offset >> 1) & 0xff] = Machine->pens[data];
 }
 
-static void exterm_master_videoram_8_w(int offset, int data)
+static WRITE_HANDLER( exterm_master_videoram_8_w )
 {
 	COMBINE_WORD_MEM(&exterm_master_videoram[offset], data);
 
@@ -70,12 +70,12 @@ static void exterm_master_videoram_8_w(int offset, int data)
 	tmpbitmap->line[offset >> 9][(offset >> 1) & 0xff] = Machine->pens[data];
 }
 
-int exterm_slave_videoram_r(int offset)
+READ_HANDLER( exterm_slave_videoram_r )
 {
     return READ_WORD(&exterm_slave_videoram[offset]);
 }
 
-static void exterm_slave_videoram_16_w(int offset, int data)
+static WRITE_HANDLER( exterm_slave_videoram_16_w )
 {
 	int x,y;
 	unsigned short *pens = Machine->pens;
@@ -92,7 +92,7 @@ static void exterm_slave_videoram_16_w(int offset, int data)
 	((unsigned short *)foreground->line[y])[x+1] = pens[((data >> 8) & 0xff)];
 }
 
-static void exterm_slave_videoram_8_w(int offset, int data)
+static WRITE_HANDLER( exterm_slave_videoram_8_w )
 {
 	int x,y;
 	unsigned short *pens = Machine->pens;
@@ -109,7 +109,7 @@ static void exterm_slave_videoram_8_w(int offset, int data)
 	foreground->line[y][x+1] = pens[((data >> 8) & 0xff)];
 }
 
-void exterm_paletteram_w(int offset, int data)
+WRITE_HANDLER( exterm_paletteram_w )
 {
 	if ((offset == 0xff*2) && (data == 0))
 	{
@@ -201,21 +201,21 @@ void exterm_from_shiftreg_slave(unsigned int address, unsigned short* shiftreg)
 
 int exterm_vh_start(void)
 {
-	if ((tmpbitmap = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		return 1;
 	}
 
-	if ((tmpbitmap1 = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap1 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
+		bitmap_free(tmpbitmap);
 		return 1;
 	}
 
-	if ((tmpbitmap2 = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
-		osd_free_bitmap(tmpbitmap1);
+		bitmap_free(tmpbitmap);
+		bitmap_free(tmpbitmap1);
 		return 1;
 	}
 
@@ -238,9 +238,9 @@ int exterm_vh_start(void)
 
 void exterm_vh_stop (void)
 {
-	osd_free_bitmap(tmpbitmap);
-	osd_free_bitmap(tmpbitmap1);
-	osd_free_bitmap(tmpbitmap2);
+	bitmap_free(tmpbitmap);
+	bitmap_free(tmpbitmap1);
+	bitmap_free(tmpbitmap2);
 }
 
 
@@ -280,9 +280,9 @@ static struct rectangle foregroundvisiblearea =
 
 void exterm_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	if (TMS34010_io_display_blanked(0))
+	if (tms34010_io_display_blanked(0))
 	{
-		fillbitmap(bitmap,palette_transparent_pen,&Machine->drv->visible_area);
+		fillbitmap(bitmap,palette_transparent_pen,&Machine->visible_area);
 		return;
 	}
 
@@ -305,10 +305,10 @@ void exterm_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 	else
 	{
-		copybitmap(bitmap,tmpbitmap, 0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copybitmap(bitmap,tmpbitmap, 0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
-    if (TMS34010_get_DPYSTRT(1) & 0x800)
+    if (tms34010_get_DPYSTRT(1) & 0x800)
 	{
 		copybitmap(bitmap,tmpbitmap2,0,0,0,0,&foregroundvisiblearea,TRANSPARENCY_PEN, palette_transparent_pen);
 	}

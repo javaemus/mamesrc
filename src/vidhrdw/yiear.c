@@ -64,7 +64,7 @@ void yiear_vh_convert_color_prom(unsigned char *palette, unsigned short *colorta
 }
 
 
-void yiear_control_w(int offset,int data)
+WRITE_HANDLER( yiear_control_w )
 {
 	/* bit 0 flips screen */
 	if (flipscreen != (data & 1))
@@ -138,7 +138,7 @@ void yiear_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 
 	/* copy the temporary bitmap to the screen */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* draw sprites */
@@ -168,6 +168,6 @@ void yiear_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			0,
 			flipx,flipy,
 			sx,sy,
-			&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+			&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

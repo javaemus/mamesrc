@@ -18,9 +18,9 @@ extern unsigned char *speedbal_background_videoram;
 extern unsigned char *speedbal_foreground_videoram;
 extern unsigned char *speedbal_sprites_dataram;
 
-extern int speedbal_background_videoram_size;
-extern int speedbal_foreground_videoram_size;
-extern int speedbal_sprites_dataram_size;
+extern size_t speedbal_background_videoram_size;
+extern size_t speedbal_foreground_videoram_size;
+extern size_t speedbal_sprites_dataram_size;
 
 static unsigned char *bg_dirtybuffer;	  /* background tiles */
 static unsigned char *ch_dirtybuffer;	  /* foreground char  */
@@ -94,7 +94,7 @@ int speedbal_vh_start (void)
 	}
 
 	/* foreground bitmap */
-	if ((bitmap_ch = osd_new_bitmap (Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((bitmap_ch = bitmap_alloc (Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		free (bg_dirtybuffer);
 		free (ch_dirtybuffer);
@@ -102,11 +102,11 @@ int speedbal_vh_start (void)
 	}
 
 	/* background bitmap */
-	if ((bitmap_bg = osd_new_bitmap (Machine->drv->screen_width*2,Machine->drv->screen_height*2,Machine->scrbitmap->depth)) == 0)
+	if ((bitmap_bg = bitmap_alloc (Machine->drv->screen_width*2,Machine->drv->screen_height*2)) == 0)
 	{
 		free (bg_dirtybuffer);
 		free (ch_dirtybuffer);
-		osd_free_bitmap (bitmap_ch);
+		bitmap_free (bitmap_ch);
 		return 1;
 	}
 
@@ -118,8 +118,8 @@ int speedbal_vh_start (void)
 
 void speedbal_vh_stop (void)
 {
-	osd_free_bitmap (bitmap_ch);
-	osd_free_bitmap (bitmap_bg);
+	bitmap_free (bitmap_ch);
+	bitmap_free (bitmap_bg);
 	free (bg_dirtybuffer);
 	free (ch_dirtybuffer);
 }
@@ -132,13 +132,13 @@ void speedbal_vh_stop (void)
  *				   *
  *************************************/
 
-void speedbal_foreground_videoram_w (int offset, int data)
+WRITE_HANDLER( speedbal_foreground_videoram_w )
 {
    ch_dirtybuffer[offset] = 1;
    speedbal_foreground_videoram[offset]=data;
 }
 
-int speedbal_foreground_videoram_r (int offset)
+READ_HANDLER( speedbal_foreground_videoram_r )
 {
    return speedbal_foreground_videoram[offset];
 }
@@ -151,13 +151,13 @@ int speedbal_foreground_videoram_r (int offset)
  *				   *
  *************************************/
 
-void speedbal_background_videoram_w (int offset, int data)
+WRITE_HANDLER( speedbal_background_videoram_w )
 {
    bg_dirtybuffer[offset] = 1;
    speedbal_background_videoram[offset] = data;
 }
 
-int speedbal_background_videoram_r (int offset)
+READ_HANDLER( speedbal_background_videoram_r )
 {
    return speedbal_background_videoram[offset];
 }
@@ -199,7 +199,7 @@ void speedbal_draw_sprites (struct osd_bitmap *bitmap)
 				SPTColor,
 				0,0,
 				SPTX,SPTY,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }
 
@@ -384,11 +384,11 @@ palette_init_used_colors();
 
 	// first background
 	speedbal_draw_background (bitmap_bg);
-	copybitmap (bitmap,bitmap_bg,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap (bitmap,bitmap_bg,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	// second characters (general)
 	speedbal_draw_foreground1 (bitmap_ch);
-	copybitmap (bitmap,bitmap_ch,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copybitmap (bitmap,bitmap_ch,0,0,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 	// thirth sprites
 	speedbal_draw_sprites (bitmap);

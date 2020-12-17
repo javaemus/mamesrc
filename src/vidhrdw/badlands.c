@@ -1,40 +1,9 @@
 /***************************************************************************
 
-  vidhrdw/badlands.c
-
-  Functions to emulate the video hardware of the machine.
-
-****************************************************************************
-
-	Playfield encoding
-	------------------
-		1 16-bit word is used
-
-		Word 1:
-			Bits 13-15 = palette
-			Bits  0-12 = image number
-
-
-	Motion Object encoding
-	----------------------
-		4 16-bit words are used
-
-		Word 1:
-			Bits  0-11 = image index
-
-		Word 2:
-			Bits  7-15 = vertical position
-			Bits  0-3  = vertical size of the object, in tiles
-
-		Word 3:
-			Unused
-
-		Word 4:
-			Bits  6-15 = horizontal position
-			Bit   3    = priority
-			Bits  0-2  = motion object palette
+	Atari Bad Lands hardware
 
 ***************************************************************************/
+
 
 #include "driver.h"
 #include "machine/atarigen.h"
@@ -164,7 +133,7 @@ void badlands_scanline_update(int scanline)
  *
  *************************************/
 
-void badlands_pf_bank_w(int offset, int data)
+WRITE_HANDLER( badlands_pf_bank_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -184,7 +153,7 @@ void badlands_pf_bank_w(int offset, int data)
  *
  *************************************/
 
-void badlands_playfieldram_w(int offset, int data)
+WRITE_HANDLER( badlands_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -217,7 +186,7 @@ void badlands_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 		atarigen_overrender_colortable[i] = palette_transparent_pen;
 
 	/* draw the playfield */
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* render the motion objects */
 	atarigen_mo_process(mo_render_callback, bitmap);

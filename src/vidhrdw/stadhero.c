@@ -71,7 +71,7 @@ static void stadhero_drawsprites(struct osd_bitmap *bitmap,int pri_mask,int pri_
 					colour,
 					fx,fy,
 					x,y - 16 * multi,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 
 			multi--;
 		}
@@ -145,7 +145,7 @@ void stadhero_pf2_draw(struct osd_bitmap *bitmap)
 	scrollx = - READ_WORD(&stadhero_pf2_control_1[0]);
 	scrolly = - READ_WORD(&stadhero_pf2_control_1[2]);
 
-	copyscrollbitmap(bitmap,stadhero_pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copyscrollbitmap(bitmap,stadhero_pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }
 
 /******************************************************************************/
@@ -256,33 +256,33 @@ void stadhero_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 		drawgfx(bitmap,Machine->gfx[0],
 				tile&0xfff,color,0,0,8*mx,8*my,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }
 
 /******************************************************************************/
 
-void stadhero_pf1_data_w(int offset,int data)
+WRITE_HANDLER( stadhero_pf1_data_w )
 {
 	COMBINE_WORD_MEM(&stadhero_pf1_data[offset],data);
 }
 
-int stadhero_pf1_data_r(int offset)
+READ_HANDLER( stadhero_pf1_data_r )
 {
 	return READ_WORD(&stadhero_pf1_data[offset]);
 }
 
-void stadhero_pf2_control_0_w(int offset,int data)
+WRITE_HANDLER( stadhero_pf2_control_0_w )
 {
 	COMBINE_WORD_MEM(&stadhero_pf2_control_0[offset],data);
 }
 
-void stadhero_pf2_control_1_w(int offset,int data)
+WRITE_HANDLER( stadhero_pf2_control_1_w )
 {
 	COMBINE_WORD_MEM(&stadhero_pf2_control_1[offset],data);
 }
 
-void stadhero_pf2_data_w(int offset,int data)
+WRITE_HANDLER( stadhero_pf2_data_w )
 {
 	int oldword = READ_WORD(&stadhero_pf2_data[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -294,7 +294,7 @@ void stadhero_pf2_data_w(int offset,int data)
 	}
 }
 
-int stadhero_pf2_data_r(int offset)
+READ_HANDLER( stadhero_pf2_data_r )
 {
 	return READ_WORD(&stadhero_pf2_data[offset]);
 }
@@ -303,13 +303,13 @@ int stadhero_pf2_data_r(int offset)
 
 void stadhero_vh_stop (void)
 {
-	osd_free_bitmap(stadhero_pf2_bitmap);
+	bitmap_free(stadhero_pf2_bitmap);
 	free(stadhero_pf2_dirty);
 }
 
 int stadhero_vh_start (void)
 {
-	if ((stadhero_pf2_bitmap = osd_create_bitmap(1024,1024)) == 0) {
+	if ((stadhero_pf2_bitmap = bitmap_alloc(1024,1024)) == 0) {
 		stadhero_vh_stop ();
 		return 1;
 	}

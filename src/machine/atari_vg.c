@@ -15,17 +15,15 @@ static int earom_offset;
 static int earom_data;
 static char earom[EAROM_SIZE];
 
-int atari_vg_earom_r (int offset)
+READ_HANDLER( atari_vg_earom_r )
 {
-	if (errorlog)
-		fprintf (errorlog, "read earom: %02x(%02x):%02x\n", earom_offset, offset, earom_data);
+	logerror("read earom: %02x(%02x):%02x\n", earom_offset, offset, earom_data);
 	return (earom_data);
 }
 
-void atari_vg_earom_w (int offset, int data)
+WRITE_HANDLER( atari_vg_earom_w )
 {
-	if (errorlog)
-		fprintf (errorlog, "write earom: %02x:%02x\n", offset, data);
+	logerror("write earom: %02x:%02x\n", offset, data);
 	earom_offset = offset;
 	earom_data = data;
 }
@@ -33,10 +31,9 @@ void atari_vg_earom_w (int offset, int data)
 /* 0,8 and 14 get written to this location, too.
  * Don't know what they do exactly
  */
-void atari_vg_earom_ctrl (int offset, int data)
+WRITE_HANDLER( atari_vg_earom_ctrl_w )
 {
-	if (errorlog)
-		fprintf (errorlog, "earom ctrl: %02x:%02x\n",offset, data);
+	logerror("earom ctrl: %02x:%02x\n",offset, data);
 	/*
 		0x01 = clock
 		0x02 = set data latch? - writes only (not always)
@@ -48,8 +45,7 @@ void atari_vg_earom_ctrl (int offset, int data)
 	if ((data & 0x0c) == 0x0c)
 	{
 		earom[earom_offset]=earom_data;
-		if (errorlog)
-			fprintf (errorlog, "    written %02x:%02x\n", earom_offset, earom_data);
+		logerror("    written %02x:%02x\n", earom_offset, earom_data);
 	}
 }
 

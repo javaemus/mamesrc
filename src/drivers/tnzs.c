@@ -188,17 +188,17 @@ void init_chukatai(void);
 void init_tnzs(void);
 void init_insectx(void);
 void init_kageki(void);
-int arkanoi2_sh_f000_r(int offs);
+READ_HANDLER( arkanoi2_sh_f000_r );
 void tnzs_init_machine(void);
 int tnzs_interrupt (void);
-int tnzs_mcu_r(int offset);
-int tnzs_workram_r(int offset);
-int tnzs_workram_sub_r(int offset);
-void tnzs_workram_w(int offset, int data);
-void tnzs_workram_sub_w(int offset, int data);
-void tnzs_mcu_w(int offset, int data);
-void tnzs_bankswitch_w(int offset, int data);
-void tnzs_bankswitch1_w(int offset, int data);
+READ_HANDLER( tnzs_mcu_r );
+READ_HANDLER( tnzs_workram_r );
+READ_HANDLER( tnzs_workram_sub_r );
+WRITE_HANDLER( tnzs_workram_w );
+WRITE_HANDLER( tnzs_workram_sub_w );
+WRITE_HANDLER( tnzs_mcu_w );
+WRITE_HANDLER( tnzs_bankswitch_w );
+WRITE_HANDLER( tnzs_bankswitch1_w );
 
 
 /* prototypes for functions in ../vidhrdw/tnzs.c */
@@ -259,7 +259,7 @@ int kageki_init_samples(const struct MachineSound *msound)
 		{
 			*dest++ = ((*scan++) ^ 0x80);
 		}
-	//	if (errorlog) fprintf(errorlog, "samples num:%02X ofs:%04X lng:%04X\n", i, start, size);
+	//	logerror("samples num:%02X ofs:%04X lng:%04X\n", i, start, size);
 	}
 
 	return 0;
@@ -267,7 +267,7 @@ int kageki_init_samples(const struct MachineSound *msound)
 
 
 static int kageki_csport_sel = 0;
-static int kageki_csport_r(int offset)
+static READ_HANDLER( kageki_csport_r )
 {
 	int	dsw, dsw1, dsw2;
 
@@ -290,13 +290,13 @@ static int kageki_csport_r(int offset)
 			break;
 		default:
 			dsw = 0x00;
-		//	if (errorlog) fprintf(errorlog, "kageki_csport_sel error !! (0x%08X)\n", kageki_csport_sel);
+		//	logerror("kageki_csport_sel error !! (0x%08X)\n", kageki_csport_sel);
 	}
 
 	return (dsw & 0xff);
 }
 
-static void kageki_csport_w(int offset, int data)
+static WRITE_HANDLER( kageki_csport_w )
 {
 	char mess[80];
 
@@ -401,7 +401,7 @@ static struct MemoryWriteAddress kageki_sub_writemem[] =
 
 /* the bootleg board is different, it has a third CPU (and of course no mcu) */
 
-static void tnzsb_sound_command_w(int offset,int data)
+static WRITE_HANDLER( tnzsb_sound_command_w )
 {
 	soundlatch_w(offset,data);
 	cpu_cause_interrupt(2,0xff);

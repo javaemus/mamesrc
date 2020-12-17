@@ -43,11 +43,11 @@ void twin16_vh_stop( void ){
 
 /******************************************************************************************/
 
-void fround_gfx_bank_w( int offset, int data ){
+WRITE_HANDLER( fround_gfx_bank_w ){
 	gfx_bank = COMBINE_WORD(gfx_bank,data);
 }
 
-void twin16_video_register_w( int offset, int data ){
+WRITE_HANDLER( twin16_video_register_w ){
 	switch( offset ){
 		case 0x0: COMBINE_WORD_MEM( &video_register, data ); break;
 		case 0x2: COMBINE_WORD_MEM( &scrollx[0], data ); break;
@@ -58,7 +58,7 @@ void twin16_video_register_w( int offset, int data ){
 		case 0xc: COMBINE_WORD_MEM( &scrolly[2], data ); break;
 
 		case 0xe:
-		if( errorlog ) fprintf( errorlog, "unknown video_register write:%d", data );
+		logerror("unknown video_register write:%d", data );
 		break;
 	}
 }
@@ -66,7 +66,7 @@ void twin16_video_register_w( int offset, int data ){
 /******************************************************************************************/
 
 static void draw_text( struct osd_bitmap *bitmap ){
-	const struct rectangle *clip = &Machine->drv->visible_area;
+	const struct rectangle *clip = &Machine->visible_area;
 	const UINT16 *source = (UINT16 *)twin16_fixram;
 	int i;
 

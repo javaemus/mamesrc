@@ -92,7 +92,7 @@ void mikie_vh_convert_color_prom(unsigned char *palette, unsigned short *colorta
 
 
 
-void mikie_palettebank_w(int offset,int data)
+WRITE_HANDLER( mikie_palettebank_w )
 {
 	if (palettebank != (data & 7))
 	{
@@ -101,7 +101,7 @@ void mikie_palettebank_w(int offset,int data)
 	}
 }
 
-void mikie_flipscreen_w(int offset,int data)
+WRITE_HANDLER( mikie_flipscreen_w )
 {
 	if (flipscreen != (data & 1))
 	{
@@ -151,12 +151,12 @@ void mikie_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					(colorram[offs] & 0x0f) + 16 * palettebank,
 					flipx,flipy,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
 
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* Draw the sprites. */
@@ -180,6 +180,6 @@ void mikie_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				(spriteram[offs] & 0x0f) + 16 * palettebank,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

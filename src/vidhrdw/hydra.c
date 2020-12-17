@@ -216,7 +216,7 @@ void hydra_vh_stop(void)
  *
  *************************************/
 
-void hydra_playfieldram_w(int offset, int data)
+WRITE_HANDLER( hydra_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -236,9 +236,9 @@ void hydra_playfieldram_w(int offset, int data)
  *
  *************************************/
 
-void hydra_mo_control_w(int offset, int data)
+WRITE_HANDLER( hydra_mo_control_w )
 {
-	if (errorlog) fprintf(errorlog, "MOCONT = %d (scan = %d)\n", data, cpu_getscanline());
+	logerror("MOCONT = %d (scan = %d)\n", data, cpu_getscanline());
 
 	/* set the control value */
 	current_control = data;
@@ -250,7 +250,7 @@ void hydra_scanline_update(int scanline)
 	UINT16 *base = (UINT16 *)&atarigen_alpharam[((scanline / 8) * 64 + 47) * 2];
 	int i;
 
-if (scanline == 0 && errorlog) fprintf(errorlog, "-------\n");
+	if (scanline == 0) logerror("-------\n");
 
 	/* keep in range */
 	if ((UINT8 *)base >= &atarigen_alpharam[atarigen_alpharam_size])
@@ -320,7 +320,7 @@ void hydra_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 				break;
 		if (x == 5)
 		{
-			if (errorlog) fprintf(errorlog, "Wrote checksums\n");
+			logerror("Wrote checksums\n");
 			for (x = 0; x < 16; x++)
 				WRITE_WORD(&atarigen_spriteram[x * 2], mo_checksum[x]);
 		}
@@ -332,7 +332,7 @@ void hydra_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 
 	/* draw the playfield */
 	memset(atarigen_pf_visit, 0, 64*64);
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* draw the motion objects */
 	modata.xhold = 1000;
@@ -391,14 +391,14 @@ static const UINT8 *update_palette(void)
 	palette_init_used_colors();
 
 	/* update color usage for the playfield */
-	atarigen_pf_process(pf_color_callback, pf_map, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_color_callback, pf_map, &Machine->visible_area);
 
 	/* update color usage for the mo's */
 	for (j = 0; j < 256; j++)
 	{
 		int priority = READ_WORD(&atarigen_spriteram[j * 16 + hydra_mo_priority_offset]) & 0xff;
 		if (priority != 0)
-			mo_color_callback((const UINT16 *)&atarigen_spriteram[j * 16], &Machine->drv->visible_area, mo_map);
+			mo_color_callback((const UINT16 *)&atarigen_spriteram[j * 16], &Machine->visible_area, mo_map);
 	}
 
 	/* update color usage for the alphanumerics */

@@ -40,13 +40,14 @@ static struct rectangle* spritevisibleareaflipx;
 unsigned char *galaxian_attributesram;
 unsigned char *galaxian_bulletsram;
 
-int galaxian_bulletsram_size;
+size_t galaxian_bulletsram_size;
 static int stars_on,stars_blink;
 static int stars_type;		/* -1 = no stars */
 							/*  0 = Galaxian stars */
 						    /*  1 = Scramble stars */
 						    /*  2 = Rescue stars (same as Scramble, but only half screen) */
 						    /*  3 = Mariner stars (same as Galaxian, but some parts are blanked */
+						    /*  5 = Jumpbug stars */
 static unsigned int stars_scroll;
 static int color_mask;
 
@@ -59,14 +60,13 @@ static int total_stars;
 static void (*modify_charcode  )(int*,int);            /* function to call to do character banking */
 static void (*modify_spritecode)(int*,int*,int*,int);  /* function to call to do sprite banking */
 static int mooncrst_gfxextend;
-static int pisces_gfxbank;
-static int jumpbug_gfxbank[5];
-static int flipscreen[2];
+static data_t pisces_gfxbank;
+static data_t jumpbug_gfxbank[5];
 
-static int background_on;
+static data_t background_on;
 static unsigned char backcolor[256];
 
-static void mooncrgx_gfxextend_w      (int offset,int data);
+static WRITE_HANDLER( mooncrgx_gfxextend_w );
 
 static void mooncrst_modify_charcode  (int *charcode,int offs);
 static void  moonqsr_modify_charcode  (int *charcode,int offs);
@@ -85,8 +85,7 @@ static void  jumpbug_modify_spritecode(int *spritecode,int *flipx,int *flipy,int
 
   Convert the color PROMs into a more useable format.
 
-  Moon Cresta has one 32 bytes palette PROM, connected to the RGB output
-  this way:
+  Galaxian has one 32 bytes palette PROM, connected to the RGB output this way:
 
   bit 7 -- 220 ohm resistor  -- BLUE
         -- 470 ohm resistor  -- BLUE
@@ -252,22 +251,29 @@ void mariner_vh_convert_color_prom(unsigned char *palette, unsigned short *color
 {
 	int i;
 
-
     galaxian_vh_convert_color_prom(palette, colortable, color_prom);
 
 	/* set up background colors */
 
-   	/* nine shades of blue */
+   	/* 16 shades of blue - the 4 bits are connected to the following resistors
 
-	palette[96*3 + 0] = 0;
-	palette[96*3 + 1] = 0;
-	palette[96*3 + 2] = 0;
+  		bit 0 -- 4.7 kohm resistor
+        	  -- 2.2 kohm resistor
+        	  -- 1   kohm resistor
+  		bit 0 -- .47 kohm resistor */
 
-   	for (i = 1; i < 10; i++)
+   	for (i = 0; i < 16; i++)
     {
+		int bit0,bit1,bit2,bit3;
+
+		bit0 = (i >> 0) & 0x01;
+		bit1 = (i >> 1) & 0x01;
+		bit2 = (i >> 2) & 0x01;
+		bit3 = (i >> 3) & 0x01;
+
 		palette[96*3 + i*3 + 0] = 0;
        	palette[96*3 + i*3 + 1] = 0;
-       	palette[96*3 + i*3 + 2] = 0xea - 0x15 * (i - 1);
+       	palette[96*3 + i*3 + 2] = 0x0e * bit0 + 0x1f * bit1 + 0x43 * bit2 + 0x8f * bit3;
     }
 }
 
@@ -309,8 +315,8 @@ static int common_vh_start(void)
 
 	mooncrst_gfxextend = 0;
 	stars_on = 0;
-	flipscreen[0] = 0;
-	flipscreen[1] = 0;
+	flip_screen_x_w(0, 0);
+	flip_screen_y_w(0, 0);
 
 	if (generic_vh_start() != 0)
 		return 1;
@@ -528,25 +534,32 @@ int calipso_vh_start(void)
 int mariner_vh_start(void)
 {
 	int x;
+	unsigned char *background_prom;
+
 
 	int ret = common_vh_start();
 
 	stars_type = 3;
 	modify_charcode = mariner_modify_charcode;
 
-    /* Setup background color array (blue water) */
 
-    for (x=0;  x<63; x++) backcolor[x] = 0;
-    for (x=63; x<71; x++) backcolor[x] = 1;
-    for (x=71; x<79; x++) backcolor[x] = 2;
-    for (x=79; x<87; x++) backcolor[x] = 3;
-    for (x=87; x<95; x++) backcolor[x] = 4;
-    for (x=95; x<111;x++) backcolor[x] = 5;
-    for (x=111;x<135;x++) backcolor[x] = 6;
-    for (x=135;x<167;x++) backcolor[x] = 7;
-    for (x=167;x<207;x++) backcolor[x] = 8;
-    for (x=207;x<247;x++) backcolor[x] = 9;
-    for (x=247;x<256;x++) backcolor[x] = 0;
+    /* setup background color array (blue water).
+       The 2nd 32 bytes of the PROM is for the flipped screen,
+       it's emulated indirectly */
+
+	background_prom = memory_region(REGION_USER1);
+
+	for (x = 1; x < 32; x++)
+	{
+		int i;
+
+		for (i = 0; i < 8; i++)
+		{
+			backcolor[(x-1)*8+i] = background_prom[x];
+		}
+	}
+
+    for (x=248;x<256;x++) backcolor[x] = 0;
 
     decode_background();
 
@@ -558,7 +571,9 @@ int mariner_vh_start(void)
 
 int jumpbug_vh_start(void)
 {
-	int ret = galaxian_vh_start();
+	int ret = common_vh_start();
+
+	stars_type = 5;
 
 	modify_charcode   = jumpbug_modify_charcode;
 	modify_spritecode = jumpbug_modify_spritecode;
@@ -576,32 +591,7 @@ int zigzag_vh_start(void)
 
 
 
-void galaxian_flipx_w(int offset,int data)
-{
-	if (flipscreen[0] != (data & 1))
-	{
-		flipscreen[0] = data & 1;
-		memset(dirtybuffer,1,videoram_size);
-	}
-}
-
-void galaxian_flipy_w(int offset,int data)
-{
-	if (flipscreen[1] != (data & 1))
-	{
-		flipscreen[1] = data & 1;
-		memset(dirtybuffer,1,videoram_size);
-	}
-}
-
-void hotshock_flipscreen_w(int offset,int data)
-{
-	galaxian_flipx_w(offset, data);
-	galaxian_flipy_w(offset, data);
-}
-
-
-void galaxian_attributes_w(int offset,int data)
+WRITE_HANDLER( galaxian_attributes_w )
 {
 	if ((offset & 1) && galaxian_attributesram[offset] != data)
 	{
@@ -616,31 +606,34 @@ void galaxian_attributes_w(int offset,int data)
 }
 
 
-void scramble_background_w(int offset, int data)
+WRITE_HANDLER( scramble_background_w )
 {
-	if (background_on != data)
-    {
-		background_on = data;
-		memset(dirtybuffer,1,videoram_size);
-    }
+	set_vh_global_attribute( &background_on, data & 1 );
 }
 
 
-void galaxian_stars_w(int offset,int data)
+WRITE_HANDLER( galaxian_stars_w )
 {
 	stars_on = (data & 1);
 	stars_scroll = 0;
 }
 
 
-void mooncrst_gfxextend_w(int offset,int data)
+WRITE_HANDLER( mooncrst_gfxextend_w )
 {
+	int last = mooncrst_gfxextend;
+
 	if (data) mooncrst_gfxextend |= (1 << offset);
 	else mooncrst_gfxextend &= ~(1 << offset);
+
+	if (last != mooncrst_gfxextend)
+	{
+		schedule_full_refresh();
+	}
 }
 
 
-static void mooncrgx_gfxextend_w(int offset,int data)
+static WRITE_HANDLER( mooncrgx_gfxextend_w )
 {
   /* for the Moon Cresta bootleg on Galaxian H/W the gfx_extend is
      located at 0x6000-0x6002.  Also, 0x6000 and 0x6001 are reversed. */
@@ -651,22 +644,14 @@ static void mooncrgx_gfxextend_w(int offset,int data)
 	mooncrst_gfxextend_w(offset, data);
 }
 
-void pisces_gfxbank_w(int offset,int data)
+WRITE_HANDLER( pisces_gfxbank_w )
 {
-	if (pisces_gfxbank != (data & 1))
-	{
-		pisces_gfxbank = data & 1;
-		memset(dirtybuffer,1,videoram_size);
-	}
+	set_vh_global_attribute( &pisces_gfxbank, data & 1 );
 }
 
-void jumpbug_gfxbank_w(int offset,int data)
+WRITE_HANDLER( jumpbug_gfxbank_w )
 {
-	if (jumpbug_gfxbank[offset] != data)
-	{
-		jumpbug_gfxbank[offset] = data;
-		memset(dirtybuffer,1,videoram_size);
-	}
+	set_vh_global_attribute( &jumpbug_gfxbank[offset], data & 1 );
 }
 
 
@@ -676,11 +661,11 @@ INLINE void plot_star(struct osd_bitmap *bitmap, int x, int y, int code)
 
 	backcol = backcolor[x];
 
-	if (flipscreen[0])
+	if (flip_screen_x)
 	{
 		x = 255 - x;
 	}
-	if (flipscreen[1])
+	if (flip_screen_y)
 	{
 		y = 255 - y;
 	}
@@ -810,6 +795,11 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int i,offs;
 
+	if (full_refresh)
+	{
+		memset(dirtybuffer, 1, videoram_size);
+	}
+
 	/* for every character in the Video RAM, check if it has been modified */
 	/* since last time and update it accordingly. */
 	for (offs = videoram_size - 1;offs >= 0;offs--)
@@ -828,8 +818,8 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 			charcode = videoram[offs];
 
-			if (flipscreen[0]) sx = 31 - sx;
-			if (flipscreen[1]) sy = 31 - sy;
+			if (flip_screen_x) sx = 31 - sx;
+			if (flip_screen_y) sy = 31 - sy;
 
 			if (modify_charcode)
 			{
@@ -843,7 +833,7 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
  			    drawgfx(tmpbitmap,Machine->gfx[3],
 					    background_charcode,
 					    0,
-					    flipscreen[0],flipscreen[1],
+					    flip_screen_x,flip_screen_y,
 					    8*sx,8*sy,
 					    0,TRANSPARENCY_NONE,0);
 			}
@@ -851,7 +841,7 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
  			drawgfx(tmpbitmap,Machine->gfx[0],
 				    charcode,
 					galaxian_attributesram[2 * (offs % 32) + 1] & color_mask,
-				    flipscreen[0],flipscreen[1],
+				    flip_screen_x,flip_screen_y,
 				    8*sx,8*sy,
 				    0, background_on ? TRANSPARENCY_COLOR : TRANSPARENCY_NONE, 0);
 		}
@@ -863,12 +853,12 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		int scroll[32];
 
 
-		if (flipscreen[0])
+		if (flip_screen_x)
 		{
 			for (i = 0;i < 32;i++)
 			{
 				scroll[31-i] = -galaxian_attributesram[2 * i];
-				if (flipscreen[1]) scroll[31-i] = -scroll[31-i];
+				if (flip_screen_y) scroll[31-i] = -scroll[31-i];
 			}
 		}
 		else
@@ -876,11 +866,11 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			for (i = 0;i < 32;i++)
 			{
 				scroll[i] = -galaxian_attributesram[2 * i];
-				if (flipscreen[1]) scroll[i] = -scroll[i];
+				if (flip_screen_y) scroll[i] = -scroll[i];
 			}
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -896,14 +886,14 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 		x = 255 - galaxian_bulletsram[offs + 3] - Machine->drv->gfxdecodeinfo[2].gfxlayout->width;
 		y = 255 - galaxian_bulletsram[offs + 1];
-		if (flipscreen[1]) y = 255 - y;
+		if (flip_screen_y) y = 255 - y;
 
 		drawgfx(bitmap,Machine->gfx[2],
 				0,	/* this is just a line, generated by the hardware */
 				color,
 				0,0,
 				x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 
 
@@ -926,14 +916,14 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			modify_spritecode(&spritecode, &flipx, &flipy, offs);
 		}
 
-		if (flipscreen[0])
+		if (flip_screen_x)
 		{
 			sx = 240 - sx;	/* I checked a bunch of games including Scramble
 							   (# of pixels the ship is from the top of the mountain),
 			                   Mariner and Checkman. This is correct for them */
 			flipx = !flipx;
 		}
-		if (flipscreen[1])
+		if (flip_screen_y)
 		{
 			sy = 240 - sy;
 			flipy = !flipy;
@@ -954,7 +944,7 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				spriteram[offs + 2] & color_mask,
 				flipx,flipy,
 				sx,sy,
-				flipscreen[0] ? spritevisibleareaflipx : spritevisiblearea,TRANSPARENCY_PEN,0);
+				flip_screen_x ? spritevisibleareaflipx : spritevisiblearea,TRANSPARENCY_PEN,0);
 	}
 
 
@@ -976,8 +966,8 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				x = ((stars[offs].x + stars_scroll) % 512) / 2;
 				y = (stars[offs].y + (stars_scroll + stars[offs].x) / 512) % 256;
 
-				if (y >= Machine->drv->visible_area.min_y &&
-					y <= Machine->drv->visible_area.max_y)
+				if (y >= Machine->visible_area.min_y &&
+					y <= Machine->visible_area.max_y)
 				{
 					/* No stars below row (column) 64, between rows 176 and 215 or
 					   between 224 and 247 */
@@ -1004,13 +994,52 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				x = stars[offs].x / 2;
 				y = stars[offs].y;
 
-				if (y >= Machine->drv->visible_area.min_y &&
-					y <= Machine->drv->visible_area.max_y)
+				if (y >= Machine->visible_area.min_y &&
+					y <= Machine->visible_area.max_y)
 				{
 					if ((stars_type != 2 || x < 128) &&	/* draw only half screen in Rescue */
 					   ((y & 1) ^ ((x >> 4) & 1)))
 					{
 						/* Determine when to skip plotting */
+						switch (stars_blink)
+						{
+						case 0:
+							if (!(stars[offs].code & 1))  continue;
+							break;
+						case 1:
+							if (!(stars[offs].code & 4))  continue;
+							break;
+						case 2:
+							if (!(stars[offs].x & 4))  continue;
+							break;
+						case 3:
+							/* Always plot */
+							break;
+						}
+						plot_star(bitmap, x, y, stars[offs].code);
+					}
+				}
+			}
+			break;
+
+		case 5:	/* Jumpbug stars */
+			for (offs = 0;offs < total_stars;offs++)
+			{
+				int x,y;
+
+
+				x = ((stars[offs].x + stars_scroll) % 512) / 2;
+				y = (stars[offs].y + (stars_scroll + stars[offs].x) / 512) % 256;
+
+				if (y >= Machine->visible_area.min_y &&
+					y <= Machine->visible_area.max_y)
+				{
+					/* no stars in the status area */
+					if (x >= 240)  continue;
+
+					/* Determine when to skip plotting */
+					if ((y & 1) ^ ((x >> 4) & 1))
+					{
 						switch (stars_blink)
 						{
 						case 0:
@@ -1079,4 +1108,21 @@ int hunchbks_vh_interrupt(void)
 	cpu_set_irq_line(0,0,PULSE_LINE);
 
 	return ignore_interrupt();
+}
+
+int jumpbug_vh_interrupt(void)
+{
+	static int blink_count;
+
+
+	stars_scroll++;
+
+	blink_count++;
+	if (blink_count >= 45)
+	{
+		blink_count = 0;
+		stars_blink = (stars_blink + 1) & 3;
+	}
+
+	return nmi_interrupt();
 }

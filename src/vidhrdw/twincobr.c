@@ -28,7 +28,7 @@ extern int toaplan_main_cpu;	/* Main CPU type.  0 = 68000, 1 = Z80 */
 #define READ_WORD_Z80(x) (*(unsigned char *)(x) + (*(unsigned char *)(x+1) << 8))
 #define WRITE_WORD_Z80(a, d) (*(unsigned char *)(a) = d & 0xff, (*(unsigned char *)(a+1) = (d>>8) & 0xff))
 
-static int twincobr_bgvideoram_size,twincobr_fgvideoram_size;
+static size_t twincobr_bgvideoram_size,twincobr_fgvideoram_size;
 static int txscrollx = 0;
 static int txscrolly = 0;
 static int fgscrollx = 0;
@@ -109,7 +109,7 @@ int twincobr_vh_start(void)
 	}
 	memset(dirtybuffer,1,twincobr_bgvideoram_size);
 
-	if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer);
 		free(twincobr_bgvideoram);
@@ -123,7 +123,7 @@ int twincobr_vh_start(void)
 
 void twincobr_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap);
 	free(dirtybuffer);
 	free(twincobr_bgvideoram);
 	free(twincobr_fgvideoram);
@@ -131,12 +131,12 @@ void twincobr_vh_stop(void)
 }
 
 
-int twincobr_crtc_r(int offset)
+READ_HANDLER( twincobr_crtc_r )
 {
 	return crtc6845_register_r(offset);
 }
 
-void twincobr_crtc_w(int offset,int data)
+WRITE_HANDLER( twincobr_crtc_w )
 {
 	if (offset == 0) crtc6845_address_w(offset, data);
 	if (offset == 2) crtc6845_register_w(offset, data);
@@ -146,94 +146,92 @@ int twincobr_txoffs_r(void)
 {
 	return txoffs / 2;
 }
-void twincobr_txoffs_w(int offset,int data)
+WRITE_HANDLER( twincobr_txoffs_w )
 {
 	txoffs = (2 * data) % videoram_size;
 }
-int twincobr_txram_r(int offset)
+READ_HANDLER( twincobr_txram_r )
 {
 	return READ_WORD(&videoram[txoffs]);
 }
-void twincobr_txram_w(int offset,int data)
+WRITE_HANDLER( twincobr_txram_w )
 {
 	WRITE_WORD(&videoram[txoffs],data);
 }
 
-void twincobr_bgoffs_w(int offset,int data)
+WRITE_HANDLER( twincobr_bgoffs_w )
 {
 	bgoffs = (2 * data) % (twincobr_bgvideoram_size >> 1);
 }
-int twincobr_bgram_r(int offset)
+READ_HANDLER( twincobr_bgram_r )
 {
 	return READ_WORD(&twincobr_bgvideoram[bgoffs+twincobr_bg_ram_bank]);
 }
-void twincobr_bgram_w(int offset,int data)
+WRITE_HANDLER( twincobr_bgram_w )
 {
 	WRITE_WORD(&twincobr_bgvideoram[bgoffs+twincobr_bg_ram_bank],data);
 	dirtybuffer[bgoffs / 2] = 1;
 }
 
-void twincobr_fgoffs_w(int offset,int data)
+WRITE_HANDLER( twincobr_fgoffs_w )
 {
 	fgoffs = (2 * data) % twincobr_fgvideoram_size;
 }
-int twincobr_fgram_r(int offset)
+READ_HANDLER( twincobr_fgram_r )
 {
 	return READ_WORD(&twincobr_fgvideoram[fgoffs]);
 }
-void twincobr_fgram_w(int offset,int data)
+WRITE_HANDLER( twincobr_fgram_w )
 {
 	WRITE_WORD(&twincobr_fgvideoram[fgoffs],data);
 }
 
 
-void twincobr_txscroll_w(int offset,int data)
+WRITE_HANDLER( twincobr_txscroll_w )
 {
 	if (offset == 0) txscrollx = data;
 	else txscrolly = data;
 }
 
-void twincobr_bgscroll_w(int offset,int data)
+WRITE_HANDLER( twincobr_bgscroll_w )
 {
 	if (offset == 0) bgscrollx = data;
 	else bgscrolly = data;
 }
 
-void twincobr_fgscroll_w(int offset,int data)
+WRITE_HANDLER( twincobr_fgscroll_w )
 {
 	if (offset == 0) fgscrollx = data;
 	else fgscrolly = data;
 }
 
-void twincobr_exscroll_w(int offset,int data)	/* Extra unused video layer */
+WRITE_HANDLER( twincobr_exscroll_w )	/* Extra unused video layer */
 {
-	if (errorlog) {
-		if (offset == 0) fprintf(errorlog,"PC - write %04x to extra video layer Y scroll register\n",data);
-		else fprintf(errorlog,"PC - write %04x to extra video layer scroll X register\n",data);
-	}
+	if (offset == 0) logerror("PC - write %04x to extra video layer Y scroll register\n",data);
+	else logerror("PC - write %04x to extra video layer scroll X register\n",data);
 }
 
 /******************** Wardner interface to this hardware ********************/
-void wardner_txlayer_w(int offset, int data)
+WRITE_HANDLER( wardner_txlayer_w )
 {
 	if (offset == 0) tx_offset_lsb = data;
 	if (offset == 1) tx_offset_msb = (data << 8);
 	twincobr_txoffs_w(0,tx_offset_msb | tx_offset_lsb);
 }
-void wardner_bglayer_w(int offset, int data)
+WRITE_HANDLER( wardner_bglayer_w )
 {
 	if (offset == 0) bg_offset_lsb = data;
 	if (offset == 1) bg_offset_msb = (data<<8);
 	twincobr_bgoffs_w(0,bg_offset_msb | bg_offset_lsb);
 }
-void wardner_fglayer_w(int offset, int data)
+WRITE_HANDLER( wardner_fglayer_w )
 {
 	if (offset == 0) fg_offset_lsb = data;
 	if (offset == 1) fg_offset_msb = (data<<8);
 	twincobr_fgoffs_w(0,fg_offset_msb | fg_offset_lsb);
 }
 
-void wardner_txscroll_w(int offset, int data)
+WRITE_HANDLER( wardner_txscroll_w )
 {
 	if (offset & 2) {
 		if (offset == 2) tx_scrollx_lsb = data;
@@ -247,7 +245,7 @@ void wardner_txscroll_w(int offset, int data)
 		twincobr_txscroll_w(0,tx_scrolly_msb | tx_scrolly_lsb);
 	}
 }
-void wardner_bgscroll_w(int offset, int data)
+WRITE_HANDLER( wardner_bgscroll_w )
 {
 	if (offset & 2) {
 		if (offset == 2) bg_scrollx_lsb = data;
@@ -261,7 +259,7 @@ void wardner_bgscroll_w(int offset, int data)
 		twincobr_bgscroll_w(0,bg_scrolly_msb | bg_scrolly_lsb);
 	}
 }
-void wardner_fgscroll_w(int offset, int data)
+WRITE_HANDLER( wardner_fgscroll_w )
 {
 	if (offset & 2) {
 		if (offset == 2) fg_scrollx_lsb = data;
@@ -276,7 +274,7 @@ void wardner_fgscroll_w(int offset, int data)
 	}
 }
 
-int wardner_videoram_r(int offset)
+READ_HANDLER( wardner_videoram_r )
 {
 	int memdata = 0;
 	switch (offset) {
@@ -290,7 +288,7 @@ int wardner_videoram_r(int offset)
 	return memdata;
 }
 
-void wardner_videoram_w(int offset, int data)
+WRITE_HANDLER( wardner_videoram_w )
 {
 	int memdata = 0;
 	switch (offset) {
@@ -341,7 +339,7 @@ static void twincobr_draw_sprites (struct osd_bitmap *bitmap, int priority)
 						color,
 						flipx,flipy,
 						sx-32,sy-16,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
 				}
 			}
 		}
@@ -368,7 +366,7 @@ static void twincobr_draw_sprites (struct osd_bitmap *bitmap, int priority)
 						color,
 						flipx,flipy,
 						sx-32,sy-16,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
 				}
 			}
 		}
@@ -568,7 +566,7 @@ void twincobr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			scroll_x = (0x1c9 - bgscrollx) & 0x1ff;
 			scroll_y = (- 0x1e - bgscrolly) & 0x1ff;
 		}
-		copyscrollbitmap(bitmap,tmpbitmap,1,&scroll_x,1,&scroll_y,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap,1,&scroll_x,1,&scroll_y,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -602,7 +600,7 @@ void twincobr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			color,
 			twincobr_flip_screen,twincobr_flip_screen,
 			xpos,ypos,
-			&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+			&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 
 /*********  Begin ugly sprite hack for Wardner when hero is in shop *********/
@@ -659,7 +657,7 @@ void twincobr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			color,
 			twincobr_flip_screen,twincobr_flip_screen,
 			xpos,ypos,
-			&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+			&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 
 	/* draw the sprites in high priority */

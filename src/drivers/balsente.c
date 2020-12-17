@@ -155,16 +155,16 @@ int balsente_vh_start(void);
 void balsente_vh_stop(void);
 void balsente_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
 
-void balsente_videoram_w(int offset, int data);
-void balsente_paletteram_w(int offset, int data);
-void balsente_palette_select_w(int offset, int data);
+WRITE_HANDLER( balsente_videoram_w );
+WRITE_HANDLER( balsente_paletteram_w );
+WRITE_HANDLER( balsente_palette_select_w );
 
 
 /* local prototypes */
 static void poly17_init(void);
 static void counter_set_out(int which, int gate);
-static void m6850_w(int offset, int data);
-static void m6850_sound_w(int offset, int data);
+static WRITE_HANDLER( m6850_w );
+static WRITE_HANDLER( m6850_sound_w );
 static void counter_callback(int param);
 
 
@@ -233,7 +233,7 @@ static UINT8 spiker_expand_bits;
 
 
 static unsigned char *nvram;
-static int nvram_size;
+static size_t nvram_size;
 
 static void nvram_handler(void *file, int read_or_write)
 {
@@ -418,13 +418,13 @@ static void noise_gen(int chip, int count, short *buffer)
  *
  *************************************/
 
-static void random_reset_w(int offset, int data)
+static WRITE_HANDLER( random_reset_w )
 {
 	/* reset random number generator */
 }
 
 
-static int random_num_r(int offset)
+static READ_HANDLER( random_num_r )
 {
 	unsigned int cc;
 
@@ -444,11 +444,11 @@ static int random_num_r(int offset)
  *
  *************************************/
 
-static void rombank_select_w(int offset, int data)
+static WRITE_HANDLER( rombank_select_w )
 {
 	int bank_offset = 0x6000 * ((data >> 4) & 7);
 
-if (errorlog) fprintf(errorlog, "%04X:rombank_select_w(%02X)\n", cpu_getpreviouspc(), data);
+logerror("%04X:rombank_select_w(%02X)\n", cpu_getpreviouspc(), data);
 
 	/* the bank number comes from bits 4-6 */
 	cpu_setbank(1, &memory_region(REGION_CPU1)[0x10000 + bank_offset]);
@@ -456,7 +456,7 @@ if (errorlog) fprintf(errorlog, "%04X:rombank_select_w(%02X)\n", cpu_getprevious
 }
 
 
-static void rombank2_select_w(int offset, int data)
+static WRITE_HANDLER( rombank2_select_w )
 {
 	/* Night Stocker and Name that Tune only so far.... */
 	int bank = data & 7;
@@ -464,7 +464,7 @@ static void rombank2_select_w(int offset, int data)
 	/* top bit controls which half of the ROMs to use (Name that Tune only) */
 	if (memory_region_length(REGION_CPU1) > 0x40000) bank |= (data >> 4) & 8;
 
-//if (errorlog) fprintf(errorlog, "%04X:rombank2_select_w(%02X)\n", cpu_getpreviouspc(), data);
+//logerror("%04X:rombank2_select_w(%02X)\n", cpu_getpreviouspc(), data);
 
 	/* when they set the AB bank, it appears as though the CD bank is reset */
 	if (data & 0x20)
@@ -489,7 +489,7 @@ static void rombank2_select_w(int offset, int data)
  *
  *************************************/
 
-static void misc_output_w(int offset, int data)
+static WRITE_HANDLER( misc_output_w )
 {
 	offset = (offset / 4) % 8;
 	data >>= 7;
@@ -498,7 +498,7 @@ static void misc_output_w(int offset, int data)
 	/* special case is offset 7, which recalls the NVRAM data */
 	if (offset == 7)
 	{
-		if (errorlog) fprintf(errorlog, "nvrecall_w=%d\n", data);
+		logerror("nvrecall_w=%d\n", data);
 	}
 	else
 	{
@@ -606,7 +606,7 @@ static void m6850_update_io(void)
  *
  *************************************/
 
-static int m6850_r(int offset)
+static READ_HANDLER( m6850_r )
 {
 	int result;
 
@@ -651,7 +651,7 @@ static void m6850_w_callback(int param)
 }
 
 
-static void m6850_w(int offset, int data)
+static WRITE_HANDLER( m6850_w )
 {
 	/* control register is at offset 0 */
 	if (offset == 0)
@@ -675,7 +675,7 @@ static void m6850_w(int offset, int data)
  *
  *************************************/
 
-static int m6850_sound_r(int offset)
+static READ_HANDLER( m6850_sound_r )
 {
 	int result;
 
@@ -699,7 +699,7 @@ static int m6850_sound_r(int offset)
 }
 
 
-static void m6850_sound_w(int offset, int data)
+static WRITE_HANDLER( m6850_sound_w )
 {
 	/* control register is at offset 0 */
 	if (offset == 0)
@@ -765,14 +765,14 @@ static void adc_finished(int which)
 }
 
 
-static int adc_data_r(int offset)
+static READ_HANDLER( adc_data_r )
 {
 	/* just return the last value read */
 	return adc_value;
 }
 
 
-static void adc_select_w(int offset, int data)
+static WRITE_HANDLER( adc_select_w )
 {
 	/* set a timer to go off and read the value after 50us */
 	/* it's important that we do this for Mini Golf */
@@ -903,7 +903,7 @@ static void counter_callback(int param)
  *
  *************************************/
 
-static int counter_8253_r(int offset)
+static READ_HANDLER( counter_8253_r )
 {
 	int which;
 
@@ -937,7 +937,7 @@ static int counter_8253_r(int offset)
 }
 
 
-static void counter_8253_w(int offset, int data)
+static WRITE_HANDLER( counter_8253_w )
 {
 	int which;
 
@@ -1078,7 +1078,7 @@ static void update_counter_0_timer(void)
  *
  *************************************/
 
-static int counter_state_r(int offset)
+static READ_HANDLER( counter_state_r )
 {
 	/* bit D0 is the inverse of the flip-flop state */
 	int result = !counter_0_ff;
@@ -1090,7 +1090,7 @@ static int counter_state_r(int offset)
 }
 
 
-static void counter_control_w(int offset, int data)
+static WRITE_HANDLER( counter_control_w )
 {
 	UINT8 diff_counter_control = counter_control ^ data;
 
@@ -1142,13 +1142,13 @@ static void counter_control_w(int offset, int data)
  *
  *************************************/
 
-static int nstocker_port2_r(int offset)
+static READ_HANDLER( nstocker_port2_r )
 {
 	return (input_port_2_r(offset) & 0xf0) | nstocker_bits;
 }
 
 
-static void spiker_expand_w(int offset, int data)
+static WRITE_HANDLER( spiker_expand_w )
 {
 	/* offset 0 is the bit pattern */
 	if (offset == 0)
@@ -1164,7 +1164,7 @@ static void spiker_expand_w(int offset, int data)
 }
 
 
-static int spiker_expand_r(int offset)
+static READ_HANDLER( spiker_expand_r )
 {
 	UINT8 left, right;
 
@@ -1190,7 +1190,7 @@ static int spiker_expand_r(int offset)
  *
  *************************************/
 
-static void chip_select_w(int offset, int data)
+static WRITE_HANDLER( chip_select_w )
 {
 	static const UINT8 register_map[8] =
 	{
@@ -1230,14 +1230,14 @@ static void chip_select_w(int offset, int data)
 			double temp = 0;
 
 			/* remember the previous value */
-			if (errorlog) temp = cem3394_get_parameter(i, reg);
+			temp = cem3394_get_parameter(i, reg);
 
 			/* set the voltage */
 			cem3394_set_voltage(i, reg, voltage);
 
 			/* only log changes */
-			if (errorlog && temp != cem3394_get_parameter(i, reg))
-				fprintf(errorlog, "s%04X:   CEM#%d:%s=%f\n", cpu_getpreviouspc(), i, names[dac_register], voltage);
+			if (temp != cem3394_get_parameter(i, reg))
+				logerror("s%04X:   CEM#%d:%s=%f\n", cpu_getpreviouspc(), i, names[dac_register], voltage);
 		}
 
 	/* if a timer for counter 0 is running, recompute */
@@ -1247,7 +1247,7 @@ static void chip_select_w(int offset, int data)
 
 
 
-static void dac_data_w(int offset, int data)
+static WRITE_HANDLER( dac_data_w )
 {
 	/* LSB or MSB? */
 	if (offset & 1)
@@ -1265,7 +1265,7 @@ static void dac_data_w(int offset, int data)
 }
 
 
-static void register_addr_w(int offset, int data)
+static WRITE_HANDLER( register_addr_w )
 {
 	dac_register = data & 7;
 }
@@ -2453,10 +2453,7 @@ static struct MachineDriver machine_driver_balsente =
 	/* sound hardware */
 	0,0,0,0,
 	{
-		{
-			SOUND_CEM3394,
-			&cem_interface
-		}
+		{ SOUND_CEM3394, &cem_interface }
 	},
 
 	nvram_handler
@@ -3018,6 +3015,22 @@ ROM_START( rescraid )
 ROM_END
 
 
+ROM_START( rescrdsa )
+	ROM_REGION( 0x40000, REGION_CPU1 )     /* 64k for code for the first CPU, plus 128k of banked ROMs */
+	ROM_LOAD( "ab1-sa.a10",   0x10000, 0x8000, 0xaa0a9f48 )
+	ROM_LOAD( "ab12-sa.a12",  0x18000, 0x8000, 0x16d4da86 )
+	ROM_LOAD( "cd8-sa.a16",   0x20000, 0x8000, 0x9dfb50c2 )
+	ROM_LOAD( "cd12-sa.a18",  0x28000, 0x8000, 0x18c62613 )
+
+	ROM_REGION( 0x10000, REGION_CPU2 )		/* 64k for Z80 */
+	ROM_LOAD( "sentesnd",  0x00000, 0x2000, 0x4dd0a525 )
+
+	ROM_REGION( 0x10000, REGION_GFX1 )		/* up to 64k of sprites */
+	ROM_LOAD( "gr0.a5",    0x00000, 0x8000, 0xe0dfc133 )
+	ROM_LOAD( "gr4.a7",    0x08000, 0x8000, 0x952ade30 )
+ROM_END
+
+
 
 /*************************************
  *
@@ -3047,3 +3060,4 @@ GAME( 1986, nstocker, 0,        balsente, nstocker, nstocker, ROT0, "Bally/Sente
 GAME( 1986, sfootbal, 0,        balsente, sfootbal, sfootbal, ROT0, "Bally/Sente", "Street Football" )
 GAME( 1986, spiker,   0,        balsente, spiker,   spiker,   ROT0, "Bally/Sente", "Spiker" )
 GAME( 1987, rescraid, 0,        balsente, rescraid, rescraid, ROT0, "Bally/Sente", "Rescue Raider" )
+GAME( 1987, rescrdsa, rescraid, balsente, rescraid, rescraid, ROT0, "Bally/Sente", "Rescue Raider (Stand-Alone)" )

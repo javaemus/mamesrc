@@ -51,12 +51,12 @@ Runs in interrupt mode 0, the interrupt vectors are 0xcf (RST 08h) and
 
 extern unsigned char *gundealr_bg_videoram,*gundealr_fg_videoram;
 
-void gundealr_paletteram_w(int offset,int data);
-void gundealr_bg_videoram_w(int offset,int data);
-void gundealr_fg_videoram_w(int offset,int data);
-void gundealr_fg_scroll_w(int offset,int data);
-void yamyam_fg_scroll_w(int offset,int data);
-void gundealr_flipscreen_w(int offset,int data);
+WRITE_HANDLER( gundealr_paletteram_w );
+WRITE_HANDLER( gundealr_bg_videoram_w );
+WRITE_HANDLER( gundealr_fg_videoram_w );
+WRITE_HANDLER( gundealr_fg_scroll_w );
+WRITE_HANDLER( yamyam_fg_scroll_w );
+WRITE_HANDLER( gundealr_flipscreen_w );
 void gundealr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 int gundealr_vh_start(void);
 
@@ -80,7 +80,7 @@ static int yamyam_interrupt(void)
 	else return ignore_interrupt();
 }
 
-static void yamyam_bankswitch_w(int offset, int data)
+static WRITE_HANDLER( yamyam_bankswitch_w )
 {
  	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);
@@ -89,11 +89,11 @@ static void yamyam_bankswitch_w(int offset, int data)
 	cpu_setbank(1,&RAM[bankaddress]);
 }
 
-static void yamyam_protection_w(int offset,int data)
+static WRITE_HANDLER( yamyam_protection_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1);
 
-if (errorlog) fprintf(errorlog,"e000 = %02x\n",RAM[0xe000]);
+logerror("e000 = %02x\n",RAM[0xe000]);
 	RAM[0xe000] = data;
 	if (data == 0x03) RAM[0xe001] = 0x03;
 	if (data == 0x04) RAM[0xe001] = 0x04;

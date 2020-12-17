@@ -13,7 +13,7 @@
 
 unsigned char *rallyx_videoram2,*rallyx_colorram2;
 unsigned char *rallyx_radarx,*rallyx_radary,*rallyx_radarattr;
-int rallyx_radarram_size;
+size_t rallyx_radarram_size;
 unsigned char *rallyx_scrollx,*rallyx_scrolly;
 static unsigned char *dirtybuffer2;	/* keep track of modified portions of the screen */
 											/* to speed up video refresh */
@@ -172,7 +172,7 @@ int rallyx_vh_start(void)
 		return 1;
 	memset(dirtybuffer2,1,videoram_size);
 
-	if ((tmpbitmap1 = osd_create_bitmap(32*8,32*8)) == 0)
+	if ((tmpbitmap1 = bitmap_alloc(32*8,32*8)) == 0)
 	{
 		free(dirtybuffer2);
 		generic_vh_stop();
@@ -191,14 +191,14 @@ int rallyx_vh_start(void)
 ***************************************************************************/
 void rallyx_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap1);
+	bitmap_free(tmpbitmap1);
 	free(dirtybuffer2);
 	generic_vh_stop();
 }
 
 
 
-void rallyx_videoram2_w(int offset,int data)
+WRITE_HANDLER( rallyx_videoram2_w )
 {
 	if (rallyx_videoram2[offset] != data)
 	{
@@ -209,7 +209,7 @@ void rallyx_videoram2_w(int offset,int data)
 }
 
 
-void rallyx_colorram2_w(int offset,int data)
+WRITE_HANDLER( rallyx_colorram2_w )
 {
 	if (rallyx_colorram2[offset] != data)
 	{
@@ -221,7 +221,7 @@ void rallyx_colorram2_w(int offset,int data)
 
 
 
-void rallyx_flipscreen_w(int offset,int data)
+WRITE_HANDLER( rallyx_flipscreen_w )
 {
 	if (flipscreen != (data & 1))
 	{
@@ -326,7 +326,7 @@ const int displacement = 1;
 
 
 	/* copy the temporary bitmap to the screen */
-	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* draw the sprites */
@@ -404,7 +404,7 @@ const int displacement = 1;
 				0,
 				flipscreen,flipscreen,
 				x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,3);
+				&Machine->visible_area,TRANSPARENCY_PEN,3);
 	}
 }
 
@@ -492,7 +492,7 @@ const int displacement = 0;
 
 
 	/* copy the temporary bitmap to the screen */
-	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* draw the sprites */
@@ -522,15 +522,15 @@ const int displacement = 0;
 	{
 		int x,y;
 
-		x = rallyx_radarx[offs] + ((~rallyx_radarattr[offs] & 0x08) << 5) + 1;
-		y = 238 - rallyx_radary[offs];
+		x = rallyx_radarx[offs] + ((~rallyx_radarattr[offs] & 0x08) << 5);
+		y = 237 - rallyx_radary[offs];
 
 		drawgfx(bitmap,Machine->gfx[2],
 				(rallyx_radarattr[offs] & 0x07) ^ 0x07,
 				0,
 				flipscreen,flipscreen,
 				x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,3);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }
 
@@ -623,7 +623,7 @@ void locomotn_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			scrolly = -(*rallyx_scrolly + 16);
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -671,7 +671,7 @@ if (flipscreen) sx += 32;
 				0,
 				flipscreen,flipscreen,
 				x,y,
-//				&Machine->drv->visible_area,TRANSPARENCY_PEN,3);
+//				&Machine->visible_area,TRANSPARENCY_PEN,3);
 				flipscreen ? &spritevisibleareaflip : &spritevisiblearea,TRANSPARENCY_PEN,3);
 	}
 }
@@ -765,7 +765,7 @@ void commsega_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			scrolly = -(*rallyx_scrolly + 16);
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -799,7 +799,7 @@ if (flipscreen) sx += 32;
 					spriteram_2[offs + 1] & 0x3f,
 					flipx,flipy,
 					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+					&Machine->visible_area,TRANSPARENCY_COLOR,0);
 	}
 
 
@@ -826,6 +826,6 @@ if (flipscreen) sx += 32;
 				0,
 				flipscreen,flipscreen,
 				x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,3);
+				&Machine->visible_area,TRANSPARENCY_PEN,3);
 	}
 }

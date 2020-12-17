@@ -152,7 +152,7 @@ int dkong_vh_start(void)
 
 
 
-void dkongjr_gfxbank_w(int offset,int data)
+WRITE_HANDLER( dkongjr_gfxbank_w )
 {
 	if (gfx_bank != (data & 1))
 	{
@@ -161,7 +161,7 @@ void dkongjr_gfxbank_w(int offset,int data)
 	}
 }
 
-void dkong3_gfxbank_w(int offset,int data)
+WRITE_HANDLER( dkong3_gfxbank_w )
 {
 	if (gfx_bank != (~data & 1))
 	{
@@ -172,7 +172,7 @@ void dkong3_gfxbank_w(int offset,int data)
 
 
 
-void dkong_palettebank_w(int offset,int data)
+WRITE_HANDLER( dkong_palettebank_w )
 {
 	int newbank;
 
@@ -190,12 +190,12 @@ void dkong_palettebank_w(int offset,int data)
 	}
 }
 
-void radarscp_grid_enable_w(int offset,int data)
+WRITE_HANDLER( radarscp_grid_enable_w )
 {
 	grid_on = data & 1;
 }
 
-void radarscp_grid_color_w(int offset,int data)
+WRITE_HANDLER( radarscp_grid_color_w )
 {
 	int r,g,b;
 
@@ -206,7 +206,7 @@ void radarscp_grid_color_w(int offset,int data)
 	palette_change_color(257,0x00,0x00,0xff);
 }
 
-void dkong_flipscreen_w(int offset,int data)
+WRITE_HANDLER( dkong_flipscreen_w )
 {
 	if (flipscreen != (~data & 1))
 	{
@@ -256,13 +256,13 @@ static void draw_tiles(struct osd_bitmap *bitmap)
 					charcode,color,
 					flipscreen,flipscreen,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
 
 	/* copy the character mapped graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }
 
 static void draw_sprites(struct osd_bitmap *bitmap)
@@ -295,7 +295,15 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 						(spriteram[offs + 2] & 0x0f) + 16 * palette_bank,
 						!(spriteram[offs + 2] & 0x80),!(spriteram[offs + 1] & 0x80),
 						x,y,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
+
+				/* draw with wrap around - this fixes the 'beheading' bug */
+				drawgfx(bitmap,Machine->gfx[1],
+						(spriteram[offs + 1] & 0x7f) + 2 * (spriteram[offs + 2] & 0x40),
+						(spriteram[offs + 2] & 0x0f) + 16 * palette_bank,
+						(spriteram[offs + 2] & 0x80),(spriteram[offs + 1] & 0x80),
+						x-256,y,
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 			else
 			{
@@ -304,7 +312,15 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 						(spriteram[offs + 2] & 0x0f) + 16 * palette_bank,
 						(spriteram[offs + 2] & 0x80),(spriteram[offs + 1] & 0x80),
 						x,y,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
+
+				/* draw with wrap around - this fixes the 'beheading' bug */
+				drawgfx(bitmap,Machine->gfx[1],
+						(spriteram[offs + 1] & 0x7f) + 2 * (spriteram[offs + 2] & 0x40),
+						(spriteram[offs + 2] & 0x0f) + 16 * palette_bank,
+						(spriteram[offs + 2] & 0x80),(spriteram[offs + 1] & 0x80),
+						x+256,y,
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 		}
 	}
@@ -317,13 +333,13 @@ static void draw_grid(struct osd_bitmap *bitmap)
 
 	counter = flipscreen ? 0x000 : 0x400;
 
-	x = Machine->drv->visible_area.min_x;
-	y = Machine->drv->visible_area.min_y;
-	while (y <= Machine->drv->visible_area.max_y)
+	x = Machine->visible_area.min_x;
+	y = Machine->visible_area.min_y;
+	while (y <= Machine->visible_area.max_y)
 	{
 		x = 4 * (table[counter] & 0x7f);
-		if (x >= Machine->drv->visible_area.min_x &&
-				x <= Machine->drv->visible_area.max_x)
+		if (x >= Machine->visible_area.min_x &&
+				x <= Machine->visible_area.max_x)
 		{
 			if (table[counter] & 0x80)	/* star */
 			{

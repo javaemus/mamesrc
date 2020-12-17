@@ -62,18 +62,16 @@ I/O write:
 #include "vidhrdw/generic.h"
 
 extern unsigned char *galaxian_attributesram;
-void galaxian_attributes_w(int offset,int data);
+WRITE_HANDLER( galaxian_attributes_w );
 
 void fastfred_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void fastfred_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void fastfred_character_bank_select_w (int offset, int data);
-void fastfred_color_bank_select_w (int offset, int data);
-void fastfred_background_color_w (int offset, int data);
-void fastfred_flipx_w(int offset,int data);
-void fastfred_flipy_w(int offset,int data);
+WRITE_HANDLER( fastfred_character_bank_select_w );
+WRITE_HANDLER( fastfred_color_bank_select_w );
+WRITE_HANDLER( fastfred_background_color_w );
 void jumpcoas_init_machine(void);
 
-static int jumpcoas_custom_io_r(int offset)
+static READ_HANDLER( jumpcoas_custom_io_r )
 {
 	if (offset == 0x100)  return 0x63;
 
@@ -85,7 +83,7 @@ static int jumpcoas_custom_io_r(int offset)
 // These values were derived based on disassembly of the code. Usually, it
 // was pretty obvious what the values should be. Of course, this will have
 // to change if a different ROM set ever surfaces.
-static int fastfred_custom_io_r(int offset)
+static READ_HANDLER( fastfred_custom_io_r )
 {
     switch (cpu_get_pc())
     {
@@ -113,7 +111,7 @@ static int fastfred_custom_io_r(int offset)
     case 0x7b58: return 0x20;
     }
 
-    if (errorlog) fprintf(errorlog, "Uncaught custom I/O read %04X at %04X\n", 0xc800+offset, cpu_get_pc());
+    logerror("Uncaught custom I/O read %04X at %04X\n", 0xc800+offset, cpu_get_pc());
     return 0x00;
 }
 
@@ -150,10 +148,10 @@ static struct MemoryWriteAddress fastfred_writemem[] =
 	{ 0xf001, 0xf001, interrupt_enable_w },
 	{ 0xf002, 0xf003, fastfred_color_bank_select_w },
 	{ 0xf004, 0xf005, fastfred_character_bank_select_w },
-	{ 0xf006, 0xf006, fastfred_flipx_w },
-	{ 0xf007, 0xf007, fastfred_flipy_w },
-	{ 0xf116, 0xf116, fastfred_flipx_w },
-	{ 0xf117, 0xf117, fastfred_flipy_w },
+	{ 0xf006, 0xf006, flip_screen_x_w },
+	{ 0xf007, 0xf007, flip_screen_y_w },
+	{ 0xf116, 0xf116, flip_screen_x_w },
+	{ 0xf117, 0xf117, flip_screen_y_w },
 	{ 0xf800, 0xf800, soundlatch_w },
 	{ -1 }  /* end of table */
 };
@@ -189,10 +187,10 @@ static struct MemoryWriteAddress jumpcoas_writemem[] =
 	{ 0xf001, 0xf001, interrupt_enable_w },
 	{ 0xf002, 0xf003, fastfred_color_bank_select_w },
 	{ 0xf004, 0xf005, fastfred_character_bank_select_w },
-	{ 0xf006, 0xf006, fastfred_flipx_w },
-	{ 0xf007, 0xf007, fastfred_flipy_w },
-	{ 0xf116, 0xf116, fastfred_flipx_w },
-	{ 0xf117, 0xf117, fastfred_flipy_w },
+	{ 0xf006, 0xf006, flip_screen_x_w },
+	{ 0xf007, 0xf007, flip_screen_y_w },
+	{ 0xf116, 0xf116, flip_screen_x_w },
+	{ 0xf117, 0xf117, flip_screen_y_w },
 	{ 0xf800, 0xf800, AY8910_control_port_0_w },
 	{ 0xf801, 0xf801, AY8910_write_port_0_w },
 	{ -1 }  /* end of table */

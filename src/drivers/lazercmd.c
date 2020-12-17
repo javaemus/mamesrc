@@ -164,7 +164,6 @@ int marker_x, marker_y;
 
  *************************************************************/
 int lazercmd_vh_start(void);
-void lazercmd_vh_stop(void);
 void lazercmd_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void lazercmd_marker_dirty(int marker);
 
@@ -199,31 +198,31 @@ static int lazercmd_timer(void)
  *************************************************************/
 
 /* triggered by WRTC,r opcode */
-static void lazercmd_ctrl_port_w(int offset, int data)
+static WRITE_HANDLER( lazercmd_ctrl_port_w )
 {
 }
 
 /* triggered by REDC,r opcode */
-static int lazercmd_ctrl_port_r(int offset)
+static READ_HANDLER( lazercmd_ctrl_port_r )
 {
 	int data = 0;
 	return data;
 }
 
 /* triggered by WRTD,r opcode */
-static void lazercmd_data_port_w(int offset, int data)
+static WRITE_HANDLER( lazercmd_data_port_w )
 {
 }
 
 /* triggered by REDD,r opcode */
-static int lazercmd_data_port_r(int offset)
+static READ_HANDLER( lazercmd_data_port_r )
 {
 	int data;
 	data = input_port_2_r(0) & 0x0f;
 	return data;
 }
 
-static void lazercmd_hardware_w(int offset, int data)
+static WRITE_HANDLER( lazercmd_hardware_w )
 {
 	static int DAC_data = 0;
 
@@ -253,7 +252,7 @@ static void lazercmd_hardware_w(int offset, int data)
 	}
 }
 
-static void medlanes_hardware_w(int offset, int data)
+static WRITE_HANDLER( medlanes_hardware_w )
 {
 	static int DAC_data = 0;
 
@@ -286,7 +285,7 @@ static void medlanes_hardware_w(int offset, int data)
 	}
 }
 
-static int lazercmd_hardware_r(int offset)
+static READ_HANDLER( lazercmd_hardware_r )
 {
 	int data = 0;
 
@@ -397,7 +396,7 @@ INPUT_PORTS_START( lazercmd )
 	PORT_DIPNAME( 0x40, 0x40, "Marker Size" )
 	PORT_DIPSETTING(    0x00, "Small" )
 	PORT_DIPSETTING(    0x40, "Large" )
-	PORT_DIPNAME( 0x80, 0x80, "Color overlay" )
+	PORT_DIPNAME( 0x80, 0x80, "Color Overlay" )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( On ) )
 
@@ -445,7 +444,7 @@ INPUT_PORTS_START( medlanes )
 	PORT_DIPNAME( 0x40, 0x00, "Marker Size" )
 	PORT_DIPSETTING(    0x00, "Small" )
 	PORT_DIPSETTING(    0x40, "Large" )
-	PORT_DIPNAME( 0x80, 0x00, "Color overlay" )
+	PORT_DIPNAME( 0x80, 0x00, "Color Overlay" )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( On ) )
 
@@ -474,37 +473,23 @@ static struct GfxLayout charlayout =
 
 static struct GfxDecodeInfo gfxdecodeinfo[] =
 {
-	{ REGION_GFX1, 0, &charlayout, 0, 6 },
+	{ REGION_GFX1, 0, &charlayout, 0, 2 },
 	{ -1 }                   /* end of array */
 };
 
 
 /* some colors for the frontend */
-static unsigned char palette[] = {
+static unsigned char palette[] =
+{
 /*  Red Green Blue */
-	0x00,0x00,0x00,		/* 0 black */
-	0xb0,0xb0,0xb0,		/* 1 white */
-	0x20,0xb0,0x20,		/* 2 jade green */
-	0x02,0x0b,0x02,		/* 3 very dark green */
-	0xb0,0x80,0x20,		/* 4 mustard yellow */
-	0x0b,0x08,0x02,		/* 5 very dark yellow */
-	0x33,0xff,0x33,		/* 6 bright jade */
-	0xff,0xcc,0x33,		/* 7 bright yellow */
-	0xff,0xff,0xff,		/* 8 bright white */
-	0x33,0xff,0x33,		/* 9 bright jade */
-	0xff,0xcc,0x33,		/* 10 bright yellow */
-	0xff,0xff,0xff		/* 11 bright white */
+	0x00,0x00,0x00,		/* black */
+	0xb0,0xb0,0xb0,		/* white */
+	0xff,0xff,0xff		/* bright white */
 };
-
-enum { BLACK,WHITE,JADE,DARK_GREEN,MUSTARD,DARK_YELLOW };
-
-static unsigned short colortable[] = {
-	 JADE,          DARK_GREEN,		/* 0  very dark green on jade green */
-	 MUSTARD,       DARK_YELLOW,	/* 1  very dark yellow on mustard yellow */
-	 WHITE,         BLACK,			/* 2  black on white */
-	 DARK_GREEN,    JADE,			/* 3  above inverted */
-	 DARK_YELLOW,   MUSTARD,		/* 4    "      " */
-	 BLACK,         WHITE			/* 5    "      " */
+static unsigned short colortable[] =
+{
+	 1, 0,
+	 0, 1
 };
 static void init_palette(unsigned char *game_palette, unsigned short *game_colortable,const unsigned char *color_prom)
 {
@@ -515,7 +500,7 @@ static void init_palette(unsigned char *game_palette, unsigned short *game_color
 static struct DACinterface lazercmd_DAC_interface =
 {
 	1,
-	{ 255 }
+	{ 100 }
 };
 
 static struct MachineDriver machine_driver_lazercmd =
@@ -541,15 +526,15 @@ static struct MachineDriver machine_driver_lazercmd =
 /* video hardware */
 	HORZ_RES * HORZ_CHR, VERT_RES * VERT_CHR,
 	{0 * HORZ_CHR, HORZ_RES * HORZ_CHR - 1,
-	 0 * VERT_CHR, VERT_RES * VERT_CHR - 1},
+	 0 * VERT_CHR, (VERT_RES - 1) * VERT_CHR - 1},
 
 	gfxdecodeinfo,
-	sizeof(palette) / sizeof(palette[0]) / 3, sizeof(colortable) / sizeof(colortable[0]),
+	3+32768, 2*2,		/* extra color for the overlay */
 	init_palette,
 
-	VIDEO_TYPE_RASTER | VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER | VIDEO_SUPPORTS_DIRTY | VIDEO_MODIFIES_PALETTE,
 	0,
-	generic_vh_start,
+	lazercmd_vh_start,
 	generic_vh_stop,
 	lazercmd_vh_screenrefresh,
 
@@ -589,12 +574,12 @@ static struct MachineDriver machine_driver_medlanes =
 	 0 * VERT_CHR, VERT_RES * VERT_CHR - 1},
 
 	gfxdecodeinfo,
-	sizeof(palette) / sizeof(palette[0]) / 3, sizeof(colortable) / sizeof(colortable[0]),
+	3+32768, 2*2,		/* extra color for the overlay */
 	init_palette,
 
-	VIDEO_TYPE_RASTER | VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER | VIDEO_SUPPORTS_DIRTY | VIDEO_MODIFIES_PALETTE,
 	0,
-	generic_vh_start,
+	lazercmd_vh_start,
 	generic_vh_stop,
 	lazercmd_vh_screenrefresh,
 

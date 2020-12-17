@@ -4,12 +4,12 @@
 static int gfxbank;
 
 
-void sichuan2_bankswitch_w(int offset,int data)
+WRITE_HANDLER( sichuan2_bankswitch_w )
 {
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);
 
-if (errorlog && (data & 0xc0)) fprintf(errorlog,"bank switch %02x\n",data);
+if (data & 0xc0) logerror("bank switch %02x\n",data);
 
 
 	/* bits 0-2 select ROM bank */
@@ -27,7 +27,7 @@ if (errorlog && (data & 0xc0)) fprintf(errorlog,"bank switch %02x\n",data);
 }
 
 
-void sichuan2_paletteram_w(int offset,int data)
+WRITE_HANDLER( sichuan2_paletteram_w )
 {
 	int r,g,b;
 
@@ -74,11 +74,11 @@ void sichuan2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					(videoram[offs+1] & 0xf0) >> 4,
 					0,0,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
 
 	/* copy the character mapped graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }

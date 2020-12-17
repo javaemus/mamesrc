@@ -13,7 +13,7 @@ enum {
 #define M6809_INT_NONE  0   /* No interrupt required */
 #define M6809_INT_IRQ	1	/* Standard IRQ interrupt */
 #define M6809_INT_FIRQ	2	/* Fast IRQ */
-#define M6809_INT_NMI	4	/* NMI */	/* NS 970909 */
+#define M6809_INT_NMI	4	/* NMI */
 #define M6809_IRQ_LINE	0	/* IRQ line number */
 #define M6809_FIRQ_LINE 1   /* FIRQ line number */
 
@@ -44,7 +44,7 @@ extern unsigned m6809_dasm(char *buffer, unsigned pc);
 /****************************************************************************/
 /* For now the 6309 is using the functions of the 6809						*/
 /****************************************************************************/
-#if HAS_HD6309
+#if (HAS_HD6309)
 #define M6309_A 				M6809_A
 #define M6309_B 				M6809_B
 #define M6309_PC				M6809_PC

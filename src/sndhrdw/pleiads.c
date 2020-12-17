@@ -403,18 +403,18 @@ static void pleiads_sound_update(int param, INT16 *buffer, int length)
 	}
 }
 
-void pleiads_sound_control_a_w (int offset,int data)
+WRITE_HANDLER( pleiads_sound_control_a_w )
 {
 	if (data == sound_latch_a)
 		return;
 
-	if (errorlog) fprintf(errorlog, "pleiads_sound_control_b_w $%02x\n", data);
+	logerror("pleiads_sound_control_b_w $%02x\n", data);
 
 	stream_update(channel,0);
 	sound_latch_a = data;
 }
 
-void pleiads_sound_control_b_w (int offset,int data)
+WRITE_HANDLER( pleiads_sound_control_b_w )
 {
 	/*
 	 * pitch selects one of 4 possible clock inputs
@@ -427,7 +427,7 @@ void pleiads_sound_control_b_w (int offset,int data)
 	if (data == sound_latch_b)
 		return;
 
-	if (errorlog) fprintf(errorlog, "pleiads_sound_control_b_w $%02x\n", data);
+	logerror("pleiads_sound_control_b_w $%02x\n", data);
 
 	if (pitch == 3)
 		pitch = 2;	/* 2 and 3 are the same */
@@ -439,12 +439,12 @@ void pleiads_sound_control_b_w (int offset,int data)
 }
 
 /* two bits (4 + 5) from the videoreg_w latch go here */
-void pleiads_sound_control_c_w (int offset,int data)
+WRITE_HANDLER( pleiads_sound_control_c_w )
 {
 	if (data == sound_latch_c)
 		return;
 
-	if (errorlog) fprintf(errorlog, "pleiads_sound_control_c_w $%02x\n", data);
+	logerror("pleiads_sound_control_c_w $%02x\n", data);
 	stream_update(channel,0);
 	sound_latch_c = data;
 }

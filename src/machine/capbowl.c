@@ -23,7 +23,7 @@ void capbowl_init_machine(void)
 }
 
 
-void capbowl_rom_select_w(int offset,int data)
+WRITE_HANDLER( capbowl_rom_select_w )
 {
 	int bankaddress = 0x10000 + ((data & 0x0c) << 13) + ((data & 0x01) << 14);
 	unsigned char *RAM = memory_region(REGION_CPU1);
@@ -36,7 +36,7 @@ void capbowl_rom_select_w(int offset,int data)
 /*
 	Write to GR Address upper word (2 bits)
 */
-void bowlrama_turbo_w(int offset, int data)
+WRITE_HANDLER( bowlrama_turbo_w )
 {
 	switch( offset )
 	{
@@ -53,15 +53,14 @@ void bowlrama_turbo_w(int offset, int data)
 			break;
 
 		default:
-			if(errorlog)
-				fprintf(errorlog, "PC=%04X Write to unsupported Turbo address %02X Data=%02X\n",cpu_get_pc(),offset, data);
+			logerror("PC=%04X Write to unsupported Turbo address %02X Data=%02X\n",cpu_get_pc(),offset, data);
 	}
 
 	currentaddress = ((GRHighByte << 16) | (GRMidByte << 8) | GRLowByte);
 }
 
 
-int bowlrama_turbo_r(int offset)
+READ_HANDLER( bowlrama_turbo_r )
 {
 	int ret = 0;
 	int data = memory_region(REGION_GFX1)[currentaddress];
@@ -101,8 +100,7 @@ int bowlrama_turbo_r(int offset)
 		break;
 
 	default:
-		if(errorlog)
-			fprintf(errorlog, "PC=%04X Read from unsupported Turbo address %02X\n",cpu_get_pc(),offset);
+		logerror("PC=%04X Read from unsupported Turbo address %02X\n",cpu_get_pc(),offset);
 	}
 
 	return ret;

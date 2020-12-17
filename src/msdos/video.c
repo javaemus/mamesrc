@@ -54,8 +54,6 @@ dirtygrid grid2;
 char *dirty_old=grid1;
 char *dirty_new=grid2;
 
-void scale_vectorgames(int gfx_width,int gfx_height,int *width,int *height);
-
 void center_mode(Register *pReg);
 
 /* in msdos/sound.c */
@@ -66,107 +64,107 @@ int msdos_update_audio(void);
 /* specialized update_screen functions defined in blit.c */
 
 /* dirty mode 1 (VIDEO_SUPPORTS_DIRTY) */
-void blitscreen_dirty1_vga(void);
-void blitscreen_dirty1_unchained_vga(void);
-void blitscreen_dirty1_vesa_1x_1x_8bpp(void);
-void blitscreen_dirty1_vesa_1x_2x_8bpp(void);
-void blitscreen_dirty1_vesa_1x_2xs_8bpp(void);
-void blitscreen_dirty1_vesa_2x_1x_8bpp(void);
-void blitscreen_dirty1_vesa_2x_2x_8bpp(void);
-void blitscreen_dirty1_vesa_2x_2xs_8bpp(void);
-void blitscreen_dirty1_vesa_2x_3x_8bpp(void);
-void blitscreen_dirty1_vesa_2x_3xs_8bpp(void);
-void blitscreen_dirty1_vesa_3x_1x_8bpp(void);
-void blitscreen_dirty1_vesa_3x_2x_8bpp(void);
-void blitscreen_dirty1_vesa_3x_2xs_8bpp(void);
-void blitscreen_dirty1_vesa_3x_3x_8bpp(void);
-void blitscreen_dirty1_vesa_3x_3xs_8bpp(void);
-void blitscreen_dirty1_vesa_4x_2x_8bpp(void);
-void blitscreen_dirty1_vesa_4x_2xs_8bpp(void);
-void blitscreen_dirty1_vesa_4x_3x_8bpp(void);
-void blitscreen_dirty1_vesa_4x_3xs_8bpp(void);
+void blitscreen_dirty1_vga(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_unchained_vga(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_1x_1x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_1x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_1x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_1x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_3x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_3xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_1x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_3x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_3xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_3x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_3xs_8bpp(struct osd_bitmap *bitmap);
 
-void blitscreen_dirty1_vesa_1x_1x_16bpp(void);
-void blitscreen_dirty1_vesa_1x_2x_16bpp(void);
-void blitscreen_dirty1_vesa_1x_2xs_16bpp(void);
-void blitscreen_dirty1_vesa_2x_1x_16bpp(void);
-void blitscreen_dirty1_vesa_2x_2x_16bpp(void);
-void blitscreen_dirty1_vesa_2x_2xs_16bpp(void);
-void blitscreen_dirty1_vesa_3x_1x_16bpp(void);
-void blitscreen_dirty1_vesa_3x_2x_16bpp(void);
-void blitscreen_dirty1_vesa_3x_2xs_16bpp(void);
-void blitscreen_dirty1_vesa_4x_2x_16bpp(void);
-void blitscreen_dirty1_vesa_4x_2xs_16bpp(void);
+void blitscreen_dirty1_vesa_1x_1x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_1x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_1x_2xs_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_1x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_2xs_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_1x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_2xs_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_2xs_16bpp(struct osd_bitmap *bitmap);
 
-void blitscreen_dirty1_vesa_1x_1x_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_1x_2x_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_1x_2xs_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_2x_1x_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_2x_2x_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_2x_2xs_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_3x_1x_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_3x_2x_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_3x_2xs_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_4x_2x_16bpp_palettized(void);
-void blitscreen_dirty1_vesa_4x_2xs_16bpp_palettized(void);
+void blitscreen_dirty1_vesa_1x_1x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_1x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_1x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_1x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_2x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_1x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_3x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty1_vesa_4x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
 
 
 /* dirty mode 0 (no osd_mark_dirty calls) */
-void blitscreen_dirty0_vga(void);
-void blitscreen_dirty0_unchained_vga(void);
-void blitscreen_dirty0_vesa_1x_1x_8bpp(void);
-void blitscreen_dirty0_vesa_1x_2x_8bpp(void);
-void blitscreen_dirty0_vesa_1x_2xs_8bpp(void);
-void blitscreen_dirty0_vesa_2x_1x_8bpp(void);
-void blitscreen_dirty0_vesa_2x_2x_8bpp(void);
-void blitscreen_dirty0_vesa_2x_2xs_8bpp(void);
-void blitscreen_dirty0_vesa_2x_3x_8bpp(void);
-void blitscreen_dirty0_vesa_2x_3xs_8bpp(void);
-void blitscreen_dirty0_vesa_3x_1x_8bpp(void);
-void blitscreen_dirty0_vesa_3x_2x_8bpp(void);
-void blitscreen_dirty0_vesa_3x_2xs_8bpp(void);
-void blitscreen_dirty0_vesa_3x_3x_8bpp(void);
-void blitscreen_dirty0_vesa_3x_3xs_8bpp(void);
-void blitscreen_dirty0_vesa_4x_2x_8bpp(void);
-void blitscreen_dirty0_vesa_4x_2xs_8bpp(void);
-void blitscreen_dirty0_vesa_4x_3x_8bpp(void);
-void blitscreen_dirty0_vesa_4x_3xs_8bpp(void);
+void blitscreen_dirty0_vga(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_unchained_vga(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_1x_1x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_1x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_1x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_1x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_3x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_3xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_1x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_3x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_3xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_2x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_2xs_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_3x_8bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_3xs_8bpp(struct osd_bitmap *bitmap);
 
-void blitscreen_dirty0_vesa_1x_1x_16bpp(void);
-void blitscreen_dirty0_vesa_1x_2x_16bpp(void);
-void blitscreen_dirty0_vesa_1x_2xs_16bpp(void);
-void blitscreen_dirty0_vesa_2x_1x_16bpp(void);
-void blitscreen_dirty0_vesa_2x_2x_16bpp(void);
-void blitscreen_dirty0_vesa_2x_2xs_16bpp(void);
-void blitscreen_dirty0_vesa_3x_1x_16bpp(void);
-void blitscreen_dirty0_vesa_3x_2x_16bpp(void);
-void blitscreen_dirty0_vesa_3x_2xs_16bpp(void);
-void blitscreen_dirty0_vesa_4x_2x_16bpp(void);
-void blitscreen_dirty0_vesa_4x_2xs_16bpp(void);
+void blitscreen_dirty0_vesa_1x_1x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_1x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_1x_2xs_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_1x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_2xs_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_1x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_2xs_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_2x_16bpp(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_2xs_16bpp(struct osd_bitmap *bitmap);
 
-void blitscreen_dirty0_vesa_1x_1x_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_1x_2x_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_1x_2xs_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_2x_1x_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_2x_2x_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_2x_2xs_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_3x_1x_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_3x_2x_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_3x_2xs_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_4x_2x_16bpp_palettized(void);
-void blitscreen_dirty0_vesa_4x_2xs_16bpp_palettized(void);
+void blitscreen_dirty0_vesa_1x_1x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_1x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_1x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_1x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_2x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_1x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_3x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_2x_16bpp_palettized(struct osd_bitmap *bitmap);
+void blitscreen_dirty0_vesa_4x_2xs_16bpp_palettized(struct osd_bitmap *bitmap);
 
 
 
-static void update_screen_dummy(void);
-void (*update_screen)(void) = update_screen_dummy;
+static void update_screen_dummy(struct osd_bitmap *bitmap);
+void (*update_screen)(struct osd_bitmap *bitmap) = update_screen_dummy;
 
 #define MAX_X_MULTIPLY 4
 #define MAX_Y_MULTIPLY 3
 #define MAX_X_MULTIPLY16 4
 #define MAX_Y_MULTIPLY16 2
 
-static void (*updaters8[MAX_X_MULTIPLY][MAX_Y_MULTIPLY][2][2])(void) =
+static void (*updaters8[MAX_X_MULTIPLY][MAX_Y_MULTIPLY][2][2])(struct osd_bitmap *bitmap) =
 {			/* 1 x 1 */
 	{	{	{ blitscreen_dirty0_vesa_1x_1x_8bpp, blitscreen_dirty1_vesa_1x_1x_8bpp },
 			{ blitscreen_dirty0_vesa_1x_1x_8bpp, blitscreen_dirty1_vesa_1x_1x_8bpp }
@@ -210,7 +208,7 @@ static void (*updaters8[MAX_X_MULTIPLY][MAX_Y_MULTIPLY][2][2])(void) =
 	}
 };
 
-static void (*updaters16[MAX_X_MULTIPLY16][MAX_Y_MULTIPLY16][2][2])(void) =
+static void (*updaters16[MAX_X_MULTIPLY16][MAX_Y_MULTIPLY16][2][2])(struct osd_bitmap *bitmap) =
 {				/* 1 x 1 */
 	{	{	{ blitscreen_dirty0_vesa_1x_1x_16bpp, blitscreen_dirty1_vesa_1x_1x_16bpp },
 			{ blitscreen_dirty0_vesa_1x_1x_16bpp, blitscreen_dirty1_vesa_1x_1x_16bpp }
@@ -240,10 +238,9 @@ static void (*updaters16[MAX_X_MULTIPLY16][MAX_Y_MULTIPLY16][2][2])(void) =
 			{ blitscreen_dirty0_vesa_4x_2xs_16bpp, blitscreen_dirty1_vesa_4x_2xs_16bpp }
 		}
 	}
-
 };
 
-static void (*updaters16_palettized[MAX_X_MULTIPLY16][MAX_Y_MULTIPLY16][2][2])(void) =
+static void (*updaters16_palettized[MAX_X_MULTIPLY16][MAX_Y_MULTIPLY16][2][2])(struct osd_bitmap *bitmap) =
 {				/* 1 x 1 */
 	{	{	{ blitscreen_dirty0_vesa_1x_1x_16bpp_palettized, blitscreen_dirty1_vesa_1x_1x_16bpp_palettized },
 			{ blitscreen_dirty0_vesa_1x_1x_16bpp_palettized, blitscreen_dirty1_vesa_1x_1x_16bpp_palettized }
@@ -273,10 +270,9 @@ static void (*updaters16_palettized[MAX_X_MULTIPLY16][MAX_Y_MULTIPLY16][2][2])(v
 			{ blitscreen_dirty0_vesa_4x_2xs_16bpp_palettized, blitscreen_dirty1_vesa_4x_2xs_16bpp_palettized }
 		}
 	}
-
 };
 
-struct osd_bitmap *scrbitmap;
+static int video_depth,video_fps,video_attributes,video_orientation;
 static int modifiable_palette;
 static int screen_colors;
 static unsigned char *current_palette;
@@ -472,19 +468,10 @@ struct mode_adjust  arcade_adjust[] = {
 
 const int safety = 16;
 
-struct osd_bitmap *osd_new_bitmap(int width,int height,int depth)       /* ASG 980209 */
+struct osd_bitmap *osd_alloc_bitmap(int width,int height,int depth)
 {
 	struct osd_bitmap *bitmap;
 
-
-	if (Machine->orientation & ORIENTATION_SWAP_XY)
-	{
-		int temp;
-
-		temp = width;
-		width = height;
-		height = temp;
-	}
 
 	if ((bitmap = malloc(sizeof(struct osd_bitmap))) != 0)
 	{
@@ -555,7 +542,7 @@ void osd_clearbitmap(struct osd_bitmap *bitmap)
 	}
 
 
-	if (bitmap == scrbitmap)
+	if (bitmap == Machine->scrbitmap)
 	{
 		extern int bitmap_dirty;        /* in mame.c */
 
@@ -584,7 +571,7 @@ void osd_mark_dirty(int _x1, int _y1, int _x2, int _y2, int ui)
 	{
 		int x, y;
 
-//        if (errorlog) fprintf(errorlog, "mark_dirty %3d,%3d - %3d,%3d\n", _x1,_y1, _x2,_y2);
+//        logerror("mark_dirty %3d,%3d - %3d,%3d\n", _x1,_y1, _x2,_y2);
 
 		_x1 -= skipcolumns;
 		_x2 -= skipcolumns;
@@ -617,12 +604,14 @@ INLINE void swap_dirty(void)
 	dirty_new = tmp;
 }
 
+
+
 /*
  * This function tries to find the best display mode.
  */
-static void select_display_mode(int depth)
+static void select_display_mode(int width,int height,int depth,int attributes,int orientation)
 {
-	int width,height, i;
+	int i;
 
 	auto_resolution = 0;
 	/* assume unchained video mode  */
@@ -646,33 +635,12 @@ static void select_display_mode(int depth)
 		quadpixel[i] = i | (i<<8) | (i << 16) | (i << 24);
 	}
 
-	if (vector_game)
-	{
-		width = Machine->drv->screen_width;
-		height = Machine->drv->screen_height;
-	}
-	else
-	{
-		width = Machine->drv->visible_area.max_x - Machine->drv->visible_area.min_x + 1;
-		height = Machine->drv->visible_area.max_y - Machine->drv->visible_area.min_y + 1;
-	}
-
-	if (Machine->orientation & ORIENTATION_SWAP_XY)
-	{
-		int temp;
-
-		temp = width;
-		width = height;
-		height = temp;
-	}
-
 	use_vesa = -1;
 
 	/* 16 bit color is supported only by VESA modes */
 	if (depth == 16)
 	{
-		if (errorlog)
-			fprintf (errorlog, "Game needs 16-bit colors. Using VESA\n");
+		logerror("Game needs 16-bit colors. Using VESA\n");
 		use_tweaked = 0;
 		/* only one 15.75KHz VESA mode, so force that */
 		if (scanrate15KHz == 1)
@@ -686,20 +654,17 @@ static void select_display_mode(int depth)
   /* Check for special 15.75KHz mode (req. for 15.75KHz Arcade Modes) */
 	if (scanrate15KHz == 1)
 	{
-		if (errorlog)
+		switch (monitor_type)
 		{
-			switch (monitor_type)
-			{
-				case MONITOR_TYPE_NTSC:
-					fprintf (errorlog, "Using special NTSC video mode.\n");
-					break;
-				case MONITOR_TYPE_PAL:
-					fprintf (errorlog, "Using special PAL video mode.\n");
-					break;
-				case MONITOR_TYPE_ARCADE:
-					fprintf (errorlog, "Using special arcade monitor mode.\n");
-					break;
-			}
+			case MONITOR_TYPE_NTSC:
+				logerror("Using special NTSC video mode.\n");
+				break;
+			case MONITOR_TYPE_PAL:
+				logerror("Using special PAL video mode.\n");
+				break;
+			case MONITOR_TYPE_ARCADE:
+				logerror("Using special arcade monitor mode.\n");
+				break;
 		}
 		scanlines = 0;
 		/* if no width/height specified, pick one from our tweaked list */
@@ -765,7 +730,7 @@ static void select_display_mode(int depth)
 			{
 				/*check for 57Hz modes which would fit into a 60Hz mode*/
 				if (gfx_width <= 256 && gfx_height <= 256 &&
-					video_sync && Machine->drv->frames_per_second == 57)
+					video_sync && video_fps == 57)
 				{
 					gfx_width = 256;
 					gfx_height = 256;
@@ -774,8 +739,8 @@ static void select_display_mode(int depth)
 				}
 
 				/* check for correct horizontal/vertical modes */
-				if((!vga_tweaked[i].vertical_mode && !(Machine->orientation & ORIENTATION_SWAP_XY)) ||
-					(vga_tweaked[i].vertical_mode && (Machine->orientation & ORIENTATION_SWAP_XY)))
+				if((!vga_tweaked[i].vertical_mode && !(orientation & ORIENTATION_SWAP_XY)) ||
+					(vga_tweaked[i].vertical_mode && (orientation & ORIENTATION_SWAP_XY)))
 				{
 					gfx_width  = vga_tweaked[i].x;
 					gfx_height = vga_tweaked[i].y;
@@ -795,8 +760,7 @@ if (gfx_width == 320 && gfx_height == 240 && scanlines == 0)
 		/* If we didn't find a tweaked VGA mode, use VESA */
 		if (gfx_width == 0)
 		{
-			if (errorlog)
-				fprintf (errorlog, "Did not find a tweaked VGA mode. Using VESA.\n");
+			logerror("Did not find a tweaked VGA mode. Using VESA.\n");
 			use_vesa = 1;
 		}
 	}
@@ -821,10 +785,10 @@ if (gfx_width == 320 && gfx_height == 240 && scanlines == 0)
 
 			xm = ym = 1;
 
-			if ((Machine->drv->video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
+			if ((attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
 					== VIDEO_PIXEL_ASPECT_RATIO_1_2)
 			{
-				if (Machine->orientation & ORIENTATION_SWAP_XY)
+				if (orientation & ORIENTATION_SWAP_XY)
 					xm++;
 				else ym++;
 			}
@@ -903,11 +867,11 @@ if (gfx_width == 320 && gfx_height == 240 && scanlines == 0)
 
 
 /* center image inside the display based on the visual area */
-static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
+void osd_set_visible_area(int min_x,int max_x,int min_y,int max_y)
 {
-	int temp;
-	int w,h;
 	int act_width;
+
+logerror("set visible area %d-%d %d-%d\n",min_x,max_x,min_y,max_y);
 
 /* if it's a SVGA arcade monitor mode, get the memory width of the mode */
 /* this could be double the width of the actual mode set */
@@ -917,37 +881,8 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 		act_width = gfx_width;
 
 
-	if (Machine->orientation & ORIENTATION_SWAP_XY)
-	{
-		temp = xmin; xmin = ymin; ymin = temp;
-		temp = xmax; xmax = ymax; ymax = temp;
-		w = Machine->drv->screen_height;
-		h = Machine->drv->screen_width;
-	}
-	else
-	{
-		w = Machine->drv->screen_width;
-		h = Machine->drv->screen_height;
-	}
-
-	if (!vector_game)
-	{
-		if (Machine->orientation & ORIENTATION_FLIP_X)
-		{
-			temp = w - xmin - 1;
-			xmin = w - xmax - 1;
-			xmax = temp;
-		}
-		if (Machine->orientation & ORIENTATION_FLIP_Y)
-		{
-			temp = h - ymin - 1;
-			ymin = h - ymax - 1;
-			ymax = temp;
-		}
-	}
-
-	viswidth  = xmax - xmin + 1;
-	visheight = ymax - ymin + 1;
+	viswidth  = max_x - min_x + 1;
+	visheight = max_y - min_y + 1;
 
 
 	/* setup xmultiply to handle SVGA driver's (possible) double width */
@@ -958,8 +893,8 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 	{
 		if (stretch)
 		{
-			if (!(Machine->orientation & ORIENTATION_SWAP_XY) &&
-					!(Machine->drv->video_attributes & VIDEO_DUAL_MONITOR))
+			if (!(video_orientation & ORIENTATION_SWAP_XY) &&
+					!(video_attributes & VIDEO_DUAL_MONITOR))
 			{
 				/* horizontal, non dual monitor games may be stretched at will */
 				while ((xmultiply+1) * viswidth <= act_width)
@@ -974,10 +909,10 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 				tw = act_width;
 				th = gfx_height;
 
-				if ((Machine->drv->video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
+				if ((video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
 						== VIDEO_PIXEL_ASPECT_RATIO_1_2)
 				{
-					if (Machine->orientation & ORIENTATION_SWAP_XY)
+					if (video_orientation & ORIENTATION_SWAP_XY)
 						tw /= 2;
 					else th /= 2;
 				}
@@ -995,10 +930,10 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 					ymultiply++;
 				}
 
-				if ((Machine->drv->video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
+				if ((video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
 						== VIDEO_PIXEL_ASPECT_RATIO_1_2)
 				{
-					if (Machine->orientation & ORIENTATION_SWAP_XY)
+					if (video_orientation & ORIENTATION_SWAP_XY)
 						xmultiply *= 2;
 					else ymultiply *= 2;
 				}
@@ -1011,10 +946,10 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 		}
 		else
 		{
-			if ((Machine->drv->video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
+			if ((video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
 					== VIDEO_PIXEL_ASPECT_RATIO_1_2)
 			{
-				if (Machine->orientation & ORIENTATION_SWAP_XY)
+				if (video_orientation & ORIENTATION_SWAP_XY)
 					xmultiply *= 2;
 				else ymultiply *= 2;
 			}
@@ -1026,7 +961,7 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 		}
 	}
 
-	if (depth == 16)
+	if (video_depth == 16)
 	{
 		if (xmultiply > MAX_X_MULTIPLY16) xmultiply = MAX_X_MULTIPLY16;
 		if (ymultiply > MAX_Y_MULTIPLY16) ymultiply = MAX_Y_MULTIPLY16;
@@ -1049,17 +984,17 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 			gfx_display_lines = gfx_height / ymultiply;
 
 
-	skiplinesmin = ymin;
-	skiplinesmax = visheight - gfx_display_lines + ymin;
-	skipcolumnsmin = xmin;
-	skipcolumnsmax = viswidth - gfx_display_columns + xmin;
+	skiplinesmin = min_y;
+	skiplinesmax = visheight - gfx_display_lines + min_y;
+	skipcolumnsmin = min_x;
+	skipcolumnsmax = viswidth - gfx_display_columns + min_x;
 
 	/* Align on a quadword !*/
 	gfx_xoffset &= ~7;
 
 	/* the skipcolumns from mame.cfg/cmdline is relative to the visible area */
-	skipcolumns = xmin + skipcolumns;
-	skiplines   = ymin + skiplines;
+	skipcolumns = min_x + skipcolumns;
+	skiplines   = min_y + skiplines;
 
 	/* Just in case the visual area doesn't fit */
 	if (gfx_xoffset < 0)
@@ -1083,9 +1018,7 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 	if (skipcolumns > skipcolumnsmax)
 		skipcolumns = skipcolumnsmax;
 
-	if (errorlog)
-		fprintf(errorlog,
-				"gfx_width = %d gfx_height = %d\n"
+	logerror("gfx_width = %d gfx_height = %d\n"
 				"gfx_xoffset = %d gfx_yoffset = %d\n"
 				"xmin %d ymin %d xmax %d ymax %d\n"
 				"skiplines %d skipcolumns %d\n"
@@ -1093,9 +1026,9 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 				"xmultiply %d ymultiply %d\n",
 				gfx_width,gfx_height,
 				gfx_xoffset,gfx_yoffset,
-				xmin, ymin, xmax, ymax, skiplines, skipcolumns,gfx_display_lines,gfx_display_columns,xmultiply,ymultiply);
+				min_x, min_y, max_x, max_y, skiplines, skipcolumns,gfx_display_lines,gfx_display_columns,xmultiply,ymultiply);
 
-	set_ui_visarea (skipcolumns, skiplines, skipcolumns+gfx_display_columns-1, skiplines+gfx_display_lines-1);
+	set_ui_visarea(skipcolumns, skiplines, skipcolumns+gfx_display_columns-1, skiplines+gfx_display_lines-1);
 
 	/* round to a multiple of 4 to avoid missing pixels on the right side */
 	gfx_display_columns  = (gfx_display_columns + 3) & ~3;
@@ -1103,17 +1036,19 @@ static void adjust_display(int xmin, int ymin, int xmax, int ymax, int depth)
 
 
 
-int game_width;
-int game_height;
-int game_attributes;
-
-/* Create a display screen, or window, large enough to accomodate a bitmap */
-/* of the given dimensions. Attributes are the ones defined in driver.h. */
-/* Return a osd_bitmap pointer or 0 in case of error. */
-struct osd_bitmap *osd_create_display(int width,int height,int depth,int attributes)
+/*
+Create a display screen, or window, of the given dimensions (or larger).
+Attributes are the ones defined in driver.h.
+Returns 0 on success.
+*/
+int osd_create_display(int width,int height,int depth,int fps,int attributes,int orientation)
 {
-	if (errorlog)
-		fprintf (errorlog, "width %d, height %d\n", width,height);
+	logerror("width %d, height %d\n", width,height);
+
+	video_depth = depth;
+	video_fps = fps;
+	video_attributes = attributes;
+	video_orientation = orientation;
 
 	brightness = 100;
 	brightness_paused_adjust = 1.0;
@@ -1127,7 +1062,7 @@ struct osd_bitmap *osd_create_display(int width,int height,int depth,int attribu
 	gone_to_gfx_mode = 0;
 
 	/* Look if this is a vector game */
-	if (Machine->drv->video_attributes & VIDEO_TYPE_VECTOR)
+	if (attributes & VIDEO_TYPE_VECTOR)
 		vector_game = 1;
 	else
 		vector_game = 0;
@@ -1136,29 +1071,13 @@ struct osd_bitmap *osd_create_display(int width,int height,int depth,int attribu
 	if (use_dirty == -1)	/* dirty=auto in mame.cfg? */
 	{
 		/* Is the game using a dirty system? */
-		if ((Machine->drv->video_attributes & VIDEO_SUPPORTS_DIRTY) || vector_game)
+		if ((attributes & VIDEO_SUPPORTS_DIRTY) || vector_game)
 			use_dirty = 1;
 		else
 			use_dirty = 0;
 	}
 
-	select_display_mode(depth);
-
-	if (vector_game)
-	{
-		scale_vectorgames(gfx_width,gfx_height,&width, &height);
-	}
-
-	game_width = width;
-	game_height = height;
-	game_attributes = attributes;
-
-	if (depth == 16)
-		scrbitmap = osd_new_bitmap(width,height,16);
-	else
-		scrbitmap = osd_new_bitmap(width,height,8);
-
-	if (!scrbitmap) return 0;
+	select_display_mode(width,height,depth,attributes,orientation);
 
 /* find a VESA driver for 15KHz modes just in case we need it later on */
 	if (scanrate15KHz)
@@ -1167,17 +1086,11 @@ struct osd_bitmap *osd_create_display(int width,int height,int depth,int attribu
 		SVGA15KHzdriver = 0;
 
 
-	if (!osd_set_display(width, height, attributes))
-		return 0;
+	if (!osd_set_display(width,height,depth,attributes,orientation))
+		return 1;
 
-	/* center display based on visible area */
-	if (vector_game)
-		adjust_display(0, 0, width-1, height-1, depth);
-	else
-	{
-		struct rectangle vis = Machine->drv->visible_area;
-		adjust_display(vis.min_x, vis.min_y, vis.max_x, vis.max_y, depth);
-	}
+	/* set visible area to nothing just to initialize it - it will be set by the core */
+	osd_set_visible_area(0,0,0,0);
 
    /*Check for SVGA 15.75KHz mode (req. for 15.75KHz Arcade Monitor Modes)
      need to do this here, as the double params will be set up correctly */
@@ -1189,15 +1102,14 @@ struct osd_bitmap *osd_create_display(int width,int height,int depth,int attribu
 		if (!SVGA15KHzdriver)
 		{
 			printf ("\nUnable to find 15.75KHz SVGA driver for %dx%d\n", gfx_width, gfx_height);
-			return 0;
+			return 1;
 		}
-		if(errorlog)
-			fprintf (errorlog, "Using %s 15.75KHz SVGA driver\n", SVGA15KHzdriver->name);
+		logerror("Using %s 15.75KHz SVGA driver\n", SVGA15KHzdriver->name);
 		/*and try to set the mode */
 		if (!SVGA15KHzdriver->setSVGA15KHzmode (dbl, gfx_width, gfx_height))
 		{
 			printf ("\nUnable to set SVGA 15.75KHz mode %dx%d (driver: %s)\n", gfx_width, gfx_height, SVGA15KHzdriver->name);
-			return 0;
+			return 1;
 		}
 		/* if we're doubling, we might as well have scanlines */
 		/* the 15.75KHz driver is going to drop every other line anyway -
@@ -1206,11 +1118,11 @@ struct osd_bitmap *osd_create_display(int width,int height,int depth,int attribu
 			scanlines=1;
 	}
 
-    return scrbitmap;
+    return 0;
 }
 
 /* set the actual display screen but don't allocate the screen bitmap */
-int osd_set_display(int width,int height, int attributes)
+int osd_set_display(int width,int height,int depth,int attributes,int orientation)
 {
 	struct mode_adjust *adjust_array;
 
@@ -1225,14 +1137,6 @@ int osd_set_display(int width,int height, int attributes)
 	}
 
 
-	if (Machine->orientation & ORIENTATION_SWAP_XY)
-	{
-		int temp;
-
-		temp = width;
-		width = height;
-		height = temp;
-	}
 	/* Mark the dirty buffers as dirty */
 
 	if (use_dirty)
@@ -1293,8 +1197,7 @@ int osd_set_display(int width,int height, int attributes)
 				/* all 15.75KHz VGA modes are unchained */
 				unchained = !use_vesa;
 
-				if (errorlog)
-					fprintf (errorlog, "15.75KHz mode (%dx%d) vesa:%d half:%d unchained:%d\n",
+				logerror("15.75KHz mode (%dx%d) vesa:%d half:%d unchained:%d\n",
 										gfx_width, gfx_height, use_vesa, half_yres, unchained);
 				/* always use the freq from the structure */
 				videofreq = arcade_tweaked[i].syncvgafreq;
@@ -1315,10 +1218,10 @@ int osd_set_display(int width,int height, int attributes)
 		/* setup tweaked modes */
 		/* handle 57Hz games which fit into 60Hz mode */
 		if (!found && gfx_width <= 256 && gfx_height <= 256 &&
-				video_sync && Machine->drv->frames_per_second == 57)
+				video_sync && video_fps == 57)
 		{
 			found = 1;
-			if (!(Machine->orientation & ORIENTATION_SWAP_XY))
+			if (!(orientation & ORIENTATION_SWAP_XY))
 			{
 				reg = scr256x256hor;
 				reglen = sizeof(scr256x256hor)/sizeof(Register);
@@ -1340,8 +1243,8 @@ int osd_set_display(int width,int height, int attributes)
 			{
 				/* check for correct horizontal/vertical modes */
 
-				if((!vga_tweaked[i].vertical_mode && !(Machine->orientation & ORIENTATION_SWAP_XY)) ||
-					(vga_tweaked[i].vertical_mode && (Machine->orientation & ORIENTATION_SWAP_XY)))
+				if((!vga_tweaked[i].vertical_mode && !(orientation & ORIENTATION_SWAP_XY)) ||
+					(vga_tweaked[i].vertical_mode && (orientation & ORIENTATION_SWAP_XY)))
 				{
 					reg = vga_tweaked[i].reg;
 					reglen = vga_tweaked[i].reglen;
@@ -1381,7 +1284,7 @@ int osd_set_display(int width,int height, int attributes)
 
 		mode = gfx_mode;
 		found = 0;
-		bits = scrbitmap->depth;
+		bits = depth;
 
 		/* Try the specified vesamode, 565 and 555 for 16 bit color modes, */
 		/* doubled resolution in case of noscanlines and if not succesful  */
@@ -1414,20 +1317,17 @@ int osd_set_display(int width,int height, int attributes)
 					err = set_gfx_mode(mode,gfx_width,gfx_height,0,0);
 			}
 
-			if (errorlog)
-			{
-				fprintf (errorlog,"Trying ");
-				if      (mode == GFX_VESA1)
-					fprintf (errorlog, "VESA1");
-				else if (mode == GFX_VESA2B)
-					fprintf (errorlog, "VESA2B");
-				else if (mode == GFX_VESA2L)
-				    fprintf (errorlog, "VESA2L");
-				else if (mode == GFX_VESA3)
-					fprintf (errorlog, "VESA3");
-			    fprintf (errorlog, "  %dx%d, %d bit\n",
-						gfx_width, gfx_height, bits);
-			}
+			logerror("Trying ");
+			if      (mode == GFX_VESA1)
+				logerror("VESA1");
+			else if (mode == GFX_VESA2B)
+				logerror("VESA2B");
+			else if (mode == GFX_VESA2L)
+				logerror("VESA2L");
+			else if (mode == GFX_VESA3)
+				logerror("VESA3");
+			logerror("  %dx%d, %d bit\n",
+					gfx_width, gfx_height, bits);
 
 			if (err == 0)
 			{
@@ -1436,13 +1336,12 @@ int osd_set_display(int width,int height, int attributes)
 				gfx_mode = mode;
 				continue;
 			}
-			else if (errorlog)
-				fprintf (errorlog,"%s\n",allegro_error);
+			else logerror("%s\n",allegro_error);
 
 			/* Now adjust parameters for the next loop */
 
 			/* try 5-5-5 in case there is no 5-6-5 16 bit color mode */
-			if (scrbitmap->depth == 16)
+			if (depth == 16)
 			{
 				if (bits == 16)
 				{
@@ -1524,7 +1423,7 @@ int osd_set_display(int width,int height, int attributes)
 		if (found == 0)
 		{
 			printf ("\nNo %d-bit %dx%d VESA mode available.\n",
-					scrbitmap->depth,gfx_width,gfx_height);
+					depth,gfx_width,gfx_height);
 			printf ("\nPossible causes:\n"
 "1) Your video card does not support VESA modes at all. Almost all\n"
 "   video cards support VESA modes natively these days, so you probably\n"
@@ -1543,17 +1442,14 @@ int osd_set_display(int width,int height, int attributes)
 		}
 		else
 		{
-			if (errorlog)
-				fprintf (errorlog, "Found matching %s mode\n", gfx_driver->desc);
+			logerror("Found matching %s mode\n", gfx_driver->desc);
 			gfx_mode = mode;
 			/* disable triple buffering if the screen is not large enough */
-			if (errorlog)
-				fprintf (errorlog, "Virtual screen size %dx%d\n",VIRTUAL_W,VIRTUAL_H);
+			logerror("Virtual screen size %dx%d\n",VIRTUAL_W,VIRTUAL_H);
 			if (VIRTUAL_W < 3*triplebuf_page_width)
 			{
 				use_triplebuf = 0;
-				if (errorlog)
-					fprintf (errorlog, "Triple buffer disabled\n");
+				logerror("Triple buffer disabled\n");
 			}
 
 			/* if triple buffering is enabled, turn off vsync */
@@ -1581,8 +1477,7 @@ int osd_set_display(int width,int height, int attributes)
 			if ((vga_page_size * 3) > 0x40000)
 			{
 				/* too big */
-				if (errorlog)
-					fprintf(errorlog,"tweaked mode %dx%d is too large to triple buffer\ntriple buffering disabled\n",gfx_width,gfx_height);
+				logerror("tweaked mode %dx%d is too large to triple buffer\ntriple buffering disabled\n",gfx_width,gfx_height);
 				use_triplebuf = 0;
 			}
 			else
@@ -1590,8 +1485,7 @@ int osd_set_display(int width,int height, int attributes)
 				/* it fits, so set up the 3 pages */
 				no_xpages = 3;
 				xpage_size = vga_page_size / 4;
-				if (errorlog)
-					fprintf(errorlog,"unchained VGA triple buffering page size :%d\n",xpage_size);
+				logerror("unchained VGA triple buffering page size :%d\n",xpage_size);
 				/* and make sure the mode's unchained */
 				unchain_vga (reg);
 				/* triple buffering is enabled, turn off vsync */
@@ -1615,8 +1509,8 @@ int osd_set_display(int width,int height, int attributes)
 			if ((gfx_width == adjust_array[i].x) && (gfx_height == adjust_array[i].y))
 			{
 				/* check for 'special vertical' modes */
-				if((!adjust_array[i].vertical_mode && !(Machine->orientation & ORIENTATION_SWAP_XY)) ||
-					(adjust_array[i].vertical_mode && (Machine->orientation & ORIENTATION_SWAP_XY)))
+				if((!adjust_array[i].vertical_mode && !(orientation & ORIENTATION_SWAP_XY)) ||
+					(adjust_array[i].vertical_mode && (orientation & ORIENTATION_SWAP_XY)))
 				{
 					reg[H_TOTAL_INDEX].value = *adjust_array[i].hadjust;
 					reg[V_TOTAL_INDEX].value = *adjust_array[i].vadjust;
@@ -1634,15 +1528,12 @@ int osd_set_display(int width,int height, int attributes)
 		if (set_gfx_mode(GFX_VGA,320,200,0,0) != 0)
 			return 0;
 
-		if (errorlog)
+		logerror("Generated Tweak Values :-\n");
+		for (i=0; i<reglen; i++)
 		{
-			fprintf(errorlog,"Generated Tweak Values :-\n");
-			for (i=0; i<reglen; i++)
-			{
-				fprintf(errorlog,"{ 0x%02x, 0x%02x, 0x%02x},",reg[i].port,reg[i].index,reg[i].value);
-				if (!((i+1)%3))
-					fprintf(errorlog,"\n");
-			}
+			logerror("{ 0x%02x, 0x%02x, 0x%02x},",reg[i].port,reg[i].index,reg[i].value);
+			if (!((i+1)%3))
+				logerror("\n");
 		}
 
 		/* tweak the mode */
@@ -1663,7 +1554,7 @@ int osd_set_display(int width,int height, int attributes)
 	gone_to_gfx_mode = 1;
 
 
-	vsync_frame_rate = Machine->drv->frames_per_second;
+	vsync_frame_rate = video_fps;
 
 	if (video_sync)
 	{
@@ -1686,30 +1577,28 @@ int osd_set_display(int width,int height, int attributes)
 
 		rate = ((float)TICKS_PER_SEC)/(b-a);
 
-		if (errorlog)
-			fprintf(errorlog,"target frame rate = %ffps, video frame rate = %3.2fHz\n",Machine->drv->frames_per_second,rate);
+		logerror("target frame rate = %ffps, video frame rate = %3.2fHz\n",video_fps,rate);
 
 		/* don't allow more than 8% difference between target and actual frame rate */
-		while (rate > Machine->drv->frames_per_second * 108 / 100)
+		while (rate > video_fps * 108 / 100)
 			rate /= 2;
 
-		if (rate < Machine->drv->frames_per_second * 92 / 100)
+		if (rate < video_fps * 92 / 100)
 		{
 			osd_close_display();
-			if (errorlog) fprintf(errorlog,"-vsync option cannot be used with this display mode:\n"
+			logerror("-vsync option cannot be used with this display mode:\n"
 						"video refresh frequency = %dHz, target frame rate = %ffps\n",
-						(int)(TICKS_PER_SEC/(b-a)),Machine->drv->frames_per_second);
+						(int)(TICKS_PER_SEC/(b-a)),video_fps);
 			return 0;
 		}
 
-		if (errorlog) fprintf(errorlog,"adjusted video frame rate = %3.2fHz\n",rate);
+		logerror("adjusted video frame rate = %3.2fHz\n",rate);
 			vsync_frame_rate = rate;
 
 		if (Machine->sample_rate)
 		{
-			Machine->sample_rate = Machine->sample_rate * Machine->drv->frames_per_second / rate;
-			if (errorlog)
-				fprintf(errorlog,"sample rate adjusted to match video freq: %d\n",Machine->sample_rate);
+			Machine->sample_rate = Machine->sample_rate * video_fps / rate;
+			logerror("sample rate adjusted to match video freq: %d\n",Machine->sample_rate);
 		}
 	}
 
@@ -1745,11 +1634,6 @@ void osd_close_display(void)
 	current_palette = 0;
 	free(palette_16bit_lookup);
 	palette_16bit_lookup = 0;
-	if (scrbitmap)
-	{
-		osd_free_bitmap(scrbitmap);
-		scrbitmap = NULL;
-	}
 }
 
 
@@ -1760,7 +1644,7 @@ int osd_allocate_colors(unsigned int totalcolors,const unsigned char *palette,un
 
 	modifiable_palette = modifiable;
 	screen_colors = totalcolors;
-	if (scrbitmap->depth != 8)
+	if (video_depth != 8)
 		screen_colors += 2;
 	else screen_colors = 256;
 
@@ -1776,7 +1660,7 @@ int osd_allocate_colors(unsigned int totalcolors,const unsigned char *palette,un
 	for (i = 0;i < screen_colors;i++)
 		current_palette[3*i+0] = current_palette[3*i+1] = current_palette[3*i+2] = 0;
 
-	if (scrbitmap->depth != 8 && modifiable == 0)
+	if (video_depth != 8 && modifiable == 0)
 	{
 		int r,g,b;
 
@@ -1796,7 +1680,7 @@ int osd_allocate_colors(unsigned int totalcolors,const unsigned char *palette,un
 	}
 	else
 	{
-		if (scrbitmap->depth == 8 && totalcolors >= 255)
+		if (video_depth == 8 && totalcolors >= 255)
 		{
 			int bestblack,bestwhite;
 			int bestblackscore,bestwhitescore;
@@ -1868,12 +1752,12 @@ int osd_allocate_colors(unsigned int totalcolors,const unsigned char *palette,un
 			if (unchained)
 			{
 				update_screen = blitscreen_dirty1_unchained_vga;
-				if (errorlog) fprintf (errorlog, "blitscreen_dirty1_unchained_vga\n");
+				logerror("blitscreen_dirty1_unchained_vga\n");
 			}
 			else
 			{
 				update_screen = blitscreen_dirty1_vga;
-				if (errorlog) fprintf (errorlog, "blitscreen_dirty1_vga\n");
+				logerror("blitscreen_dirty1_vga\n");
 			}
 		}
 		else
@@ -1882,12 +1766,12 @@ int osd_allocate_colors(unsigned int totalcolors,const unsigned char *palette,un
 			if (unchained)
 			{
 				update_screen = blitscreen_dirty0_unchained_vga;
-				if (errorlog) fprintf (errorlog, "blitscreen_dirty0_unchained_vga\n");
+				logerror("blitscreen_dirty0_unchained_vga\n");
 			}
 			else
 			{
 				update_screen = blitscreen_dirty0_vga;
-				if (errorlog) fprintf (errorlog, "blitscreen_dirty0_vga\n");
+				logerror("blitscreen_dirty0_vga\n");
 			}
 		}
 	}
@@ -1909,7 +1793,7 @@ int osd_allocate_colors(unsigned int totalcolors,const unsigned char *palette,un
 		else /* use forced mmx= setting from mame.cfg at own risk!!! */
 			mmxlfb = use_mmx;
 
-		if (scrbitmap->depth == 16)
+		if (video_depth == 16)
 		{
 			if (modifiable_palette)
 				update_screen = updaters16_palettized[xmultiply-1][ymultiply-1][scanlines?1:0][use_dirty?1:0];
@@ -1930,7 +1814,7 @@ void osd_modify_pen(int pen,unsigned char red, unsigned char green, unsigned cha
 {
 	if (modifiable_palette == 0)
 	{
-		if (errorlog) fprintf(errorlog,"error: osd_modify_pen() called with modifiable_palette == 0\n");
+		logerror("error: osd_modify_pen() called with modifiable_palette == 0\n");
 		return;
 	}
 
@@ -1952,7 +1836,7 @@ void osd_modify_pen(int pen,unsigned char red, unsigned char green, unsigned cha
 
 void osd_get_pen(int pen,unsigned char *red, unsigned char *green, unsigned char *blue)
 {
-	if (scrbitmap->depth != 8 && modifiable_palette == 0)
+	if (video_depth != 8 && modifiable_palette == 0)
 	{
 		*red =   getr(pen);
 		*green = getg(pen);
@@ -1968,10 +1852,9 @@ void osd_get_pen(int pen,unsigned char *red, unsigned char *green, unsigned char
 
 
 
-void update_screen_dummy(void)
+static void update_screen_dummy(struct osd_bitmap *bitmap)
 {
-	if (errorlog)
-		fprintf(errorlog, "msdos/video.c: undefined update_screen() function for %d x %d!\n",xmultiply,ymultiply);
+	logerror("msdos/video.c: undefined update_screen() function for %d x %d!\n",xmultiply,ymultiply);
 }
 
 INLINE void pan_display(void)
@@ -1983,28 +1866,28 @@ INLINE void pan_display(void)
 		if (skipcolumns < skipcolumnsmax)
 		{
 			skipcolumns++;
-			osd_mark_dirty (0,0,scrbitmap->width-1,scrbitmap->height-1,1);
+			osd_mark_dirty (0,0,Machine->scrbitmap->width-1,Machine->scrbitmap->height-1,1);
 			pan_changed = 1;
 		}
 	if (input_ui_pressed_repeat(IPT_UI_PAN_RIGHT,1))
 		if (skipcolumns > skipcolumnsmin)
 		{
 			skipcolumns--;
-			osd_mark_dirty (0,0,scrbitmap->width-1,scrbitmap->height-1,1);
+			osd_mark_dirty (0,0,Machine->scrbitmap->width-1,Machine->scrbitmap->height-1,1);
 			pan_changed = 1;
 		}
 	if (input_ui_pressed_repeat(IPT_UI_PAN_DOWN,1))
 		if (skiplines < skiplinesmax)
 		{
 			skiplines++;
-			osd_mark_dirty (0,0,scrbitmap->width-1,scrbitmap->height-1,1);
+			osd_mark_dirty (0,0,Machine->scrbitmap->width-1,Machine->scrbitmap->height-1,1);
 			pan_changed = 1;
 		}
 	if (input_ui_pressed_repeat(IPT_UI_PAN_UP,1))
 		if (skiplines > skiplinesmin)
 		{
 			skiplines--;
-			osd_mark_dirty (0,0,scrbitmap->width-1,scrbitmap->height-1,1);
+			osd_mark_dirty (0,0,Machine->scrbitmap->width-1,Machine->scrbitmap->height-1,1);
 			pan_changed = 1;
 		}
 
@@ -2040,7 +1923,7 @@ int osd_skip_this_frame(void)
 }
 
 /* Update the display. */
-void osd_update_video_and_audio(void)
+void osd_update_video_and_audio(struct osd_bitmap *bitmap)
 {
 	static const int waittable[FRAMESKIP_LEVELS][FRAMESKIP_LEVELS] =
 	{
@@ -2063,19 +1946,19 @@ void osd_update_video_and_audio(void)
 	static TICKER prev_measure,this_frame_base,prev;
 	static int speed = 100;
 	static int vups,vfcount;
-	int need_to_clear_bitmap = 0;
+	int have_to_clear_bitmap = 0;
 	int already_synced;
 
 
 	if (warming_up)
 	{
 		/* first time through, initialize timer */
-		prev_measure = ticker() - FRAMESKIP_LEVELS * TICKS_PER_SEC/Machine->drv->frames_per_second;
+		prev_measure = ticker() - FRAMESKIP_LEVELS * TICKS_PER_SEC/video_fps;
 		warming_up = 0;
 	}
 
 	if (frameskip_counter == 0)
-		this_frame_base = prev_measure + FRAMESKIP_LEVELS * TICKS_PER_SEC/Machine->drv->frames_per_second;
+		this_frame_base = prev_measure + FRAMESKIP_LEVELS * TICKS_PER_SEC/video_fps;
 
 	if (throttle)
 	{
@@ -2084,7 +1967,7 @@ void osd_update_video_and_audio(void)
 		/* if too much time has passed since last sound update, disable throttling */
 		/* temporarily - we wouldn't be able to keep synch anyway. */
 		curr = ticker();
-		if ((curr - last) > 2*TICKS_PER_SEC / Machine->drv->frames_per_second)
+		if ((curr - last) > 2*TICKS_PER_SEC / video_fps)
 			throttle = 0;
 		last = curr;
 
@@ -2103,7 +1986,7 @@ void osd_update_video_and_audio(void)
 			showfpstemp--;
 			if (showfps == 0 && showfpstemp == 0)
 			{
-				need_to_clear_bitmap = 1;
+				have_to_clear_bitmap = 1;
 			}
 		}
 
@@ -2113,14 +1996,14 @@ void osd_update_video_and_audio(void)
 			if (showfpstemp)
 			{
 				showfpstemp = 0;
-				need_to_clear_bitmap = 1;
+				have_to_clear_bitmap = 1;
 			}
 			else
 			{
 				showfps ^= 1;
 				if (showfps == 0)
 				{
-					need_to_clear_bitmap = 1;
+					have_to_clear_bitmap = 1;
 				}
 			}
 		}
@@ -2139,7 +2022,7 @@ void osd_update_video_and_audio(void)
 				{
 					vsync();
 					curr = ticker();
-				} while (TICKS_PER_SEC / (curr - last) > Machine->drv->frames_per_second * 11 /10);
+				} while (TICKS_PER_SEC / (curr - last) > video_fps * 11 /10);
 
 				last = curr;
 			}
@@ -2159,7 +2042,7 @@ void osd_update_video_and_audio(void)
 				/* wait only if the audio update hasn't synced us already */
 
 					target = this_frame_base +
-							frameskip_counter * TICKS_PER_SEC/Machine->drv->frames_per_second;
+							frameskip_counter * TICKS_PER_SEC/video_fps;
 
 					if (curr - target < 0)
 					{
@@ -2188,7 +2071,7 @@ void osd_update_video_and_audio(void)
 			int divdr;
 
 
-			divdr = Machine->drv->frames_per_second * (curr - prev_measure) / (100 * FRAMESKIP_LEVELS);
+			divdr = video_fps * (curr - prev_measure) / (100 * FRAMESKIP_LEVELS);
 			speed = (TICKS_PER_SEC + divdr/2) / divdr;
 
 			prev_measure = curr;
@@ -2197,9 +2080,9 @@ void osd_update_video_and_audio(void)
 		prev = curr;
 
 		vfcount += waittable[frameskip][frameskip_counter];
-		if (vfcount >= Machine->drv->frames_per_second)
+		if (vfcount >= video_fps)
 		{
-			extern int vector_updates; /* avgdvg_go()'s per Mame frame, should be 1 */
+			extern int vector_updates; /* avgdvg_go_w()'s per Mame frame, should be 1 */
 
 
 			vfcount = 0;
@@ -2215,17 +2098,17 @@ void osd_update_video_and_audio(void)
 
 
 			divdr = 100 * FRAMESKIP_LEVELS;
-			fps = (Machine->drv->frames_per_second * (FRAMESKIP_LEVELS - frameskip) * speed + (divdr / 2)) / divdr;
-			sprintf(buf,"%s%2d%4d%%%4d/%d fps",autoframeskip?"auto":"fskp",frameskip,speed,fps,(int)(Machine->drv->frames_per_second+0.5));
-			ui_text(buf,Machine->uiwidth-strlen(buf)*Machine->uifontwidth,0);
+			fps = (video_fps * (FRAMESKIP_LEVELS - frameskip) * speed + (divdr / 2)) / divdr;
+			sprintf(buf,"%s%2d%4d%%%4d/%d fps",autoframeskip?"auto":"fskp",frameskip,speed,fps,(int)(video_fps+0.5));
+			ui_text(bitmap,buf,Machine->uiwidth-strlen(buf)*Machine->uifontwidth,0);
 			if (vector_game)
 			{
 				sprintf(buf," %d vector updates",vups);
-				ui_text(buf,Machine->uiwidth-strlen(buf)*Machine->uifontwidth,Machine->uifontheight);
+				ui_text(bitmap,buf,Machine->uiwidth-strlen(buf)*Machine->uifontwidth,Machine->uifontheight);
 			}
 		}
 
-		if (scrbitmap->depth == 8)
+		if (bitmap->depth == 8)
 		{
 			if (dirty_bright)
 			{
@@ -2308,7 +2191,7 @@ void osd_update_video_and_audio(void)
 
 		/* copy the bitmap to screen memory */
 		profiler_mark(PROFILER_BLIT);
-		update_screen();
+		update_screen(bitmap);
 		profiler_mark(PROFILER_END);
 
 		/* see if we need to give the card enough time to draw both odd/even fields of the interlaced display
@@ -2316,8 +2199,8 @@ void osd_update_video_and_audio(void)
 		interlace_sync();
 
 
-		if (need_to_clear_bitmap)
-			osd_clearbitmap(scrbitmap);
+		if (have_to_clear_bitmap)
+			osd_clearbitmap(bitmap);
 
 		if (use_dirty)
 		{
@@ -2326,8 +2209,8 @@ void osd_update_video_and_audio(void)
 			init_dirty(0);
 		}
 
-		if (need_to_clear_bitmap)
-			osd_clearbitmap(scrbitmap);
+		if (have_to_clear_bitmap)
+			osd_clearbitmap(bitmap);
 
 
 		if (throttle && autoframeskip && frameskip_counter == 0)
@@ -2336,7 +2219,7 @@ void osd_update_video_and_audio(void)
 			int adjspeed;
 
 			/* adjust speed to video refresh rate if vsync is on */
-			adjspeed = speed * Machine->drv->frames_per_second / vsync_frame_rate;
+			adjspeed = speed * video_fps / vsync_frame_rate;
 
 			if (adjspeed >= 100)
 			{
@@ -2389,7 +2272,7 @@ void osd_update_video_and_audio(void)
 		}
 
 		if (showfps == 0)
-			showfpstemp = 2*Machine->drv->frames_per_second;
+			showfpstemp = 2*video_fps;
 
 		/* reset the frame counter every time the frameskip key is pressed, so */
 		/* we'll measure the average FPS on a consistent status. */
@@ -2412,7 +2295,7 @@ void osd_update_video_and_audio(void)
 		}
 
 		if (showfps == 0)
-			showfpstemp = 2*Machine->drv->frames_per_second;
+			showfpstemp = 2*video_fps;
 
 		/* reset the frame counter every time the frameskip key is pressed, so */
 		/* we'll measure the average FPS on a consistent status. */
@@ -2470,9 +2353,9 @@ int osd_get_brightness(void)
 }
 
 
-void osd_save_snapshot(void)
+void osd_save_snapshot(struct osd_bitmap *bitmap)
 {
-	save_screen_snapshot();
+	save_screen_snapshot(bitmap);
 }
 
 void osd_pause(int paused)

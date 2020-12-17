@@ -31,18 +31,18 @@ Driver by Takahiro Nogi (nogi@kt.rim.or.jp) 1999/12/17 -
 #include "driver.h"
 #include "vidhrdw/generic.h"
 
-void galivan_scrollx_w(int offset,int data);
-void galivan_scrolly_w(int offset,int data);
-void galivan_videoram_w(int offset,int data);
-void galivan_colorram_w(int offset,int data);
-void galivan_gfxbank_w(int offset,int data);
+WRITE_HANDLER( galivan_scrollx_w );
+WRITE_HANDLER( galivan_scrolly_w );
+WRITE_HANDLER( galivan_videoram_w );
+WRITE_HANDLER( galivan_colorram_w );
+WRITE_HANDLER( galivan_gfxbank_w );
 void galivan_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int galivan_vh_start(void);
 void galivan_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-void ninjemak_scrollx_w(int offset, int data);
-void ninjemak_scrolly_w(int offset, int data);
-void ninjemak_gfxbank_w(int offset,int data);
+WRITE_HANDLER( ninjemak_scrollx_w );
+WRITE_HANDLER( ninjemak_scrolly_w );
+WRITE_HANDLER( ninjemak_gfxbank_w );
 int ninjemak_vh_start(void);
 void ninjemak_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
 
@@ -56,12 +56,12 @@ static void galivan_init_machine(void)
 //	layers = 0x60;
 }
 
-static void galivan_sound_command_w(int offset,int data)
+static WRITE_HANDLER( galivan_sound_command_w )
 {
 	soundlatch_w(offset,(data << 1) | 1);
 }
 
-static int galivan_sound_command_r(int offset)
+static READ_HANDLER( galivan_sound_command_r )
 {
 	int data;
 
@@ -70,14 +70,14 @@ static int galivan_sound_command_r(int offset)
 	return data;
 }
 
-static int IO_port_c0_read(int offset)
+static READ_HANDLER( IO_port_c0_r )
 {
   return (0x58); /* To Avoid Reset on Ufo Robot dangar */
 }
 
 
 /* the scroll registers are memory mapped in ninjemak, I/O ports in the others */
-static void ninjemak_videoreg_w(int offset, int data)
+static WRITE_HANDLER( ninjemak_videoreg_w )
 {
 	switch (offset)
 	{
@@ -137,7 +137,7 @@ static struct IOReadPort readport[] =
 	{ 0x02, 0x02, input_port_2_r },
 	{ 0x03, 0x03, input_port_3_r },
 	{ 0x04, 0x04, input_port_4_r },
-	{ 0xc0, 0xc0, IO_port_c0_read }, /* dangar needs to return 0x58 */
+	{ 0xc0, 0xc0, IO_port_c0_r }, /* dangar needs to return 0x58 */
 	{ -1 }	/* end of table */
 };
 
@@ -199,7 +199,8 @@ static struct IOWritePort sound_writeport[] =
 {
 	{ 0x00, 0x00, YM3526_control_port_0_w },
 	{ 0x01, 0x01, YM3526_write_port_0_w },
-	{ 0x02, 0x03, DAC_data_w },
+	{ 0x02, 0x02, DAC_0_data_w },
+	{ 0x03, 0x03, DAC_1_data_w },
 	{ -1 }	/* end of table */
 };
 
@@ -231,7 +232,7 @@ INPUT_PORTS_START( galivan )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BITX(0x20, 0x20, 0, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -312,7 +313,7 @@ INPUT_PORTS_START( dangar )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BITX(0x20, 0x20, 0, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -334,10 +335,10 @@ INPUT_PORTS_START( dangar )
 	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Cabinet ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown) )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 
@@ -359,14 +360,11 @@ INPUT_PORTS_START( dangar )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	/* two switches to allow continue... both work */
-	PORT_DIPNAME( 0x40, 0x00, "Allow Continue" )
-	PORT_DIPSETTING(    0x40, DEF_STR( No ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
-#if 0
-	PORT_DIPNAME( 0x80, 0x00, "Allow Continue" )
-	PORT_DIPSETTING(    0x80, DEF_STR( No ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
-#endif
+    	PORT_DIPNAME( 0xc0, 0x00, "Continue" )
+    	PORT_DIPSETTING(    0xc0, DEF_STR( No ) )
+    	PORT_DIPSETTING(    0x80, "3 Times" )
+    	PORT_DIPSETTING(    0x40, "5 Times" )
+    	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
 INPUT_PORTS_END
 
 /* the last two dip switches are different in each version */
@@ -396,7 +394,7 @@ INPUT_PORTS_START( dangar2 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BITX(0x20, 0x20, 0, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -477,7 +475,7 @@ INPUT_PORTS_START( dangarb )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BITX(0x20, 0x20, 0, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -557,7 +555,7 @@ INPUT_PORTS_START( ninjemak )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -661,7 +659,7 @@ INPUT_PORTS_START( youma )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )

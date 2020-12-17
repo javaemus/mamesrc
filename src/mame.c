@@ -1,16 +1,18 @@
 #include "driver.h"
 #include <ctype.h>
-
+#include <stdarg.h>
+#include "ui_text.h" /* LBO 042400 */
+#include "artwork.h"
 
 static struct RunningMachine machine;
 struct RunningMachine *Machine = &machine;
 static const struct GameDriver *gamedrv;
 static const struct MachineDriver *drv;
+static struct osd_bitmap *real_scrbitmap;
 
 /* Variables to hold the status of various game options */
 struct GameOptions	options;
 
-FILE *errorlog;
 void *record;   /* for -record */
 void *playback; /* for -playback */
 int mame_debug; /* !0 when -debug option is specified */
@@ -30,6 +32,11 @@ extern int spriteram_size,spriteram_2_size;
 int init_machine(void);
 void shutdown_machine(void);
 int run_machine(void);
+
+void overlay_free(void);
+void backdrop_free(void);
+void overlay_remap(void);
+void overlay_draw(struct osd_bitmap *dest,struct osd_bitmap *source);
 
 
 #ifdef MAME_DEBUG
@@ -245,7 +252,7 @@ static int validitychecks(void)
 				{
 					j = 0;
 
-					while (ipdn_defaultstrings[j] != DEF_STR( Unknown ))
+					for (j = 0;j < STR_TOTAL;j++)
 					{
 						if (inp->name == ipdn_defaultstrings[j]) break;
 						else if (!my_stricmp(inp->name,ipdn_defaultstrings[j]))
@@ -253,7 +260,6 @@ static int validitychecks(void)
 							printf("%s must use DEF_STR( %s )\n",drivers[i]->name,inp->name);
 							error = 1;
 						}
-						j++;
 					}
 
 					if (inp->name == DEF_STR( On ) && (inp+1)->name == DEF_STR( Off ))
@@ -320,7 +326,6 @@ int run_game(int game)
 
 
 	/* copy some settings into easier-to-handle variables */
-	errorlog   = options.errorlog;
 	record     = options.record;
 	playback   = options.playback;
 	mame_debug = options.mame_debug;
@@ -334,6 +339,10 @@ int run_game(int game)
 		Machine->color_depth = 16;
 	else
 		Machine->color_depth = 8;
+
+	if (options.vector_width == 0) options.vector_width = 640;
+	if (options.vector_height == 0) options.vector_height = 480;
+
 	Machine->sample_rate = options.samplerate;
 
 	/* get orientation right */
@@ -438,6 +447,11 @@ int init_machine(void)
 {
 	int i;
 
+	/* LBO 042400 start */
+	if (uistring_init (options.language_file) != 0)
+		goto out;
+	/* LBO 042400 end */
+
 	if (code_init() != 0)
 		goto out;
 
@@ -465,7 +479,7 @@ int init_machine(void)
     #ifdef MESS
 	if (!gamedrv->rom)
 	{
-		if(errorlog) fprintf(errorlog, "Going to load_next tag\n");
+		logerror("Going to load_next tag\n");
 		goto load_next;
 	}
     #endif
@@ -537,6 +551,8 @@ void shutdown_machine(void)
 	Machine->input_ports_default = 0;
 
 	code_close();
+
+	uistring_shutdown (); /* LBO 042400 */
 }
 
 
@@ -554,6 +570,12 @@ static void vh_close(void)
 	freegfx(Machine->uifont);
 	Machine->uifont = 0;
 	osd_close_display();
+	if (Machine->scrbitmap)
+	{
+		bitmap_free(Machine->scrbitmap);
+		Machine->scrbitmap = NULL;
+	}
+
 	palette_stop();
 
 	if (drv->video_attributes & VIDEO_BUFFERS_SPRITERAM) {
@@ -566,9 +588,38 @@ static void vh_close(void)
 
 
 
+/* Scale the vector games to a given resolution */
+static void scale_vectorgames(int gfx_width,int gfx_height,int *width,int *height)
+{
+	double x_scale, y_scale, scale;
+
+	if (Machine->orientation & ORIENTATION_SWAP_XY)
+	{
+		x_scale=(double)gfx_width/(double)(*height);
+		y_scale=(double)gfx_height/(double)(*width);
+	}
+	else
+	{
+		x_scale=(double)gfx_width/(double)(*width);
+		y_scale=(double)gfx_height/(double)(*height);
+	}
+	if (x_scale<y_scale)
+		scale=x_scale;
+	else
+		scale=y_scale;
+	*width=(int)((double)*width*scale);
+	*height=(int)((double)*height*scale);
+
+	/* Padding to an dword value */
+	*width-=*width % 4;
+	*height-=*height % 4;
+}
+
+
 static int vh_open(void)
 {
 	int i;
+	int width,height;
 
 
 	for (i = 0;i < MAX_GFX_ELEMENTS;i++) Machine->gfx[i] = 0;
@@ -624,6 +675,10 @@ static int vh_open(void)
 					&glcopy)) == 0)
 			{
 				vh_close();
+
+				bailing = 1;
+				printf("Out of memory decoding gfx\n");
+
 				return 1;
 			}
 			if (Machine->remapped_colortable)
@@ -633,15 +688,44 @@ static int vh_open(void)
 	}
 
 
-	/* create the display bitmap, and allocate the palette */
-	if ((Machine->scrbitmap = osd_create_display(
-			drv->screen_width,drv->screen_height,
-			Machine->color_depth,
-			drv->video_attributes)) == 0)
+	width = drv->screen_width;
+	height = drv->screen_height;
+
+	if (Machine->drv->video_attributes & VIDEO_TYPE_VECTOR)
+		scale_vectorgames(options.vector_width,options.vector_height,&width,&height);
+
+	Machine->scrbitmap = bitmap_alloc_depth(width,height,Machine->color_depth);
+	if (!Machine->scrbitmap)
 	{
 		vh_close();
 		return 1;
 	}
+
+	if (!(Machine->drv->video_attributes & VIDEO_TYPE_VECTOR))
+	{
+		width = drv->default_visible_area.max_x - drv->default_visible_area.min_x + 1;
+		height = drv->default_visible_area.max_y - drv->default_visible_area.min_y + 1;
+	}
+
+	if (Machine->orientation & ORIENTATION_SWAP_XY)
+	{
+		int temp;
+		temp = width; width = height; height = temp;
+	}
+
+	/* create the display bitmap, and allocate the palette */
+	if (osd_create_display(width,height,Machine->color_depth,
+			drv->frames_per_second,drv->video_attributes,Machine->orientation))
+	{
+		vh_close();
+		return 1;
+	}
+
+	set_visible_area(
+			drv->default_visible_area.min_x,
+			drv->default_visible_area.max_x,
+			drv->default_visible_area.min_y,
+			drv->default_visible_area.max_y);
 
 	/* create spriteram buffers if necessary */
 	if (drv->video_attributes & VIDEO_BUFFERS_SPRITERAM) {
@@ -651,7 +735,7 @@ static int vh_open(void)
 			if (spriteram_2_size!=0) buffered_spriteram_2 = malloc(spriteram_2_size);
 			if (spriteram_2_size && !buffered_spriteram_2) { vh_close(); return 1; }
 		} else {
-			if (errorlog) fprintf(errorlog,"vh_open():  Video buffers spriteram but spriteram_size is 0\n");
+			logerror("vh_open():  Video buffers spriteram but spriteram_size is 0\n");
 			buffered_spriteram=NULL;
 			buffered_spriteram_2=NULL;
 		}
@@ -699,10 +783,10 @@ int updatescreen(void)
 		profiler_mark(PROFILER_VIDEO);
 		if (need_to_clear_bitmap)
 		{
-			osd_clearbitmap(Machine->scrbitmap);
+			osd_clearbitmap(real_scrbitmap);
 			need_to_clear_bitmap = 0;
 		}
-		(*drv->vh_update)(Machine->scrbitmap,bitmap_dirty);  /* update screen */
+		draw_screen(bitmap_dirty);	/* update screen */
 		bitmap_dirty = 0;
 		profiler_mark(PROFILER_END);
 	}
@@ -710,15 +794,45 @@ int updatescreen(void)
 	/* the user interface must be called between vh_update() and osd_update_video_and_audio(), */
 	/* to allow it to overlay things on the game display. We must call it even */
 	/* if the frame is skipped, to keep a consistent timing. */
-	if (handle_user_interface())
+	if (handle_user_interface(real_scrbitmap))
 		/* quit if the user asked to */
 		return 1;
 
-	osd_update_video_and_audio();
+	update_video_and_audio();
 
 	if (drv->vh_eof_callback) (*drv->vh_eof_callback)();
 
 	return 0;
+}
+
+
+/***************************************************************************
+
+  Draw screen with overlays and backdrops (not yet)
+
+***************************************************************************/
+
+void draw_screen(int _bitmap_dirty)
+{
+	if (_bitmap_dirty)  overlay_remap();
+
+	(*Machine->drv->vh_update)(Machine->scrbitmap,_bitmap_dirty);  /* update screen */
+
+	if (artwork_overlay)
+	{
+		overlay_draw(overlay_real_scrbitmap, Machine->scrbitmap);
+	}
+}
+
+
+/***************************************************************************
+
+  Calls OSD layer handling overlays and backdrops (not yet)
+
+***************************************************************************/
+void update_video_and_audio(void)
+{
+	osd_update_video_and_audio(real_scrbitmap);
 }
 
 
@@ -744,6 +858,8 @@ int run_machine(void)
 			{
 				int	region;
 
+				real_scrbitmap = artwork_overlay ? overlay_real_scrbitmap : Machine->scrbitmap;
+
 				/* free memory regions allocated with REGIONFLAG_DISPOSE (typically gfx roms) */
 				for (region = 0; region < MAX_MEMORY_REGIONS; region++)
 				{
@@ -763,10 +879,10 @@ int run_machine(void)
 				{
 					/* if there is no saved config, it must be first time we run this game, */
 					/* so show the disclaimer. */
-					if (showcopyright()) goto userquit;
+					if (showcopyright(real_scrbitmap)) goto userquit;
 				}
 
-				if (showgamewarnings() == 0)  /* show info about incorrect behaviour (wrong colors etc.) */
+				if (showgamewarnings(real_scrbitmap) == 0)  /* show info about incorrect behaviour (wrong colors etc.) */
 				{
 					/* shut down the leds (work around Allegro hanging bug in the DOS port) */
 					osd_led_w(0,1);
@@ -818,6 +934,8 @@ userquit:
 				/* some 68000 games will not work */
 				sound_stop();
 				if (drv->vh_stop) (*drv->vh_stop)();
+				overlay_free();
+				backdrop_free();
 
 				res = 0;
 			}
@@ -841,7 +959,7 @@ userquit:
 	else if (!bailing)
 	{
 		bailing = 1;
-		printf("Unable to initialize display\n");
+		printf("Unable to start video emulation\n");
 	}
 
 	return res;

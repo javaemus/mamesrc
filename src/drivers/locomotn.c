@@ -55,11 +55,11 @@ write:
 
 extern unsigned char *rallyx_videoram2,*rallyx_colorram2;
 extern unsigned char *rallyx_radarx,*rallyx_radary,*rallyx_radarattr;
-extern int rallyx_radarram_size;
+extern size_t rallyx_radarram_size;
 extern unsigned char *rallyx_scrollx,*rallyx_scrolly;
-void rallyx_videoram2_w(int offset,int data);
-void rallyx_colorram2_w(int offset,int data);
-void rallyx_flipscreen_w(int offset,int data);
+WRITE_HANDLER( rallyx_videoram2_w );
+WRITE_HANDLER( rallyx_colorram2_w );
+WRITE_HANDLER( rallyx_flipscreen_w );
 void locomotn_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int rallyx_vh_start(void);
 void rallyx_vh_stop(void);
@@ -71,14 +71,14 @@ void commsega_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 extern struct MemoryReadAddress timeplt_sound_readmem[];
 extern struct MemoryWriteAddress timeplt_sound_writemem[];
 extern struct AY8910interface timeplt_ay8910_interface;
-void timeplt_sh_irqtrigger_w(int offset,int data);
+WRITE_HANDLER( timeplt_sh_irqtrigger_w );
 
 
-static void coin_1_w(int offset,int data)
+static WRITE_HANDLER( coin_1_w )
 {
 	coin_counter_w(0,data & 1);
 }
-static void coin_2_w(int offset,int data)
+static WRITE_HANDLER( coin_2_w )
 {
 	coin_counter_w(1,data & 1);
 }
@@ -555,7 +555,7 @@ ROM_START( jungler )
 	/* 1000-1fff empty for my convenience */
 
 	ROM_REGION( 0x0100, REGION_GFX2 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "82s129.10g",   0x0000, 0x0100, 0x2ef89356 ) /* dots */
+	ROM_LOAD( "82s129.10g",   0x0000, 0x0100, 0xc59c51b7 ) /* dots */
 
 	ROM_REGION( 0x0160, REGION_PROMS )
 	ROM_LOAD( "18s030.8b",    0x0000, 0x0020, 0x55a7e6d1 ) /* palette */
@@ -580,7 +580,7 @@ ROM_START( junglers )
 	/* 1000-1fff empty for my convenience */
 
 	ROM_REGION( 0x0100, REGION_GFX2 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "82s129.10g",   0x0000, 0x0100, 0x2ef89356 ) /* dots */
+	ROM_LOAD( "82s129.10g",   0x0000, 0x0100, 0xc59c51b7 ) /* dots */
 
 	ROM_REGION( 0x0160, REGION_PROMS )
 	ROM_LOAD( "18s030.8b",    0x0000, 0x0020, 0x55a7e6d1 ) /* palette */

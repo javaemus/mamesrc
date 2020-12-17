@@ -69,13 +69,13 @@ RAM                                FF4000-FFFFFF  R/W
 
 void cyberbal_set_screen(int which);
 
-void cyberbal_playfieldram_1_w(int offset, int data);
-void cyberbal_playfieldram_2_w(int offset, int data);
+WRITE_HANDLER( cyberbal_playfieldram_1_w );
+WRITE_HANDLER( cyberbal_playfieldram_2_w );
 
-void cyberbal_paletteram_1_w(int offset, int data);
-int cyberbal_paletteram_1_r(int offset);
-void cyberbal_paletteram_2_w(int offset, int data);
-int cyberbal_paletteram_2_r(int offset);
+WRITE_HANDLER( cyberbal_paletteram_1_w );
+READ_HANDLER( cyberbal_paletteram_1_r );
+WRITE_HANDLER( cyberbal_paletteram_2_w );
+READ_HANDLER( cyberbal_paletteram_2_r );
 
 int cyberbal_vh_start(void);
 void cyberbal_vh_stop(void);
@@ -191,7 +191,7 @@ static void cyberb2p_init_machine(void)
  *
  *************************************/
 
-static int special_port0_r(int offset)
+static READ_HANDLER( special_port0_r )
 {
 	int temp = input_port_0_r(offset);
 	if (atarigen_cpu_to_sound_ready) temp ^= 0x0080;
@@ -199,7 +199,7 @@ static int special_port0_r(int offset)
 }
 
 
-static int special_port2_r(int offset)
+static READ_HANDLER( special_port2_r )
 {
 	int temp = input_port_2_r(offset);
 	if (atarigen_cpu_to_sound_ready) temp ^= 0x2000;
@@ -207,7 +207,7 @@ static int special_port2_r(int offset)
 }
 
 
-static int sound_state_r(int offset)
+static READ_HANDLER( sound_state_r )
 {
 	int temp = 0xffff;
 
@@ -224,7 +224,7 @@ static int sound_state_r(int offset)
  *
  *************************************/
 
-static void p2_reset_w(int offset, int data)
+static WRITE_HANDLER( p2_reset_w )
 {
 	(void)offset;
 	(void)data;
@@ -239,7 +239,7 @@ static void p2_reset_w(int offset, int data)
  *
  *************************************/
 
-static int special_port3_r(int offset)
+static READ_HANDLER( special_port3_r )
 {
 	int temp = input_port_3_r(offset);
 	if (!(readinputport(0) & 0x8000)) temp ^= 0x80;
@@ -249,7 +249,7 @@ static int special_port3_r(int offset)
 }
 
 
-static int sound_6502_stat_r(int offset)
+static READ_HANDLER( sound_6502_stat_r )
 {
 	int temp = 0xff;
 
@@ -260,14 +260,14 @@ static int sound_6502_stat_r(int offset)
 }
 
 
-static void sound_bank_select_w(int offset, int data)
+static WRITE_HANDLER( sound_bank_select_w )
 {
 	(void)offset;
 	cpu_setbank(8, &bank_base[0x1000 * ((data >> 6) & 3)]);
 }
 
 
-static int sound_68k_6502_r(int offset)
+static READ_HANDLER( sound_68k_6502_r )
 {
 	(void)offset;
 	sound_data_from_68k_ready = 0;
@@ -275,7 +275,7 @@ static int sound_68k_6502_r(int offset)
 }
 
 
-static void sound_68k_6502_w(int offset, int data)
+static WRITE_HANDLER( sound_68k_6502_w )
 {
 	(void)offset;
 	sound_data_from_6502 = data;
@@ -329,7 +329,7 @@ static int sound_68k_irq_gen(void)
 }
 
 
-static void io_68k_irq_ack_w(int offset, int data)
+static WRITE_HANDLER( io_68k_irq_ack_w )
 {
 	(void)offset;
 	(void)data;
@@ -341,7 +341,7 @@ static void io_68k_irq_ack_w(int offset, int data)
 }
 
 
-static int sound_68k_r(int offset)
+static READ_HANDLER( sound_68k_r )
 {
 	int temp = (sound_data_from_6502 << 8) | 0xff;
 
@@ -354,7 +354,7 @@ static int sound_68k_r(int offset)
 }
 
 
-static void sound_68k_w(int offset, int data)
+static WRITE_HANDLER( sound_68k_w )
 {
 	(void)offset;
 	if (!(data & 0xff000000))
@@ -365,7 +365,7 @@ static void sound_68k_w(int offset, int data)
 }
 
 
-static void sound_68k_dac_w(int offset, int data)
+static WRITE_HANDLER( sound_68k_dac_w )
 {
 	DAC_signed_data_w((offset >> 4) & 1, (INT16)data >> 8);
 
@@ -792,8 +792,8 @@ struct MemoryWriteAddress sound_writemem[] =
 #ifdef EMULATE_SOUND_68000
 
 static UINT8 *ram;
-static int ram_r(int offset) { return READ_WORD(&ram[offset]); }
-static void ram_w(int offset, int data) { COMBINE_WORD_MEM(&ram[offset], data); }
+static READ_HANDLER( ram_r ) { return READ_WORD(&ram[offset]); }
+static WRITE_HANDLER( ram_w ) { COMBINE_WORD_MEM(&ram[offset], data); }
 
 static struct MemoryReadAddress sound_68k_readmem[] =
 {
@@ -1238,6 +1238,60 @@ ROM_START( cyberbal )
 ROM_END
 
 
+ROM_START( cyberba2 )
+	ROM_REGION( 0x40000, REGION_CPU1 )	/* 4*64k for 68000 code */
+	ROM_LOAD_EVEN( "2123.1m", 0x00000, 0x10000, 0x502676e8 )
+	ROM_LOAD_ODD ( "2124.1k", 0x00000, 0x10000, 0x30f55915 )
+
+	ROM_REGION( 0x14000, REGION_CPU2 )	/* 64k for 6502 code */
+	ROM_LOAD( "2131-snd.2f",  0x10000, 0x4000, 0xbd7e3d84 )
+	ROM_CONTINUE(             0x04000, 0xc000 )
+
+	ROM_REGION( 0x40000, REGION_CPU3 )	/* 4*64k for 68000 code */
+	ROM_LOAD_EVEN( "2127.3c", 0x00000, 0x10000, 0x3e5feb1f )
+	ROM_LOAD_ODD ( "2128.1b", 0x00000, 0x10000, 0x4e642cc3 )
+	ROM_LOAD_EVEN( "2129.1c", 0x20000, 0x10000, 0xdb11d2f0 )
+	ROM_LOAD_ODD ( "2130.3b", 0x20000, 0x10000, 0xfd86b8aa )
+
+	ROM_REGION( 0x40000, REGION_CPU4 )	/* 256k for 68000 sound code */
+	ROM_LOAD_EVEN( "1132-snd.5c",  0x00000, 0x10000, 0xca5ce8d8 )
+	ROM_LOAD_ODD ( "1133-snd.7c",  0x00000, 0x10000, 0xffeb8746 )
+	ROM_LOAD_EVEN( "1134-snd.5a",  0x20000, 0x10000, 0xbcbd4c00 )
+	ROM_LOAD_ODD ( "1135-snd.7a",  0x20000, 0x10000, 0xd520f560 )
+
+	ROM_REGION( 0x140000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "1150.15a",  0x000000, 0x10000, 0xe770eb3e ) /* MO */
+	ROM_LOAD( "1154.16a",  0x010000, 0x10000, 0x40db00da ) /* MO */
+	ROM_LOAD( "2158.17a",  0x020000, 0x10000, 0x52bb08fb ) /* MO */
+	ROM_LOAD( "1162.19a",  0x030000, 0x10000, 0x0a11d877 ) /* MO */
+
+	ROM_LOAD( "1151.11a",  0x050000, 0x10000, 0x6f53c7c1 ) /* MO */
+	ROM_LOAD( "1155.12a",  0x060000, 0x10000, 0x5de609e5 ) /* MO */
+	ROM_LOAD( "2159.13a",  0x070000, 0x10000, 0xe6f95010 ) /* MO */
+	ROM_LOAD( "1163.14a",  0x080000, 0x10000, 0x47f56ced ) /* MO */
+
+	ROM_LOAD( "1152.15c",  0x0a0000, 0x10000, 0xc8f1f7ff ) /* MO */
+	ROM_LOAD( "1156.16c",  0x0b0000, 0x10000, 0x6bf0bf98 ) /* MO */
+	ROM_LOAD( "2160.17c",  0x0c0000, 0x10000, 0xc3168603 ) /* MO */
+	ROM_LOAD( "1164.19c",  0x0d0000, 0x10000, 0x7ff29d09 ) /* MO */
+
+	ROM_LOAD( "1153.11c",  0x0f0000, 0x10000, 0x99629412 ) /* MO */
+	ROM_LOAD( "1157.12c",  0x100000, 0x10000, 0xaa198cb7 ) /* MO */
+	ROM_LOAD( "2161.13c",  0x110000, 0x10000, 0x6cf79a67 ) /* MO */
+	ROM_LOAD( "1165.14c",  0x120000, 0x10000, 0x40bdf767 ) /* MO */
+
+	ROM_REGION( 0x040000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "1146.9l",   0x000000, 0x10000, 0xa64b4da8 ) /* playfield */
+	ROM_LOAD( "1147.8l",   0x010000, 0x10000, 0xca91ec1b ) /* playfield */
+	ROM_LOAD( "1148.11l",  0x020000, 0x10000, 0xee29d1d1 ) /* playfield */
+	ROM_LOAD( "1149.10l",  0x030000, 0x10000, 0x882649f8 ) /* playfield */
+
+	ROM_REGION( 0x020000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "1166.14n",  0x000000, 0x10000, 0x0ca1e3b3 ) /* alphanumerics */
+	ROM_LOAD( "1167.16n",  0x010000, 0x10000, 0x882f4e1c ) /* alphanumerics */
+ROM_END
+
+
 ROM_START( cyberbt )
 	ROM_REGION( 0x40000, REGION_CPU1 )	/* 4*64k for 68000 code */
 	ROM_LOAD_EVEN( "cyb1007.bin", 0x00000, 0x10000, 0xd434b2d7 )
@@ -1424,6 +1478,7 @@ static void init_cyberb2p(void)
  *
  *************************************/
 
-GAME( 1988, cyberbal, 0,        cyberbal, cyberbal, cyberbal, ROT0_16BIT, "Atari Games", "Cyberball" )
+GAME( 1988, cyberbal, 0,        cyberbal, cyberbal, cyberbal, ROT0_16BIT, "Atari Games", "Cyberball (Version 4)" )
+GAME( 1988, cyberba2, cyberbal, cyberbal, cyberbal, cyberbal, ROT0_16BIT, "Atari Games", "Cyberball (Version 2)" )
 GAME( 1989, cyberbt,  cyberbal, cyberbal, cyberbal, cyberbt,  ROT0_16BIT, "Atari Games", "Tournament Cyberball 2072" )
 GAME( 1989, cyberb2p, cyberbal, cyberb2p, cyberb2p, cyberb2p, ROT0_16BIT, "Atari Games", "Cyberball 2072 (2 player)" )

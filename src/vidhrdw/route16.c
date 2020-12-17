@@ -12,7 +12,7 @@
 unsigned char *route16_sharedram;
 unsigned char *route16_videoram1;
 unsigned char *route16_videoram2;
-int route16_videoram_size;
+size_t route16_videoram_size;
 
 static struct osd_bitmap *tmpbitmap1;
 static struct osd_bitmap *tmpbitmap2;
@@ -78,15 +78,15 @@ void init_stratvox(void)
 ***************************************************************************/
 int route16_vh_start(void)
 {
-	if ((tmpbitmap1 = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap1 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		return 1;
 	}
 
-	if ((tmpbitmap2 = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 
-		osd_free_bitmap(tmpbitmap1);
+		bitmap_free(tmpbitmap1);
 		tmpbitmap1 = 0;
 		return 1;
 	}
@@ -109,15 +109,15 @@ int route16_vh_start(void)
 ***************************************************************************/
 void route16_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap1);
-	osd_free_bitmap(tmpbitmap2);
+	bitmap_free(tmpbitmap1);
+	bitmap_free(tmpbitmap2);
 }
 
 
 /***************************************************************************
   route16_out0_w
 ***************************************************************************/
-void route16_out0_w(int offset,int data)
+WRITE_HANDLER( route16_out0_w )
 {
 	static int last_write = 0;
 
@@ -136,7 +136,7 @@ void route16_out0_w(int offset,int data)
 /***************************************************************************
   route16_out1_w
 ***************************************************************************/
-void route16_out1_w(int offset,int data)
+WRITE_HANDLER( route16_out1_w )
 {
 	static int last_write = 0;
 
@@ -159,7 +159,7 @@ void route16_out1_w(int offset,int data)
   Handle Stratovox's extra sound effects.
 
 ***************************************************************************/
-void stratvox_sn76477_w (int offset,int data)
+WRITE_HANDLER( stratvox_sn76477_w )
 {
 	/* get out for Route 16 */
 	if (route16_hardware) return;
@@ -184,7 +184,7 @@ void stratvox_sn76477_w (int offset,int data)
 /***************************************************************************
   route16_sharedram_r
 ***************************************************************************/
-int route16_sharedram_r(int offset)
+READ_HANDLER( route16_sharedram_r )
 {
 	return route16_sharedram[offset];
 }
@@ -192,7 +192,7 @@ int route16_sharedram_r(int offset)
 /***************************************************************************
   route16_sharedram_w
 ***************************************************************************/
-void route16_sharedram_w(int offset,int data)
+WRITE_HANDLER( route16_sharedram_w )
 {
 	route16_sharedram[offset] = data;
 
@@ -207,7 +207,7 @@ void route16_sharedram_w(int offset,int data)
 /***************************************************************************
   route16_videoram1_r
 ***************************************************************************/
-int route16_videoram1_r(int offset)
+READ_HANDLER( route16_videoram1_r )
 {
 	return route16_videoram1[offset];
 }
@@ -215,7 +215,7 @@ int route16_videoram1_r(int offset)
 /***************************************************************************
   route16_videoram2_r
 ***************************************************************************/
-int route16_videoram2_r(int offset)
+READ_HANDLER( route16_videoram2_r )
 {
 	return route16_videoram1[offset];
 }
@@ -223,7 +223,7 @@ int route16_videoram2_r(int offset)
 /***************************************************************************
   route16_videoram1_w
 ***************************************************************************/
-void route16_videoram1_w(int offset,int data)
+WRITE_HANDLER( route16_videoram1_w )
 {
 	route16_videoram1[offset] = data;
 
@@ -233,7 +233,7 @@ void route16_videoram1_w(int offset,int data)
 /***************************************************************************
   route16_videoram2_w
 ***************************************************************************/
-void route16_videoram2_w(int offset,int data)
+WRITE_HANDLER( route16_videoram2_w )
 {
 	route16_videoram2[offset] = data;
 
@@ -322,15 +322,15 @@ void route16_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	if (!video_disable_2)
 	{
-		copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 	if (!video_disable_1)
 	{
 		if (video_disable_2)
-			copybitmap(bitmap,tmpbitmap1,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+			copybitmap(bitmap,tmpbitmap1,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 		else
-			copybitmap(bitmap,tmpbitmap1,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+			copybitmap(bitmap,tmpbitmap1,0,0,0,0,&Machine->visible_area,TRANSPARENCY_COLOR,0);
 	}
 }
 

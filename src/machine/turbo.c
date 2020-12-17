@@ -140,7 +140,7 @@ static void portB_w(int chip, int data)
 				if (!sample_playing(7))
 					sample_start(7, 8, 0);
 				else
-					if (errorlog) fprintf(errorlog, "ambu didnt start\n");
+					logerror("ambu didnt start\n");
 			}
 			else
 				sample_stop(7);
@@ -221,18 +221,18 @@ void turbo_init_machine(void)
 
 *******************************************/
 
-int turbo_8279_r(int offset)
+READ_HANDLER( turbo_8279_r )
 {
 	if ((offset & 1) == 0)
 		return readinputport(1);  /* DSW 1 */
 	else
 	{
-		if (errorlog) fprintf(errorlog, "read 0xfc%02x\n", offset);
+		logerror("read 0xfc%02x\n", offset);
 		return 0x10;
 	}
 }
 
-void turbo_8279_w(int offset, int data)
+WRITE_HANDLER( turbo_8279_w )
 {
 	switch (offset & 1)
 	{
@@ -268,17 +268,17 @@ void turbo_8279_w(int offset, int data)
 
 *******************************************/
 
-int turbo_collision_r(int offset)
+READ_HANDLER( turbo_collision_r )
 {
 	return readinputport(3) | (turbo_collision & 15);
 }
 
-void turbo_collision_clear_w(int offset, int data)
+WRITE_HANDLER( turbo_collision_clear_w )
 {
 	turbo_collision = 0;
 }
 
-void turbo_coin_and_lamp_w(int offset, int data)
+WRITE_HANDLER( turbo_coin_and_lamp_w )
 {
 	data &= 1;
 	switch (offset & 7)

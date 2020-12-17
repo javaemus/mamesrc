@@ -15,8 +15,8 @@
  *		Globals we own
  */
 
-int foodf_playfieldram_size;
-int foodf_spriteram_size;
+size_t foodf_playfieldram_size;
+size_t foodf_spriteram_size;
 
 unsigned char *foodf_playfieldram;
 unsigned char *foodf_spriteram;
@@ -83,7 +83,7 @@ int foodf_vh_start(void)
 	memset (playfielddirty, 1, foodf_playfieldram_size / 2);
 
 	/* allocate bitmaps */
-	if (!playfieldbitmap) playfieldbitmap = osd_create_bitmap (32*8, 32*8);
+	if (!playfieldbitmap) playfieldbitmap = bitmap_alloc (32*8, 32*8);
 	if (!playfieldbitmap)
 	{
 		foodf_vh_stop ();
@@ -101,7 +101,7 @@ int foodf_vh_start(void)
 void foodf_vh_stop(void)
 {
 	/* free bitmaps */
-	if (playfieldbitmap) osd_free_bitmap (playfieldbitmap); playfieldbitmap = 0;
+	if (playfieldbitmap) bitmap_free (playfieldbitmap); playfieldbitmap = 0;
 
 	/* free dirty buffers */
 	if (playfielddirty) free (playfielddirty); playfielddirty = 0;
@@ -112,12 +112,12 @@ void foodf_vh_stop(void)
  *   playfield RAM read/write handlers
  */
 
-int foodf_playfieldram_r (int offset)
+READ_HANDLER( foodf_playfieldram_r )
 {
 	return READ_WORD (&foodf_playfieldram[offset]);
 }
 
-void foodf_playfieldram_w (int offset, int data)
+WRITE_HANDLER( foodf_playfieldram_w )
 {
 	int oldword = READ_WORD (&foodf_playfieldram[offset]);
 	int newword = COMBINE_WORD (oldword, data);
@@ -134,7 +134,7 @@ void foodf_playfieldram_w (int offset, int data)
  *   palette RAM read/write handlers
  */
 
-void foodf_paletteram_w (int offset,int data)
+WRITE_HANDLER( foodf_paletteram_w )
 {
 	int oldword = READ_WORD(&paletteram[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -207,7 +207,7 @@ void foodf_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					TRANSPARENCY_NONE, 0);
 		}
 	}
-	copybitmap (bitmap, playfieldbitmap, 0, 0, 0, 0, &Machine->drv->visible_area, TRANSPARENCY_NONE, 0);
+	copybitmap (bitmap, playfieldbitmap, 0, 0, 0, 0, &Machine->visible_area, TRANSPARENCY_NONE, 0);
 
 	/* walk the motion object list. */
 	for (offs = 0; offs < foodf_spriteram_size; offs += 4)
@@ -227,7 +227,7 @@ void foodf_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				color,
 				hflip,vflip,
 				xpos,ypos,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 
 		/* draw again with wraparound (needed to get the end of level animation right) */
 		drawgfx(bitmap,Machine->gfx[1],
@@ -235,6 +235,6 @@ void foodf_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				color,
 				hflip,vflip,
 				xpos-256,ypos,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

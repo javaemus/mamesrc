@@ -10,12 +10,11 @@
 
 
 extern unsigned char *spriteram;
-extern int spriteram_size;
+extern size_t spriteram_size;
 
 unsigned char *suprloco_videoram;
 
 static struct tilemap *bg_tilemap;
-static int flipscreen;
 static int control;
 
 #define SPR_Y_TOP		0
@@ -40,7 +39,7 @@ void suprloco_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 	int i;
 
 
-	for (i = 0;i < Machine->drv->total_colors; i++)
+	for (i = 0;i < 512;i++)
 	{
 		int bit0,bit1,bit2;
 
@@ -62,6 +61,17 @@ void suprloco_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 
 		color_prom++;
 	}
+
+	/* generate a second bank of sprite palette with red changed to purple */
+	for (i = 0;i < 256;i++)
+	{
+		*(palette++) = palette[-256*3];
+		*(palette++) = palette[-256*3];
+		if ((i & 0x0f) == 0x09)
+			*(palette++) = 0xff;
+		else
+			*(palette++) = palette[-256*3];
+	}
 }
 
 
@@ -72,11 +82,10 @@ void suprloco_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 
 ***************************************************************************/
 
-static void get_bg_tile_info(int col,int row)
+static void get_tile_info(int tile_index)
 {
-	int tile_index = 2*(32*row+col);
-	unsigned char attr = suprloco_videoram[tile_index+1];
-	SET_TILE_INFO(0,suprloco_videoram[tile_index] | ((attr & 0x03) << 8),(attr & 0x1c) >> 2)
+	unsigned char attr = suprloco_videoram[2*tile_index+1];
+	SET_TILE_INFO(0,suprloco_videoram[2*tile_index] | ((attr & 0x03) << 8),(attr & 0x1c) >> 2)
 	tile_info.priority = (attr & 0x20) >> 5;
 }
 
@@ -90,16 +99,14 @@ static void get_bg_tile_info(int col,int row)
 
 int suprloco_vh_start(void)
 {
-	bg_tilemap = tilemap_create(get_bg_tile_info,0,8,8,32,32);
+	bg_tilemap = tilemap_create(get_tile_info,tilemap_scan_rows,TILEMAP_OPAQUE,8,8,32,32);
 
-	if (bg_tilemap)
-	{
-		tilemap_set_scroll_rows(bg_tilemap,32);
+	if (!bg_tilemap)
+		return 1;
 
-		return 0;
-	}
+	tilemap_set_scroll_rows(bg_tilemap,32);
 
-	return 1;
+	return 0;
 }
 
 
@@ -110,64 +117,58 @@ int suprloco_vh_start(void)
 
 ***************************************************************************/
 
-void suprloco_videoram_w(int offset,int data)
+WRITE_HANDLER( suprloco_videoram_w )
 {
 	if (suprloco_videoram[offset] != data)
 	{
 		suprloco_videoram[offset] = data;
-		tilemap_mark_tile_dirty(bg_tilemap,(offset/2)%32,(offset/2)/32);
+		tilemap_mark_tile_dirty(bg_tilemap,offset/2);
 	}
 }
 
 static int suprloco_scrollram[32];
 
-void suprloco_scrollram_w(int offset, int data)
+WRITE_HANDLER( suprloco_scrollram_w )
 {
-	int adj = flipscreen ? -8 : 8;
+	int adj = flip_screen ? -8 : 8;
 
 	suprloco_scrollram[offset] = data;
 	tilemap_set_scrollx(bg_tilemap,offset, data - adj);
 }
 
-int suprloco_scrollram_r(int offset)
+READ_HANDLER( suprloco_scrollram_r )
 {
 	return suprloco_scrollram[offset];
 }
 
-void suprloco_control_w(int offset,int data)
+WRITE_HANDLER( suprloco_control_w )
 {
 	/* There is probably a palette select in here */
 
    	/* Bit 0   - coin counter A */
 	/* Bit 1   - coin counter B (only used if coinage differs from A) */
 	/* Bit 2-3 - probably unused */
-	/* Bit 4   - ??? pulsated when loco turns "super" */
-	/* Bit 5   - ??? */
+	/* Bit 4   - ??? */
+	/* Bit 5   - pulsated when loco turns "super" */
 	/* Bit 6   - probably unused */
 	/* Bit 7   - flip screen */
 
 	if ((control & 0x10) != (data & 0x10))
 	{
-		/*if (errorlog) fprintf(errorlog,"Bit 4 = %d\n", (data >> 4) & 1); */
-	}
-
-	if ((control & 0x20) != (data & 0x20))
-	{
-		/*if (errorlog) fprintf(errorlog,"Bit 5 = %d\n", (data >> 5) & 1); */
+		/*logerror("Bit 4 = %d\n", (data >> 4) & 1); */
 	}
 
 	coin_counter_w(0, data & 0x01);
 	coin_counter_w(1, data & 0x02);
 
-	flipscreen = data & 0x80;
-	tilemap_set_flip(ALL_TILEMAPS,flipscreen ? (TILEMAP_FLIPY | TILEMAP_FLIPX) : 0);
-	tilemap_set_scrolly(bg_tilemap,0,flipscreen ? -32 : 0);
+	flip_screen_w(0,data & 0x80);
+	tilemap_set_scrolly(bg_tilemap,0,flip_screen ? -32 : 0);
 
 	control = data;
 }
 
 
-int suprloco_control_r(int offset)
+READ_HANDLER( suprloco_control_r )
 {
 	return control;
 }
@@ -184,16 +185,16 @@ int suprloco_control_r(int offset)
 
 INLINE void draw_pixel(struct osd_bitmap *bitmap,int x,int y,int color)
 {
-	if (flipscreen)
+	if (flip_screen)
 	{
 		x = bitmap->width - x - 1;
 		y = bitmap->height - y - 1;
 	}
 
-	if (x < Machine->drv->visible_area.min_x ||
-		x > Machine->drv->visible_area.max_x ||
-		y < Machine->drv->visible_area.min_y ||
-		y > Machine->drv->visible_area.max_y)
+	if (x < Machine->visible_area.min_x ||
+		x > Machine->visible_area.max_x ||
+		y < Machine->visible_area.min_y ||
+		y > Machine->visible_area.max_y)
 		return;
 
 	plot_pixel(bitmap, x, y, color);
@@ -214,11 +215,11 @@ static void render_sprite(struct osd_bitmap *bitmap,int spr_number)
 	skip = spr_reg[SPR_SKIP_LO] + (spr_reg[SPR_SKIP_HI] << 8);
 
 	height		= spr_reg[SPR_Y_BOTTOM] - spr_reg[SPR_Y_TOP];
-	spr_palette	= Machine->remapped_colortable + 0x10 * spr_reg[SPR_COL];
+	spr_palette	= Machine->remapped_colortable + 0x100 + 0x10 * spr_reg[SPR_COL] + ((control & 0x20)?0x100:0);
 	sx = spr_reg[SPR_X];
 	sy = spr_reg[SPR_Y_TOP] + 1;
 
-	if (!flipscreen)
+	if (!flip_screen)
 	{
 		adjy = sy;
 		dy = 1;
@@ -271,7 +272,7 @@ static void render_sprite(struct osd_bitmap *bitmap,int spr_number)
 	}
 }
 
-void draw_sprites(struct osd_bitmap *bitmap)
+static void draw_sprites(struct osd_bitmap *bitmap)
 {
 	int spr_number;
 	unsigned char *spr_reg;

@@ -2,14 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include "unzip.h"
+#include "osdepend.h"	/* for CLIB_DECL */
+#include <stdarg.h>
 #ifdef macintosh	/* JB 981117 */
 #	include "mac_dos.h"
 #	include "stat.h"
 #else
-#include <dirent.h>
-#include <sys/stat.h>
-#include <sys/errno.h>
+#ifndef WIN32
+#   include <dirent.h>
+#   include <sys/errno.h>
+#else
+#    include "dirent.h"
 #endif
+#include <sys/stat.h>
+#endif
+
 
 #define MAX_FILES 100
 
@@ -22,7 +29,12 @@ static int errno = 0;
 #define MAX_FILENAME_LEN 12	/* increase this if you are using a real OS... */
 #endif
 
-FILE *errorlog = 0;
+
+/* for unzip.c */
+void CLIB_DECL logerror(const char *text,...)
+{
+}
+
 
 /* compare modes when one file is twice as long as the other */
 /* A = All file */
@@ -88,10 +100,7 @@ static void checkintegrity(const struct fileinfo *file,int side)
 	int mask0,mask1;
 	int addrbit;
 
-
 	if (file->buf == 0) return;
-
-
 
 	/* check for bad data lines */
 	mask0 = 0x0000;
@@ -514,7 +523,7 @@ static int load_files(int i, int *found, const char *path)
 }
 
 
-int main(int argc,char **argv)
+int CLIB_DECL main(int argc,char **argv)
 {
 	int	err;
 
@@ -682,3 +691,4 @@ int main(int argc,char **argv)
 
 	return 0;
 }
+

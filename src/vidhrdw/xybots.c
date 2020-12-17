@@ -153,7 +153,7 @@ void xybots_vh_stop(void)
  *
  *************************************/
 
-void xybots_playfieldram_w(int offset, int data)
+WRITE_HANDLER( xybots_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -200,7 +200,7 @@ void xybots_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 		atarigen_overrender_colortable[i] = palette_transparent_pen;
 
 	/* render the playfield */
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* render the motion objects */
 	atarigen_mo_process(mo_render_callback, bitmap);
@@ -251,7 +251,7 @@ static const UINT8 *update_palette(void)
 	palette_init_used_colors();
 
 	/* update color usage for the playfield */
-	atarigen_pf_process(pf_color_callback, pf_map, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_color_callback, pf_map, &Machine->visible_area);
 
 	/* update color usage for the mo's */
 	atarigen_mo_process(mo_color_callback, mo_map);

@@ -38,7 +38,7 @@ static void setcolor(int color,int rgb)
 	palette_change_color(color,r,g,b);
 }
 
-void blockout_paletteram_w(int offset, int data)
+WRITE_HANDLER( blockout_paletteram_w )
 {
 	int oldword = READ_WORD(&paletteram[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -49,7 +49,7 @@ void blockout_paletteram_w(int offset, int data)
 	setcolor(offset / 2,newword);
 }
 
-void blockout_frontcolor_w(int offset, int data)
+WRITE_HANDLER( blockout_frontcolor_w )
 {
 	setcolor(512,data);
 }
@@ -64,7 +64,7 @@ void blockout_frontcolor_w(int offset, int data)
 int blockout_vh_start (void)
 {
 	/* Allocate temporary bitmaps */
-	if ((tmpbitmap = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 		return 1;
 
 	return 0;
@@ -78,7 +78,7 @@ int blockout_vh_start (void)
 ***************************************************************************/
 void blockout_vh_stop (void)
 {
-	osd_free_bitmap (tmpbitmap);
+	bitmap_free (tmpbitmap);
 	tmpbitmap = 0;
 }
 
@@ -90,10 +90,10 @@ static void updatepixels(int x,int y)
 	int color;
 
 
-	if (x < Machine->drv->visible_area.min_x ||
-			x > Machine->drv->visible_area.max_x ||
-			y < Machine->drv->visible_area.min_y ||
-			y > Machine->drv->visible_area.max_y)
+	if (x < Machine->visible_area.min_x ||
+			x > Machine->visible_area.max_x ||
+			y < Machine->visible_area.min_y ||
+			y > Machine->visible_area.max_y)
 		return;
 
 	front = READ_WORD(&blockout_videoram[y*512+x]);
@@ -110,7 +110,7 @@ static void updatepixels(int x,int y)
 
 
 
-void blockout_videoram_w(int offset, int data)
+WRITE_HANDLER( blockout_videoram_w )
 {
 	int oldword = READ_WORD(&blockout_videoram[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -122,19 +122,19 @@ void blockout_videoram_w(int offset, int data)
 	}
 }
 
-int blockout_videoram_r(int offset)
+READ_HANDLER( blockout_videoram_r )
 {
    return READ_WORD(&blockout_videoram[offset]);
 }
 
 
 
-void blockout_frontvideoram_w(int offset, int data)
+WRITE_HANDLER( blockout_frontvideoram_w )
 {
 	COMBINE_WORD_MEM(&blockout_frontvideoram[offset],data);
 }
 
-int blockout_frontvideoram_r(int offset)
+READ_HANDLER( blockout_frontvideoram_r )
 {
    return READ_WORD(&blockout_frontvideoram[offset]);
 }
@@ -158,7 +158,7 @@ void blockout_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		}
 	}
 
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	{
 		int x,y,color;

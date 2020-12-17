@@ -26,10 +26,10 @@ unsigned char *toki_sprites_dataram;
 unsigned char *toki_scrollram;
 signed char toki_linescroll[256];
 
-int toki_foreground_videoram_size;
-int toki_background1_videoram_size;
-int toki_background2_videoram_size;
-int toki_sprites_dataram_size;
+size_t toki_foreground_videoram_size;
+size_t toki_background1_videoram_size;
+size_t toki_background2_videoram_size;
+size_t toki_sprites_dataram_size;
 
 static unsigned char *frg_dirtybuffer;		/* foreground */
 static unsigned char *bg1_dirtybuffer;		/* background 1 */
@@ -69,7 +69,7 @@ int toki_vh_start (void)
 	}
 
 	/* foreground bitmap */
-	if ((bitmap_frg = osd_new_bitmap (Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((bitmap_frg = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		free (bg1_dirtybuffer);
 		free (bg2_dirtybuffer);
@@ -78,23 +78,23 @@ int toki_vh_start (void)
 	}
 
 	/* background1 bitmap */
-	if ((bitmap_bg1 = osd_new_bitmap (Machine->drv->screen_width*2,Machine->drv->screen_height*2,Machine->scrbitmap->depth)) == 0)
+	if ((bitmap_bg1 = bitmap_alloc(Machine->drv->screen_width*2,Machine->drv->screen_height*2)) == 0)
 	{
 		free (bg1_dirtybuffer);
 		free (bg2_dirtybuffer);
 		free (frg_dirtybuffer);
-		osd_free_bitmap (bitmap_frg);
+		bitmap_free (bitmap_frg);
 		return 1;
 	}
 
 	/* background2 bitmap */
-	if ((bitmap_bg2 = osd_new_bitmap (Machine->drv->screen_width*2,Machine->drv->screen_height*2,Machine->scrbitmap->depth)) == 0)
+	if ((bitmap_bg2 = bitmap_alloc(Machine->drv->screen_width*2,Machine->drv->screen_height*2)) == 0)
 	{
 		free (bg1_dirtybuffer);
 		free (bg2_dirtybuffer);
 		free (frg_dirtybuffer);
-		osd_free_bitmap (bitmap_bg1);
-		osd_free_bitmap (bitmap_frg);
+		bitmap_free (bitmap_bg1);
+		bitmap_free (bitmap_frg);
 		return 1;
 	}
 	memset (frg_dirtybuffer,1,toki_foreground_videoram_size / 2);
@@ -106,9 +106,9 @@ int toki_vh_start (void)
 
 void toki_vh_stop (void)
 {
-	osd_free_bitmap (bitmap_frg);
-	osd_free_bitmap (bitmap_bg1);
-	osd_free_bitmap (bitmap_bg2);
+	bitmap_free (bitmap_frg);
+	bitmap_free (bitmap_bg1);
+	bitmap_free (bitmap_bg2);
 	free (bg1_dirtybuffer);
 	free (bg2_dirtybuffer);
 	free (frg_dirtybuffer);
@@ -122,7 +122,7 @@ void toki_vh_stop (void)
  *
  *************************************/
 
-void toki_foreground_videoram_w (int offset, int data)
+WRITE_HANDLER( toki_foreground_videoram_w )
 {
    int oldword = READ_WORD (&toki_foreground_videoram[offset]);
    int newword = COMBINE_WORD (oldword, data);
@@ -134,7 +134,7 @@ void toki_foreground_videoram_w (int offset, int data)
    }
 }
 
-int toki_foreground_videoram_r (int offset)
+READ_HANDLER( toki_foreground_videoram_r )
 {
    return READ_WORD (&toki_foreground_videoram[offset]);
 }
@@ -147,7 +147,7 @@ int toki_foreground_videoram_r (int offset)
  *
  *************************************/
 
-void toki_background1_videoram_w (int offset, int data)
+WRITE_HANDLER( toki_background1_videoram_w )
 {
    int oldword = READ_WORD (&toki_background1_videoram[offset]);
    int newword = COMBINE_WORD (oldword, data);
@@ -159,7 +159,7 @@ void toki_background1_videoram_w (int offset, int data)
    }
 }
 
-int toki_background1_videoram_r (int offset)
+READ_HANDLER( toki_background1_videoram_r )
 {
    return READ_WORD (&toki_background1_videoram[offset]);
 }
@@ -172,7 +172,7 @@ int toki_background1_videoram_r (int offset)
  *
  *************************************/
 
-void toki_background2_videoram_w (int offset, int data)
+WRITE_HANDLER( toki_background2_videoram_w )
 {
    int oldword = READ_WORD (&toki_background2_videoram[offset]);
    int newword = COMBINE_WORD (oldword, data);
@@ -184,7 +184,7 @@ void toki_background2_videoram_w (int offset, int data)
    }
 }
 
-int toki_background2_videoram_r (int offset)
+READ_HANDLER( toki_background2_videoram_r )
 {
    return READ_WORD (&toki_background2_videoram[offset]);
 }
@@ -231,7 +231,7 @@ void toki_render_sprites (struct osd_bitmap *bitmap)
 					SprPalette,
 					SprFlipX,0,
 					SprX,SprY-1,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+					&Machine->visible_area,TRANSPARENCY_PEN,15);
 		}
 	}
 }
@@ -411,24 +411,24 @@ void toki_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		for (i = 0;i < 256;i++)
 			scrollx[i] = bg2_scrollx - toki_linescroll[i];
 
-		copyscrollbitmap (bitmap,bitmap_bg1,1,&bg1_scrollx,1,&bg1_scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap (bitmap,bitmap_bg1,1,&bg1_scrollx,1,&bg1_scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 		if (bg2_scrollx!=-32768)
-			copyscrollbitmap (bitmap,bitmap_bg2,512,scrollx,1,&bg2_scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+			copyscrollbitmap (bitmap,bitmap_bg2,512,scrollx,1,&bg2_scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 	} else
 	{
-		copyscrollbitmap (bitmap,bitmap_bg2,1,&bg2_scrollx,1,&bg2_scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
-		copyscrollbitmap (bitmap,bitmap_bg1,1,&bg1_scrollx,1,&bg1_scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap (bitmap,bitmap_bg2,1,&bg2_scrollx,1,&bg2_scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap (bitmap,bitmap_bg1,1,&bg1_scrollx,1,&bg1_scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 	}
 
 	toki_render_sprites (bitmap);
-   	copybitmap (bitmap,bitmap_frg,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+   	copybitmap (bitmap,bitmap_frg,0,0,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 }
 
 
 
 static int lastline,lastdata;
 
-void toki_linescroll_w(int offset,int data)
+WRITE_HANDLER( toki_linescroll_w )
 {
 	if (offset == 2)
 	{

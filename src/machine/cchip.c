@@ -54,7 +54,7 @@ void cchip1_init_machine(void)
 	cchip1_bank = 0;
 }
 
-int cchip1_r (int offset)
+READ_HANDLER( cchip1_r )
 {
 	int ret = 0;
 
@@ -88,7 +88,7 @@ int cchip1_r (int offset)
 			break;
 		case 0x004:
 			/* Coins */
-			if (errorlog) fprintf (errorlog, "cchip1_r (coin) pc: %06x, offset: %04x\n", cpu_get_pc(), offset);
+			logerror("cchip1_r (coin) pc: %06x, offset: %04x\n", cpu_get_pc(), offset);
 			if (cchip1_bank == 1)
 				ret = cchip1_code[offset/2];
 			else
@@ -112,7 +112,7 @@ int cchip1_r (int offset)
 				ret = cchip1_code[offset/2];
 			else
 			{
-				if (errorlog) fprintf (errorlog, "cchip1_r offset: %04x\n", offset);
+				logerror("cchip1_r offset: %04x\n", offset);
 				ret = 0xff;
 			}
 			break;
@@ -121,9 +121,9 @@ int cchip1_r (int offset)
 	return ret;
 }
 
-void cchip1_w (int offset, int data)
+WRITE_HANDLER( cchip1_w )
 {
-	if (errorlog) fprintf (errorlog, "cchip1_w pc: %06x, %04x:%02x\n", cpu_get_pc(), offset, data);
+	logerror("cchip1_w pc: %06x, %04x:%02x\n", cpu_get_pc(), offset, data);
 	switch (offset)
 	{
 		case 0x0000:

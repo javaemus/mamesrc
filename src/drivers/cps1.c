@@ -6,7 +6,7 @@
   Driver provided by:
   Paul Leaman (paul@vortexcomputing.demon.co.uk)
 
-  M680000 for game, Z80, YM-2151 and OKIM6295 for sound.
+  68000 for game, Z80, YM-2151 and OKIM6295 for sound.
 
   68000 clock speeds are unknown for all games (except where commented)
 
@@ -31,13 +31,13 @@ void slammast_decode(void);
 
 
 
-static int cps1_input2_r(int offset)
+static READ_HANDLER( cps1_input2_r )
 {
 	int buttons=readinputport(6);
 	return buttons << 8 | buttons;
 }
 
-static int cps1_input3_r(int offset)
+static READ_HANDLER( cps1_input3_r )
 {
     int buttons=readinputport(7);
 	return buttons << 8 | buttons;
@@ -46,7 +46,7 @@ static int cps1_input3_r(int offset)
 
 static int cps1_sound_fade_timer;
 
-static void cps1_snd_bankswitch_w(int offset,int data)
+static WRITE_HANDLER( cps1_snd_bankswitch_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU2);
 	int length = memory_region_length(REGION_CPU2) - 0x10000;
@@ -55,53 +55,53 @@ static void cps1_snd_bankswitch_w(int offset,int data)
 	bankaddr = (data * 0x4000) & (length-1);
 	cpu_setbank(1,&RAM[0x10000 + bankaddr]);
 
-if (errorlog && (data & 0xfe)) fprintf(errorlog,"%04x: write %02x to f004\n",cpu_get_pc(),data);
+	if (data & 0xfe) logerror("%04x: write %02x to f004\n",cpu_get_pc(),data);
 }
 
-static void cps1_sound_fade_w(int offset, int data)
+static WRITE_HANDLER( cps1_sound_fade_w )
 {
 	cps1_sound_fade_timer=data;
 }
 
-static int cps1_snd_fade_timer_r(int offset)
+static READ_HANDLER( cps1_snd_fade_timer_r )
 {
 	return cps1_sound_fade_timer;
 }
 
-static int cps1_input_r(int offset)
+static READ_HANDLER( cps1_input_r )
 {
 	int control=readinputport (offset/2);
 	return (control<<8) | control;
 }
 
-static int cps1_player_input_r(int offset)
+static READ_HANDLER( cps1_player_input_r )
 {
 	return (readinputport(offset + 4) + (readinputport(offset+1 + 4)<<8));
 }
 
 static int dial[2];
 
-static int forgottn_dial_0_r(int offset)
+static READ_HANDLER( forgottn_dial_0_r )
 {
 	return ((readinputport(6) - dial[0]) >> (4*offset)) & 0xff;
 }
 
-static int forgottn_dial_1_r(int offset)
+static READ_HANDLER( forgottn_dial_1_r )
 {
 	return ((readinputport(7) - dial[1]) >> (4*offset)) & 0xff;
 }
 
-static void forgottn_dial_0_reset_w(int offset,int data)
+static WRITE_HANDLER( forgottn_dial_0_reset_w )
 {
 	dial[0] = readinputport(6);
 }
 
-static void forgottn_dial_1_reset_w(int offset,int data)
+static WRITE_HANDLER( forgottn_dial_1_reset_w )
 {
 	dial[1] = readinputport(7);
 }
 
-static void cps1_coinctrl_w(int offset,int data)
+static WRITE_HANDLER( cps1_coinctrl_w )
 {
 	if ((data & 0xff000000) == 0)
 	{
@@ -119,7 +119,7 @@ static void cps1_coinctrl_w(int offset,int data)
 	}
 }
 
-void cpsq_coinctrl2_w(int offset, int data)
+WRITE_HANDLER( cpsq_coinctrl2_w )
 {
 	if ((data & 0xff000000) == 0)
 	{
@@ -135,40 +135,6 @@ void cpsq_coinctrl2_w(int offset, int data)
        }
 */
     }
-}
-
-int cps1_protection_ram_r(int offset)
-{
-	/*
-	   Protection (slammasters):
-
-	   The code does a checksum on an area of memory. I have no idea what
-	   this memory is. I have no idea whether it is RAM based or hard-wired.
-
-	   The code adds the low bytes of 0x415 words starting at 0xf0e000
-
-	   The result is ANDed with 0xffffff00 and then multiplied by 2. This
-	   value is stored and used throughout the game to calculate the
-	   base offset of the source scroll ROM data.
-
-	   The sum of the low bytes of the first 0x415 words starting at
-	   address 0xf0e000 should be 0x1df00
-
-	   In the absence of any real data, a rough calculation will do the
-	   job.
-	*/
-
-	if (offset < (0x411*2))
-	{
-		/*
-			0x411 * 0x76 = 0x1dfd6  (which is close enough)
-		*/
-		return 0x76;
-	}
-	else
-	{
-		return 0;
-	}
 }
 
 static int cps1_interrupt(void)
@@ -204,17 +170,30 @@ int cps1_qsound_interrupt(void)
 	return 2;
 }
 
-static int qsound_sharedram_r(int offset)
+
+READ_HANDLER( qsound_rom_r )
+{
+	unsigned char *rom = memory_region(REGION_USER1);
+
+	if (rom) return rom[offset / 2] | 0xff00;
+	else
+	{
+		usrintf_showmessage("%06x: read sound ROM byte %04x",cpu_get_pc(),offset/2);
+		return 0;
+	}
+}
+
+static READ_HANDLER( qsound_sharedram_r )
 {
 	return qsound_sharedram[offset / 2] | 0xff00;
 }
 
-static void qsound_sharedram_w(int offset,int data)
+static WRITE_HANDLER( qsound_sharedram_w )
 {
 	qsound_sharedram[offset / 2] = data;
 }
 
-static void qsound_banksw_w(int offset,int data)
+static WRITE_HANDLER( qsound_banksw_w )
 {
 	/*
 	Z80 bank register for music note data. It's odd that it isn't encrypted
@@ -224,10 +203,7 @@ static void qsound_banksw_w(int offset,int data)
 	int bankaddress=0x10000+((data&0x0f)*0x4000);
 	if (bankaddress >= memory_region_length(REGION_CPU2))
 	{
-		if (errorlog)
-		{
-			fprintf(errorlog, "WARNING: Q sound bank overflow (%02x)\n", data);
-		}
+		logerror("WARNING: Q sound bank overflow (%02x)\n", data);
 		bankaddress=0x10000;
 	}
 	cpu_setbank(1, &RAM[bankaddress]);
@@ -288,12 +264,12 @@ static void pang3_nvram_handler(void *file,int read_or_write)
 	}
 }
 
-int cps1_eeprom_port_r(int offset)
+READ_HANDLER( cps1_eeprom_port_r )
 {
 	return EEPROM_read_bit();
 }
 
-void cps1_eeprom_port_w(int offset, int data)
+WRITE_HANDLER( cps1_eeprom_port_w )
 {
 	/*
 	bit 0 = data
@@ -320,8 +296,8 @@ static struct MemoryReadAddress cps1_readmem[] =
 	{ 0x8001fc, 0x8001fc, cps1_input2_r }, /* Input ports (SF Rev E) */
 	{ 0x800100, 0x8001ff, cps1_output_r },   /* Output ports */
 	{ 0x900000, 0x92ffff, MRA_BANK3 },	/* SF2CE executes code from here */
-	{ 0xf0e000, 0xf0efff, cps1_protection_ram_r }, /* Slammasters protection */
-	{ 0xf18000, 0xf19fff, qsound_sharedram_r },       /* Q RAM */
+	{ 0xf00000, 0xf0ffff, qsound_rom_r },		/* Slammasters protection */
+	{ 0xf18000, 0xf19fff, qsound_sharedram_r },	/* Q RAM */
 	{ 0xf1c000, 0xf1c001, cps1_input2_r },   /* Player 3 controls (later games) */
 	{ 0xf1c002, 0xf1c003, cps1_input3_r },   /* Player 4 controls (later games - muscle bombers) */
 	{ 0xf1c006, 0xf1c007, cps1_eeprom_port_r },
@@ -2285,7 +2261,7 @@ INPUT_PORTS_START( knights )
 	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unused ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
@@ -3632,10 +3608,10 @@ static struct MachineDriver machine_driver_qsound =
 
 
 MACHINE_DRIVER( forgottn, CPU_M68000,   10000000, 6061, 0 )
-MACHINE_DRIVER( cps1,     CPU_M68000,   10000000, 7576, 0 )  /* 10 MHz?? */
+MACHINE_DRIVER( cps1,     CPU_M68000,   10000000, 7576, 0 )	/* 10 MHz?? */
 MACHINE_DRIVER( sf2,      CPU_M68000,   12000000, 7576, 0 )	/* 12 MHz */
 MACHINE_DRIVER( sf2accp2, CPU_M68EC020, 12000000, 7576, 0 )	/* 12 MHz */
-MACHINE_DRIVER( pang3,    CPU_M68000,   10000000, 7576, pang3_nvram_handler )  /* 10 MHz?? */
+MACHINE_DRIVER( pang3,    CPU_M68000,   10000000, 7576, pang3_nvram_handler )	/* 10 MHz?? */
 
 
 
@@ -5306,6 +5282,32 @@ ROM_START( wof )
 	ROM_LOAD( "tk2_q4.rom",     0x180000, 0x80000, 0x36642e88 )
 ROM_END
 
+ROM_START( wofa )
+	ROM_REGION( CODE_SIZE, REGION_CPU1 )      /* 68000 code */
+	ROM_LOAD_WIDE_SWAP( "tk2a_23b.rom",  0x000000, 0x80000, 0x2e024628 )
+	ROM_LOAD_WIDE_SWAP( "tk2a_22b.rom",  0x080000, 0x80000, 0x900ad4cd )
+
+	ROM_REGION( 0x400000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "tk2_gfx2.rom",   0x000000, 0x80000, 0xc5ca2460 )
+	ROM_LOAD( "tk2_gfx6.rom",   0x080000, 0x80000, 0x1abd14d6 )
+	ROM_LOAD( "tk2_gfx1.rom",   0x100000, 0x80000, 0x0d9cb9bf )
+	ROM_LOAD( "tk2_gfx5.rom",   0x180000, 0x80000, 0x291f0f0b )
+	ROM_LOAD( "tk2_gfx4.rom",   0x200000, 0x80000, 0xe349551c )
+	ROM_LOAD( "tk2_gfx8.rom",   0x280000, 0x80000, 0xb27948e3 )
+	ROM_LOAD( "tk2_gfx3.rom",   0x300000, 0x80000, 0x45227027 )
+	ROM_LOAD( "tk2_gfx7.rom",   0x380000, 0x80000, 0x3edeb949 )
+
+	ROM_REGION( 2*0x28000, REGION_CPU2 ) /* QSound Z80 code + space for decrypted opcodes */
+	ROM_LOAD( "tk2_qa.rom",     0x00000, 0x08000, 0xc9183a0d )
+	ROM_CONTINUE(               0x10000, 0x18000 )
+
+	ROM_REGION( 0x200000, REGION_SOUND1 ) /* QSound samples */
+	ROM_LOAD( "tk2_q1.rom",     0x000000, 0x80000, 0x611268cf )
+	ROM_LOAD( "tk2_q2.rom",     0x080000, 0x80000, 0x20f55ca9 )
+	ROM_LOAD( "tk2_q3.rom",     0x100000, 0x80000, 0xbfcf6f52 )
+	ROM_LOAD( "tk2_q4.rom",     0x180000, 0x80000, 0x36642e88 )
+ROM_END
+
 ROM_START( wofj )
 	ROM_REGION( CODE_SIZE, REGION_CPU1 )      /* 68000 code */
 	ROM_LOAD_WIDE_SWAP( "tk2j23c.bin",  0x000000, 0x80000, 0x9b215a68 )
@@ -5565,6 +5567,9 @@ ROM_START( slammast )
 	ROM_LOAD( "mb_qa.rom",      0x00000, 0x08000, 0xe21a03c4 )
 	ROM_CONTINUE(               0x10000, 0x18000 )
 
+	ROM_REGION( 0x8000, REGION_USER1 )
+	/* the encrypted Z80 ROM will be copied here, where the main CPU can read it. */
+
 	ROM_REGION( 0x400000, REGION_SOUND1 ) /* QSound samples */
 	ROM_LOAD( "mb_q1.rom",      0x000000, 0x80000, 0x0630c3ce )
 	ROM_LOAD( "mb_q2.rom",      0x080000, 0x80000, 0x354f9c21 )
@@ -5603,6 +5608,9 @@ ROM_START( mbomberj )
 	ROM_REGION( 2*0x28000, REGION_CPU2 ) /* QSound Z80 code + space for decrypted opcodes */
 	ROM_LOAD( "mb_qa.rom",      0x00000, 0x08000, 0xe21a03c4 )
 	ROM_CONTINUE(               0x10000, 0x18000 )
+
+	ROM_REGION( 0x8000, REGION_USER1 )
+	/* the encrypted Z80 ROM will be copied here, where the main CPU can read it. */
 
 	ROM_REGION( 0x400000, REGION_SOUND1 ) /* QSound samples */
 	ROM_LOAD( "mb_q1.rom",      0x000000, 0x80000, 0x0630c3ce )
@@ -5807,6 +5815,25 @@ ROM_START( qtono2 )
 ROM_END
 
 ROM_START( pang3 )
+	ROM_REGION( CODE_SIZE, REGION_CPU1 )      /* 68000 code */
+	ROM_LOAD_WIDE_SWAP( "pa3w-17.11l",  0x00000, 0x80000, 0x12138234 )
+	ROM_LOAD_WIDE_SWAP( "pa3w-16.10l",  0x80000, 0x80000, 0xd1ba585c )
+
+	ROM_REGION( 0x400000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "pa3-01m.2c",    0x100000, 0x100000, 0x068a152c )
+	ROM_CONTINUE(              0x000000, 0x100000 )
+	ROM_LOAD( "pa3-07m.2f",    0x300000, 0x100000, 0x3a4a619d )
+	ROM_CONTINUE(              0x200000, 0x100000 )
+
+	ROM_REGION( 0x18000, REGION_CPU2 ) /* 64k for the audio CPU (+banks) */
+	ROM_LOAD( "pa3-11.11f",    0x00000, 0x08000, 0x90a08c46 )
+
+	ROM_REGION( 0x40000, REGION_SOUND1 )	/* Samples */
+	ROM_LOAD( "pa3-05.10d",    0x00000, 0x20000, 0x73a10d5d )
+	ROM_LOAD( "pa3-06.11d",    0x20000, 0x20000, 0xaffa4f82 )
+ROM_END
+
+ROM_START( pang3j )
 	ROM_REGION( CODE_SIZE, REGION_CPU1 )      /* 68000 code */
 	ROM_LOAD_WIDE_SWAP( "pa3j-17.11l",  0x00000, 0x80000, 0x21f6e51f )
 	ROM_LOAD_WIDE_SWAP( "pa3j-16.10l",  0x80000, 0x80000, 0xca1d7897 )
@@ -6039,6 +6066,7 @@ GAME( 1995, rockmanj, megaman,  cps1,     megaman,  0,        ROT0_16BIT, "Capco
 GAME( 1995, sfzch,    0,        cps1,     sfzch,    0,        ROT0_16BIT, "Capcom", "Street Fighter ZERO (Japan CPS Changer)" )
 
 GAME( 1992, wof,      0,        qsound,   wof,      wof,      ROT0,       "Capcom", "Warriors of Fate (World)" )
+GAME( 1992, wofa,     wof,      qsound,   wof,      wof,      ROT0,       "Capcom", "Sangokushi II (Asia)" )
 GAME( 1992, wofj,     wof,      qsound,   wof,      wof,      ROT0,       "Capcom", "Tenchi wo Kurau II - Sekiheki no Tatakai (Japan)" )
 GAME( 1993, dino,     0,        qsound,   dino,     dino,     ROT0,       "Capcom", "Cadillacs and Dinosaurs (World)" )
 GAME( 1993, dinoj,    dino,     qsound,   dino,     dino ,    ROT0,       "Capcom", "Cadillacs Kyouryuu-Shinseiki (Japan)" )
@@ -6050,7 +6078,9 @@ GAME( 1993, mbomberj, slammast, qsound,   slammast, slammast, ROT0_16BIT, "Capco
 GAME( 1993, mbombrd,  slammast, qsound,   slammast, slammast, ROT0_16BIT, "Capcom", "Muscle Bomber Duo - Ultimate Team Battle (World)" )
 GAME( 1993, mbombrdj, slammast, qsound,   slammast, slammast, ROT0_16BIT, "Capcom", "Muscle Bomber Duo - Heat Up Warriors (Japan)" )
 
-GAME( 1995, pang3,    0,        pang3,    pang3,    pang3,    ROT0_16BIT, "Mitchell", "Pang! 3 (Japan)" )
+/* Japanese version of Pang 3 is encrypted, Euro version is not */
+GAME( 1995, pang3,    0,        pang3,    pang3,    0,        ROT0_16BIT, "Mitchell", "Pang! 3 (Euro)" )
+GAME( 1995, pang3j,   pang3,    pang3,    pang3,    pang3,    ROT0_16BIT, "Mitchell", "Pang! 3 (Japan)" )
 
 
 #include "cps2.c"

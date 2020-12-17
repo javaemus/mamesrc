@@ -44,7 +44,7 @@ void ambush_vh_convert_color_prom(unsigned char *palette, unsigned short *colort
 void ambush_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
-static void ambush_coin_counter_w(int offset, int data)
+static WRITE_HANDLER( ambush_coin_counter_w )
 {
 	coin_counter_w(0, data & 0x01);
 	coin_counter_w(1, data & 0x02);
@@ -69,7 +69,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0xc200, 0xc3ff, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0xc400, 0xc7ff, MWA_RAM, &videoram, &videoram_size },
 	{ 0xcc00, 0xcc03, MWA_NOP },
-	{ 0xcc04, 0xcc04, MWA_RAM, &flip_screen },
+	{ 0xcc04, 0xcc04, flip_screen_w },
 	{ 0xcc05, 0xcc05, MWA_RAM, &ambush_colorbank },
 	{ 0xcc07, 0xcc07, ambush_coin_counter_w },
 	{ -1 }  /* end of table */

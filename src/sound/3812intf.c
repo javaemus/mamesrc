@@ -262,7 +262,7 @@ static void IRQHandler(int n,int irq)
 static void YM3812UpdateHandler(int n, INT16 *buf, int length)
 {	YM3812UpdateOne(F3812[n],buf,length); }
 
-#if HAS_Y8950
+#if (HAS_Y8950)
 static void Y8950UpdateHandler(int n, INT16 *buf, int length)
 {	Y8950UpdateOne(F3812[n],buf,length); }
 
@@ -330,7 +330,7 @@ static int emu_YM3812_sh_start(const struct MachineSound *msound)
 		if(F3812[i] == NULL) return 1;
 		/* stream setup */
 		sprintf(name,"%s #%d",sound_name(msound),i);
-#if HAS_Y8950
+#if (HAS_Y8950)
 		/* ADPCM ROM DATA */
 		if(chiptype == OPL_TYPE_Y8950)
 		{
@@ -439,35 +439,35 @@ void YM3812_sh_reset(void)
 	YM3812_write_port_0_w(0,0x80);
 }
 
-void YM3812_control_port_0_w( int offset, int data ) {
+WRITE_HANDLER( YM3812_control_port_0_w ) {
 	(*control_port_w)( 0, data );
 }
 
-void YM3812_write_port_0_w( int offset, int data ) {
+WRITE_HANDLER( YM3812_write_port_0_w ) {
 	(*write_port_w)( 0, data );
 }
 
-int YM3812_status_port_0_r( int offset ) {
+READ_HANDLER( YM3812_status_port_0_r ) {
 	return (*status_port_r)( 0 );
 }
 
-int YM3812_read_port_0_r( int offset ) {
+READ_HANDLER( YM3812_read_port_0_r ) {
 	return (*read_port_r)( 0 );
 }
 
-void YM3812_control_port_1_w( int offset, int data ) {
+WRITE_HANDLER( YM3812_control_port_1_w ) {
 	(*control_port_w)( 1, data );
 }
 
-void YM3812_write_port_1_w( int offset, int data ) {
+WRITE_HANDLER( YM3812_write_port_1_w ) {
 	(*write_port_w)( 1, data );
 }
 
-int YM3812_status_port_1_r( int offset ) {
+READ_HANDLER( YM3812_status_port_1_r ) {
 	return (*status_port_r)( 1 );
 }
 
-int YM3812_read_port_1_r( int offset ) {
+READ_HANDLER( YM3812_read_port_1_r ) {
 	return (*read_port_r)( 1 );
 }
 
@@ -491,7 +491,7 @@ int YM3526_sh_start(const struct MachineSound *msound)
 /**********************************************************************************************
 	Begin of Y8950 interface stubs block
  **********************************************************************************************/
-#if HAS_Y8950
+#if (HAS_Y8950)
 int Y8950_sh_start(const struct MachineSound *msound)
 {
 	chiptype = OPL_TYPE_Y8950;

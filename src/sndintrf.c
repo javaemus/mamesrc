@@ -18,25 +18,25 @@ static int latch,read_debug;
 
 static void soundlatch_callback(int param)
 {
-if (errorlog && read_debug == 0 && latch != param)
-	fprintf(errorlog,"Warning: sound latch written before being read. Previous: %02x, new: %02x\n",latch,param);
+	if (read_debug == 0 && latch != param)
+		logerror("Warning: sound latch written before being read. Previous: %02x, new: %02x\n",latch,param);
 	latch = param;
 	read_debug = 0;
 }
 
-void soundlatch_w(int offset,int data)
+WRITE_HANDLER( soundlatch_w )
 {
 	/* make all the CPUs synchronize, and only AFTER that write the new command to the latch */
 	timer_set(TIME_NOW,data,soundlatch_callback);
 }
 
-int soundlatch_r(int offset)
+READ_HANDLER( soundlatch_r )
 {
 	read_debug = 1;
 	return latch;
 }
 
-void soundlatch_clear_w(int offset, int data)
+WRITE_HANDLER( soundlatch_clear_w )
 {
 	latch = cleared_value;
 }
@@ -46,25 +46,25 @@ static int latch2,read_debug2;
 
 static void soundlatch2_callback(int param)
 {
-if (errorlog && read_debug2 == 0 && latch2 != param)
-	fprintf(errorlog,"Warning: sound latch 2 written before being read. Previous: %02x, new: %02x\n",latch2,param);
+	if (read_debug2 == 0 && latch2 != param)
+		logerror("Warning: sound latch 2 written before being read. Previous: %02x, new: %02x\n",latch2,param);
 	latch2 = param;
 	read_debug2 = 0;
 }
 
-void soundlatch2_w(int offset,int data)
+WRITE_HANDLER( soundlatch2_w )
 {
 	/* make all the CPUs synchronize, and only AFTER that write the new command to the latch */
 	timer_set(TIME_NOW,data,soundlatch2_callback);
 }
 
-int soundlatch2_r(int offset)
+READ_HANDLER( soundlatch2_r )
 {
 	read_debug2 = 1;
 	return latch2;
 }
 
-void soundlatch2_clear_w(int offset, int data)
+WRITE_HANDLER( soundlatch2_clear_w )
 {
 	latch2 = cleared_value;
 }
@@ -74,25 +74,25 @@ static int latch3,read_debug3;
 
 static void soundlatch3_callback(int param)
 {
-if (errorlog && read_debug3 == 0 && latch3 != param)
-	fprintf(errorlog,"Warning: sound latch 3 written before being read. Previous: %02x, new: %02x\n",latch3,param);
+	if (read_debug3 == 0 && latch3 != param)
+		logerror("Warning: sound latch 3 written before being read. Previous: %02x, new: %02x\n",latch3,param);
 	latch3 = param;
 	read_debug3 = 0;
 }
 
-void soundlatch3_w(int offset,int data)
+WRITE_HANDLER( soundlatch3_w )
 {
 	/* make all the CPUs synchronize, and only AFTER that write the new command to the latch */
 	timer_set(TIME_NOW,data,soundlatch3_callback);
 }
 
-int soundlatch3_r(int offset)
+READ_HANDLER( soundlatch3_r )
 {
 	read_debug3 = 1;
 	return latch3;
 }
 
-void soundlatch3_clear_w(int offset, int data)
+WRITE_HANDLER( soundlatch3_clear_w )
 {
 	latch3 = cleared_value;
 }
@@ -102,25 +102,25 @@ static int latch4,read_debug4;
 
 static void soundlatch4_callback(int param)
 {
-if (errorlog && read_debug4 == 0 && latch4 != param)
-	fprintf(errorlog,"Warning: sound latch 4 written before being read. Previous: %02x, new: %02x\n",latch2,param);
+	if (read_debug4 == 0 && latch4 != param)
+		logerror("Warning: sound latch 4 written before being read. Previous: %02x, new: %02x\n",latch2,param);
 	latch4 = param;
 	read_debug4 = 0;
 }
 
-void soundlatch4_w(int offset,int data)
+WRITE_HANDLER( soundlatch4_w )
 {
 	/* make all the CPUs synchronize, and only AFTER that write the new command to the latch */
 	timer_set(TIME_NOW,data,soundlatch4_callback);
 }
 
-int soundlatch4_r(int offset)
+READ_HANDLER( soundlatch4_r )
 {
 	read_debug4 = 1;
 	return latch4;
 }
 
-void soundlatch4_clear_w(int offset, int data)
+WRITE_HANDLER( soundlatch4_clear_w )
 {
 	latch4 = cleared_value;
 }
@@ -218,7 +218,7 @@ int YM2608_num(const struct MachineSound *msound) { return ((struct YM2608interf
 int YM2610_clock(const struct MachineSound *msound) { return ((struct YM2610interface*)msound->sound_interface)->baseclock; }
 int YM2610_num(const struct MachineSound *msound) { return ((struct YM2610interface*)msound->sound_interface)->num; }
 #endif
-#if (HAS_YM2612)
+#if (HAS_YM2612 || HAS_YM3438)
 int YM2612_clock(const struct MachineSound *msound) { return ((struct YM2612interface*)msound->sound_interface)->baseclock; }
 int YM2612_num(const struct MachineSound *msound) { return ((struct YM2612interface*)msound->sound_interface)->num; }
 #endif
@@ -232,6 +232,10 @@ int TIA_clock(const struct MachineSound *msound) { return ((struct TIAinterface*
 #if (HAS_YM3812)
 int YM3812_clock(const struct MachineSound *msound) { return ((struct YM3812interface*)msound->sound_interface)->baseclock; }
 int YM3812_num(const struct MachineSound *msound) { return ((struct YM3812interface*)msound->sound_interface)->num; }
+#endif
+#if (HAS_YMZ280B)
+int YMZ280B_clock(const struct MachineSound *msound) { return ((struct YMZ280Binterface*)msound->sound_interface)->baseclock[0]; }
+int YMZ280B_num(const struct MachineSound *msound) { return ((struct YMZ280Binterface*)msound->sound_interface)->num; }
 #endif
 #if (HAS_VLM5030)
 int VLM5030_clock(const struct MachineSound *msound) { return ((struct VLM5030interface*)msound->sound_interface)->baseclock; }
@@ -357,7 +361,7 @@ struct snd_interface sndintf[] =
 		YM2203_sh_reset
 	},
 #endif
-#if (HAS_YM2151)
+#if (HAS_YM2151 || HAS_YM2151_ALT)
     {
 		SOUND_YM2151,
 		"YM-2151",
@@ -367,18 +371,6 @@ struct snd_interface sndintf[] =
 		YM2151_sh_stop,
 		0,
 		YM2151_sh_reset
-	},
-#endif
-#if (HAS_YM2151_ALT)
-    {
-		SOUND_YM2151,
-		"YM-2151",
-		YM2151_num,
-		YM2151_clock,
-		YM2151_ALT_sh_start,
-		YM2151_sh_stop,
-		0,
-		0
 	},
 #endif
 #if (HAS_YM2608)
@@ -473,6 +465,18 @@ struct snd_interface sndintf[] =
 		YM3812_clock,
 		YM3812_sh_start,
 		YM3812_sh_stop,
+		0,
+		0
+	},
+#endif
+#if (HAS_YMZ280B)
+    {
+		SOUND_YMZ280B,
+		"YMZ280B",
+		YMZ280B_num,
+		YMZ280B_clock,
+		YMZ280B_sh_start,
+		YMZ280B_sh_stop,
 		0,
 		0
 	},
@@ -814,7 +818,7 @@ int sound_start(void)
 	{
 		if (sndintf[i].sound_num != i)
 		{
-if (errorlog) fprintf(errorlog,"Sound #%d wrong ID %d: check enum SOUND_... in src/sndintrf.h!\n",i,sndintf[i].sound_num);
+logerror("Sound #%d wrong ID %d: check enum SOUND_... in src/sndintrf.h!\n",i,sndintf[i].sound_num);
 			return 1;
 		}
 	}

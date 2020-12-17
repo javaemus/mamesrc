@@ -12,7 +12,7 @@
 
 void rastan_vh_stop (void);
 
-int rastan_videoram_size;
+size_t rastan_videoram_size;
 unsigned char *rastan_videoram1;
 unsigned char *rastan_videoram3;
 unsigned char *rastan_spriteram;
@@ -23,6 +23,7 @@ static unsigned char *rastan_dirty1;
 static unsigned char *rastan_dirty3;
 
 static unsigned char spritepalettebank;
+static int flipscreen;
 
 static struct osd_bitmap *tmpbitmap1;
 static struct osd_bitmap *tmpbitmap3;
@@ -49,16 +50,18 @@ int rastan_vh_start (void)
 	memset(rastan_dirty3,1,rastan_videoram_size / 4);
 
 	/* Allocate temporary bitmaps */
- 	if ((tmpbitmap1 = osd_create_bitmap(512,512)) == 0)
+ 	if ((tmpbitmap1 = bitmap_alloc(512,512)) == 0)
 	{
 		rastan_vh_stop ();
 		return 1;
 	}
-	if ((tmpbitmap3 = osd_create_bitmap(512,512)) == 0)
+	if ((tmpbitmap3 = bitmap_alloc(512,512)) == 0)
 	{
 		rastan_vh_stop ();
 		return 1;
 	}
+
+	flipscreen = 0; /*maybe not needed*/
 
 	return 0;
 }
@@ -69,10 +72,10 @@ void rastan_vh_stop (void)
 {
 	/* Free temporary bitmaps */
 	if (tmpbitmap3)
-		osd_free_bitmap (tmpbitmap3);
+		bitmap_free (tmpbitmap3);
 	tmpbitmap3 = 0;
 	if (tmpbitmap1)
-		osd_free_bitmap (tmpbitmap1);
+		bitmap_free (tmpbitmap1);
 	tmpbitmap1 = 0;
 
 	/* Free video RAM */
@@ -89,19 +92,19 @@ void rastan_vh_stop (void)
  *   scroll write handlers
  */
 
-void rastan_scrollY_w (int offset, int data)
+WRITE_HANDLER( rastan_scrollY_w )
 {
 	COMBINE_WORD_MEM (&rastan_scrolly[offset], data);
 }
 
-void rastan_scrollX_w (int offset, int data)
+WRITE_HANDLER( rastan_scrollX_w )
 {
 	COMBINE_WORD_MEM (&rastan_scrollx[offset], data);
 }
 
 
 
-void rastan_videoram1_w (int offset, int data)
+WRITE_HANDLER( rastan_videoram1_w )
 {
 	int oldword = READ_WORD(&rastan_videoram1[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -113,12 +116,12 @@ void rastan_videoram1_w (int offset, int data)
 		rastan_dirty1[offset / 4] = 1;
 	}
 }
-int rastan_videoram1_r (int offset)
+READ_HANDLER( rastan_videoram1_r )
 {
    return READ_WORD (&rastan_videoram1[offset]);
 }
 
-void rastan_videoram3_w (int offset, int data)
+WRITE_HANDLER( rastan_videoram3_w )
 {
 	int oldword = READ_WORD(&rastan_videoram3[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -130,18 +133,24 @@ void rastan_videoram3_w (int offset, int data)
 		rastan_dirty3[offset / 4] = 1;
 	}
 }
-int rastan_videoram3_r (int offset)
+READ_HANDLER( rastan_videoram3_r )
 {
    return READ_WORD (&rastan_videoram3[offset]);
 }
 
 
 
-void rastan_videocontrol_w (int offset, int data)
+WRITE_HANDLER( rastan_videocontrol_w )
 {
 	if (offset == 0)
 	{
+		/* bits 0 and 1 are coin lockout */
+		coin_lockout_w(1,~data & 0x01);
+		coin_lockout_w(0,~data & 0x02);
+
 		/* bits 2 and 3 are the coin counters */
+		coin_counter_w(1,data & 0x04);
+		coin_counter_w(0,data & 0x08);
 
 		/* bits 5-7 look like the sprite palette bank */
 		spritepalettebank = (data & 0xe0) >> 5;
@@ -150,6 +159,19 @@ void rastan_videocontrol_w (int offset, int data)
 	}
 }
 
+WRITE_HANDLER( rastan_flipscreen_w )
+{
+	if (offset == 0)
+	{
+		/* flipscreen when bit 0 set */
+		if (flipscreen != (data & 1) )
+		{
+			flipscreen = data & 1;
+			memset(rastan_dirty1,1,rastan_videoram_size / 4);
+			memset(rastan_dirty3,1,rastan_videoram_size / 4);
+		}
+	}
+}
 
 
 /***************************************************************************
@@ -195,7 +217,7 @@ palette_init_used_colors();
 
 	for (offs = 0x800-8; offs >= 0; offs -= 8)
 	{
-		code = READ_WORD (&rastan_spriteram[offs+4]);
+		code = READ_WORD (&rastan_spriteram[offs+4]) & 0x0fff;
 
 		if (code)
 		{
@@ -234,6 +256,7 @@ palette_init_used_colors();
 		{
 			int sx,sy;
 			int data1,data2;
+			int flipx,flipy;
 
 
 			rastan_dirty1[offs/4] = 0;
@@ -244,10 +267,21 @@ palette_init_used_colors();
 			sx = (offs/4) % 64;
 			sy = (offs/4) / 64;
 
+			flipx = data1 & 0x4000;
+			flipy = data1 & 0x8000;
+
+			if (flipscreen)
+			{
+				flipx = !flipx;
+				flipy = !flipy;
+				sx = 63 - sx;
+				sy = 63 - sy;
+			}
+
 			drawgfx(tmpbitmap1, Machine->gfx[0],
 					data2 & 0x3fff,
 					data1 & 0x7f,
-					data1 & 0x4000, data1 & 0x8000,
+					flipx, flipy,
 					8*sx,8*sy,
 					0,TRANSPARENCY_NONE,0);
 		}
@@ -259,6 +293,7 @@ palette_init_used_colors();
 		{
 			int sx,sy;
 			int data1,data2;
+			int flipx,flipy;
 
 
 			rastan_dirty3[offs/4] = 0;
@@ -269,10 +304,21 @@ palette_init_used_colors();
 			sx = (offs/4) % 64;
 			sy = (offs/4) / 64;
 
+			flipx = data1 & 0x4000;
+			flipy = data1 & 0x8000;
+
+			if (flipscreen)
+			{
+				flipx = !flipx;
+				flipy = !flipy;
+				sx = 63 - sx;
+				sy = 63 - sy;
+			}
+
 			drawgfx(tmpbitmap3, Machine->gfx[0],
 					data2 & 0x3fff,
 					data1 & 0x7f,
-					data1 & 0x4000, data1 & 0x8000,
+					flipx, flipy,
 					8*sx,8*sy,
 					0,TRANSPARENCY_NONE,0);
 		}
@@ -280,11 +326,21 @@ palette_init_used_colors();
 
 	scrollx = READ_WORD(&rastan_scrollx[0]) - 16;
 	scrolly = READ_WORD(&rastan_scrolly[0]);
-	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	if (flipscreen)
+	{
+		scrollx = 320-scrollx;
+		scrolly = 240-scrolly+16;
+	}
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	scrollx = READ_WORD(&rastan_scrollx[2]) - 16;
 	scrolly = READ_WORD(&rastan_scrolly[2]);
-	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	if (flipscreen)
+	{
+		scrollx = 320-scrollx;
+		scrolly = 240-scrolly+16;
+	}
+	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 
 	/* Draw the sprites. 256 sprites in total */
@@ -292,10 +348,10 @@ palette_init_used_colors();
 	{
 		int num = READ_WORD (&rastan_spriteram[offs+4]);
 
-
 		if (num)
 		{
 			int sx,sy,col,data1;
+			int flipx,flipy;
 
 			sx = READ_WORD(&rastan_spriteram[offs+6]) & 0x1ff;
 			if (sx > 400) sx = sx - 512;
@@ -306,12 +362,23 @@ palette_init_used_colors();
 
 			col = (data1 & 0x0f) + 0x10 * spritepalettebank;
 
+			flipx = data1 & 0x4000;
+			flipy = data1 & 0x8000;
+
+			if (flipscreen)
+			{
+				flipx = !flipx;
+				flipy = !flipy;
+				sx = 320 - sx - 16;
+				sy = 240 - sy;
+			}
+
 			drawgfx(bitmap,Machine->gfx[1],
 					num,
 					col,
-					data1 & 0x4000, data1 & 0x8000,
+					flipx, flipy,
 					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 }
@@ -404,6 +471,7 @@ palette_init_used_colors();
 		{
 			int sx,sy;
 			int data1,data2;
+			int flipx,flipy;
 
 
 			rastan_dirty1[offs/4] = 0;
@@ -414,10 +482,21 @@ palette_init_used_colors();
 			sx = (offs/4) % 64;
 			sy = (offs/4) / 64;
 
+			flipx = data1 & 0x4000;
+			flipy = data1 & 0x8000;
+
+			if (flipscreen)
+			{
+				flipx = !flipx;
+				flipy = !flipy;
+				sx = 63 - sx;
+				sy = 63 - sy;
+			}
+
 			drawgfx(tmpbitmap1, Machine->gfx[0],
 					data2 & 0x3fff,
 					data1 & 0x7f,
-					data1 & 0x4000, data1 & 0x8000,
+					flipx, flipy,
 					8*sx,8*sy,
 					0,TRANSPARENCY_NONE,0);
 		}
@@ -429,6 +508,7 @@ palette_init_used_colors();
 		{
 			int sx,sy;
 			int data1,data2;
+			int flipx,flipy;
 
 
 			rastan_dirty3[offs/4] = 0;
@@ -439,12 +519,22 @@ palette_init_used_colors();
 			sx = (offs/4) % 64;
 			sy = (offs/4) / 64;
 
+			flipx = data1 & 0x4000;
+			flipy = data1 & 0x8000;
+
+			if (flipscreen)
+			{
+				flipx = !flipx;
+				flipy = !flipy;
+				sx = 63 - sx;
+				sy = 63 - sy;
+			}
             /* Colour as Transparent */
 
 			drawgfx(tmpbitmap3, Machine->gfx[0],
 					0,
 					0,
-					0, 0,
+					flipx, flipy,
 					8*sx,8*sy,
 					0,TRANSPARENCY_NONE,0);
 
@@ -453,7 +543,7 @@ palette_init_used_colors();
 			drawgfx(tmpbitmap3, Machine->gfx[0],
 					data2 & 0x3fff,
 					data1 & 0x7f,
-					data1 & 0x4000, data1 & 0x8000,
+					flipx, flipy,
 					8*sx,8*sy,
 					0,TRANSPARENCY_PEN,0);
 		}
@@ -461,7 +551,12 @@ palette_init_used_colors();
 
 	scrollx = READ_WORD(&rastan_scrollx[0]) - 16;
 	scrolly = READ_WORD(&rastan_scrolly[0]);
-	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	if (flipscreen)
+	{
+		scrollx = 320-scrollx;
+		scrolly = 240-scrolly+16;
+	}
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	/* Draw the sprites. 256 sprites in total */
 	for (offs = 0x800-8; offs >= 0; offs -= 8)
@@ -471,6 +566,8 @@ palette_init_used_colors();
 		if (num)
 		{
 			int sx,sy,col,data1;
+			int flipx,flipy;
+
 
 			sx = READ_WORD(&rastan_spriteram[offs+6]) & 0x1ff;
 			if (sx > 400) sx = sx - 512;
@@ -481,26 +578,43 @@ palette_init_used_colors();
 
 			col = (data1 + 0x10) & 0x7f;
 
+			flipx = data1 & 0x4000;
+			flipy = data1 & 0x8000;
+
+			if (flipscreen)
+			{
+				flipx = !flipx;
+				flipy = !flipy;
+				sx = 320 - sx - 16;
+				sy = 240 - sy;
+			}
+
+
             if(num < 4096)
 			    drawgfx(bitmap,Machine->gfx[1],
 					    num,
 					    col,
-					    data1 & 0x4000, data1 & 0x8000,
+					    flipx, flipy,
 					    sx,sy,
-					    &Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					    &Machine->visible_area,TRANSPARENCY_PEN,0);
             else
 			    drawgfx(bitmap,Machine->gfx[2],
 					    num-4096,
 					    col,
-					    data1 & 0x4000, data1 & 0x8000,
+					    flipx, flipy,
 					    sx,sy,
-					    &Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					    &Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 
 	scrollx = READ_WORD(&rastan_scrollx[2]) - 16;
 	scrolly = READ_WORD(&rastan_scrolly[2]);
-	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	if (flipscreen)
+	{
+		scrollx = 320-scrollx;
+		scrolly = 240-scrolly+16;
+	}
+	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 
 }
@@ -648,7 +762,7 @@ void jumping_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	scrollx = READ_WORD(&rastan_scrollx[0]) - 16;
 	scrolly = -READ_WORD(&rastan_scrolly[0]);
-	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	/* Draw the sprites. 128 sprites in total */
 
@@ -674,11 +788,11 @@ void jumping_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					col,
 					data1 & 0x40, data1 & 0x80,
 					sx,sy+1,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+					&Machine->visible_area,TRANSPARENCY_PEN,15);
 		}
 	}
 
 	scrollx = - 16;
 	scrolly = 0;
-  	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+  	copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 }

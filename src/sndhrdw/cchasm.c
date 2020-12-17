@@ -13,7 +13,7 @@ static int sound_status[2];
 static int sound_command[2];
 static int sound_flags;
 
-int cchasm_snd_io_r(int offset)
+READ_HANDLER( cchasm_snd_io_r )
 {
     int coin;
 
@@ -38,13 +38,12 @@ int cchasm_snd_io_r(int offset)
         z80ctc_0_trg2_w (0, 0);
         return sound_command[1] & 0xff;
     default:
-        if (errorlog)
-            fprintf (errorlog, "Read from unmapped internal IO device at 0x%x\n", offset + 0x6000);
+        logerror("Read from unmapped internal IO device at 0x%x\n", offset + 0x6000);
         return 0;
     }
 }
 
-void cchasm_snd_io_w(int offset, int data)
+WRITE_HANDLER( cchasm_snd_io_w )
 {
     switch (offset & 0x61 )
     {
@@ -79,12 +78,11 @@ void cchasm_snd_io_w(int offset, int data)
         break;
 
     default:
-        if (errorlog)
-            fprintf (errorlog, "Write %x to unmapped internal IO device at 0x%x\n", data, offset + 0x6000);
+        logerror("Write %x to unmapped internal IO device at 0x%x\n", data, offset + 0x6000);
     }
 }
 
-void cchasm_io_w(int offset, int data)
+WRITE_HANDLER( cchasm_io_w )
 {
     static int led;
 
@@ -105,7 +103,7 @@ void cchasm_io_w(int offset, int data)
     }
 }
 
-int cchasm_io_r(int offset)
+READ_HANDLER( cchasm_io_r )
 {
     switch ((offset >> 1) & 0xf)
     {
@@ -133,7 +131,7 @@ static void ctc_interrupt (int state)
 	cpu_cause_interrupt (1, Z80_VECTOR(0,state) );
 }
 
-static void ctc_timer_1 (int offset, int data)
+static WRITE_HANDLER( ctc_timer_1_w )
 {
 
     if (data) /* rising edge */
@@ -144,7 +142,7 @@ static void ctc_timer_1 (int offset, int data)
     }
 }
 
-static void ctc_timer_2 (int offset, int data)
+static WRITE_HANDLER( ctc_timer_2_w )
 {
 
     if (data) /* rising edge */
@@ -162,8 +160,8 @@ static z80ctc_interface ctc_intf =
 	{ 0 },               /* timer disables */
 	{ ctc_interrupt },   /* interrupt handler */
 	{ 0 },               /* ZC/TO0 callback */
-	{ ctc_timer_1 },     /* ZC/TO1 callback */
-	{ ctc_timer_2 }      /* ZC/TO2 callback */
+	{ ctc_timer_1_w },     /* ZC/TO1 callback */
+	{ ctc_timer_2_w }      /* ZC/TO2 callback */
 };
 
 static void tone_update(int num,INT16 *buffer,int length)

@@ -10,13 +10,13 @@ driver by Nicola Salmoria
 #include "sndhrdw/m72.h"
 
 /* in vidhrdw/sichuan2.c */
-void sichuan2_bankswitch_w(int offset,int data);
-void sichuan2_paletteram_w(int offset,int data);
+WRITE_HANDLER( sichuan2_bankswitch_w );
+WRITE_HANDLER( sichuan2_paletteram_w );
 void sichuan2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
 
-static int sichuan2_dsw1_r(int offset)
+static READ_HANDLER( sichuan2_dsw1_r )
 {
 	int ret = input_port_3_r(0);
 
@@ -35,9 +35,9 @@ static int sichuan2_dsw1_r(int offset)
 	return ret;
 }
 
-static void sichuan2_coin_w(int offset,int data)
+static WRITE_HANDLER( sichuan2_coin_w )
 {
-if (errorlog && (data & 0xf9) != 0x01) fprintf(errorlog,"coin ctrl = %02x\n",data);
+	if ((data & 0xf9) != 0x01) logerror("coin ctrl = %02x\n",data);
 
 	coin_counter_w(0,data & 2);
 	coin_counter_w(1,data & 4);
@@ -249,7 +249,7 @@ static struct YM2151interface ym2151_interface =
 static struct DACinterface dac_interface =
 {
 	1,	/* 1 channel */
-	{ 100 }
+	{ 50 }
 };
 
 

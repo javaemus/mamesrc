@@ -59,8 +59,7 @@ to read all kinds of bogus memory locations.
 
 To Do:
 
-- Mariner seems to have discrete sound circuits connected to the 8910's
-  output ports
+- Mariner has discrete sound circuits connected to the 8910's output ports
 
 
 Notes:
@@ -76,15 +75,12 @@ Notes:
 
 extern unsigned char *galaxian_attributesram;
 extern unsigned char *galaxian_bulletsram;
-extern int galaxian_bulletsram_size;
+extern size_t galaxian_bulletsram_size;
 void galaxian_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void mariner_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-void galaxian_flipx_w(int offset,int data);
-void galaxian_flipy_w(int offset,int data);
-void hotshock_flipscreen_w(int offset,int data);
-void galaxian_attributes_w(int offset,int data);
-void galaxian_stars_w(int offset,int data);
-void scramble_background_w(int offset, int data);
+WRITE_HANDLER( galaxian_attributes_w );
+WRITE_HANDLER( galaxian_stars_w );
+WRITE_HANDLER( scramble_background_w );
 
 int  scramble_vh_start(void);
 int  mariner_vh_start(void);
@@ -93,45 +89,45 @@ int  pisces_vh_start(void);
 
 void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-void pisces_gfxbank_w(int offset,int data);
+WRITE_HANDLER( pisces_gfxbank_w );
 
 int  scramble_vh_interrupt(void);
 int  mariner_vh_interrupt(void);
 int  hunchbks_vh_interrupt(void);
-void scramble_filter_w(int offset, int data);
+WRITE_HANDLER( scramble_filter_w );
 
-int scramble_portB_r(int offset);
-void scramble_sh_irqtrigger_w(int offset,int data);
-void hotshock_sh_irqtrigger_w(int offset,int data);
+READ_HANDLER( scramble_portB_r );
+WRITE_HANDLER( scramble_sh_irqtrigger_w );
+WRITE_HANDLER( hotshock_sh_irqtrigger_w );
 
-int frogger_portB_r(int offset);
+READ_HANDLER( frogger_portB_r );
 
 /* protection stuff. in machine\scramble.c */
-int scramble_input_port_2_r(int offset);
-int scramble_protection_r(int offset);
-int scramblk_protection_r(int offset);
-int mariner_protection_1_r(int offset);
-int mariner_protection_2_r(int offset);
-int mariner_pip(int offset);
-int mariner_pap(int offset);
+READ_HANDLER( scramble_input_port_2_r );
+READ_HANDLER( scramble_protection_r );
+READ_HANDLER( scramblk_protection_r );
+READ_HANDLER( mariner_protection_1_r );
+READ_HANDLER( mariner_protection_2_r );
+READ_HANDLER( mariner_pip_r );
+READ_HANDLER( mariner_pap_r );
 
 
-static int ckongs_input_port_1_r(int offset)
+static READ_HANDLER( ckongs_input_port_1_r )
 {
 	return (readinputport(1) & 0xfc) | ((readinputport(2) & 0x06) >> 1);
 }
 
-static int ckongs_input_port_2_r(int offset)
+static READ_HANDLER( ckongs_input_port_2_r )
 {
 	return (readinputport(2) & 0xf9) | ((readinputport(1) & 0x03) << 1);
 }
 
-static void scramble_coin_counter_2_w(int offset, int data)
+static WRITE_HANDLER( scramble_coin_counter_2_w )
 {
 	coin_counter_w(1, data);
 }
 
-static void scramble_coin_counter_3_w(int offset, int data)
+static WRITE_HANDLER( scramble_coin_counter_3_w )
 {
 	coin_counter_w(2, data);
 }
@@ -212,12 +208,12 @@ static struct MemoryReadAddress hotshock_readmem[] =
 	{ -1 }	/* end of table */
 };
 
-int hunchbks_mirror_r(int offset)
+READ_HANDLER( hunchbks_mirror_r )
 {
 	return cpu_readmem16(0x1000+offset);
 }
 
-void hunchbks_mirror_w(int offset,int data)
+WRITE_HANDLER( hunchbks_mirror_w )
 {
 	cpu_writemem16(0x1000+offset,data);
 }
@@ -254,8 +250,8 @@ static struct MemoryWriteAddress scramble_writemem[] =
 	{ 0x6802, 0x6802, coin_counter_w },
 	{ 0x6803, 0x6803, scramble_background_w },
 	{ 0x6804, 0x6804, galaxian_stars_w },
-	{ 0x6806, 0x6806, galaxian_flipx_w },
-	{ 0x6807, 0x6807, galaxian_flipy_w },
+	{ 0x6806, 0x6806, flip_screen_x_w },
+	{ 0x6807, 0x6807, flip_screen_y_w },
 	{ 0x8200, 0x8200, soundlatch_w },
 	{ 0x8201, 0x8201, scramble_sh_irqtrigger_w },
 	{ -1 }	/* end of table */
@@ -274,8 +270,8 @@ static struct MemoryWriteAddress triplep_writemem[] =
 	{ 0x6802, 0x6802, coin_counter_w },
 	{ 0x6803, 0x6803, MWA_NOP },   /* ??? (it's NOT a background enable) */
 	{ 0x6804, 0x6804, galaxian_stars_w },
-	{ 0x6806, 0x6806, galaxian_flipx_w },
-	{ 0x6807, 0x6807, galaxian_flipy_w },
+	{ 0x6806, 0x6806, flip_screen_x_w },
+	{ 0x6807, 0x6807, flip_screen_y_w },
 	{ -1 }	/* end of table */
 };
 
@@ -292,8 +288,8 @@ static struct MemoryWriteAddress ckongs_writemem[] =
 	{ 0xa801, 0xa801, interrupt_enable_w },
 	{ 0xa802, 0xa802, coin_counter_w },
 	{ 0xa804, 0xa804, galaxian_stars_w },
-	{ 0xa806, 0xa806, galaxian_flipx_w },
-	{ 0xa807, 0xa807, galaxian_flipy_w },
+	{ 0xa806, 0xa806, flip_screen_x_w },
+	{ 0xa807, 0xa807, flip_screen_y_w },
 	{ -1 }	/* end of table */
 };
 
@@ -310,8 +306,8 @@ static struct MemoryWriteAddress mars_writemem[] =
 	{ 0x6801, 0x6801, galaxian_stars_w },
 	{ 0x6802, 0x6802, interrupt_enable_w },
 	{ 0x6808, 0x6808, coin_counter_w },
-	{ 0x6809, 0x6809, galaxian_flipx_w },
-	{ 0x680b, 0x680b, galaxian_flipy_w },
+	{ 0x6809, 0x6809, flip_screen_x_w },
+	{ 0x680b, 0x680b, flip_screen_y_w },
 	{ 0x810a, 0x810a, MWA_NOP },    /* ??? */
 	{ 0x8200, 0x8200, soundlatch_w },
 	{ 0x8202, 0x8202, scramble_sh_irqtrigger_w },
@@ -332,7 +328,7 @@ static struct MemoryWriteAddress hotshock_writemem[] =
 	{ 0x5060, 0x507f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
 	{ 0x6000, 0x6000, scramble_coin_counter_3_w },
 	{ 0x6002, 0x6002, scramble_coin_counter_2_w },
-	{ 0x6004, 0x6004, hotshock_flipscreen_w },
+	{ 0x6004, 0x6004, flip_screen_w },
 	{ 0x6005, 0x6005, coin_counter_w },
 	{ 0x6006, 0x6006, pisces_gfxbank_w },
 	{ 0x6801, 0x6801, interrupt_enable_w },
@@ -353,8 +349,8 @@ static struct MemoryWriteAddress hunchbks_writemem[] =
 	{ 0x1400, 0x143f, galaxian_attributes_w, &galaxian_attributesram },
 	{ 0x1440, 0x145f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x1460, 0x147f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
-	{ 0x1606, 0x1606, galaxian_flipx_w },
-	{ 0x1607, 0x1607, galaxian_flipy_w },
+	{ 0x1606, 0x1606, flip_screen_x_w },
+	{ 0x1607, 0x1607, flip_screen_y_w },
 	{ 0x1210, 0x1210, soundlatch_w },
 	{ 0x1211, 0x1211, scramble_sh_irqtrigger_w },
 	{ 0x3000, 0x3fff, hunchbks_mirror_w },
@@ -366,8 +362,8 @@ static struct MemoryWriteAddress hunchbks_writemem[] =
 static struct IOReadPort triplep_readport[] =
 {
 	{ 0x01, 0x01, AY8910_read_port_0_r },
-	{ 0x02, 0x02, mariner_pip },
-	{ 0x03, 0x03, mariner_pap },
+	{ 0x02, 0x02, mariner_pip_r },
+	{ 0x03, 0x03, mariner_pap_r },
 	{ -1 }	/* end of table */
 };
 
@@ -1337,7 +1333,7 @@ static struct MachineDriver machine_driver_mariner =
 	/* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
 	mariner_gfxdecodeinfo,
-	32+64+10,8*4+2*2+128*1,	/* 32 for the characters, 64 for the stars, 10 for background */
+	32+64+16,8*4+2*2+128*1,	/* 32 for the characters, 64 for the stars, 16 for background */
 	mariner_vh_convert_color_prom,
 
 	VIDEO_TYPE_RASTER,
@@ -1623,19 +1619,48 @@ ROM_END
 
 ROM_START( mariner )
 	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for main CPU */
-	ROM_LOAD( "tp1",          0x0000, 0x1000, 0xdac1dfd0 )
-	ROM_LOAD( "tm2",          0x1000, 0x1000, 0xefe7ca28 )
-	ROM_LOAD( "tm3",          0x2000, 0x1000, 0x027881a6 )
-	ROM_LOAD( "tm4",          0x3000, 0x1000, 0xa0fde7dc )
-	ROM_LOAD( "tm5",          0x6000, 0x0800, 0xd7ebcb8e )
+	ROM_LOAD( "tp1.2h",       0x0000, 0x1000, 0xdac1dfd0 )
+	ROM_LOAD( "tm2.2k",       0x1000, 0x1000, 0xefe7ca28 )
+	ROM_LOAD( "tm3.2l",       0x2000, 0x1000, 0x027881a6 )
+	ROM_LOAD( "tm4.2m",       0x3000, 0x1000, 0xa0fde7dc )
+	ROM_LOAD( "tm5.2p",       0x6000, 0x0800, 0xd7ebcb8e )
 	ROM_CONTINUE(             0x5800, 0x0800             )
 
 	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
-	ROM_LOAD( "tm8",          0x0000, 0x1000, 0x70ae611f )
-	ROM_LOAD( "tm9",          0x1000, 0x1000, 0x8e4e999e )
+	ROM_LOAD( "tm8.5f",       0x0000, 0x1000, 0x70ae611f )
+	ROM_LOAD( "tm9.5h",       0x1000, 0x1000, 0x8e4e999e )
 
 	ROM_REGION( 0x0020, REGION_PROMS )
-	ROM_LOAD( "tm.t4",        0x0000, 0x0020, 0xca42b6dd )
+	ROM_LOAD( "t4.6e",        0x0000, 0x0020, 0xca42b6dd )
+
+	ROM_REGION( 0x0100, REGION_USER1 )
+	ROM_LOAD( "t6.6p",        0x0000, 0x0100, 0xad208ccc )	/* background color prom */
+
+	ROM_REGION( 0x0020, REGION_USER2 )
+	ROM_LOAD( "t5.7p",        0x0000, 0x0020, 0x1bd88cff )	/* star placement (not emulated) */
+ROM_END
+
+ROM_START( 800fath )
+	ROM_REGION( 0x10000, REGION_CPU1 )     /* 64k for main CPU */
+	ROM_LOAD( "tu1.2h",       0x0000, 0x1000, 0x5dd3d42f )
+	ROM_LOAD( "tm2.2k",       0x1000, 0x1000, 0xefe7ca28 )
+	ROM_LOAD( "tm3.2l",       0x2000, 0x1000, 0x027881a6 )
+	ROM_LOAD( "tm4.2m",       0x3000, 0x1000, 0xa0fde7dc )
+	ROM_LOAD( "tu5.2p",       0x6000, 0x0800, 0xf864a8a6 )
+	ROM_CONTINUE(             0x5800, 0x0800             )
+
+	ROM_REGION( 0x2000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "tm8.5f",       0x0000, 0x1000, 0x70ae611f )
+	ROM_LOAD( "tm9.5h",       0x1000, 0x1000, 0x8e4e999e )
+
+	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_LOAD( "t4.6e",        0x0000, 0x0020, 0xca42b6dd )
+
+	ROM_REGION( 0x0100, REGION_USER1 )
+	ROM_LOAD( "t6.6p",        0x0000, 0x0100, 0xad208ccc )	/* background color prom */
+
+	ROM_REGION( 0x0020, REGION_USER2 )
+	ROM_LOAD( "t5.7p",        0x0000, 0x0020, 0x1bd88cff )	/* star placement (not emulated) */
 ROM_END
 
 ROM_START( ckongs )
@@ -1765,7 +1790,7 @@ ROM_START( hunchbks )
 	ROM_LOAD( "5h_hb10.bin",           0x0800, 0x0800, 0x3977650e )
 
 	ROM_REGION( 0x0020, REGION_PROMS )
-	ROM_LOAD( "6e_prom.bin",           0x0000, 0x0020, 0x4e3caeab )
+	ROM_LOAD( "6e_prom.bin",           0x0000, 0x0020, 0x01004d3f )
 ROM_END
 
 
@@ -1841,9 +1866,10 @@ GAME( 1982, amidars,  amidar,   scramble, amidars,  0,        ROT90, "Konami", "
 GAME( 1982, triplep,  0,        triplep,  triplep,  0,        ROT90, "KKI", "Triple Punch" )
 GAME( 1982, knockout, triplep,  triplep,  triplep,  0,        ROT90, "KKK", "Knock Out !!" )
 GAME( 1981, mariner,  0,        mariner,  scramble, 0,        ROT90, "Amenip", "Mariner" )
+GAME( 1981, 800fath,  mariner,  mariner,  scramble, 0,        ROT90, "Amenip (US Billiards Inc. license)", "800 Fathoms" )
 GAME( 1981, ckongs,   ckong,    ckongs,   ckongs,   0,        ROT90, "bootleg", "Crazy Kong (Scramble hardware)" )
 GAME( 1981, mars,     0,        mars,     mars,     mars,     ROT90, "Artic", "Mars" )
 GAME( 1982, devilfsh, 0,        devilfsh, devilfsh, mars,     ROT90, "Artic", "Devil Fish" )
 GAMEX(1983, newsin7,  0,        newsin7,  newsin7,  mars,     ROT90, "ATW USA, Inc.", "New Sinbad 7", GAME_IMPERFECT_COLORS )
 GAME( 1982, hotshock, 0,        hotshock, hotshock, hotshock, ROT90, "E.G. Felaco", "Hot Shocker" )
-GAME( 1983, hunchbks, hunchbkd, hunchbks, hunchbks, 0,        ROT90, "Century", "Hunchback (Scramble conversion)" )
+GAME( 1983, hunchbks, hunchbkd, hunchbks, hunchbks, 0,        ROT90, "Century", "Hunchback (Scramble hardware)" )

@@ -15,7 +15,7 @@
 #define BIGSPRITE_HEIGHT 128
 
 unsigned char *cclimber_bsvideoram;
-int cclimber_bsvideoram_size;
+size_t cclimber_bsvideoram_size;
 unsigned char *cclimber_bigspriteram;
 unsigned char *cclimber_column_scroll;
 static unsigned char *bsdirtybuffer;
@@ -236,7 +236,7 @@ void swimmer_vh_convert_color_prom(unsigned char *palette, unsigned short *color
   bit 0 -- 1  kohm resistor  -- BLUE
 
 ***************************************************************************/
-void swimmer_bgcolor_w(int offset,int data)
+WRITE_HANDLER( swimmer_bgcolor_w )
 {
 	int bit0,bit1,bit2;
 	int r,g,b;
@@ -282,7 +282,7 @@ int cclimber_vh_start(void)
 	}
 	memset(bsdirtybuffer,1,cclimber_bsvideoram_size);
 
-	if ((bsbitmap = osd_create_bitmap(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
+	if ((bsbitmap = bitmap_alloc(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
 	{
 		free(bsdirtybuffer);
 		generic_vh_stop();
@@ -301,14 +301,14 @@ int cclimber_vh_start(void)
 ***************************************************************************/
 void cclimber_vh_stop(void)
 {
-	osd_free_bitmap(bsbitmap);
+	bitmap_free(bsbitmap);
 	free(bsdirtybuffer);
 	generic_vh_stop();
 }
 
 
 
-void cclimber_flipscreen_w(int offset,int data)
+WRITE_HANDLER( cclimber_flipscreen_w )
 {
 	if (flipscreen[offset] != (data & 1))
 	{
@@ -319,7 +319,7 @@ void cclimber_flipscreen_w(int offset,int data)
 
 
 
-void cclimber_colorram_w(int offset,int data)
+WRITE_HANDLER( cclimber_colorram_w )
 {
 	if (colorram[offset] != data)
 	{
@@ -338,7 +338,7 @@ void cclimber_colorram_w(int offset,int data)
 
 
 
-void cclimber_bigsprite_videoram_w(int offset,int data)
+WRITE_HANDLER( cclimber_bigsprite_videoram_w )
 {
 	if (cclimber_bsvideoram[offset] != data)
 	{
@@ -350,7 +350,7 @@ void cclimber_bigsprite_videoram_w(int offset,int data)
 
 
 
-void swimmer_palettebank_w(int offset,int data)
+WRITE_HANDLER( swimmer_palettebank_w )
 {
 	if (palettebank != (data & 1))
 	{
@@ -361,7 +361,7 @@ void swimmer_palettebank_w(int offset,int data)
 
 
 
-void swimmer_sidepanel_enable_w(int offset,int data)
+WRITE_HANDLER( swimmer_sidepanel_enable_w )
 {
     if (data != sidepanel_enabled)
     {
@@ -403,19 +403,19 @@ static void drawbigsprite(struct osd_bitmap *bitmap)
 	copybitmap(bitmap,bsbitmap,
 			flipx,flipy,
 			sx,sy,
-			&Machine->drv->visible_area,TRANSPARENCY_COLOR,bgpen);
+			&Machine->visible_area,TRANSPARENCY_COLOR,bgpen);
 	copybitmap(bitmap,bsbitmap,
 			flipx,flipy,
 			sx-256,sy,
-			&Machine->drv->visible_area,TRANSPARENCY_COLOR,bgpen);
+			&Machine->visible_area,TRANSPARENCY_COLOR,bgpen);
 	copybitmap(bitmap,bsbitmap,
 			flipx,flipy,
 			sx-256,sy-256,
-			&Machine->drv->visible_area,TRANSPARENCY_COLOR,bgpen);
+			&Machine->visible_area,TRANSPARENCY_COLOR,bgpen);
 	copybitmap(bitmap,bsbitmap,
 			flipx,flipy,
 			sx,sy-256,
-			&Machine->drv->visible_area,TRANSPARENCY_COLOR,bgpen);
+			&Machine->visible_area,TRANSPARENCY_COLOR,bgpen);
 }
 
 
@@ -485,7 +485,7 @@ void cclimber_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			}
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -554,7 +554,7 @@ void cclimber_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				spriteram[offs + 1] & 0x0f,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 
 
@@ -637,7 +637,7 @@ void swimmer_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				scroll[offs] = -cclimber_column_scroll[offs];
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -707,7 +707,7 @@ void swimmer_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				(spriteram[offs + 1] & 0x0f) + 0x10 * palettebank,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 
 

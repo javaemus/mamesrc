@@ -35,12 +35,9 @@ int namcos2_tilemap3_flip=0;
 int namcos2_tilemap4_flip=0;
 int namcos2_tilemap5_flip=0;
 
-static void namcos2_tilemap0_get_info(int col,int row)
-{
+static void namcos2_tilemap0_get_info( int tile_index ){
 	int tile,colour;
-	if(namcos2_tilemap0_flip&TILEMAP_FLIPX) col=63-col;
-	if(namcos2_tilemap0_flip&TILEMAP_FLIPY) row=63-row;
-	tile=READ_WORD(&videoram[0x0000+(((row<<6)+col)<<1)])&0xffff;
+	tile=READ_WORD(&videoram[0x0000+(tile_index<<1)]);
 	/* The tile mask DOESNT use the mangled tile number */
 	tile_info.mask_data = memory_region(REGION_GFX4)+(0x08*tile);
 	/* The order of bits needs to be corrected to index the right tile  14 15 11 12 13 */
@@ -48,87 +45,64 @@ static void namcos2_tilemap0_get_info(int col,int row)
 	colour=namcos2_68k_vram_ctrl_r(0x30)&0x0007;
 
 	SET_TILE_INFO(GFX_CHR,tile,colour)
-	tile_info.flags=namcos2_tilemap0_flip;
 }
-static void namcos2_tilemap1_get_info(int col,int row)
-{
+
+static void namcos2_tilemap1_get_info( int tile_index ){
 	int tile,colour;
-	if(namcos2_tilemap1_flip&TILEMAP_FLIPX) col=63-col;
-	if(namcos2_tilemap1_flip&TILEMAP_FLIPY) row=63-row;
-	tile=READ_WORD(&videoram[0x2000+(((row<<6)+col)<<1)])&0xffff;
+	tile=READ_WORD(&videoram[0x2000+(tile_index<<1)]);
 	/* The tile mask DOESNT use the mangled tile number */
-	tile_info.mask_data = memory_region(REGION_GFX4)+(0x08*tile);
+	tile_info.mask_data = memory_region(REGION_GFX4)+0x08*tile;
 	/* The order of bits needs to be corrected to index the right tile  14 15 11 12 13 */
 	tile=(tile&0x07ff)|((tile&0xc000)>>3)|((tile&0x3800)<<2);
 	colour=namcos2_68k_vram_ctrl_r(0x32)&0x0007;
-
 	SET_TILE_INFO(GFX_CHR,tile,colour)
-	tile_info.flags=namcos2_tilemap1_flip;
 }
-static void namcos2_tilemap2_get_info(int col,int row)
-{
+
+static void namcos2_tilemap2_get_info( int tile_index ){
 	int tile,colour;
-	if(namcos2_tilemap2_flip&TILEMAP_FLIPX) col=63-col;
-	if(namcos2_tilemap2_flip&TILEMAP_FLIPY) row=63-row;
-	tile=READ_WORD(&videoram[0x4000+(((row<<6)+col)<<1)])&0xffff;
+	tile=READ_WORD(&videoram[0x4000+(tile_index<<1)]);
 	/* The tile mask DOESNT use the mangled tile number */
 	tile_info.mask_data = memory_region(REGION_GFX4)+(0x08*tile);
 	/* The order of bits needs to be corrected to index the right tile  14 15 11 12 13 */
 	tile=(tile&0x07ff)|((tile&0xc000)>>3)|((tile&0x3800)<<2);
 	colour=namcos2_68k_vram_ctrl_r(0x34)&0x0007;
-
 	SET_TILE_INFO(GFX_CHR,tile,colour)
-	tile_info.flags=namcos2_tilemap2_flip;
 }
-static void namcos2_tilemap3_get_info(int col,int row)
-{
+
+static void namcos2_tilemap3_get_info( int tile_index ){
 	int tile,colour;
-	if(namcos2_tilemap3_flip&TILEMAP_FLIPX) col=63-col;
-	if(namcos2_tilemap3_flip&TILEMAP_FLIPY) row=63-row;
-	tile=READ_WORD(&videoram[0x6000+(((row<<6)+col)<<1)])&0xffff;
+	tile=READ_WORD(&videoram[0x6000+(tile_index<<1)]);
 	/* The tile mask DOESNT use the mangled tile number */
 	tile_info.mask_data = memory_region(REGION_GFX4)+(0x08*tile);
 	/* The order of bits needs to be corrected to index the right tile  14 15 11 12 13 */
 	tile=(tile&0x07ff)|((tile&0xc000)>>3)|((tile&0x3800)<<2);
 	colour=namcos2_68k_vram_ctrl_r(0x36)&0x0007;
-
 	SET_TILE_INFO(GFX_CHR,tile,colour)
-	tile_info.flags=namcos2_tilemap3_flip;
 }
-static void namcos2_tilemap4_get_info(int col,int row)
-{
+
+static void namcos2_tilemap4_get_info( int tile_index ){
 	int tile,colour;
-	if(namcos2_tilemap4_flip&TILEMAP_FLIPX) col=35-col;
-	if(namcos2_tilemap4_flip&TILEMAP_FLIPY) row=27-row;
-	tile=READ_WORD(&videoram[0x8010+(((row*36)+col)<<1)])&0xffff;
+	tile=READ_WORD(&videoram[0x8010+(tile_index<<1)]);
 	/* The tile mask DOESNT use the mangled tile number */
 	tile_info.mask_data = memory_region(REGION_GFX4)+(0x08*tile);
 	/* The order of bits needs to be corrected to index the right tile  14 15 11 12 13 */
 	tile=(tile&0x07ff)|((tile&0xc000)>>3)|((tile&0x3800)<<2);
 	colour=namcos2_68k_vram_ctrl_r(0x38)&0x0007;
-
 	SET_TILE_INFO(GFX_CHR,tile,colour)
-	tile_info.flags=namcos2_tilemap4_flip;
 }
-static void namcos2_tilemap5_get_info(int col,int row)
-{
+
+static void namcos2_tilemap5_get_info( int tile_index ){
 	int tile,colour;
-	if(namcos2_tilemap5_flip&TILEMAP_FLIPX) col=35-col;
-	if(namcos2_tilemap5_flip&TILEMAP_FLIPY) row=27-row;
-	tile=READ_WORD(&videoram[0x8810+(((row*36)+col)<<1)])&0xffff;
+	tile=READ_WORD(&videoram[0x8810+(tile_index<<1)]);
 	/* The tile mask DOESNT use the mangled tile number */
 	tile_info.mask_data = memory_region(REGION_GFX4)+(0x08*tile);
 	/* The order of bits needs to be corrected to index the right tile  14 15 11 12 13 */
 	tile=(tile&0x07ff)|((tile&0xc000)>>3)|((tile&0x3800)<<2);
 	colour=namcos2_68k_vram_ctrl_r(0x3a)&0x0007;
-
 	SET_TILE_INFO(GFX_CHR,tile,colour)
-	tile_info.flags=namcos2_tilemap5_flip;
 }
 
-
-int namcos2_calc_used_pens(int gfx_zone,int tile,char *penused)
-{
+int namcos2_calc_used_pens(int gfx_zone,int tile,char *penused){
 	unsigned char* gfxdata=NULL;
 	int pix_y=0,pix_x=0;
 	int height=0,width=0;
@@ -137,12 +111,10 @@ int namcos2_calc_used_pens(int gfx_zone,int tile,char *penused)
 	height=Machine->gfx[gfx_zone]->height;
 	width=Machine->gfx[gfx_zone]->width;
 
-	for(pix_y=0;pix_y<height;pix_y++)
-	{
+	for(pix_y=0;pix_y<height;pix_y++){
 		gfxdata=get_gfx_pointer(Machine->gfx[gfx_zone],tile,pix_y);
 
-		for(pix_x=0;pix_x<width;pix_x++)
-		{
+		for(pix_x=0;pix_x<width;pix_x++){
 			penused[(gfxdata[pix_x])>>3]|=1<<(gfxdata[pix_x]&0x07);
 		}
 	}
@@ -150,8 +122,7 @@ int namcos2_calc_used_pens(int gfx_zone,int tile,char *penused)
 	return pencount;
 }
 
-void namcos2_mark_used_ROZ_colours(void)
-{
+void namcos2_mark_used_ROZ_colours(void){
 	int tile,coloop,colour_code;
 	/* Array to mark when a particular tile has had its colours marked  */
 	/* so we dont scan it again if its marked in here                   */
@@ -267,8 +238,7 @@ void namcos2_mark_used_ROZ_colours(void)
 	}
 }
 
-void namcos2_mark_used_sprite_colours(void)
-{
+void namcos2_mark_used_sprite_colours(void){
 	int offset,loop,coloop;
 	/* Array to mark when a particular tile has had its colours marked  */
 	/* so we dont scan it again if its marked in here                   */
@@ -323,11 +293,7 @@ void namcos2_mark_used_sprite_colours(void)
 	}
 }
 
-
-
-int namcos2_vh_start(void)
-{
-
+int namcos2_vh_start(void){
 #ifdef NAMCOS2_DEBUG_MODE
 	namcos2_used_colour_count=0;
 	namcos2_used_colour_cached=0;
@@ -336,14 +302,16 @@ int namcos2_vh_start(void)
 /*	palette_max_ran_out=0;*/
 /*	palette_ran_out=0;*/
 #endif
+	namcos2_tilemap0 = tilemap_create( namcos2_tilemap0_get_info,tilemap_scan_rows,TILEMAP_BITMASK,8,8,64,64 );
+	namcos2_tilemap1 = tilemap_create( namcos2_tilemap1_get_info,tilemap_scan_rows,TILEMAP_BITMASK,8,8,64,64 );
+	namcos2_tilemap2 = tilemap_create( namcos2_tilemap2_get_info,tilemap_scan_rows,TILEMAP_BITMASK,8,8,64,64 );
+	namcos2_tilemap3 = tilemap_create( namcos2_tilemap3_get_info,tilemap_scan_rows,TILEMAP_BITMASK,8,8,64,64 );
+	namcos2_tilemap4 = tilemap_create( namcos2_tilemap4_get_info,tilemap_scan_rows,TILEMAP_BITMASK,8,8,36,28 );
+	namcos2_tilemap5 = tilemap_create( namcos2_tilemap5_get_info,tilemap_scan_rows,TILEMAP_BITMASK,8,8,36,28 );
 
-	/* Initialise the tilemaps */
-	if((namcos2_tilemap0=tilemap_create(namcos2_tilemap0_get_info,TILEMAP_BITMASK,8,8,64,64))==NULL) return 1;
-	if((namcos2_tilemap1=tilemap_create(namcos2_tilemap1_get_info,TILEMAP_BITMASK,8,8,64,64))==NULL) return 1;
-	if((namcos2_tilemap2=tilemap_create(namcos2_tilemap2_get_info,TILEMAP_BITMASK,8,8,64,64))==NULL) return 1;
-	if((namcos2_tilemap3=tilemap_create(namcos2_tilemap3_get_info,TILEMAP_BITMASK,8,8,64,64))==NULL) return 1;
-	if((namcos2_tilemap4=tilemap_create(namcos2_tilemap4_get_info,TILEMAP_BITMASK,8,8,36,28))==NULL) return 1;
-	if((namcos2_tilemap5=tilemap_create(namcos2_tilemap5_get_info,TILEMAP_BITMASK,8,8,36,28))==NULL) return 1;
+	if( !(namcos2_tilemap0 && namcos2_tilemap1 && namcos2_tilemap2 &&
+		  namcos2_tilemap3 && namcos2_tilemap4 && namcos2_tilemap5) )
+	return 1; /* insufficient memory */
 
 	/* Setup fixed planes */
 	tilemap_set_scrollx( namcos2_tilemap4, 0, 0 );
@@ -839,7 +807,7 @@ static void draw_sprites_default( struct osd_bitmap *bitmap, int priority )
 
 		if((sizey-1) && sizex && (offset6&0x0007)==priority)
 		{
-			rect=Machine->drv->visible_area;
+			rect=Machine->visible_area;
 
 			sprn=(offset2>>2)&0x7ff;
 			spr_region=(offset2&0x2000)?GFX_OBJ2:GFX_OBJ1;
@@ -939,7 +907,7 @@ static void draw_sprites_finallap( struct osd_bitmap *bitmap, int priority )
 
 		if((sizey-1) && sizex && (offset6&0x000f)==priority)
 		{
-			rect=Machine->drv->visible_area;
+			rect=Machine->visible_area;
 
 			sprn=(offset2>>2)&0x7ff;
 			spr_region=(offset0&0x0200)?GFX_OBJ2:GFX_OBJ1;
@@ -998,7 +966,6 @@ static void draw_sprites_finallap( struct osd_bitmap *bitmap, int priority )
 	}
 }
 
-
 void namcos2_vh_update_default(struct osd_bitmap *bitmap, int full_refresh)
 {
 	int priority;
@@ -1033,7 +1000,7 @@ void namcos2_vh_update_default(struct osd_bitmap *bitmap, int full_refresh)
 
 
 	/* Scrub the bitmap clean */
-	fillbitmap(bitmap,Machine->pens[0],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 	/* Render the screen */
 	for(priority=0;priority<=7;priority++)
@@ -1130,7 +1097,7 @@ void namcos2_vh_update_finallap(struct osd_bitmap *bitmap, int full_refresh)
 
 
 	/* Scrub the bitmap clean */
-	fillbitmap(bitmap,Machine->pens[0],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 	/* Render the screen */
 	for(priority=0;priority<=15;priority++)
@@ -1278,4 +1245,3 @@ void namcos2_vh_update_finallap(struct osd_bitmap *bitmap, int full_refresh)
 	}
 #endif
 }
-

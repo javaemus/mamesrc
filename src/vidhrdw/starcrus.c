@@ -44,40 +44,40 @@ int starcrus_explode_sound_playing = 0;
 int starcrus_launch1_sound_playing = 0;
 int starcrus_launch2_sound_playing = 0;
 
-void starcrus_s1_x_w(int offset, int data) { s1_x = data^0xff; }
-void starcrus_s1_y_w(int offset, int data) { s1_y = data^0xff; }
-void starcrus_s2_x_w(int offset, int data) { s2_x = data^0xff; }
-void starcrus_s2_y_w(int offset, int data) { s2_y = data^0xff; }
-void starcrus_p1_x_w(int offset, int data) { p1_x = data^0xff; }
-void starcrus_p1_y_w(int offset, int data) { p1_y = data^0xff; }
-void starcrus_p2_x_w(int offset, int data) { p2_x = data^0xff; }
-void starcrus_p2_y_w(int offset, int data) { p2_y = data^0xff; }
+WRITE_HANDLER( starcrus_s1_x_w ) { s1_x = data^0xff; }
+WRITE_HANDLER( starcrus_s1_y_w ) { s1_y = data^0xff; }
+WRITE_HANDLER( starcrus_s2_x_w ) { s2_x = data^0xff; }
+WRITE_HANDLER( starcrus_s2_y_w ) { s2_y = data^0xff; }
+WRITE_HANDLER( starcrus_p1_x_w ) { p1_x = data^0xff; }
+WRITE_HANDLER( starcrus_p1_y_w ) { p1_y = data^0xff; }
+WRITE_HANDLER( starcrus_p2_x_w ) { p2_x = data^0xff; }
+WRITE_HANDLER( starcrus_p2_y_w ) { p2_y = data^0xff; }
 
 int starcrus_vh_start(void)
 {
-	if ((ship1_vid = osd_create_bitmap(16,16)) == 0)
+	if ((ship1_vid = bitmap_alloc(16,16)) == 0)
 	{
 		return 1;
 	}
 
-	if ((ship2_vid = osd_create_bitmap(16,16)) == 0)
+	if ((ship2_vid = bitmap_alloc(16,16)) == 0)
 	{
-		osd_free_bitmap(ship1_vid);
+		bitmap_free(ship1_vid);
 		return 1;
 	}
 
-	if ((proj1_vid = osd_create_bitmap(16,16)) == 0)
+	if ((proj1_vid = bitmap_alloc(16,16)) == 0)
 	{
-		osd_free_bitmap(ship1_vid);
-		osd_free_bitmap(ship2_vid);
+		bitmap_free(ship1_vid);
+		bitmap_free(ship2_vid);
 		return 1;
 	}
 
-	if ((proj2_vid = osd_create_bitmap(16,16)) == 0)
+	if ((proj2_vid = bitmap_alloc(16,16)) == 0)
 	{
-		osd_free_bitmap(ship1_vid);
-		osd_free_bitmap(ship2_vid);
-		osd_free_bitmap(proj1_vid);
+		bitmap_free(ship1_vid);
+		bitmap_free(ship2_vid);
+		bitmap_free(proj1_vid);
 		return 1;
 	}
 
@@ -86,13 +86,13 @@ int starcrus_vh_start(void)
 
 void starcrus_vh_stop(void)
 {
-	osd_free_bitmap(ship1_vid);
-	osd_free_bitmap(ship2_vid);
-	osd_free_bitmap(proj1_vid);
-	osd_free_bitmap(proj2_vid);
+	bitmap_free(ship1_vid);
+	bitmap_free(ship2_vid);
+	bitmap_free(proj1_vid);
+	bitmap_free(proj2_vid);
 }
 
-void starcrus_ship_parm_1_w(int offset, int data)
+WRITE_HANDLER( starcrus_ship_parm_1_w )
 {
     s1_sprite = data&0x1f;
     engine1_on = ((data&0x20)>>5)^0x01;
@@ -116,7 +116,7 @@ void starcrus_ship_parm_1_w(int offset, int data)
 	}
 }
 
-void starcrus_ship_parm_2_w(int offset, int data)
+WRITE_HANDLER( starcrus_ship_parm_2_w )
 {
     s2_sprite = data&0x1f;
     osd_led_w(2, ((data&0x80)>>7)^0x01); 		/* game over lamp */
@@ -142,7 +142,7 @@ void starcrus_ship_parm_2_w(int offset, int data)
 
 }
 
-void starcrus_proj_parm_1_w(int offset, int data)
+WRITE_HANDLER( starcrus_proj_parm_1_w )
 {
     p1_sprite = data&0x0f;
     launch1_on = ((data&0x20)>>5)^0x01;
@@ -179,7 +179,7 @@ void starcrus_proj_parm_1_w(int offset, int data)
 	}
 }
 
-void starcrus_proj_parm_2_w(int offset, int data)
+WRITE_HANDLER( starcrus_proj_parm_2_w )
 {
     p2_sprite = data&0x0f;
     launch2_on = ((data&0x20)>>5)^0x01;
@@ -519,7 +519,7 @@ int starcrus_collision_check_s2p1p2(void)
 
 void starcrus_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-    fillbitmap(bitmap,Machine->pens[0],&Machine->drv->visible_area);
+    fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 	/* Draw ship 1 */
     drawgfx(bitmap,
@@ -528,7 +528,7 @@ void starcrus_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
             0,
             (s1_sprite&0x08)>>3,(s1_sprite&0x10)>>4,
             s1_x,s1_y,
-            &Machine->drv->visible_area,
+            &Machine->visible_area,
             TRANSPARENCY_PEN,
             0);
 
@@ -539,7 +539,7 @@ void starcrus_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
             0,
             (s2_sprite&0x08)>>3,(s2_sprite&0x10)>>4,
             s2_x,s2_y,
-            &Machine->drv->visible_area,
+            &Machine->visible_area,
             TRANSPARENCY_PEN,
             0);
 
@@ -550,7 +550,7 @@ void starcrus_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
             0,
             0,0,
             p1_x,p1_y,
-            &Machine->drv->visible_area,
+            &Machine->visible_area,
             TRANSPARENCY_PEN,
             0);
 
@@ -561,7 +561,7 @@ void starcrus_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
             0,
             0,0,
             p2_x,p2_y,
-            &Machine->drv->visible_area,
+            &Machine->visible_area,
             TRANSPARENCY_PEN,
             0);
 
@@ -593,7 +593,7 @@ void starcrus_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 }
 
-int starcrus_coll_det_r(int offset)
+READ_HANDLER( starcrus_coll_det_r )
 {
     return collision_reg ^ 0xff;
 }

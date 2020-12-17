@@ -2,7 +2,7 @@
 #include "vidhrdw/generic.h"
 
 unsigned char *bsvideoram;
-int bsvideoram_size;
+size_t bsvideoram_size;
 
 void kopunch_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
@@ -62,13 +62,13 @@ if (keyboard_pressed_memory(KEYCODE_X)) bank++;
 					0,
 					0,0,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
 
 	/* copy the character mapped graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	for (offs = bsvideoram_size - 1;offs >= 0;offs--)
@@ -84,7 +84,7 @@ if (keyboard_pressed_memory(KEYCODE_X)) bank++;
 				0,
 				0,0,
 				8*sx,8*sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }
 

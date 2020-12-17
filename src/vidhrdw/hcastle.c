@@ -47,9 +47,9 @@ void hcastle_vh_convert_color_prom(unsigned char *palette, unsigned short *color
 
 int hcastle_vh_start(void)
 {
- 	if ((pf1_bitmap = osd_create_bitmap(64*8,32*8)) == 0)
+ 	if ((pf1_bitmap = bitmap_alloc(64*8,32*8)) == 0)
 		return 1;
-	if ((pf2_bitmap = osd_create_bitmap(64*8,32*8)) == 0)
+	if ((pf2_bitmap = bitmap_alloc(64*8,32*8)) == 0)
 		return 1;
 
 	dirty_pf1=malloc (0x1000);
@@ -62,37 +62,37 @@ int hcastle_vh_start(void)
 
 void hcastle_vh_stop(void)
 {
-	osd_free_bitmap(pf1_bitmap);
-	osd_free_bitmap(pf2_bitmap);
+	bitmap_free(pf1_bitmap);
+	bitmap_free(pf2_bitmap);
 	free(dirty_pf1);
 	free(dirty_pf2);
 }
 
 
 
-void hcastle_pf1_video_w(int offset, int data)
+WRITE_HANDLER( hcastle_pf1_video_w )
 {
 	hcastle_pf1_videoram[offset]=data;
 	dirty_pf1[offset]=1;
 }
 
-void hcastle_pf2_video_w(int offset, int data)
+WRITE_HANDLER( hcastle_pf2_video_w )
 {
 	hcastle_pf2_videoram[offset]=data;
 	dirty_pf2[offset]=1;
 }
 
-void hcastle_gfxbank_w(int offset, int data)
+WRITE_HANDLER( hcastle_gfxbank_w )
 {
 	gfx_bank = data;
 }
 
-int hcastle_gfxbank_r(int offset)
+READ_HANDLER( hcastle_gfxbank_r )
 {
 	return gfx_bank;
 }
 
-void hcastle_pf1_control_w(int offset,int data)
+WRITE_HANDLER( hcastle_pf1_control_w )
 {
 	if (offset==3)
 	{
@@ -104,7 +104,7 @@ void hcastle_pf1_control_w(int offset,int data)
 	K007121_ctrl_0_w(offset,data);
 }
 
-void hcastle_pf2_control_w(int offset,int data)
+WRITE_HANDLER( hcastle_pf2_control_w )
 {
 	if (offset==3)
 	{
@@ -121,7 +121,7 @@ void hcastle_pf2_control_w(int offset,int data)
 static void draw_sprites( struct osd_bitmap *bitmap, unsigned char *sbank, int bank )
 {
 	int bank_base = (bank == 0) ? 0x4000 * (gfx_bank & 1) : 0;
-	K007121_sprites_draw(bank,bitmap,sbank,(K007121_ctrlram[bank][6]&0x30)*2,0,bank_base);
+	K007121_sprites_draw(bank,bitmap,sbank,(K007121_ctrlram[bank][6]&0x30)*2,0,bank_base,-1);
 }
 
 /*****************************************************************************/
@@ -232,24 +232,24 @@ void hcastle_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	{
 		scrolly = -K007121_ctrlram[1][2];
 		scrollx = -((K007121_ctrlram[1][1]<<8)+K007121_ctrlram[1][0]);
-		copyscrollbitmap(bitmap,pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 		draw_sprites( bitmap, buffered_spriteram, 0 );
 		draw_sprites( bitmap, buffered_spriteram_2, 1 );
 
 		scrolly = -K007121_ctrlram[0][2];
 		scrollx = -((K007121_ctrlram[0][1]<<8)+K007121_ctrlram[0][0]);
-		copyscrollbitmap(bitmap,pf1_bitmap,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,pf1_bitmap,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 	}
 	else
 	{
 		scrolly = -K007121_ctrlram[1][2];
 		scrollx = -((K007121_ctrlram[1][1]<<8)+K007121_ctrlram[1][0]);
-		copyscrollbitmap(bitmap,pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 		scrolly = -K007121_ctrlram[0][2];
 		scrollx = -((K007121_ctrlram[0][1]<<8)+K007121_ctrlram[0][0]);
-		copyscrollbitmap(bitmap,pf1_bitmap,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,pf1_bitmap,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 		draw_sprites( bitmap, buffered_spriteram, 0 );
 		draw_sprites( bitmap, buffered_spriteram_2, 1 );

@@ -30,7 +30,7 @@ static int surpratk_interrupt(void)
 	else return ignore_interrupt();
 }
 
-static int bankedram_r(int offset)
+static READ_HANDLER( bankedram_r )
 {
 	if (videobank & 0x02)
 	{
@@ -45,7 +45,7 @@ static int bankedram_r(int offset)
 		return ram[offset];
 }
 
-static void bankedram_w(int offset,int data)
+static WRITE_HANDLER( bankedram_w )
 {
 	if (videobank & 0x02)
 	{
@@ -60,18 +60,18 @@ static void bankedram_w(int offset,int data)
 		ram[offset] = data;
 }
 
-static void surpratk_videobank_w(int offset,int data)
+static WRITE_HANDLER( surpratk_videobank_w )
 {
-if (errorlog) fprintf(errorlog,"%04x: videobank = %02x\n",cpu_get_pc(),data);
+logerror("%04x: videobank = %02x\n",cpu_get_pc(),data);
 	/* bit 0 = select 053245 at 0000-07ff */
 	/* bit 1 = select palette at 0000-07ff */
 	/* bit 2 = select palette bank 0 or 1 */
 	videobank = data;
 }
 
-static void surpratk_5fc0_w(int offset,int data)
+static WRITE_HANDLER( surpratk_5fc0_w )
 {
-if (errorlog && (data & 0xf4) != 0x10) fprintf(errorlog,"%04x: 3fc0 = %02x\n",cpu_get_pc(),data);
+	if ((data & 0xf4) != 0x10) logerror("%04x: 3fc0 = %02x\n",cpu_get_pc(),data);
 
 	/* bit 0/1 = coin counters */
 	coin_counter_w(0,data & 0x01);
@@ -311,7 +311,7 @@ static void surpratk_banking(int lines)
 	unsigned char *RAM = memory_region(REGION_CPU1);
 	int offs = 0;
 
-if (errorlog) fprintf(errorlog,"%04x: setlines %02x\n",cpu_get_pc(),lines);
+logerror("%04x: setlines %02x\n",cpu_get_pc(),lines);
 
 	offs = 0x10000 + ((lines & 0x1f) * 0x2000);
 	if (offs >= 0x48000) offs -= 0x40000;

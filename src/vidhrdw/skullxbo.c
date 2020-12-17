@@ -196,7 +196,7 @@ void skullxbo_vh_stop(void)
  *
  *************************************/
 
-void skullxbo_hscroll_w(int offset, int data)
+WRITE_HANDLER( skullxbo_hscroll_w )
 {
 	/* update the playfield state */
 	pf_state.hscroll = (data >> 7) << 1;
@@ -204,7 +204,7 @@ void skullxbo_hscroll_w(int offset, int data)
 }
 
 
-void skullxbo_vscroll_w(int offset, int data)
+WRITE_HANDLER( skullxbo_vscroll_w )
 {
 	/* adjust for the scanline we're currently on */
 	int scanline = cpu_getscanline();
@@ -223,7 +223,7 @@ void skullxbo_vscroll_w(int offset, int data)
  *
  *************************************/
 
-void skullxbo_mobmsb_w(int offset, int data)
+WRITE_HANDLER( skullxbo_mobmsb_w )
 {
 	mo_bank = (offset & 0x400) * 2;
 }
@@ -236,7 +236,7 @@ void skullxbo_mobmsb_w(int offset, int data)
  *
  *************************************/
 
-void skullxbo_playfieldlatch_w(int offset, int data)
+WRITE_HANDLER( skullxbo_playfieldlatch_w )
 {
 	latch_byte = data & 0xff;
 }
@@ -249,7 +249,7 @@ void skullxbo_playfieldlatch_w(int offset, int data)
  *
  *************************************/
 
-void skullxbo_playfieldram_w(int offset, int data)
+WRITE_HANDLER( skullxbo_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -329,7 +329,7 @@ void skullxbo_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 
 	/* draw the playfield */
 	memset(atarigen_pf_visit, 0, 64*64);
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* draw the motion objects */
 	atarigen_mo_process(mo_render_callback, bitmap);
@@ -376,7 +376,7 @@ static const UINT8 *update_palette(void)
 	palette_init_used_colors();
 
 	/* update color usage for the playfield */
-	atarigen_pf_process(pf_color_callback, pf_map, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_color_callback, pf_map, &Machine->visible_area);
 
 	/* update color usage for the mo's */
 	atarigen_mo_process(mo_color_callback, mo_map);

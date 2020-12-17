@@ -1,7 +1,7 @@
 #include "driver.h"
 
 unsigned char *mexico86_videoram,*mexico86_objectram;
-int mexico86_objectram_size;
+size_t mexico86_objectram_size;
 static int charbank;
 
 
@@ -45,7 +45,7 @@ void mexico86_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 
 
 
-void mexico86_bankswitch_w(int offs,int data)
+WRITE_HANDLER( mexico86_bankswitch_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1);
 
@@ -71,7 +71,7 @@ void mexico86_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	/* the background character columns is stored inthe area dd00-dd3f */
 
 	/* This clears & redraws the entire screen each pass */
-	fillbitmap(bitmap,Machine->gfx[0]->colortable[0],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->gfx[0]->colortable[0],&Machine->visible_area);
 
 	sx = 0;
 /* the score display seems to be outside of the main objectram. */
@@ -132,7 +132,7 @@ if (offs >= mexico86_objectram_size+0x1c0) continue;
 						color,
 						flipx,flipy,
 						x,y,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 		}
 	}
@@ -150,7 +150,7 @@ void kikikai_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	/* the background character columns is stored inthe area dd00-dd3f */
 
 	/* This clears & redraws the entire screen each pass */
-	fillbitmap(bitmap,Machine->gfx[0]->colortable[0],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->gfx[0]->colortable[0],&Machine->visible_area);
 
 	sx = 0;
 /* the score display seems to be outside of the main objectram. */
@@ -210,7 +210,7 @@ if (offs >= mexico86_objectram_size+0x1c0) continue;
 						color,
 						flipx,flipy,
 						x,y,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 		}
 	}

@@ -48,19 +48,17 @@ extern int flipscreen;
 
 ***************************************************************************/
 
-static void get_fg_tile_info( int col, int row )
+static void get_fg_tile_info(int tile_index)
 {
-	int tile_index = row*32+col;
-	unsigned char attr = airbustr_fgram[0x400+tile_index];
+	unsigned char attr = airbustr_fgram[tile_index + 0x400];
 	SET_TILE_INFO(	0,
 					airbustr_fgram[tile_index] + ((attr & 0x0f) << 8),
 					(attr >> 4) + 0);
 }
 
-static void get_bg_tile_info( int col, int row )
+static void get_bg_tile_info(int tile_index)
 {
-	int tile_index = row*32+col;
-	unsigned char attr = airbustr_bgram[0x400+tile_index];
+	unsigned char attr = airbustr_bgram[tile_index + 0x400];
 	SET_TILE_INFO(	0,
 					airbustr_bgram[tile_index] + ((attr & 0x0f) << 8),
 					(attr >> 4) + 16);
@@ -70,43 +68,33 @@ static void get_bg_tile_info( int col, int row )
 
 int airbustr_vh_start(void)
 {
-	fg_tilemap = tilemap_create(get_fg_tile_info,
-								TILEMAP_TRANSPARENT,
-								16,16,
-								32,32 );
+	fg_tilemap = tilemap_create(get_fg_tile_info,tilemap_scan_rows,TILEMAP_TRANSPARENT,16,16,32,32);
+	bg_tilemap = tilemap_create(get_bg_tile_info,tilemap_scan_rows,TILEMAP_OPAQUE,     16,16,32,32);
 
-	bg_tilemap = tilemap_create(get_bg_tile_info,
-								TILEMAP_OPAQUE,
-								16,16,
-								32,32 );
+	if (!fg_tilemap || !bg_tilemap)
+		return 1;
 
-	if (fg_tilemap && bg_tilemap)
-	{
-		fg_tilemap->transparent_pen = 0;
+	fg_tilemap->transparent_pen = 0;
 
-		return 0;
-	}
-	else return 1;
+	return 0;
 }
 
 
-void airbustr_fgram_w(int offset,int data)
+WRITE_HANDLER( airbustr_fgram_w )
 {
 	if (airbustr_fgram[offset] != data)
 	{
 		airbustr_fgram[offset] = data;
-		/* offset % 0x400 will take care of both the tile code and color */
-		tilemap_mark_tile_dirty(fg_tilemap,(offset%0x400)%32,(offset%0x400)/32);
+		tilemap_mark_tile_dirty(fg_tilemap,offset & 0x3ff);
 	}
 }
 
-void airbustr_bgram_w(int offset,int data)
+WRITE_HANDLER( airbustr_bgram_w )
 {
 	if (airbustr_bgram[offset] != data)
 	{
 		airbustr_bgram[offset] = data;
-		/* offset % 0x400 will take care of both the tile code and color */
-		tilemap_mark_tile_dirty(bg_tilemap,(offset%0x400)%32,(offset%0x400)/32);
+		tilemap_mark_tile_dirty(bg_tilemap,offset & 0x3ff);
 	}
 }
 
@@ -123,7 +111,7 @@ void airbustr_bgram_w(int offset,int data)
 			Bg Y	Bg X	Fg Y	Fg X	<-Scroll High Bits (complemented!)
 */
 
-void airbustr_scrollregs_w(int offset,int data)
+WRITE_HANDLER( airbustr_scrollregs_w )
 {
 static int bg_scrollx, bg_scrolly, fg_scrollx, fg_scrolly, highbits;
 int xoffs, yoffs;
@@ -139,7 +127,7 @@ int xoffs, yoffs;
 		case 0x06:	bg_scrollx =  data;	break;
 		case 0x08:	highbits   = ~data;	break;	// complemented high bits
 
-		default:	if (errorlog) fprintf(errorlog, "CPU #2 - port %02X written with %02X - PC = %04X\n", offset, data, cpu_get_pc());
+		default:	logerror("CPU #2 - port %02X written with %02X - PC = %04X\n", offset, data, cpu_get_pc());
 	}
 
 	tilemap_set_scrollx(bg_tilemap, 0, ((highbits << 6) & 0x100) + bg_scrollx + xoffs );
@@ -212,7 +200,7 @@ int i, offs;
 					attr >> 4,
 					flipx, flipy,
 					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 
 			/* let's get back to normal to support multi sprites */
 			if (flipscreen)	{sx = 240 - sx;		sy = 240 - sy;}

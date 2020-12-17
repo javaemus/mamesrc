@@ -52,9 +52,9 @@ Sound: YM2203 and YM3526 driven by 6809.  Sound added by Bryan McPhail, 1/4/98.
 
 unsigned char *brkthru_nmi_enable; /* needs to be tracked down */
 extern unsigned char *brkthru_videoram;
-extern int brkthru_videoram_size;
+extern size_t brkthru_videoram_size;
 
-void brkthru_1800_w(int offset,int data);
+WRITE_HANDLER( brkthru_1800_w );
 int brkthru_vh_start(void);
 void brkthru_vh_stop(void);
 void brkthru_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
@@ -63,23 +63,23 @@ void brkthru_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 static int nmi_enable;
 
-void brkthru_1803_w(int offset, int data)
+WRITE_HANDLER( brkthru_1803_w )
 {
 	/* bit 0 = NMI enable */
 	nmi_enable = ~data & 1;
 
 	/* bit 1 = ? maybe IRQ acknowledge */
 }
-void darwin_0803_w(int offset, int data)
+WRITE_HANDLER( darwin_0803_w )
 {
 	/* bit 0 = NMI enable */
 	/*nmi_enable = ~data & 1;*/
-	if(errorlog) fprintf(errorlog,"0803 %02X\n",data);
+	logerror("0803 %02X\n",data);
         nmi_enable = data;
 	/* bit 1 = ? maybe IRQ acknowledge */
 }
 
-void brkthru_soundlatch_w(int offset, int data)
+WRITE_HANDLER( brkthru_soundlatch_w )
 {
 	soundlatch_w(offset,data);
 	cpu_cause_interrupt(1,M6809_INT_NMI);
@@ -105,7 +105,7 @@ static struct MemoryReadAddress readmem[] =
 
 static struct MemoryWriteAddress writemem[] =
 {
-	{ 0x0000, 0x03ff, MWA_RAM, &brkthru_videoram, (int *)&brkthru_videoram_size },
+	{ 0x0000, 0x03ff, MWA_RAM, &brkthru_videoram, &brkthru_videoram_size },
 	{ 0x0400, 0x0bff, MWA_RAM },
 	{ 0x0c00, 0x0fff, videoram_w, &videoram, &videoram_size },
 	{ 0x1000, 0x10ff, MWA_RAM, &spriteram, &spriteram_size },
@@ -221,7 +221,7 @@ INPUT_PORTS_START( brkthru )
 	PORT_DIPSETTING(    0x10, DEF_STR( Yes ) )
 	PORT_BIT_IMPULSE( 0x20, IP_ACTIVE_LOW, IPT_COIN1, 2 )
 	PORT_BIT_IMPULSE( 0x40, IP_ACTIVE_LOW, IPT_COIN2, 2 )
-	PORT_BIT_IMPULSE( 0x80, IP_ACTIVE_LOW, IPT_COIN3, 2 )
+	PORT_BIT_IMPULSE( 0x80, IP_ACTIVE_LOW, IPT_SERVICE1, 2 )
 
 	PORT_START      /* DSW0 */
 	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Coin_A ) )
@@ -274,8 +274,8 @@ INPUT_PORTS_START( darwin )
 	PORT_DIPSETTING(    0x01, "3" )
 	PORT_DIPSETTING(    0x00, "5" )
 	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Bonus_Life ) )
-	PORT_DIPSETTING(    0x02, "20k and every 50k" )
-	PORT_DIPSETTING(    0x00, "30k and every 80k" )
+	PORT_DIPSETTING(    0x02, "20k 50k and every 50k" )
+	PORT_DIPSETTING(    0x00, "30k 80k and every 80k" )
 	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
 	PORT_DIPSETTING(    0x0c, "Easy" )
 	PORT_DIPSETTING(    0x08, "Medium" )
@@ -286,7 +286,7 @@ INPUT_PORTS_START( darwin )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_BIT_IMPULSE( 0x20, IP_ACTIVE_LOW, IPT_COIN1, 2 )
 	PORT_BIT_IMPULSE( 0x40, IP_ACTIVE_LOW, IPT_COIN2, 2 )
-	PORT_BIT_IMPULSE( 0x80, IP_ACTIVE_LOW, IPT_COIN3, 2 )
+	PORT_BIT_IMPULSE( 0x80, IP_ACTIVE_LOW, IPT_SERVICE1, 2 )
 
 	PORT_START      /* DSW0 */
 	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Coin_A ) )

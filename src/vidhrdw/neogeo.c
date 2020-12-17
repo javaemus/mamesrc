@@ -80,11 +80,6 @@ static char dda_y_skip[17];
 static char full_y_skip[16]={0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 #ifdef NEO_DEBUG
-int neo_unknown[32];
-void neo_unknown1(int offset, int data) {WRITE_WORD(&neo_unknown[0],data);}
-void neo_unknown2(int offset, int data) {WRITE_WORD(&neo_unknown[2],data);}
-void neo_unknown3(int offset, int data) {WRITE_WORD(&neo_unknown[4],data);}
-void neo_unknown4(int offset, int data) {if (cpu_get_pc()!=0x4a44) WRITE_WORD(&neo_unknown[6],data>>7);}
 
 int dotiles = 0;
 int screen_offs = 0x0000;
@@ -228,7 +223,7 @@ static void swap_palettes(void)
 	palette_swap_pending=0;
 }
 
-void neogeo_setpalbank0(int offset,int data)
+WRITE_HANDLER( neogeo_setpalbank0_w )
 {
 	if (palno != 0) {
 		palno = 0;
@@ -237,7 +232,7 @@ void neogeo_setpalbank0(int offset,int data)
 	}
 }
 
-void neogeo_setpalbank1(int offset,int data)
+WRITE_HANDLER( neogeo_setpalbank1_w )
 {
 	if (palno != 1) {
 		palno = 1;
@@ -246,12 +241,12 @@ void neogeo_setpalbank1(int offset,int data)
 	}
 }
 
-int neogeo_paletteram_r(int offset)
+READ_HANDLER( neogeo_paletteram_r )
 {
 	return READ_WORD(&neogeo_paletteram[offset]);
 }
 
-void neogeo_paletteram_w(int offset,int data)
+WRITE_HANDLER( neogeo_paletteram_w )
 {
 	int oldword = READ_WORD (&neogeo_paletteram[offset]);
 	int newword = COMBINE_WORD (oldword, data);
@@ -345,7 +340,7 @@ static const unsigned char *neogeo_palette(const struct rectangle *clip)
 
 			sy = 0x200 - (t1 >> 7);
 			if (clip->max_y - clip->min_y > 8 ||	/* kludge to improve the ssideki games */
-					clip->min_y == Machine->drv->visible_area.min_y)
+					clip->min_y == Machine->visible_area.min_y)
 			{
 				if (sy > 0x110) sy -= 0x200;
 				if (fullmode == 2 || (fullmode == 1 && rzy == 0xff))
@@ -456,17 +451,17 @@ static const unsigned char *neogeo_palette(const struct rectangle *clip)
 
 /******************************************************************************/
 
-void vidram_offset_w(int offset, int data)
+WRITE_HANDLER( vidram_offset_w )
 {
 	where = data;
 }
 
-int vidram_data_r(int offset)
+READ_HANDLER( vidram_data_r )
 {
 	return (READ_WORD(&vidram[where << 1]));
 }
 
-void vidram_data_w(int offset,int data)
+WRITE_HANDLER( vidram_data_w )
 {
 	WRITE_WORD(&vidram[where << 1],data);
 	where = (where + modulo) & 0xffff;
@@ -474,34 +469,34 @@ void vidram_data_w(int offset,int data)
 
 /* Modulo can become negative , Puzzle Bobble Super Sidekicks and a lot */
 /* of other games use this */
-void vidram_modulo_w(int offset, int data)
+WRITE_HANDLER( vidram_modulo_w )
 {
 	modulo = data;
 }
 
-int vidram_modulo_r(int offset)
+READ_HANDLER( vidram_modulo_r )
 {
 	return modulo;
 }
 
 
 /* Two routines to enable videoram to be read in debugger */
-int mish_vid_r(int offset)
+READ_HANDLER( mish_vid_r )
 {
 	return READ_WORD(&vidram[offset]);
 }
 
-void mish_vid_w(int offset, int data)
+WRITE_HANDLER( mish_vid_w )
 {
 	COMBINE_WORD_MEM(&vidram[offset],data);
 }
 
-void neo_board_fix(int offset, int data)
+WRITE_HANDLER( neo_board_fix_w )
 {
 	fix_bank=1;
 }
 
-void neo_game_fix(int offset, int data)
+WRITE_HANDLER( neo_game_fix_w )
 {
 	fix_bank=0;
 }
@@ -930,7 +925,7 @@ static void screenrefresh(struct osd_bitmap *bitmap,const struct rectangle *clip
 	#endif
 
 	if (clip->max_y - clip->min_y > 8 ||	/* kludge to speed up raster effects */
-			clip->min_y == Machine->drv->visible_area.min_y)
+			clip->min_y == Machine->visible_area.min_y)
     {
 		/* Palette swap occured after last frame but before this one */
 		if (palette_swap_pending) swap_palettes();
@@ -979,7 +974,7 @@ if (!dotiles) { 					/* debug */
 
 			sy = 0x200 - (t1 >> 7);
 			if (clip->max_y - clip->min_y > 8 ||	/* kludge to improve the ssideki games */
-					clip->min_y == Machine->drv->visible_area.min_y)
+					clip->min_y == Machine->visible_area.min_y)
 			{
 				if (sy > 0x110) sy -= 0x200;
 				if (fullmode == 2 || (fullmode == 1 && rzy == 0xff))
@@ -1143,7 +1138,7 @@ if (!dotiles) { 					/* debug */
 					tileatr >> 8,
 					tileatr & 0x01,tileatr & 0x02,
 					x*16,(y-screen_yoffs+1)*16,16,16,
-					&Machine->drv->visible_area
+					&Machine->visible_area
 				 );
 
 
@@ -1154,7 +1149,7 @@ if (!dotiles) { 					/* debug */
 	int j;
 	sprintf(buf,"%04X",screen_offs+4*screen_yoffs);
 	for (j = 0;j < 4;j++)
-		drawgfx(bitmap,Machine->uifont,buf[j],DT_COLOR_WHITE,0,0,3*8+8*j,8*2,0,TRANSPARENCY_NONE,0);
+		drawgfx(bitmap,Machine->uifont,buf[j],UI_COLOR_NORMAL,0,0,3*8+8*j,8*2,0,TRANSPARENCY_NONE,0);
 }
 if (keyboard_pressed(KEYCODE_D))
 {
@@ -1181,38 +1176,31 @@ if (keyboard_pressed(KEYCODE_D))
 
 
 
-for (i = 0;i < 8;i+=2)
-{
-	sprintf(buf,"%04X",READ_WORD(&neo_unknown[i]));
-	for (j = 0;j < 4;j++)
-		drawgfx(bitmap,Machine->uifont,buf[j],DT_COLOR_WHITE,0,0,3*8*i+8*j,8*5,0,TRANSPARENCY_NONE,0);
-}
-
   /*
 for (i = 0;i < 8;i+=2)
 {
 	sprintf(mybuf,"%04X",READ_WORD(&vidram[0x100a0+i]));
 	for (j = 0;j < 4;j++)
-		drawgfx(mybitmap,Machine->uifont,mybuf[j],DT_COLOR_WHITE,0,0,3*8*i+8*j,8*5,0,TRANSPARENCY_NONE,0);
+		drawgfx(mybitmap,Machine->uifont,mybuf[j],UI_COLOR_NORMAL,0,0,3*8*i+8*j,8*5,0,TRANSPARENCY_NONE,0);
 }
 
 
 	sprintf(mybuf,"%04X",READ_WORD(&vidram[0x10002]));
 	for (j = 0;j < 4;j++)
-		drawgfx(mybitmap,Machine->uifont,mybuf[j],DT_COLOR_WHITE,0,0,8*j+4*8,8*7,0,TRANSPARENCY_NONE,0);
+		drawgfx(mybitmap,Machine->uifont,mybuf[j],UI_COLOR_NORMAL,0,0,8*j+4*8,8*7,0,TRANSPARENCY_NONE,0);
 	sprintf(mybuf,"%04X",0x200-(READ_WORD(&vidram[0x10402])>>7));
 	for (j = 0;j < 4;j++)
-		drawgfx(mybitmap,Machine->uifont,mybuf[j],DT_COLOR_WHITE,0,0,8*j+10*8,8*7,0,TRANSPARENCY_NONE,0);
+		drawgfx(mybitmap,Machine->uifont,mybuf[j],UI_COLOR_NORMAL,0,0,8*j+10*8,8*7,0,TRANSPARENCY_NONE,0);
 	sprintf(mybuf,"%04X",READ_WORD(&vidram[0x10802])>> 7);
 	for (j = 0;j < 4;j++)
-		drawgfx(mybitmap,Machine->uifont,mybuf[j],DT_COLOR_WHITE,0,0,8*j+16*8,8*7,0,TRANSPARENCY_NONE,0);
+		drawgfx(mybitmap,Machine->uifont,mybuf[j],UI_COLOR_NORMAL,0,0,8*j+16*8,8*7,0,TRANSPARENCY_NONE,0);
 
 */
 
 
-//		fprintf(errorlog,"X: %04x Y: %04x Video: %04x\n",READ_WORD(&vidram[0x1089c]),READ_WORD(&vidram[0x1049c]),READ_WORD(&vidram[0x1009c]));
+//		logerror("X: %04x Y: %04x Video: %04x\n",READ_WORD(&vidram[0x1089c]),READ_WORD(&vidram[0x1049c]),READ_WORD(&vidram[0x1009c]));
 
-//fprintf(errorlog,"X: %04x Y: %04x Video: %04x\n",READ_WORD(&vidram[0x10930]),READ_WORD(&vidram[0x10530]),READ_WORD(&vidram[0x10130]));
+//logerror("X: %04x Y: %04x Video: %04x\n",READ_WORD(&vidram[0x10930]),READ_WORD(&vidram[0x10530]),READ_WORD(&vidram[0x10130]));
 
 
 }
@@ -1222,7 +1210,7 @@ for (i = 0;i < 8;i+=2)
 
 void neogeo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	screenrefresh(bitmap,&Machine->drv->visible_area);
+	screenrefresh(bitmap,&Machine->visible_area);
 }
 
 static int next_update_first_line;
@@ -1234,18 +1222,18 @@ void neogeo_vh_raster_partial_refresh(struct osd_bitmap *bitmap,int current_line
 	if (current_line < next_update_first_line)
 		next_update_first_line = 0;
 
-	clip.min_x = Machine->drv->visible_area.min_x;
-	clip.max_x = Machine->drv->visible_area.max_x;
+	clip.min_x = Machine->visible_area.min_x;
+	clip.max_x = Machine->visible_area.max_x;
 	clip.min_y = next_update_first_line;
 	clip.max_y = current_line;
-	if (clip.min_y < Machine->drv->visible_area.min_y)
-		clip.min_y = Machine->drv->visible_area.min_y;
-	if (clip.max_y > Machine->drv->visible_area.max_y)
-		clip.max_y = Machine->drv->visible_area.max_y;
+	if (clip.min_y < Machine->visible_area.min_y)
+		clip.min_y = Machine->visible_area.min_y;
+	if (clip.max_y > Machine->visible_area.max_y)
+		clip.max_y = Machine->visible_area.max_y;
 
 	if (clip.max_y >= clip.min_y)
 	{
-//if (errorlog) fprintf(errorlog,"refresh %d-%d\n",clip.min_y,clip.max_y);
+//logerror("refresh %d-%d\n",clip.min_y,clip.max_y);
 		screenrefresh(bitmap,&clip);
 	}
 

@@ -10,7 +10,7 @@
 #include "vidhrdw/generic.h"
 
 unsigned char *cop01_videoram;
-int cop01_videoram_size;
+size_t cop01_videoram_size;
 
 static unsigned char cop01_scrollx[1];
 static unsigned char spritebank = 0;
@@ -77,7 +77,7 @@ int cop01_vh_start(void)
 	if (generic_vh_start() != 0)
 		return 1;
 
-	if ((tmpbitmap2 = osd_create_bitmap(2*Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(2*Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		generic_vh_stop();
 		return 1;
@@ -96,19 +96,19 @@ int cop01_vh_start(void)
 
 void cop01_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap2);
+	bitmap_free(tmpbitmap2);
 	generic_vh_stop();
 }
 
 
 
-void cop01_scrollx_w(int offset,int data)
+WRITE_HANDLER( cop01_scrollx_w )
 {
 	cop01_scrollx[offset] = data;
 }
 
 
-void cop01_gfxbank_w(int offset,int data)
+WRITE_HANDLER( cop01_gfxbank_w )
 {
 	/* bits 0 and 1 coin counters */
 	coin_counter_w(0,data & 1);
@@ -124,7 +124,7 @@ void cop01_gfxbank_w(int offset,int data)
 	/* bits 4 and 5 select sprite bank */
 	spritebank = (data & 0x30) >> 4;
 
-if (errorlog) fprintf(errorlog,"gfxbank = %02x\n",data);
+logerror("gfxbank = %02x\n",data);
 }
 
 
@@ -178,7 +178,7 @@ void cop01_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		else
 			scrollx = -(cop01_scrollx[0] + 256 * cop01_scrollx[1]);
 
-		copyscrollbitmap(bitmap,tmpbitmap2,1,&scrollx,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap2,1,&scrollx,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -210,7 +210,7 @@ void cop01_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				(attr & 0xf0) >> 4,
 				flipx,flipscreen,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 
 
@@ -233,6 +233,6 @@ void cop01_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				0,	/* is there a color selector missing? */
 				flipscreen,flipscreen,
 				8*sx,8*sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+				&Machine->visible_area,TRANSPARENCY_PEN,15);
 	}
 }

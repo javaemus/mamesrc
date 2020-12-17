@@ -14,16 +14,16 @@ ask.  - Mike Balfour (mab22@po.cwru.edu)
 /* vidhrdw/vigilant.c */
 int vigilant_vh_start(void);
 void vigilant_vh_stop(void);
-void vigilant_paletteram_w(int offset, int data);
-void vigilant_sprite_paletteram_w(int offset, int data);
-void vigilant_horiz_scroll_w(int offset, int data);
-void vigilant_rear_horiz_scroll_w(int offset, int data);
-void vigilant_rear_color_w(int offset, int data);
+WRITE_HANDLER( vigilant_paletteram_w );
+WRITE_HANDLER( vigilant_sprite_paletteram_w );
+WRITE_HANDLER( vigilant_horiz_scroll_w );
+WRITE_HANDLER( vigilant_rear_horiz_scroll_w );
+WRITE_HANDLER( vigilant_rear_color_w );
 void vigilant_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void kikcubic_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
-void vigilant_bank_select_w (int offset,int data)
+WRITE_HANDLER( vigilant_bank_select_w )
 {
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);
@@ -35,7 +35,7 @@ void vigilant_bank_select_w (int offset,int data)
 /***************************************************************************
  vigilant_out2_w
  **************************************************************************/
-void vigilant_out2_w(int offset,int data)
+WRITE_HANDLER( vigilant_out2_w )
 {
 	/* D0 = FILP = Flip screen? */
 	/* D1 = COA1 = Coin Counter A? */
@@ -46,7 +46,7 @@ void vigilant_out2_w(int offset,int data)
 	coin_counter_w(1,data & 0x04);
 }
 
-void kikcubic_coin_w(int offset,int data)
+WRITE_HANDLER( kikcubic_coin_w )
 {
 	/* bits 0 is flip screen */
 
@@ -337,7 +337,7 @@ INPUT_PORTS_START( kikcubic )
 	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Demo_Sounds ) )
 	PORT_DIPSETTING(	0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
+	PORT_BITX(    0x10, 0x10, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x20, 0x00, "Level Select" )

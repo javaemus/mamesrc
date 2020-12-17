@@ -20,8 +20,13 @@
 #include "cpu/z80/z80.h"
 
 
-/* change this define to errorlog to get 6840 timer logging */
-#define m6840log 0
+#define VERBOSE 0
+
+#if VERBOSE
+#define LOG(x)	logerror x
+#else
+#define LOG(x)
+#endif
 
 
 
@@ -33,13 +38,6 @@
 
 double mcr68_timing_factor;
 
-UINT16 mcr_hiscore_start;
-UINT16 mcr_hiscore_length;
-const UINT8 *mcr_hiscore_init;
-UINT16 mcr_hiscore_init_length;
-
-int (*mcr_port04_r[5])(int offset);
-void (*mcr_port47_w[4])(int offset, int data);
 UINT8 mcr_cocktail_flip;
 
 
@@ -89,12 +87,69 @@ static void subtract_from_counter(int counter, int count);
 static void mcr68_493_callback(int param);
 static void zwackery_493_callback(int param);
 
-static void zwackery_pia_2_w(int offset, int data);
-static void zwackery_pia_3_w(int offset, int data);
-static void zwackery_ca2_w(int offset, int data);
+static WRITE_HANDLER( zwackery_pia_2_w );
+static WRITE_HANDLER( zwackery_pia_3_w );
+static WRITE_HANDLER( zwackery_ca2_w );
 static void zwackery_pia_irq(int state);
 
 static void reload_count(int counter);
+
+
+
+/*************************************
+ *
+ *	Graphics declarations
+ *
+ *************************************/
+
+struct GfxLayout mcr_bg_layout =
+{
+	16,16,
+	RGN_FRAC(1,2),
+	4,
+	{ RGN_FRAC(1,2)+0, RGN_FRAC(1,2)+1, 0, 1 },
+	{  0,  0,  2,  2,  4,  4,  6,  6,
+	   8,  8, 10, 10, 12, 12, 14, 14 },
+	{ 0*8,  0*8,  2*8,  2*8,
+	  4*8,  4*8,  6*8,  6*8,
+	  8*8,  8*8, 10*8, 10*8,
+	 12*8, 12*8, 14*8, 14*8 },
+	16*8
+};
+
+
+struct GfxLayout mcr_sprite_layout =
+{
+	32,32,
+	RGN_FRAC(1,4),
+	4,
+	{ 0, 1, 2, 3 },
+	{ 0, 4,
+	  RGN_FRAC(1,4)+0, RGN_FRAC(1,4)+4,
+	  RGN_FRAC(2,4)+0, RGN_FRAC(2,4)+4,
+	  RGN_FRAC(3,4)+0, RGN_FRAC(3,4)+4,
+	  8, 12,
+	  RGN_FRAC(1,4)+8, RGN_FRAC(1,4)+12,
+	  RGN_FRAC(2,4)+8, RGN_FRAC(2,4)+12,
+	  RGN_FRAC(3,4)+8, RGN_FRAC(3,4)+12,
+	  16, 20,
+	  RGN_FRAC(1,4)+16, RGN_FRAC(1,4)+20,
+	  RGN_FRAC(2,4)+16, RGN_FRAC(2,4)+20,
+	  RGN_FRAC(3,4)+16, RGN_FRAC(3,4)+20,
+	  24, 28,
+	  RGN_FRAC(1,4)+24, RGN_FRAC(1,4)+28,
+	  RGN_FRAC(2,4)+24, RGN_FRAC(2,4)+28,
+	  RGN_FRAC(3,4)+24, RGN_FRAC(3,4)+28 },
+	{ 32*0,  32*1,  32*2,  32*3,
+	  32*4,  32*5,  32*6,  32*7,
+	  32*8,  32*9,  32*10, 32*11,
+	  32*12, 32*13, 32*14, 32*15,
+	  32*16, 32*17, 32*18, 32*19,
+	  32*20, 32*21, 32*22, 32*23,
+	  32*24, 32*25, 32*26, 32*27,
+	  32*28, 32*29, 32*30, 32*31 },
+	32*32
+};
 
 
 
@@ -104,7 +159,7 @@ static void reload_count(int counter);
  *
  *************************************/
 
-extern int zwackery_port_2_r(int offset);
+extern READ_HANDLER( zwackery_port_2_r );
 
 static struct pia6821_interface zwackery_pia_2_intf =
 {
@@ -270,7 +325,7 @@ int mcr68_interrupt(void)
 	if (!m6840_state[0].timer)
 		subtract_from_counter(0, 1);
 
-	if (errorlog) fprintf(errorlog, "--- VBLANK ---\n");
+	logerror("--- VBLANK ---\n");
 
 	/* also set a timer to generate the 493 signal at a specific time before the next VBLANK */
 	/* the timing of this is crucial for Blasted and Tri-Sports, which check the timing of */
@@ -318,7 +373,7 @@ static void mcr68_493_callback(int param)
 	v493_irq_state = 1;
 	update_mcr68_interrupts();
 	timer_set(cpu_getscanlineperiod(), 0, mcr68_493_off_callback);
-	if (errorlog) fprintf(errorlog, "--- (INT1) ---\n");
+	logerror("--- (INT1) ---\n");
 }
 
 
@@ -329,24 +384,25 @@ static void mcr68_493_callback(int param)
  *
  *************************************/
 
-void mcr_dummy_w(int offset, int data)
+WRITE_HANDLER( mcr_control_port_w )
 {
-}
+	/*
+		Bit layout is as follows:
+			D7 = n/c
+			D6 = cocktail flip
+			D5 = red LED
+			D4 = green LED
+			D3 = n/c
+			D2 = coin meter 3
+			D1 = coin meter 2
+			D0 = coin meter 1
+	*/
 
-
-void mcr_port_01_w(int offset, int data)
-{
 	mcr_cocktail_flip = (data >> 6) & 1;
 }
 
 
-void mcr_port_47_dispatch_w(int offset, int data)
-{
-	(*mcr_port47_w[offset])(offset, data);
-}
-
-
-void mcr_scroll_value_w(int offset, int data)
+WRITE_HANDLER( mcr_scroll_value_w )
 {
 	switch (offset)
 	{
@@ -372,49 +428,11 @@ void mcr_scroll_value_w(int offset, int data)
 
 /*************************************
  *
- *	Generic MCR port read handlers
- *
- *************************************/
-
-int mcr_port_04_dispatch_r(int offset)
-{
-	return (*mcr_port04_r[offset])(offset);
-}
-
-
-
-/*************************************
- *
- *	Generic MCR hiscore save/load
- *
- *************************************/
-
-void mcr_nvram_handler(void *file,int read_or_write)
-{
-	unsigned char *ram = memory_region(REGION_CPU1);
-
-
-	if (read_or_write)
-		osd_fwrite(file, &ram[mcr_hiscore_start], mcr_hiscore_length);
-	else
-	{
-		if (file)
-			osd_fread(file, &ram[mcr_hiscore_start], mcr_hiscore_length);
-		/* copy data if we failed */
-		else if (mcr_hiscore_init && mcr_hiscore_init_length)
-			memcpy(&ram[mcr_hiscore_start], mcr_hiscore_init, mcr_hiscore_init_length);
-	}
-}
-
-
-
-/*************************************
- *
  *	Zwackery-specific interfaces
  *
  *************************************/
 
-void zwackery_pia_2_w(int offset, int data)
+WRITE_HANDLER( zwackery_pia_2_w )
 {
 	/* bit 7 is the watchdog */
 	if (!(data & 0x80)) watchdog_reset_w(offset, data);
@@ -425,13 +443,13 @@ void zwackery_pia_2_w(int offset, int data)
 }
 
 
-void zwackery_pia_3_w(int offset, int data)
+WRITE_HANDLER( zwackery_pia_3_w )
 {
 	zwackery_sound_data = (data >> 4) & 0x0f;
 }
 
 
-void zwackery_ca2_w(int offset, int data)
+WRITE_HANDLER( zwackery_ca2_w )
 {
 	csdeluxe_data_w(offset, (data << 4) | zwackery_sound_data);
 }
@@ -502,7 +520,7 @@ static void subtract_from_counter(int counter, int count)
 				m6840_status_read_since_int &= ~(1 << counter);
 				update_interrupts();
 				msb = (m6840_state[counter].latch >> 8) + 1;
-				if (m6840log) fprintf(m6840log, "** Counter %d fired\n", counter);
+				LOG(("** Counter %d fired\n", counter));
 			}
 		}
 
@@ -528,7 +546,7 @@ static void subtract_from_counter(int counter, int count)
 			m6840_status |= 1 << counter;
 			m6840_status_read_since_int &= ~(1 << counter);
 			update_interrupts();
-			if (m6840log) fprintf(m6840log, "** Counter %d fired\n", counter);
+			LOG(("** Counter %d fired\n", counter));
 		}
 
 		/* store the result */
@@ -623,7 +641,7 @@ static UINT16 compute_counter(int counter)
  *
  *************************************/
 
-static void mcr68_6840_w_common(int offset, int data)
+static WRITE_HANDLER( mcr68_6840_w_common )
 {
 	int i;
 
@@ -664,13 +682,13 @@ static void mcr68_6840_w_common(int offset, int data)
 		if (diffs & 0x02)
 			reload_count(counter);
 
-		if (m6840log) fprintf(m6840log, "%06X:Counter %d control = %02X\n", cpu_getpreviouspc(), counter, data);
+		LOG(("%06X:Counter %d control = %02X\n", cpu_getpreviouspc(), counter, data));
 	}
 
 	/* offsets 2, 4, and 6 are MSB buffer registers */
 	else if ((offset & 1) == 0)
 	{
-		if (m6840log) fprintf(m6840log, "%06X:MSB = %02X\n", cpu_getpreviouspc(), data);
+		LOG(("%06X:MSB = %02X\n", cpu_getpreviouspc(), data));
 		m6840_msb_buffer = data;
 	}
 
@@ -688,12 +706,12 @@ static void mcr68_6840_w_common(int offset, int data)
 		if (!(m6840_state[counter].control & 0x10))
 			reload_count(counter);
 
-		if (m6840log) fprintf(m6840log, "%06X:Counter %d latch = %04X\n", cpu_getpreviouspc(), counter, m6840_state[counter].latch);
+		LOG(("%06X:Counter %d latch = %04X\n", cpu_getpreviouspc(), counter, m6840_state[counter].latch));
 	}
 }
 
 
-static int mcr68_6840_r_common(int offset)
+static READ_HANDLER( mcr68_6840_r_common )
 {
 	/* offset 0 is a no-op */
 	if (offset == 0)
@@ -702,7 +720,7 @@ static int mcr68_6840_r_common(int offset)
 	/* offset 1 is the status register */
 	else if (offset == 1)
 	{
-		if (m6840log) fprintf(m6840log, "%06X:Status read = %04X\n", cpu_getpreviouspc(), m6840_status);
+		LOG(("%06X:Status read = %04X\n", cpu_getpreviouspc(), m6840_status));
 		m6840_status_read_since_int |= m6840_status & 0x07;
 		return m6840_status;
 	}
@@ -720,7 +738,7 @@ static int mcr68_6840_r_common(int offset)
 
 		m6840_lsb_buffer = result & 0xff;
 
-		if (m6840log) fprintf(m6840log, "%06X:Counter %d read = %04X\n", cpu_getpreviouspc(), counter, result);
+		LOG(("%06X:Counter %d read = %04X\n", cpu_getpreviouspc(), counter, result));
 		return result >> 8;
 	}
 
@@ -730,27 +748,27 @@ static int mcr68_6840_r_common(int offset)
 }
 
 
-void mcr68_6840_upper_w(int offset, int data)
+WRITE_HANDLER( mcr68_6840_upper_w )
 {
 	if (!(data & 0xff000000))
 		mcr68_6840_w_common(offset / 2, (data >> 8) & 0xff);
 }
 
 
-void mcr68_6840_lower_w(int offset, int data)
+WRITE_HANDLER( mcr68_6840_lower_w )
 {
 	if (!(data & 0x00ff0000))
 		mcr68_6840_w_common(offset / 2, data & 0xff);
 }
 
 
-int mcr68_6840_upper_r(int offset)
+READ_HANDLER( mcr68_6840_upper_r )
 {
 	return (mcr68_6840_r_common(offset / 2) << 8) | 0x00ff;
 }
 
 
-int mcr68_6840_lower_r(int offset)
+READ_HANDLER( mcr68_6840_lower_r )
 {
 	return mcr68_6840_r_common(offset / 2) | 0xff00;
 }

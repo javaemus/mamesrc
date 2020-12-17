@@ -66,6 +66,9 @@ Notes:
   differences are the title, copyright removed, different encryptions or
   no encryption, plus hustlerb has a different memory map.
 
+- In Tazmania, when set to Upright mode, player 2 left skips the current
+  level
+
 ***************************************************************************/
 
 #include "driver.h"
@@ -75,7 +78,7 @@ Notes:
 
 extern unsigned char *galaxian_attributesram;
 extern unsigned char *galaxian_bulletsram;
-extern int galaxian_bulletsram_size;
+extern size_t galaxian_bulletsram_size;
 
 void galaxian_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void rescue_vh_convert_color_prom  (unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
@@ -89,17 +92,15 @@ int  calipso_vh_start (void);
 int  stratgyx_vh_start(void);
 
 void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void galaxian_flipx_w(int offset,int data);
-void galaxian_flipy_w(int offset,int data);
-void galaxian_attributes_w(int offset,int data);
-void galaxian_stars_w(int offset,int data);
+WRITE_HANDLER( galaxian_attributes_w );
+WRITE_HANDLER( galaxian_stars_w );
 int  scramble_vh_interrupt(void);
-void scramble_background_w(int offset, int data);
-void scramble_filter_w(int offset, int data);
+WRITE_HANDLER( scramble_background_w );
+WRITE_HANDLER( scramble_filter_w );
 
-int  scramble_portB_r(int offset);
-int  frogger_portB_r(int offset);
-void scramble_sh_irqtrigger_w(int offset,int data);
+READ_HANDLER( scramble_portB_r );
+READ_HANDLER( frogger_portB_r );
+WRITE_HANDLER( scramble_sh_irqtrigger_w );
 
 
 static void scobra_init_machine(void)
@@ -109,7 +110,7 @@ static void scobra_init_machine(void)
 	interrupt_enable_w(0,0);
 }
 
-static int moonwar2_IN0_r (int offset)
+static READ_HANDLER( moonwar2_IN0_r )
 {
 	int sign;
 	int delta;
@@ -122,7 +123,7 @@ static int moonwar2_IN0_r (int offset)
 	return ((readinputport(0) & 0xe0) | delta | sign );
 }
 
-static void stratgyx_coin_counter_w(int offset, int data)
+static WRITE_HANDLER( stratgyx_coin_counter_w )
 {
 	/* Bit 1 selects coin counter */
 	coin_counter_w(offset >> 1, data);
@@ -157,8 +158,8 @@ static struct MemoryWriteAddress type1_writemem[] =
 	{ 0xa802, 0xa802, coin_counter_w },
 	{ 0xa803, 0xa803, scramble_background_w },
 	{ 0xa804, 0xa804, galaxian_stars_w },
-	{ 0xa806, 0xa806, galaxian_flipx_w },
-	{ 0xa807, 0xa807, galaxian_flipy_w },
+	{ 0xa806, 0xa806, flip_screen_x_w },
+	{ 0xa807, 0xa807, flip_screen_y_w },
 	{ -1 }	/* end of table */
 };
 
@@ -189,8 +190,8 @@ static struct MemoryWriteAddress type2_writemem[] =
 	{ 0xb002, 0xb002, scramble_background_w },
 	{ 0xb004, 0xb004, interrupt_enable_w },
 	{ 0xb006, 0xb008, stratgyx_coin_counter_w },
-	{ 0xb00c, 0xb00c, galaxian_flipy_w },
-	{ 0xb00e, 0xb00e, galaxian_flipx_w },
+	{ 0xb00c, 0xb00c, flip_screen_y_w },
+	{ 0xb00e, 0xb00e, flip_screen_x_w },
 	{ -1 }	/* end of table */
 };
 
@@ -214,9 +215,9 @@ static struct MemoryWriteAddress hustler_writemem[] =
 	{ 0x9000, 0x903f, galaxian_attributes_w, &galaxian_attributesram },
 	{ 0x9040, 0x905f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x9060, 0x907f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
-	{ 0xa802, 0xa802, galaxian_flipx_w },
+	{ 0xa802, 0xa802, flip_screen_x_w },
 	{ 0xa804, 0xa804, interrupt_enable_w },
-	{ 0xa806, 0xa806, galaxian_flipy_w },
+	{ 0xa806, 0xa806, flip_screen_y_w },
 	{ 0xa80e, 0xa80e, MWA_NOP },	/* coin counters */
 	{ 0xe000, 0xe000, soundlatch_w },
 	{ 0xe008, 0xe008, scramble_sh_irqtrigger_w },
@@ -245,8 +246,8 @@ static struct MemoryWriteAddress hustlerb_writemem[] =
 	{ 0x9060, 0x907f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
 	{ 0xa801, 0xa801, interrupt_enable_w },
 	{ 0xa802, 0xa802, MWA_NOP },	/* coin counters */
-	{ 0xa806, 0xa806, galaxian_flipy_w },
-	{ 0xa807, 0xa807, galaxian_flipx_w },
+	{ 0xa806, 0xa806, flip_screen_y_w },
+	{ 0xa807, 0xa807, flip_screen_x_w },
 	{ 0xc200, 0xc200, soundlatch_w },
 	{ 0xc201, 0xc201, scramble_sh_irqtrigger_w },
 	{ -1 }	/* end of table */
@@ -333,7 +334,7 @@ INPUT_PORTS_START( scobra )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN1 )
 
 	PORT_START      /* IN1 */
@@ -375,7 +376,7 @@ INPUT_PORTS_START( scobrak )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN1 )
 
 	PORT_START      /* IN1 */
@@ -416,7 +417,7 @@ INPUT_PORTS_START( stratgyx )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN2 )
 
 	PORT_START      /* IN1 */
@@ -588,48 +589,48 @@ INPUT_PORTS_START( monwar2a )
 INPUT_PORTS_END
 
 INPUT_PORTS_START( spdcoin )
-    PORT_START      /* IN0 */
-    PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START1 )
-    PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
-    PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT )
-    PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT )
-    PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN2 )
-    PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_START      /* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN1 )
 
-    PORT_START      /* IN1 */
-    PORT_DIPNAME( 0x01, 0x00, "Freeze" )   /* Dip Sw #2 */
-    PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
-    PORT_DIPSETTING(    0x01, DEF_STR( On ) )
-    PORT_DIPNAME( 0x02, 0x02, DEF_STR ( Unknown ) ) /* Dip Sw #1 */
-    PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-    PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-    PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_START      /* IN1 */
+	PORT_DIPNAME( 0x01, 0x00, "Freeze" )   /* Dip Sw #2 */
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x01, DEF_STR( On ) )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR ( Unknown ) ) /* Dip Sw #1 */
+	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
 
-    PORT_START      /* IN2 */
-    PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_DIPNAME( 0x02, 0x00, DEF_STR( Unknown ) )    /* Dip Sw #5 */
-    PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-    PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-    PORT_DIPNAME( 0x04, 0x00, DEF_STR( Unknown ) )    /* Dip Sw #4 */
-    PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-    PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-    PORT_DIPNAME( 0x08, 0x00, DEF_STR( Lives ) )    /* Dip Sw #3 */
-    PORT_DIPSETTING(    0x08, "3" )
-    PORT_DIPSETTING(    0x00, "5" )
-    PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
-    PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_START      /* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Unknown ) )    /* Dip Sw #5 */
+	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Unknown ) )    /* Dip Sw #4 */
+	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Lives ) )    /* Dip Sw #3 */
+	PORT_DIPSETTING(    0x08, "3" )
+	PORT_DIPSETTING(    0x00, "5" )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
 
-    PORT_START      /* IN3 - dummy port for the dial */
-    PORT_ANALOG( 0xff, 0x00, IPT_DIAL | IPF_CENTER, 25, 10, 0, 0 )
+	PORT_START      /* IN3 - dummy port for the dial */
+	PORT_ANALOG( 0xff, 0x00, IPT_DIAL | IPF_CENTER, 25, 10, 0, 0 )
 INPUT_PORTS_END
 
 INPUT_PORTS_START( darkplnt )
@@ -644,12 +645,12 @@ INPUT_PORTS_START( darkplnt )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN1 )
 
 	PORT_START	/* IN1 */
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Lives ) )
-	PORT_DIPSETTING(    0x01, "3" )
-	PORT_DIPSETTING(    0x00, "5" )
-	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Demo_Sounds ) )
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x01, 0x01, "Bonus Occurrence" )
+	PORT_DIPSETTING(    0x01, "Once" )
+	PORT_DIPSETTING(    0x00, "Every" )
+	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x00, "3" )
+	PORT_DIPSETTING(    0x02, "5" )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_UP )
@@ -664,9 +665,9 @@ INPUT_PORTS_START( darkplnt )
 	PORT_DIPSETTING(    0x00, "Coin A 1/2 Coin B 2/1" )
 	PORT_DIPSETTING(    0x04, "Coin A 1/3 Coin B 3/1" )
 	PORT_DIPSETTING(    0x06, "Coin A 1/4 Coin B 4/1" )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Cabinet ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Upright ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( Cocktail ) )
+	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x00, "100k" )
+	PORT_DIPSETTING(    0x08, "200k" )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -1036,7 +1037,7 @@ INPUT_PORTS_START( hustler )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN2 )
 
 	PORT_START      /* IN1 */

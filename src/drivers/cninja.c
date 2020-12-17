@@ -42,62 +42,58 @@ extern unsigned char *cninja_pf1_data,*cninja_pf2_data;
 extern unsigned char *cninja_pf3_data,*cninja_pf4_data;
 
 int  cninja_vh_start(void);
-void cninja_vh_stop(void);
+int  edrandy_vh_start(void);
+int  stoneage_vh_start(void);
 void cninja_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-int cninja_pf1_data_r(int offset);
+READ_HANDLER( cninja_pf3_rowscroll_r );
+READ_HANDLER( cninja_pf1_data_r );
 
-void cninja_pf1_data_w(int offset,int data);
-void cninja_pf2_data_w(int offset,int data);
-void cninja_pf3_data_w(int offset,int data);
-void cninja_pf4_data_w(int offset,int data);
-void cninja_control_0_w(int offset,int data);
-void cninja_control_1_w(int offset,int data);
+WRITE_HANDLER( cninja_pf1_data_w );
+WRITE_HANDLER( cninja_pf2_data_w );
+WRITE_HANDLER( cninja_pf3_data_w );
+WRITE_HANDLER( cninja_pf4_data_w );
+WRITE_HANDLER( cninja_control_0_w );
+WRITE_HANDLER( cninja_control_1_w );
 
-void cninja_pf1_rowscroll_w(int offset,int data);
-void cninja_pf2_rowscroll_w(int offset,int data);
-void cninja_pf3_rowscroll_w(int offset,int data);
-void cninja_pf4_rowscroll_w(int offset,int data);
+WRITE_HANDLER( cninja_pf1_rowscroll_w );
+WRITE_HANDLER( cninja_pf2_rowscroll_w );
+WRITE_HANDLER( cninja_pf3_rowscroll_w );
+WRITE_HANDLER( cninja_pf4_rowscroll_w );
 
-int cninja_pf3_rowscroll_r(int offset);
-
-void cninja_palette_24bit_w(int offset,int data);
-void cninja_update_sprites(int offset, int data);
+WRITE_HANDLER( cninja_palette_24bit_w );
 
 static int loopback[0x100];
 static unsigned char *cninja_ram;
 
 /**********************************************************************************/
 
-static void cninja_sound_w(int offset, int data)
+static WRITE_HANDLER( cninja_sound_w )
 {
 	soundlatch_w(0,data&0xff);
 	cpu_cause_interrupt(1,H6280_INT_IRQ1);
 }
 
-static void stoneage_sound_w(int offset, int data)
+static WRITE_HANDLER( stoneage_sound_w )
 {
 	soundlatch_w(0,data&0xff);
 	cpu_cause_interrupt(1,Z80_NMI_INT);
 }
 
-static void cninja_loopback_w(int offset, int data)
+static WRITE_HANDLER( cninja_loopback_w )
 {
-//	WRITE_WORD(&loopback[offset],data);
 	COMBINE_WORD_MEM(&loopback[offset],data);
 #if 0
-	if (errorlog && (offset>0x22 || offset<0x8) && (offset>0x94 || offset<0x80)
+	if ((offset>0x22 || offset<0x8) && (offset>0x94 || offset<0x80)
 && offset!=0x36 && offset!=0x9e && offset!=0x76 && offset!=0x58 && offset!=0x56
 && offset!=0x2c && offset!=0x34
 && (offset>0xb0 || offset<0xa0) /* in game prot writes */
 )
-
-//if (errorlog)
-fprintf(errorlog,"Protection PC %06x: warning - write %04x to %04x\n",cpu_get_pc(),data,offset);
+logerror("Protection PC %06x: warning - write %04x to %04x\n",cpu_get_pc(),data,offset);
 #endif
 }
 
-static int cninja_prot_r(int offset)
+static READ_HANDLER( cninja_prot_r )
 {
  	switch (offset) {
 		case 0x80: /* Master level control */
@@ -139,11 +135,11 @@ static int cninja_prot_r(int offset)
 		case 0x22c: /* Player 1 & 2 input ports */
 			return (readinputport(0) + (readinputport(1) << 8));
 	}
-	if (errorlog) fprintf(errorlog,"Protection PC %06x: warning - read unmapped memory address %04x\n",cpu_get_pc(),offset);
+	logerror("Protection PC %06x: warning - read unmapped memory address %04x\n",cpu_get_pc(),offset);
 	return 0;
 }
 
-static int edrandy_prot_r(int offset)
+static READ_HANDLER( edrandy_prot_r )
 {
  	switch (offset) {
 		/* Video registers */
@@ -217,7 +213,7 @@ case 0x33e: return READ_WORD(&loopback[0x2c]); /* allows video registers */
 
 case 0x156: /* Interrupt regulate */
 
-if (errorlog) fprintf(errorlog,"Int stop %04x\n",READ_WORD(&loopback[0x1a]));
+logerror("Int stop %04x\n",READ_WORD(&loopback[0x1a]));
 
 cpu_spinuntil_int();
 //return readinputport(2);
@@ -303,14 +299,14 @@ case 0x2a0: return READ_WORD(&loopback[0xb2]);
 #endif
 	}
 
-//	if (errorlog) fprintf(errorlog,"Protection PC %06x: warning - read unmapped memory address %04x\n",cpu_get_pc(),offset);
+//	logerror("Protection PC %06x: warning - read unmapped memory address %04x\n",cpu_get_pc(),offset);
 	return 0;
 }
 
 #if 0
-static void log_m_w(int offset, int data)
+static WRITE_HANDLER( log_m_w )
 {
-	if (errorlog) fprintf(errorlog,"INTERRUPT %06x: warning - write address %04x\n",cpu_get_pc(),offset);
+	logerror("INTERRUPT %06x: warning - write address %04x\n",cpu_get_pc(),offset);
 
 }
 #endif
@@ -349,8 +345,8 @@ static struct MemoryWriteAddress cninja_writemem[] =
 	{ 0x184000, 0x187fff, MWA_BANK1, &cninja_ram }, /* Main ram */
 	{ 0x190000, 0x190007, MWA_NOP }, /* IRQ Ack + DMA flags? */
 	{ 0x19c000, 0x19dfff, cninja_palette_24bit_w, &paletteram },
-	{ 0x1a4000, 0x1a47ff, MWA_BANK2, &spriteram },
-	{ 0x1b4000, 0x1b4001, cninja_update_sprites }, /* DMA flag */
+	{ 0x1a4000, 0x1a47ff, MWA_BANK2, &spriteram, &spriteram_size },
+	{ 0x1b4000, 0x1b4001, buffer_spriteram_w }, /* DMA flag */
 	{ 0x1bc000, 0x1bc0ff, cninja_loopback_w }, /* Protection writes */
 	{ 0x308000, 0x308fff, MWA_NOP }, /* Bootleg only */
 	{ -1 }  /* end of table */
@@ -389,14 +385,14 @@ static struct MemoryWriteAddress edrandy_writemem[] =
 	{ 0x198064, 0x198065, cninja_sound_w }, /* Soundlatch is amongst protection */
 	{ 0x198000, 0x1980ff, cninja_loopback_w }, /* Protection writes */
 	{ 0x1a4000, 0x1a4007, MWA_NOP }, /* IRQ Ack + DMA flags? */
-	{ 0x1ac000, 0x1ac001, cninja_update_sprites }, /* DMA flag */
-	{ 0x1bc000, 0x1bc7ff, MWA_BANK2, &spriteram },
+	{ 0x1ac000, 0x1ac001, buffer_spriteram_w }, /* DMA flag */
+	{ 0x1bc000, 0x1bc7ff, MWA_BANK2, &spriteram, &spriteram_size },
 	{ -1 }  /* end of table */
 };
 
 /******************************************************************************/
 
-static void YM2151_w(int offset, int data)
+static WRITE_HANDLER( YM2151_w )
 {
 	switch (offset) {
 	case 0:
@@ -408,7 +404,7 @@ static void YM2151_w(int offset, int data)
 	}
 }
 
-static void YM2203_w(int offset, int data)
+static WRITE_HANDLER( YM2203_w )
 {
 	switch (offset) {
 	case 0:
@@ -700,7 +696,7 @@ static void sound_irq2(int state)
 	cpu_set_irq_line(1,0,state);
 }
 
-static void sound_bankswitch_w(int offset,int data)
+static WRITE_HANDLER( sound_bankswitch_w )
 {
 	/* the second OKIM6295 ROM is bank switched */
 	OKIM6295_set_bank_base(1, ALL_VOICES, (data & 1) * 0x40000);
@@ -761,10 +757,10 @@ static struct MachineDriver machine_driver_cninja =
 	2048, 2048,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK | VIDEO_BUFFERS_SPRITERAM,
 	0,
 	cninja_vh_start,
-	cninja_vh_stop,
+	0,
 	cninja_vh_screenrefresh,
 
 	/* sound hardware */
@@ -813,10 +809,10 @@ static struct MachineDriver machine_driver_stoneage =
 	2048, 2048,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK | VIDEO_BUFFERS_SPRITERAM,
 	0,
-	cninja_vh_start,
-	cninja_vh_stop,
+	stoneage_vh_start,
+	0,
 	cninja_vh_screenrefresh,
 
 	/* sound hardware */
@@ -861,10 +857,10 @@ static struct MachineDriver machine_driver_edrandy =
 	2048, 2048,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK | VIDEO_BUFFERS_SPRITERAM,
 	0,
-	cninja_vh_start,
-	cninja_vh_stop,
+	edrandy_vh_start,
+	0,
 	cninja_vh_screenrefresh,
 
 	/* sound hardware */
@@ -1170,7 +1166,6 @@ ROM_START( edrandyj )
 	ROM_REGION( 0x80000, REGION_SOUND2 ) /* Extra Oki samples */
 	ROM_LOAD( "mad-13", 0x00000, 0x80000, 0x6ab28eba )	/* banked */
 ROM_END
-
 
 /**********************************************************************************/
 

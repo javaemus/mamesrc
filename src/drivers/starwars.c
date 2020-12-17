@@ -20,28 +20,28 @@ Release 2.0 (6 August 1997)
 #include "machine/atari_vg.h"
 
 /* formerly sndhrdw/starwars.h */
-int  starwars_main_read_r(int);
-int  starwars_main_ready_flag_r(int);
-void starwars_main_wr_w(int, int);
-void starwars_soundrst(int, int);
+READ_HANDLER( starwars_main_read_r );
+READ_HANDLER( starwars_main_ready_flag_r );
+WRITE_HANDLER( starwars_main_wr_w );
+WRITE_HANDLER( starwars_soundrst_w );
 
-int  starwars_sin_r(int);
-int  starwars_m6532_r(int);
+READ_HANDLER( starwars_sin_r );
+READ_HANDLER( starwars_m6532_r );
 
-void starwars_sout_w(int, int);
-void starwars_m6532_w(int, int);
+WRITE_HANDLER( starwars_sout_w );
+WRITE_HANDLER( starwars_m6532_w );
 
 /* formerly machine/starwars.h */
-int  starwars_input_bank_1_r(int);
+READ_HANDLER( starwars_input_bank_1_r );
 void starwars_wdclr(int, int);
 
-int  starwars_control_r (int offset);
-void starwars_control_w (int offset, int data);
+READ_HANDLER( starwars_control_r );
+WRITE_HANDLER( starwars_control_w );
 int  starwars_interrupt (void);
 
 
 static unsigned char *nvram;
-static int nvram_size;
+static size_t nvram_size;
 
 static void nvram_handler(void *file, int read_or_write)
 {
@@ -58,7 +58,7 @@ static void nvram_handler(void *file, int read_or_write)
 
 
 
-void starwars_out_w (int offset, int data)
+WRITE_HANDLER( starwars_out_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1);
 
@@ -77,7 +77,7 @@ void starwars_out_w (int offset, int data)
 			osd_led_w (1, data >> 7);
 			break;
 		case 4:
-//			if (errorlog) fprintf (errorlog, "bank_switch_w, %02x\n", data);
+//			logerror("bank_switch_w, %02x\n", data);
 			if (data & 0x80)
 			{
 				cpu_setbank(1,&RAM[0x10000])
@@ -90,13 +90,13 @@ void starwars_out_w (int offset, int data)
 			}
 			break;
 		case 5:
-			prngclr (offset, data);
+			prngclr_w (offset, data);
 			break;
 		case 6:
 			osd_led_w (0, data >> 7);
 			break;	/* LED 1 */
 		case 7:
-			if (errorlog) fprintf (errorlog, "recall\n"); /* what's that? */
+			logerror("recall\n"); /* what's that? */
 			break;
 	}
 }
@@ -104,14 +104,14 @@ void starwars_out_w (int offset, int data)
 /* machine/slapstic.c */
 void slapstic_init (int chip);
 int slapstic_bank (void);
-int slapstic_tweak (int offset);
+int slapstic_tweak (offs_t offset);
 
 static unsigned char *slapstic_base;	/* ASG - made static */
 static unsigned char *slapstic_area;
 
 /* ASG - added this (including the function) */
 static int last_bank;
-static int esb_slapstic_tweak(int offset)
+static int esb_slapstic_tweak(offs_t offset)
 {
 	int bank = slapstic_tweak(offset);
 	if (bank != last_bank)
@@ -122,7 +122,7 @@ static int esb_slapstic_tweak(int offset)
 	return bank;
 }
 
-static int esb_setopbase (int pc)
+static OPBASE_HANDLER( esb_setopbase )
 {
 	int prevpc = cpu_getpreviouspc ();
 	int bank;
@@ -145,22 +145,22 @@ static int esb_setopbase (int pc)
 	 *		ROM, so it doesn't matter which version we're actually executing.
 	 */
 
-	if ((pc & 0xe000) == 0x8000)
+	if ((address & 0xe000) == 0x8000)
 	{
-//		if (errorlog) fprintf (errorlog, "      new pc inside of slapstic region: %04x (prev = %04x)\n", pc, prevpc);
-		bank = esb_slapstic_tweak ((pc) & 0x1fff);	/* ASG - switched to ESB version */
+//		logerror("      new pc inside of slapstic region: %04x (prev = %04x)\n", pc, prevpc);
+		bank = esb_slapstic_tweak ((address) & 0x1fff);	/* ASG - switched to ESB version */
 		/* catching every branch during slapstic area */
 		catch_nextBranch();
 		return -1;
 	}
 	else if ((prevpc & 0xe000) == 0x8000)
  {
-//  if (errorlog) fprintf (errorlog, "      old pc inside of slapstic region: %04x (new = %04x)\n", prevpc, pc);
+//  logerror("      old pc inside of slapstic region: %04x (new = %04x)\n", prevpc, pc);
 if (prevpc != 0x8080 && prevpc != 0x8090 && prevpc != 0x80a0 && prevpc !=0x80b0)
   bank = esb_slapstic_tweak ((prevpc) & 0x1fff);	/* ASG - switched to ESB version */
  }
 
-	return pc;
+	return address;
 }
 
 void esb_init_machine (void)
@@ -183,20 +183,20 @@ void esb_init_machine (void)
  *
  *************************************/
 
-int esb_slapstic_r (int offset)
+READ_HANDLER( esb_slapstic_r )
 {
 	int val;
 
 	int bank = (esb_slapstic_tweak (offset) * 0x2000);	/* ASG - switched to ESB version */
 	val = slapstic_base[bank + (offset & 0x1fff)];
-//	if (errorlog) fprintf (errorlog, "slapstic_r, %04x: %02x\n", 0x8000 + offset, val);
+//	logerror("slapstic_r, %04x: %02x\n", 0x8000 + offset, val);
 	return val;
 }
 
 
-void esb_slapstic_w (int offset, int data)
+WRITE_HANDLER( esb_slapstic_w )
 {
-//	if (errorlog) fprintf (errorlog, "esb slapstic tweak via write\n");
+//	logerror("esb slapstic tweak via write\n");
 	esb_slapstic_tweak (offset);	/* ASG - switched to ESB version */
 }
 
@@ -213,9 +213,9 @@ static struct MemoryReadAddress readmem[] =
 	{ 0x4400, 0x4400, starwars_main_read_r },
 	{ 0x4401, 0x4401, starwars_main_ready_flag_r },
 	{ 0x4500, 0x45ff, MRA_RAM },		/* nov_ram */
-	{ 0x4700, 0x4700, reh },
-	{ 0x4701, 0x4701, rel },
-	{ 0x4703, 0x4703, prng },			/* pseudo random number generator */
+	{ 0x4700, 0x4700, reh_r },
+	{ 0x4701, 0x4701, rel_r },
+	{ 0x4703, 0x4703, prng_r },			/* pseudo random number generator */
 /*	{ 0x4800, 0x4fff, MRA_RAM }, */		/* cpu_ram */
 /*	{ 0x5000, 0x5fff, MRA_RAM }, */		/* (math_ram_r) math_ram */
 	{ 0x4800, 0x5fff, MRA_RAM },		/* CPU and Math RAM */
@@ -244,15 +244,15 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x3000, 0x3fff, MWA_ROM },		/* vector_rom */
 	{ 0x4400, 0x4400, starwars_main_wr_w },
 	{ 0x4500, 0x45ff, MWA_RAM, &nvram, &nvram_size },		/* nov_ram */
-	{ 0x4600, 0x461f, avgdvg_go },
-	{ 0x4620, 0x463f, avgdvg_reset },
+	{ 0x4600, 0x461f, avgdvg_go_w },
+	{ 0x4620, 0x463f, avgdvg_reset_w },
 	{ 0x4640, 0x465f, MWA_NOP },		/* (wdclr) Watchdog clear */
 	{ 0x4660, 0x467f, MWA_NOP },        /* irqclr: clear periodic interrupt */
 	{ 0x4680, 0x4687, starwars_out_w },
 	{ 0x46a0, 0x46bf, MWA_NOP },		/* nstore */
 	{ 0x46c0, 0x46c2, starwars_control_w },	/* Selects which a-d control port (0-3) will be read */
-	{ 0x46e0, 0x46e0, starwars_soundrst },
-	{ 0x4700, 0x4707, swmathbx },
+	{ 0x46e0, 0x46e0, starwars_soundrst_w },
+	{ 0x4700, 0x4707, swmathbx_w },
 /*	{ 0x4800, 0x4fff, MWA_RAM }, */		/* cpu_ram */
 /*	{ 0x5000, 0x5fff, MWA_RAM }, */		/* (math_ram_w) math_ram */
 	{ 0x4800, 0x5fff, MWA_RAM },		/* CPU and Math RAM */
@@ -285,9 +285,9 @@ static struct MemoryReadAddress esb_readmem[] =
 	{ 0x4400, 0x4400, starwars_main_read_r },
 	{ 0x4401, 0x4401, starwars_main_ready_flag_r },
 	{ 0x4500, 0x45ff, MRA_RAM },		/* nov_ram */
-	{ 0x4700, 0x4700, reh },
-	{ 0x4701, 0x4701, rel },
-	{ 0x4703, 0x4703, prng },			/* pseudo random number generator */
+	{ 0x4700, 0x4700, reh_r },
+	{ 0x4701, 0x4701, rel_r },
+	{ 0x4703, 0x4703, prng_r },			/* pseudo random number generator */
 /*	{ 0x4800, 0x4fff, MRA_RAM }, */		/* cpu_ram */
 /*	{ 0x5000, 0x5fff, MRA_RAM }, */		/* (math_ram_r) math_ram */
 	{ 0x4800, 0x5fff, MRA_RAM },		/* CPU and Math RAM */
@@ -303,15 +303,15 @@ static struct MemoryWriteAddress esb_writemem[] =
 	{ 0x3000, 0x3fff, MWA_ROM },		/* vector_rom */
 	{ 0x4400, 0x4400, starwars_main_wr_w },
 	{ 0x4500, 0x45ff, MWA_RAM },		/* nov_ram */
-	{ 0x4600, 0x461f, avgdvg_go },
-	{ 0x4620, 0x463f, avgdvg_reset },
+	{ 0x4600, 0x461f, avgdvg_go_w },
+	{ 0x4620, 0x463f, avgdvg_reset_w },
 	{ 0x4640, 0x465f, MWA_NOP },		/* (wdclr) Watchdog clear */
 	{ 0x4660, 0x467f, MWA_NOP },        /* irqclr: clear periodic interrupt */
 	{ 0x4680, 0x4687, starwars_out_w },
 	{ 0x46a0, 0x46bf, MWA_NOP },		/* nstore */
 	{ 0x46c0, 0x46c2, starwars_control_w },	/* Selects which a-d control port (0-3) will be read */
-	{ 0x46e0, 0x46e0, starwars_soundrst },
-	{ 0x4700, 0x4707, swmathbx },
+	{ 0x46e0, 0x46e0, starwars_soundrst_w },
+	{ 0x4700, 0x4707, swmathbx_w },
 /*	{ 0x4800, 0x4fff, MWA_RAM }, */		/* cpu_ram */
 /*	{ 0x5000, 0x5fff, MWA_RAM }, */		/* (math_ram_w) math_ram */
 	{ 0x4800, 0x5fff, MWA_RAM },		/* CPU and Math RAM */
@@ -534,14 +534,14 @@ static struct MachineDriver machine_driver_starwars =
 	/* video hardware */
 	400, 300, { 0, 250, 0, 280 },
 	0,
-	256,256, /* Number of colours, length of colour lookup table */
+	256,0, /* Number of colours, length of colour lookup table */
 	avg_init_palette_swars,
 
 	VIDEO_TYPE_VECTOR,
 	0,							/* Handler to initialise video handware */
 	avg_start_starwars,			/* Start video hardware */
 	avg_stop,					/* Stop video hardware */
-	avg_screenrefresh,			/* Do a screen refresh */
+	vector_vh_screenrefresh,	/* Do a screen refresh */
 
 	/* sound hardware */
 	0,0,0,0,
@@ -588,14 +588,14 @@ static struct MachineDriver machine_driver_esb =
 	/* video hardware */
 	400, 300, { 0, 250, 0, 280 },
 	0,
-	256,256, /* Number of colours, length of colour lookup table */
+	256,0, /* Number of colours, length of colour lookup table */
 	avg_init_palette_swars,
 
 	VIDEO_TYPE_VECTOR,
 	0,							/* Handler to initialise video handware */
 	avg_start_starwars,			/* Start video hardware */
 	avg_stop,					/* Stop video hardware */
-	avg_screenrefresh,			/* Do a screen refresh */
+	vector_vh_screenrefresh,	/* Do a screen refresh */
 
 	/* sound hardware */
 	0,0,0,0,

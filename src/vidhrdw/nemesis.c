@@ -13,7 +13,7 @@ unsigned char *nemesis_videoram2;
 
 unsigned char *nemesis_characterram;
 unsigned char *nemesis_characterram_gfx;
-int nemesis_characterram_size;
+size_t nemesis_characterram_size;
 unsigned char *nemesis_xscroll1,*nemesis_xscroll2,*nemesis_yscroll;
 unsigned char *nemesis_yscroll1,*nemesis_yscroll2;
 
@@ -32,7 +32,7 @@ static unsigned char *sprite3232_dirty;	/* 128 sprites */
 static unsigned char *sprite168_dirty;	/* 1024 sprites */
 static unsigned char *sprite6464_dirty;	/* 32 sprites */
 
-void nemesis_palette_w(int offset,int data)
+WRITE_HANDLER( nemesis_palette_w )
 {
 	int r,g,b,bit1,bit2,bit3,bit4,bit5;
 
@@ -76,7 +76,7 @@ void nemesis_palette_w(int offset,int data)
 	palette_change_color(offset / 2,r,g,b);
 }
 
-void salamander_palette_w(int offset,int data)
+WRITE_HANDLER( salamander_palette_w )
 {
 	int r,g,b;
 
@@ -96,12 +96,12 @@ void salamander_palette_w(int offset,int data)
 	palette_change_color(offset / 4,r,g,b);
 }
 
-int nemesis_videoram1_r(int offset)
+READ_HANDLER( nemesis_videoram1_r )
 {
 	return READ_WORD(&nemesis_videoram1[offset]);
 }
 
-void nemesis_videoram1_w(int offset,int data)
+WRITE_HANDLER( nemesis_videoram1_w )
 {
 	COMBINE_WORD_MEM(&nemesis_videoram1[offset],data);
 	if (offset < 0x1000)
@@ -110,12 +110,12 @@ void nemesis_videoram1_w(int offset,int data)
 		video2_dirty[(offset - 0x1000) / 2] = 1;
 }
 
-int nemesis_videoram2_r(int offset)
+READ_HANDLER( nemesis_videoram2_r )
 {
 	return READ_WORD(&nemesis_videoram2[offset]);
 }
 
-void nemesis_videoram2_w(int offset,int data)
+WRITE_HANDLER( nemesis_videoram2_w )
 {
 	COMBINE_WORD_MEM(&nemesis_videoram2[offset],data);
 	if (offset < 0x1000)
@@ -125,17 +125,17 @@ void nemesis_videoram2_w(int offset,int data)
 }
 
 
-int  gx400_xscroll1_r(int offset) { return READ_WORD(&nemesis_xscroll1[offset]);}
-int  gx400_xscroll2_r(int offset) { return READ_WORD(&nemesis_xscroll2[offset]);}
-int  gx400_yscroll_r(int offset) { return READ_WORD(&nemesis_yscroll[offset]);}
+READ_HANDLER( gx400_xscroll1_r ) { return READ_WORD(&nemesis_xscroll1[offset]);}
+READ_HANDLER( gx400_xscroll2_r ) { return READ_WORD(&nemesis_xscroll2[offset]);}
+READ_HANDLER( gx400_yscroll_r ) { return READ_WORD(&nemesis_yscroll[offset]);}
 
-void gx400_xscroll1_w(int offset,int data) { COMBINE_WORD_MEM(&nemesis_xscroll1[offset],data);}
-void gx400_xscroll2_w(int offset,int data) { COMBINE_WORD_MEM(&nemesis_xscroll2[offset],data);}
-void gx400_yscroll_w(int offset,int data) { COMBINE_WORD_MEM(&nemesis_yscroll[offset],data);}
+WRITE_HANDLER( gx400_xscroll1_w ) { COMBINE_WORD_MEM(&nemesis_xscroll1[offset],data);}
+WRITE_HANDLER( gx400_xscroll2_w ) { COMBINE_WORD_MEM(&nemesis_xscroll2[offset],data);}
+WRITE_HANDLER( gx400_yscroll_w ) { COMBINE_WORD_MEM(&nemesis_yscroll[offset],data);}
 
 
 /* we have to straighten out the 16-bit word into bytes for gfxdecode() to work */
-int nemesis_characterram_r(int offset)
+READ_HANDLER( nemesis_characterram_r )
 {
 	int res;
 
@@ -148,7 +148,7 @@ int nemesis_characterram_r(int offset)
 	return res;
 }
 
-void nemesis_characterram_w(int offset,int data)
+WRITE_HANDLER( nemesis_characterram_w )
 {
 	int oldword = READ_WORD(&nemesis_characterram_gfx[offset]);
 	int newword;
@@ -181,10 +181,10 @@ void nemesis_characterram_w(int offset,int data)
 /* free the palette dirty array */
 void nemesis_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap);
-	osd_free_bitmap(tmpbitmap2);
-	osd_free_bitmap(tmpbitmap3);
-	osd_free_bitmap(tmpbitmap4);
+	bitmap_free(tmpbitmap);
+	bitmap_free(tmpbitmap2);
+	bitmap_free(tmpbitmap3);
+	bitmap_free(tmpbitmap4);
 	tmpbitmap=0;
 	free (char_dirty);
 	free (sprite_dirty);
@@ -203,25 +203,25 @@ void nemesis_vh_stop(void)
 /* claim a palette dirty array */
 int nemesis_vh_start(void)
 {
-	if ((tmpbitmap = osd_new_bitmap(2 * Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap = bitmap_alloc(2 * Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		nemesis_vh_stop();
 		return 1;
 	}
 
-	if ((tmpbitmap2 = osd_new_bitmap(2 * Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(2 * Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		nemesis_vh_stop();
 		return 1;
 	}
 
-	if ((tmpbitmap3 = osd_new_bitmap(2 * Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap3 = bitmap_alloc(2 * Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		nemesis_vh_stop();
 		return 1;
 	}
 
-	if ((tmpbitmap4 = osd_new_bitmap(2 * Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap4 = bitmap_alloc(2 * Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		nemesis_vh_stop();
 		return 1;
@@ -878,7 +878,7 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 							color,
 							flipx,flipy,
 							sx,sy,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+							&Machine->visible_area,TRANSPARENCY_PEN,0);
 				}
 				else if(zoom>=0x80)
 				{
@@ -887,7 +887,7 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 							color,
 							flipx,flipy,
 							sx,sy,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0,zoom);
+							&Machine->visible_area,TRANSPARENCY_PEN,0,zoom);
 				}
 				else if(zoom>=0x10)
 				{
@@ -896,7 +896,7 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 							color,
 							flipx,flipy,
 							sx,sy,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0,zoom);
+							&Machine->visible_area,TRANSPARENCY_PEN,0,zoom);
 				}
 			} /* if sprite */
 		} /* for loop */
@@ -1029,7 +1029,7 @@ static void setup_palette(void)
 					}
 					break;
 				default:
-					if(errorlog) fprintf(errorlog,"UN-SUPPORTED SPRITE SIZE %-4x\n",size&0x38);
+					logerror("UN-SUPPORTED SPRITE SIZE %-4x\n",size&0x38);
 				case 0x38:
 					/* sprite 16x16 */
 					char_type=1;
@@ -1247,7 +1247,7 @@ void nemesis_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	setup_backgrounds();
 
 	/* screen flash */
-	fillbitmap(bitmap,Machine->pens[READ_WORD(&paletteram[0x00]) & 0x7ff],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->pens[READ_WORD(&paletteram[0x00]) & 0x7ff],&Machine->visible_area);
 
 	/* Copy the background bitmap */
 	yscroll = -(READ_WORD(&nemesis_yscroll[0x300]) & 0xff);	/* used on nemesis level 2 */
@@ -1256,7 +1256,7 @@ void nemesis_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		xscroll2[offs] = -((READ_WORD(&nemesis_xscroll2[2 * offs]) & 0xff) +
 				((READ_WORD(&nemesis_xscroll2[0x200 + 2 * offs]) & 1) << 8));
 	}
-	copyscrollbitmap(bitmap,tmpbitmap,256,xscroll2,1,&yscroll,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,tmpbitmap,256,xscroll2,1,&yscroll,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 	/* Do the foreground */
 	for (offs = 0;offs < 256;offs++)
@@ -1264,12 +1264,12 @@ void nemesis_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		xscroll[offs] = -((READ_WORD(&nemesis_xscroll1[2 * offs]) & 0xff) +
 				((READ_WORD(&nemesis_xscroll1[0x200 + 2 * offs]) & 1) << 8));
 	}
-	copyscrollbitmap(bitmap,tmpbitmap2,256,xscroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,tmpbitmap2,256,xscroll,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 	draw_sprites(bitmap);
 
-	copyscrollbitmap(bitmap,tmpbitmap3,256,xscroll2,1,&yscroll,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
-	copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,tmpbitmap3,256,xscroll2,1,&yscroll,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 	for (offs = 0; offs < 2048; offs++)
 	{
@@ -1295,7 +1295,7 @@ void twinbee_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		xscroll2[offs] = -((READ_WORD(&nemesis_xscroll2[2 * offs]) & 0xff) +
 				((READ_WORD(&nemesis_xscroll2[0x200 + 2 * offs]) & 1) << 8));
 	}
-	copyscrollbitmap(bitmap,tmpbitmap,256,xscroll2,1,&yscroll,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copyscrollbitmap(bitmap,tmpbitmap,256,xscroll2,1,&yscroll,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	/* Do the foreground */
 	for (offs = 0;offs < 256;offs++)
@@ -1303,7 +1303,7 @@ void twinbee_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		xscroll[offs] = -((READ_WORD(&nemesis_xscroll1[2 * offs]) & 0xff) +
 				((READ_WORD(&nemesis_xscroll1[0x200 + 2 * offs]) & 1) << 8));
 	}
-	copyscrollbitmap(bitmap,tmpbitmap2,256,xscroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,tmpbitmap2,256,xscroll,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 	if (Machine->orientation & ORIENTATION_SWAP_XY)
 		Machine->orientation ^= ORIENTATION_FLIP_X;
@@ -1317,8 +1317,8 @@ void twinbee_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	else
 		Machine->orientation ^= ORIENTATION_FLIP_Y;
 
-	copyscrollbitmap(bitmap,tmpbitmap3,256,xscroll2,1,&yscroll,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
-	copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,tmpbitmap3,256,xscroll2,1,&yscroll,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 	for (offs = 0; offs < 2048; offs++)
 	{
@@ -1339,7 +1339,7 @@ void salamand_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	setup_backgrounds();
 
 	/* screen flash */
-	fillbitmap(bitmap,Machine->pens[READ_WORD(&paletteram[0x00]) & 0x7ff],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->pens[READ_WORD(&paletteram[0x00]) & 0x7ff],&Machine->visible_area);
 
 	/* Kludge - check if we need row or column scroll */
 	if (READ_WORD(&nemesis_yscroll[0x780]) || READ_WORD(&nemesis_yscroll[0x790])) {
@@ -1351,14 +1351,14 @@ void salamand_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			yscroll[l] = yscroll[l+64] = -READ_WORD(&nemesis_yscroll[offs]);
 			l++;
 		}
-		copyscrollbitmap(bitmap,tmpbitmap2,0,0,128,yscroll,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,tmpbitmap2,0,0,128,yscroll,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 	} else { /* Rowscroll */
 		for (offs = 0;offs < 256;offs++)
 		{
 			xscroll[offs] = -((READ_WORD(&nemesis_xscroll1[2 * offs]) & 0xff) +
 					((READ_WORD(&nemesis_xscroll1[0x200 + 2 * offs]) & 1) << 8));
 		}
-		copyscrollbitmap(bitmap,tmpbitmap2,256,xscroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,tmpbitmap2,256,xscroll,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 	}
 
 	/* Copy the foreground bitmap */
@@ -1370,32 +1370,32 @@ void salamand_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			yscroll2[l] = yscroll2[l+64] = -READ_WORD(&nemesis_yscroll[offs]);
 			l++;
 		}
-		copyscrollbitmap(bitmap,tmpbitmap,0,0,128,yscroll2,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,tmpbitmap,0,0,128,yscroll2,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 		draw_sprites(bitmap);
 
 		if (culumn_scroll)
-			copyscrollbitmap(bitmap,tmpbitmap4,0,0,128,yscroll,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+			copyscrollbitmap(bitmap,tmpbitmap4,0,0,128,yscroll,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 		else
-			copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+			copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
-		copyscrollbitmap(bitmap,tmpbitmap3,0,0,128,yscroll2,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,tmpbitmap3,0,0,128,yscroll2,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 	} else { /* Rowscroll */
 		for (offs = 0;offs < 256;offs++)
 		{
 			xscroll2[offs] = -((READ_WORD(&nemesis_xscroll2[2 * offs]) & 0xff) +
 					((READ_WORD(&nemesis_xscroll2[0x200 + 2 * offs]) & 1) << 8));
 		}
-		copyscrollbitmap(bitmap,tmpbitmap,256,xscroll2,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,tmpbitmap,256,xscroll2,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 		draw_sprites(bitmap);
 
 		if (culumn_scroll)
-			copyscrollbitmap(bitmap,tmpbitmap4,0,0,128,yscroll,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+			copyscrollbitmap(bitmap,tmpbitmap4,0,0,128,yscroll,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 		else
-			copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+			copyscrollbitmap(bitmap,tmpbitmap4,256,xscroll,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
-		copyscrollbitmap(bitmap,tmpbitmap3,256,xscroll2,0,0,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+		copyscrollbitmap(bitmap,tmpbitmap3,256,xscroll2,0,0,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 	}
 
 	for (offs = 0; offs < 2048; offs++)

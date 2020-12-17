@@ -60,8 +60,8 @@ driver by Zsolt Vasvari and Alex Pasadyn
 #include "cpu/tms34010/tms34010.h"
 
 static unsigned char *eeprom;
-static int eeprom_size;
-static int code_rom_size;
+static size_t eeprom_size;
+static size_t code_rom_size;
 unsigned char *exterm_code_rom;
 
 extern unsigned char *exterm_master_speedup, *exterm_slave_speedup;
@@ -71,9 +71,9 @@ extern unsigned char *exterm_master_videoram, *exterm_slave_videoram;
 void exterm_init_palette(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int  exterm_vh_start(void);
 void exterm_vh_stop (void);
-int  exterm_master_videoram_r(int offset);
-int  exterm_slave_videoram_r(int offset);
-void exterm_paletteram_w(int offset, int data);
+READ_HANDLER( exterm_master_videoram_r );
+READ_HANDLER( exterm_slave_videoram_r );
+WRITE_HANDLER( exterm_paletteram_w );
 void exterm_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void exterm_to_shiftreg_master(unsigned int address, unsigned short* shiftreg);
 void exterm_from_shiftreg_master(unsigned int address, unsigned short* shiftreg);
@@ -81,23 +81,23 @@ void exterm_to_shiftreg_slave(unsigned int address, unsigned short* shiftreg);
 void exterm_from_shiftreg_slave(unsigned int address, unsigned short* shiftreg);
 
 /* Functions in sndhrdw/gottlieb.c */
-void gottlieb_sh_w(int offset,int data);
-int  gottlieb_cause_dac_nmi_r(int offset);
-void gottlieb_nmi_rate_w(int offset, int data);
-void exterm_sound_control_w(int offset, int data);
-void exterm_ym2151_w(int offset, int data);
+WRITE_HANDLER( gottlieb_sh_w );
+READ_HANDLER( gottlieb_cause_dac_nmi_r );
+WRITE_HANDLER( gottlieb_nmi_rate_w );
+WRITE_HANDLER( exterm_sound_control_w );
+WRITE_HANDLER( exterm_ym2151_w );
 
 /* Functions in machine/exterm.c */
-void exterm_host_data_w(int offset, int data);
-int  exterm_host_data_r(int offset);
-int  exterm_coderom_r(int offset);
-int  exterm_input_port_0_1_r(int offset);
-int  exterm_input_port_2_3_r(int offset);
-void exterm_output_port_0_w(int offset, int data);
-int  exterm_master_speedup_r(int offset);
-void exterm_slave_speedup_w(int offset, int data);
-int  exterm_sound_dac_speedup_r(int offset);
-int  exterm_sound_ym2151_speedup_r(int offset);
+WRITE_HANDLER( exterm_host_data_w );
+READ_HANDLER( exterm_host_data_r );
+READ_HANDLER( exterm_coderom_r );
+READ_HANDLER( exterm_input_port_0_1_r );
+READ_HANDLER( exterm_input_port_2_3_r );
+WRITE_HANDLER( exterm_output_port_0_w );
+READ_HANDLER( exterm_master_speedup_r );
+WRITE_HANDLER( exterm_slave_speedup_w );
+READ_HANDLER( exterm_sound_dac_speedup_r );
+READ_HANDLER( exterm_sound_ym2151_speedup_r );
 
 
 static void nvram_handler(void *file, int read_or_write)
@@ -138,12 +138,12 @@ static struct MemoryReadAddress master_readmem[] =
 	{ TOBYTE(0x02800000), TOBYTE(0x02807fff), MRA_BANK2 },
 	{ TOBYTE(0x03000000), TOBYTE(0x03ffffff), exterm_coderom_r },
 	{ TOBYTE(0x3f000000), TOBYTE(0x3fffffff), exterm_coderom_r },
-	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), TMS34010_io_register_r },
+	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), tms34010_io_register_r },
 	{ TOBYTE(0xff000000), TOBYTE(0xffffffff), MRA_BANK3 },
 	{ -1 }  /* end of table */
 };
 
-static void placeholder(int offset,int data)
+static WRITE_HANDLER( placeholder )
 {}
 
 static struct MemoryWriteAddress master_writemem[] =
@@ -159,7 +159,7 @@ static struct MemoryWriteAddress master_writemem[] =
 	{ TOBYTE(0x015c0000), TOBYTE(0x015c000f), watchdog_reset_w },
 	{ TOBYTE(0x01800000), TOBYTE(0x01807fff), exterm_paletteram_w, &paletteram },
 	{ TOBYTE(0x02800000), TOBYTE(0x02807fff), MWA_BANK2, &eeprom, &eeprom_size }, /* EEPROM */
-	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), TMS34010_io_register_w },
+	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), tms34010_io_register_w },
 	{ TOBYTE(0xff000000), TOBYTE(0xffffffff), MWA_BANK3, &exterm_code_rom, &code_rom_size },
 	{ -1 }  /* end of table */
 };
@@ -177,7 +177,7 @@ static struct tms34010_config slave_config =
 static struct MemoryReadAddress slave_readmem[] =
 {
 	{ TOBYTE(0x00000000), TOBYTE(0x000fffff), exterm_slave_videoram_r },
-	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), TMS34010_io_register_r },
+	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), tms34010_io_register_r },
 	{ TOBYTE(0xff800000), TOBYTE(0xffffffff), MRA_BANK4 },
 	{ -1 }  /* end of table */
 };
@@ -187,7 +187,7 @@ static struct MemoryWriteAddress slave_writemem[] =
 	{ TOBYTE(0x00000000), TOBYTE(0x000fffff), placeholder, &exterm_slave_videoram },
 /*{ TOBYTE(0x00000000), TOBYTE(0x000fffff), exterm_slave_videoram_16_w },      OR		*/
 /*{ TOBYTE(0x00000000), TOBYTE(0x000fffff), exterm_slave_videoram_8_w },       OR		*/
-	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), TMS34010_io_register_w },
+	{ TOBYTE(0xc0000000), TOBYTE(0xc00001ff), tms34010_io_register_w },
 	{ TOBYTE(0xfffffb90), TOBYTE(0xfffffb90), exterm_slave_speedup_w, &exterm_slave_speedup },
 	{ TOBYTE(0xff800000), TOBYTE(0xffffffff), MWA_BANK4 },
 	{ -1 }  /* end of table */
@@ -206,7 +206,8 @@ static struct MemoryReadAddress sound_dac_readmem[] =
 static struct MemoryWriteAddress sound_dac_writemem[] =
 {
 	{ 0x0000, 0x07ff, MWA_RAM },
-	{ 0x8000, 0x8001, DAC_data_w },
+	{ 0x8000, 0x8000, DAC_0_data_w },
+	{ 0x8001, 0x8001, DAC_1_data_w },
 	{ -1 }  /* end of table */
 };
 
@@ -316,14 +317,14 @@ static struct MachineDriver machine_driver_exterm =
 	{
 		{
 			CPU_TMS34010,
-			40000000/8,	/* 40 Mhz */
+			40000000/TMS34010_CLOCK_DIVIDER,	/* 40 Mhz */
             master_readmem,master_writemem,0,0,
             ignore_interrupt,0,  /* Display Interrupts caused internally */
             0,0,&master_config
 		},
 		{
 			CPU_TMS34010,
-			40000000/8,	/* 40 Mhz */
+			40000000/TMS34010_CLOCK_DIVIDER,	/* 40 Mhz */
             slave_readmem,slave_writemem,0,0,
             ignore_interrupt,0,  /* Display Interrupts caused internally */
             0,0,&slave_config
@@ -421,9 +422,6 @@ ROM_END
 void init_exterm(void)
 {
 	memcpy (exterm_code_rom,memory_region(REGION_CPU1),code_rom_size);
-
-	TMS34010_set_stack_base(0, cpu_bankbase[1], TOBYTE(0x00c00000));
-	TMS34010_set_stack_base(1, cpu_bankbase[4], TOBYTE(0xff800000));
 }
 
 

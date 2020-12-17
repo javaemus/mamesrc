@@ -60,7 +60,7 @@ static void cchasm_refresh (void)
             break;
         case JUMP:
             pc = data - 0xb00;
-            if (errorlog) fprintf (errorlog, "JUMP to %x\n", data);
+            logerror("JUMP to %x\n", data);
             break;
         case COLOR:
             data = data ^ 0xfff;
@@ -98,7 +98,7 @@ static void cchasm_refresh (void)
                 move = 1;
             break;
         default:
-            if (errorlog) fprintf (errorlog,"Unknown refresh proc opcode %x with data %x at pc = %x\n", opcode, data, pc-2);
+            logerror("Unknown refresh proc opcode %x with data %x at pc = %x\n", opcode, data, pc-2);
             done = 1;
             break;
 		}
@@ -108,7 +108,7 @@ static void cchasm_refresh (void)
 }
 
 
-void cchasm_refresh_control_w(int offset, int data)
+WRITE_HANDLER( cchasm_refresh_control_w )
 {
     switch (data)
     {
@@ -140,10 +140,10 @@ int cchasm_vh_start (void)
 {
     int xmin, xmax, ymin, ymax;
 
-	xmin=Machine->drv->visible_area.min_x;
-	ymin=Machine->drv->visible_area.min_y;
-	xmax=Machine->drv->visible_area.max_x;
-	ymax=Machine->drv->visible_area.max_y;
+	xmin=Machine->visible_area.min_x;
+	ymin=Machine->visible_area.min_y;
+	xmax=Machine->visible_area.max_x;
+	ymax=Machine->visible_area.max_y;
 
 	xcenter=((xmax+xmin)/2) << VEC_SHIFT;
 	ycenter=((ymax+ymin)/2) << VEC_SHIFT;

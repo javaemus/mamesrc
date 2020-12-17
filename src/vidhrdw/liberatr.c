@@ -121,12 +121,12 @@ INLINE void bitmap_common_w(UINT8 x, UINT8 y, int data)
 	plot_pixel(Machine->scrbitmap, x, y, pen);
 }
 
-void liberatr_bitmap_xy_w(int offset, int data)
+WRITE_HANDLER( liberatr_bitmap_xy_w )
 {
 	bitmap_common_w(*liberatr_x, *liberatr_y, data);
 }
 
-void liberatr_bitmap_w(int offset, int data)
+WRITE_HANDLER( liberatr_bitmap_w )
 {
 	UINT8 x = (offset & 0x3f) << 2;
 	UINT8 y = (offset >> 6);
@@ -140,13 +140,13 @@ void liberatr_bitmap_w(int offset, int data)
 }
 
 
-int liberatr_bitmap_xy_r(int offset)
+READ_HANDLER( liberatr_bitmap_xy_r )
 {
 	return liberatr_videoram[((*liberatr_y)<<8) | (*liberatr_x)];
 }
 
 
-void liberatr_colorram_w(int offset,int data)
+WRITE_HANDLER( liberatr_colorram_w )
 {
 	UINT8 r,g,b;
 
@@ -463,9 +463,9 @@ void liberatr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		UINT8 liberatr_x_save = *liberatr_x;
 
 		/* redraw bitmap */
-		for (*liberatr_y = Machine->drv->visible_area.min_y; *liberatr_y < Machine->drv->visible_area.max_y; (*liberatr_y)++)
+		for (*liberatr_y = Machine->visible_area.min_y; *liberatr_y < Machine->visible_area.max_y; (*liberatr_y)++)
 		{
-			for (*liberatr_x = Machine->drv->visible_area.min_x; *liberatr_x < Machine->drv->visible_area.max_x; (*liberatr_x)++)
+			for (*liberatr_x = Machine->visible_area.min_x; *liberatr_x < Machine->visible_area.max_x; (*liberatr_x)++)
 			{
 				liberatr_bitmap_xy_w(0, liberatr_bitmap_xy_r(0));
 			}

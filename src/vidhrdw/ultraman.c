@@ -18,7 +18,7 @@ extern unsigned char* ultraman_regs;
 
 ***************************************************************************/
 
-static void sprite_callback(int *code,int *color,int *priority)
+static void sprite_callback(int *code,int *color,int *priority,int *shadow)
 {
 	*priority = (*color & 0x80) >> 7;
 	*color = sprite_colorbase + ((*color & 0x7e) >> 1);
@@ -140,11 +140,11 @@ void ultraman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	tilemap_render(ALL_TILEMAPS);
 
-	fillbitmap(bitmap,Machine->pens[zoom_colorbase[2] * 16],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->pens[zoom_colorbase[2] * 16],&Machine->visible_area);
 
-	K051316_zoom_draw_2(bitmap);
-	K051316_zoom_draw_1(bitmap);
+	K051316_zoom_draw_2(bitmap,0);
+	K051316_zoom_draw_1(bitmap,0);
 	K051960_sprites_draw(bitmap,0,0);
-	K051316_zoom_draw_0(bitmap);
+	K051316_zoom_draw_0(bitmap,0);
 	K051960_sprites_draw(bitmap,1,1);
 }

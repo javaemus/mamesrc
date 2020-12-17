@@ -94,7 +94,7 @@ int appoooh_vh_start(void)
 	}
 	memset(dirtybuffer2,1,videoram_size);
 
-	if ((tmpbitmap2 = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer2);
 		generic_vh_stop();
@@ -104,7 +104,7 @@ int appoooh_vh_start(void)
 	return 0;
 }
 
-void appoooh_scroll_w(int offset,int data)
+WRITE_HANDLER( appoooh_scroll_w )
 {
 	scroll_x = data;
 }
@@ -117,12 +117,12 @@ void appoooh_scroll_w(int offset,int data)
 void appoooh_vh_stop(void)
 {
 	free(dirtybuffer2);
-	osd_free_bitmap(tmpbitmap2);
+	bitmap_free(tmpbitmap2);
 	generic_vh_stop();
 
 }
 
-void appoooh_videoram2_w(int offset,int data)
+WRITE_HANDLER( appoooh_videoram2_w )
 {
 	if (appoooh_videoram2[offset] != data)
 	{
@@ -134,7 +134,7 @@ void appoooh_videoram2_w(int offset,int data)
 
 
 
-void appoooh_colorram2_w(int offset,int data)
+WRITE_HANDLER( appoooh_colorram2_w )
 {
 	if (appoooh_colorram2[offset] != data)
 	{
@@ -144,7 +144,7 @@ void appoooh_colorram2_w(int offset,int data)
 	}
 }
 
-void appoooh_out_w(int offset,int data)
+WRITE_HANDLER( appoooh_out_w )
 {
 	/* bit 0 controls NMI */
 	if (data & 0x01) interrupt_enable_w(0,1);
@@ -203,7 +203,7 @@ static void appoooh_draw_sprites(struct osd_bitmap *dest_bmp,
 				color,
 				flipx,flipscreen,
 				sx, sy,
-				&Machine->drv->visible_area,
+				&Machine->visible_area,
 				TRANSPARENCY_PEN , 0);
 	 }
 }
@@ -272,7 +272,7 @@ void appoooh_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					appoooh_colorram2[offs]&0x0f,
 					flipx,flipscreen,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
@@ -280,10 +280,10 @@ void appoooh_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	scroll = 0;
 
 	/* copy the temporary bitmaps to the screen */
-	copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	if (priority == 0)	/* fg behind sprites */
-		copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,CHR1_OFST);
+		copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->visible_area,TRANSPARENCY_COLOR,CHR1_OFST);
 
 	/* draw sprites */
 	if (priority == 1)
@@ -302,5 +302,5 @@ void appoooh_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 
 	if (priority != 0)	/* fg in front of sprites */
-		copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,CHR1_OFST);
+		copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->visible_area,TRANSPARENCY_COLOR,CHR1_OFST);
 }

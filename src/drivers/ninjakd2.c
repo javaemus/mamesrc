@@ -224,10 +224,10 @@ The first sprite data is located at fa0b,then fa1b and so on.
 #include "driver.h"
 #include "vidhrdw/generic.h"
 
-void ninjakd2_bgvideoram_w(int offset, int data);
-void ninjakd2_fgvideoram_w(int offset, int data);
-void ninjakd2_sprite_overdraw_w(int offset, int data);
-void ninjakd2_background_enable_w(int offset, int data);
+WRITE_HANDLER( ninjakd2_bgvideoram_w );
+WRITE_HANDLER( ninjakd2_fgvideoram_w );
+WRITE_HANDLER( ninjakd2_sprite_overdraw_w );
+WRITE_HANDLER( ninjakd2_background_enable_w );
 int  ninjakd2_vh_start(void);
 void ninjakd2_vh_stop(void);
 void ninjakd2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
@@ -239,9 +239,9 @@ extern unsigned char 	*ninjakd2_spoverdraw_ram;
 extern unsigned char 	*ninjakd2_spriteram;
 extern unsigned char 	*ninjakd2_background_videoram;
 extern unsigned char 	*ninjakd2_foreground_videoram;
-extern int 	ninjakd2_spriteram_size;
-extern int	ninjakd2_backgroundram_size;
-extern int 	ninjakd2_foregroundram_size;
+extern size_t ninjakd2_spriteram_size;
+extern size_t ninjakd2_backgroundram_size;
+extern size_t ninjakd2_foregroundram_size;
 
 static int ninjakd2_bank_latch = 255;
 
@@ -284,12 +284,12 @@ int ninjakd2_interrupt(void)
 	return 0x00d7;	/* RST 10h */
 }
 
-int ninjakd2_bankselect_r(int offset)
+READ_HANDLER( ninjakd2_bankselect_r )
 {
 	return ninjakd2_bank_latch;
 }
 
-void ninjakd2_bankselect_w(int offset, int data)
+WRITE_HANDLER( ninjakd2_bankselect_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1);
 	int bankaddress;
@@ -303,7 +303,7 @@ void ninjakd2_bankselect_w(int offset, int data)
 	}
 }
 
-void ninjakd2_pcm_play_w(int offset,int data)
+WRITE_HANDLER( ninjakd2_pcm_play_w )
 {
 	int i;
 	int sample_no[9] = { 0x00,0x0A,0x27,0x3E,0x53,0x5E,0x68,0x76,0xF0 };

@@ -30,7 +30,7 @@ INLINE void aztarac_vector (int x, int y, int color, int intensity)
     vector_add_point (xcenter + (x << VEC_SHIFT), ycenter - (y << VEC_SHIFT), color, intensity);
 }
 
-void aztarac_ubr_w(int offset, int data)
+WRITE_HANDLER( aztarac_ubr_w )
 {
     int x, y, c, intensity, xoffset, yoffset, color;
     int defaddr, objaddr=0, ndefs;
@@ -110,10 +110,10 @@ int aztarac_vh_start (void)
     int xmin, xmax, ymin, ymax;
 
 
-	xmin = Machine->drv->visible_area.min_x;
-	ymin = Machine->drv->visible_area.min_y;
-	xmax = Machine->drv->visible_area.max_x;
-	ymax = Machine->drv->visible_area.max_y;
+	xmin = Machine->visible_area.min_x;
+	ymin = Machine->visible_area.min_y;
+	xmax = Machine->visible_area.max_x;
+	ymax = Machine->visible_area.max_y;
 
 	xcenter=((xmax + xmin) / 2) << VEC_SHIFT;
 	ycenter=((ymax + ymin) / 2) << VEC_SHIFT;

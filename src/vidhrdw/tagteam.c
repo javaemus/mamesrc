@@ -44,7 +44,7 @@ void tagteam_vh_convert_color_prom(unsigned char *palette, unsigned short *color
 	}
 }
 
-int tagteam_mirrorvideoram_r(int offset)
+READ_HANDLER( tagteam_mirrorvideoram_r )
 {
 	int x,y;
 
@@ -56,7 +56,7 @@ int tagteam_mirrorvideoram_r(int offset)
 	return videoram_r(offset);
 }
 
-int tagteam_mirrorcolorram_r(int offset)
+READ_HANDLER( tagteam_mirrorcolorram_r )
 {
 	int x,y;
 
@@ -68,7 +68,7 @@ int tagteam_mirrorcolorram_r(int offset)
 	return colorram_r(offset);
 }
 
-void tagteam_mirrorvideoram_w(int offset,int data)
+WRITE_HANDLER( tagteam_mirrorvideoram_w )
 {
 	int x,y;
 
@@ -80,7 +80,7 @@ void tagteam_mirrorvideoram_w(int offset,int data)
 	videoram_w(offset,data);
 }
 
-void tagteam_mirrorcolorram_w(int offset,int data)
+WRITE_HANDLER( tagteam_mirrorcolorram_w )
 {
 	int x,y;
 
@@ -92,9 +92,9 @@ void tagteam_mirrorcolorram_w(int offset,int data)
 	colorram_w(offset,data);
 }
 
-void tagteam_control_w(int offset,int data)
+WRITE_HANDLER( tagteam_control_w )
 {
-if (errorlog) fprintf(errorlog,"%04x: control = %02x\n",cpu_get_pc(),data);
+logerror("%04x: control = %02x\n",cpu_get_pc(),data);
 
 	/* bit 7 is the palette bank */
 	palettebank = (data & 0x80) >> 7;
@@ -142,12 +142,12 @@ static void drawchars(struct osd_bitmap *bitmap,int color)
 					2*color,	/* guess */
 					flipscreen,flipscreen,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
 	/* copy the temporary bitmap to the screen */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }
 
 static void drawsprites(struct osd_bitmap *bitmap,int color)
@@ -183,7 +183,7 @@ static void drawsprites(struct osd_bitmap *bitmap,int color)
 				1+2*color,	/* guess */
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 
 		sy += (flipscreen ? -256 : 256);
 
@@ -193,7 +193,7 @@ static void drawsprites(struct osd_bitmap *bitmap,int color)
 				color,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }
 

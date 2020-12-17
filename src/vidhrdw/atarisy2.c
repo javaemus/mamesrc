@@ -1,55 +1,9 @@
 /***************************************************************************
 
-  vidhrdw/atarisy2.c
+	Atari System 2 hardware
 
-  Functions to emulate the video hardware of the machine.
+****************************************************************************/
 
-****************************************************************************
-
-	Playfield encoding
-	------------------
-		1 16-bit word is used
-
-		Word 1:
-			Bit  14-15 = image priority
-			Bits 11-13 = palette of the image
-			Bit  10    = index of which bank to use
-			Bits  0-9  = index of the image
-
-
-	Motion Object encoding
-	----------------------
-		4 16-bit words are used
-
-		Word 1:
-			Bits  6-14 = vertical position
-			Bits  0-2  = upper 3 bits of the image index
-
-		Word 2:
-			Bit  15    = hold X position from last MO
-			Bit  14    = horizontal flip
-			Bits 11-13 = size of the image (1..8)
-			Bits  0-10 = index of the image
-
-		Word 3:
- 			Bits  6-15 = horizontal position
-
-		Word 4:
-			Bits 14-15 = image priority
-			Bits 12-13 = palette of the image
-			Bits  3-10 = link to the next motion object
-
-
-	Alpha layer encoding
-	--------------------
-		1 16-bit word is used
-
-		Word 1:
-			Bit  12-15 = color
-			Bit  11    = horizontal flip
-			Bits  0-10 = index of the character
-
-***************************************************************************/
 
 #include "driver.h"
 #include "machine/atarigen.h"
@@ -102,7 +56,6 @@ struct pf_overrender_data
  *
  *************************************/
 
-UINT16 atarisys2_mo_mask;
 UINT8 *atarisys2_slapstic;
 
 
@@ -233,7 +186,7 @@ void atarisys2_vh_stop(void)
  *
  *************************************/
 
-void atarisys2_hscroll_w(int offset, int data)
+WRITE_HANDLER( atarisys2_hscroll_w )
 {
 	int oldword = READ_WORD(&atarigen_hscroll[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -246,12 +199,12 @@ void atarisys2_hscroll_w(int offset, int data)
 
 	/* mark the playfield dirty for those games that handle it */
 	if (oldword != newword && (Machine->drv->video_attributes & VIDEO_SUPPORTS_DIRTY))
-		osd_mark_dirty(Machine->drv->visible_area.min_x, Machine->drv->visible_area.min_y,
-		                Machine->drv->visible_area.max_x, Machine->drv->visible_area.max_y, 0);
+		osd_mark_dirty(Machine->visible_area.min_x, Machine->visible_area.min_y,
+		                Machine->visible_area.max_x, Machine->visible_area.max_y, 0);
 }
 
 
-void atarisys2_vscroll_w(int offset, int data)
+WRITE_HANDLER( atarisys2_vscroll_w )
 {
 	int oldword = READ_WORD(&atarigen_vscroll[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -267,8 +220,8 @@ void atarisys2_vscroll_w(int offset, int data)
 
 	/* mark the playfield dirty for those games that handle it */
 	if (oldword != newword && (Machine->drv->video_attributes & VIDEO_SUPPORTS_DIRTY))
-		osd_mark_dirty(Machine->drv->visible_area.min_x, Machine->drv->visible_area.min_y,
-		                Machine->drv->visible_area.max_x, Machine->drv->visible_area.max_y, 0);
+		osd_mark_dirty(Machine->visible_area.min_x, Machine->visible_area.min_y,
+		                Machine->visible_area.max_x, Machine->visible_area.max_y, 0);
 }
 
 
@@ -279,7 +232,7 @@ void atarisys2_vscroll_w(int offset, int data)
  *
  *************************************/
 
-void atarisys2_paletteram_w(int offset, int data)
+WRITE_HANDLER( atarisys2_paletteram_w )
 {
 	static const int intensity_table[16] =
 	{
@@ -317,7 +270,7 @@ void atarisys2_paletteram_w(int offset, int data)
  *
  *************************************/
 
-int atarisys2_slapstic_r(int offset)
+READ_HANDLER( atarisys2_slapstic_r )
 {
 	slapstic_tweak(offset / 2);
 
@@ -329,7 +282,7 @@ int atarisys2_slapstic_r(int offset)
 }
 
 
-void atarisys2_slapstic_w(int offset, int data)
+WRITE_HANDLER( atarisys2_slapstic_w )
 {
 	slapstic_tweak(offset / 2);
 
@@ -346,13 +299,13 @@ void atarisys2_slapstic_w(int offset, int data)
  *
  *************************************/
 
-int atarisys2_videoram_r(int offset)
+READ_HANDLER( atarisys2_videoram_r )
 {
 	return READ_WORD(&videoram[offset]);
 }
 
 
-void atarisys2_videoram_w(int offset, int data)
+WRITE_HANDLER( atarisys2_videoram_w )
 {
 	int oldword = READ_WORD(&videoram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -415,7 +368,7 @@ void atarisys2_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 		atarigen_overrender_colortable[i] = palette_transparent_pen;
 
 	/* render the playfield */
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* render the motion objects */
 	modata.xhold = 0;
@@ -590,7 +543,7 @@ static void mo_render_callback(const UINT16 *data, const struct rectangle *clip,
 	int hold = data[1] & 0x8000;
 	int hflip = data[1] & 0x4000;
 	int vsize = ((data[1] >> 11) & 7) + 1;
-	int code = ((data[1] & 0x7ff) + ((data[0] & 7) << 11)) & atarisys2_mo_mask;
+	int code = (data[1] & 0x7ff) + ((data[0] & 7) << 11);
 	int xpos = (data[2] >> 6);
 	int color = (data[3] >> 12) & 3;
 	int priority = (data[3] >> 13) & 6;

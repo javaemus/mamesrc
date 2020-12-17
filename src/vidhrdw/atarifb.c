@@ -10,8 +10,8 @@
 #include "vidhrdw/generic.h"
 
 /* local */
-int atarifb_alphap1_vram_size;
-int atarifb_alphap2_vram_size;
+size_t atarifb_alphap1_vram_size;
+size_t atarifb_alphap2_vram_size;
 unsigned char *atarifb_alphap1_vram;
 unsigned char *atarifb_alphap2_vram;
 unsigned char *atarifb_scroll_register;
@@ -20,9 +20,9 @@ unsigned char *alphap2_dirtybuffer;
 
 extern int atarifb_game;
 
-void atarifb_alphap1_vram_w(int offset,int data);
-void atarifb_alphap2_vram_w(int offset,int data);
-void atarifb_scroll_w(int offset,int data);
+WRITE_HANDLER( atarifb_alphap1_vram_w );
+WRITE_HANDLER( atarifb_alphap2_vram_w );
+WRITE_HANDLER( atarifb_scroll_w );
 void atarifb_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 struct rectangle bigfield_area = {  4*8, 34*8-1, 0*8, 32*8-1 };
@@ -31,7 +31,7 @@ struct rectangle right_area =    { 34*8, 38*8-1, 0*8, 32*8-1 };
 
 /***************************************************************************
 ***************************************************************************/
-void atarifb_alphap1_vram_w(int offset,int data)
+WRITE_HANDLER( atarifb_alphap1_vram_w )
 {
 	if (atarifb_alphap1_vram[offset] != data)
 	{
@@ -41,7 +41,7 @@ void atarifb_alphap1_vram_w(int offset,int data)
 	}
 }
 
-void atarifb_alphap2_vram_w(int offset,int data)
+WRITE_HANDLER( atarifb_alphap2_vram_w )
 {
 	if (atarifb_alphap2_vram[offset] != data)
 	{
@@ -53,7 +53,7 @@ void atarifb_alphap2_vram_w(int offset,int data)
 
 /***************************************************************************
 ***************************************************************************/
-void atarifb_scroll_w(int offset,int data)
+WRITE_HANDLER( atarifb_scroll_w )
 {
 	if (data - 8 != *atarifb_scroll_register)
 	{
@@ -410,9 +410,9 @@ extern int atarifb_lamp1, atarifb_lamp2;
 			break;
 	}
 	for (x = 0;x < 20;x++)
-			drawgfx(bitmap,Machine->uifont,buf1[x],DT_COLOR_WHITE,0,0,6*x + 24*8,0,0,TRANSPARENCY_NONE,0);
+			drawgfx(bitmap,Machine->uifont,buf1[x],UI_COLOR_NORMAL,0,0,6*x + 24*8,0,0,TRANSPARENCY_NONE,0);
 
 	for (x = 0;x < 20;x++)
-			drawgfx(bitmap,Machine->uifont,buf2[x],DT_COLOR_WHITE,0,0,6*x,0,0,TRANSPARENCY_NONE,0);
+			drawgfx(bitmap,Machine->uifont,buf2[x],UI_COLOR_NORMAL,0,0,6*x,0,0,TRANSPARENCY_NONE,0);
 }
 }

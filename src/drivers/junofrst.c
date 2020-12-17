@@ -88,16 +88,16 @@ void konami1_decode(void);
 
 extern unsigned char *tutankhm_scrollx;
 
-void tutankhm_videoram_w( int offset, int data );
-void tutankhm_flipscreen_w( int offset, int data );
-void junofrst_blitter_w( int offset, int data );
+WRITE_HANDLER( tutankhm_videoram_w );
+WRITE_HANDLER( tutankhm_flipscreen_w );
+WRITE_HANDLER( junofrst_blitter_w );
 void tutankhm_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
-void tutankhm_sh_irqtrigger_w(int offset,int data);
+WRITE_HANDLER( tutankhm_sh_irqtrigger_w );
 
 
-void junofrst_bankselect_w(int offset,int data)
+WRITE_HANDLER( junofrst_bankselect_w )
 {
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);
@@ -110,7 +110,7 @@ void junofrst_bankselect_w(int offset,int data)
 static int i8039_irqenable;
 static int i8039_status;
 
-static int junofrst_portA_r(int offset)
+static READ_HANDLER( junofrst_portA_r )
 {
 	int timer;
 
@@ -126,7 +126,7 @@ static int junofrst_portA_r(int offset)
 	return (timer << 4) | i8039_status;
 }
 
-static void junofrst_portB_w(int offset,int data)
+static WRITE_HANDLER( junofrst_portB_w )
 {
 	int i;
 
@@ -144,7 +144,7 @@ static void junofrst_portB_w(int offset,int data)
 	}
 }
 
-void junofrst_sh_irqtrigger_w(int offset,int data)
+WRITE_HANDLER( junofrst_sh_irqtrigger_w )
 {
 	static int last;
 
@@ -158,13 +158,13 @@ void junofrst_sh_irqtrigger_w(int offset,int data)
 	last = data;
 }
 
-void junofrst_i8039_irq_w(int offset,int data)
+WRITE_HANDLER( junofrst_i8039_irq_w )
 {
 	if (i8039_irqenable)
 		cpu_cause_interrupt(2,I8039_EXT_INT);
 }
 
-static void i8039_irqen_and_status_w(int offset,int data)
+static WRITE_HANDLER( i8039_irqen_and_status_w )
 {
 	i8039_irqenable = data & 0x80;
 	i8039_status = (data & 0x70) >> 4;
@@ -248,7 +248,7 @@ static struct IOReadPort i8039_readport[] =
 
 static struct IOWritePort i8039_writeport[] =
 {
-	{ I8039_p1, I8039_p1, DAC_data_w },
+	{ I8039_p1, I8039_p1, DAC_0_data_w },
 	{ I8039_p2, I8039_p2, i8039_irqen_and_status_w },
 	{ -1 }	/* end of table */
 };
@@ -448,6 +448,32 @@ ROM_START( junofrst )
 	ROM_LOAD( "jfs5_e7.bin",  0x04000, 0x2000, 0x1eb87a6e )
 ROM_END
 
+ROM_START( junofstg )
+	ROM_REGION( 2*0x1c000, REGION_CPU1 )	/* code + space for decrypted opcodes */
+	ROM_LOAD( "jfg_a.9b",     0x0a000, 0x2000, 0x8f77d1c5 ) /* program ROMs */
+	ROM_LOAD( "jfg_b.10b",    0x0c000, 0x2000, 0xcd645673 )
+	ROM_LOAD( "jfg_c.10a",    0x0e000, 0x2000, 0x47852761 )
+
+	ROM_LOAD( "jfgc1.4a",     0x10000, 0x2000, 0x90a05ae6 ) /* graphic and code ROMs (banked) */
+	ROM_LOAD( "jfc2_a5.bin",  0x12000, 0x2000, 0xcb372372 )
+	ROM_LOAD( "jfc3_a6.bin",  0x14000, 0x2000, 0x879d194b )
+	ROM_LOAD( "jfgc4.7a",     0x16000, 0x2000, 0xe8864a43 )
+	ROM_LOAD( "jfc5_a8.bin",  0x18000, 0x2000, 0x0539f328 )
+	ROM_LOAD( "jfc6_a9.bin",  0x1a000, 0x2000, 0x1da2ad6e )
+
+	ROM_REGION(  0x10000 , REGION_CPU2 ) /* 64k for Z80 sound CPU code */
+	ROM_LOAD( "jfs1_j3.bin",  0x0000, 0x1000, 0x235a2893 )
+
+	ROM_REGION( 0x1000, REGION_CPU3 )	/* 8039 */
+	ROM_LOAD( "jfs2_p4.bin",  0x0000, 0x1000, 0xd0fa5d5f )
+
+	ROM_REGION( 0x6000, REGION_GFX1 )	/* BLTROM, used at runtime */
+	ROM_LOAD( "jfs3_c7.bin",  0x00000, 0x2000, 0xaeacf6db )
+	ROM_LOAD( "jfs4_d7.bin",  0x02000, 0x2000, 0x206d954c )
+	ROM_LOAD( "jfs5_e7.bin",  0x04000, 0x2000, 0x1eb87a6e )
+ROM_END
+
+
 
 static void init_junofrst(void)
 {
@@ -455,4 +481,5 @@ static void init_junofrst(void)
 }
 
 
-GAME( 1983, junofrst, 0, junofrst, junofrst, junofrst, ROT90, "Konami", "Juno First" )
+GAME( 1983, junofrst, 0,        junofrst, junofrst, junofrst, ROT90, "Konami", "Juno First" )
+GAME( 1983, junofstg, junofrst, junofrst, junofrst, junofrst, ROT90, "Konami (Gottlieb license)", "Juno First (Gottlieb)" )

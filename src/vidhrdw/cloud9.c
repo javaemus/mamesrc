@@ -25,7 +25,7 @@ unsigned char *cloud9_color_bank;
   Cloud 9 uses 9-bit color, in the form RRRGGGBB, with the LSB of B stored
   in the $40 bit of the address.
 ***************************************************************************/
-void cloud9_paletteram_w(int offset,int data)
+WRITE_HANDLER( cloud9_paletteram_w )
 {
 	int bit0,bit1,bit2;
 	int r,g,b;
@@ -126,7 +126,7 @@ static void convert_point(unsigned int x, unsigned int y, unsigned char **vptr, 
 /***************************************************************************
   cloud9_bitmap_regs_r
 ***************************************************************************/
-int cloud9_bitmap_regs_r(int offset)
+READ_HANDLER( cloud9_bitmap_regs_r )
 {
 	unsigned char *vptr;
 	int vpixel;
@@ -147,7 +147,7 @@ int cloud9_bitmap_regs_r(int offset)
 		/* Indirect Addressing - pixel value at (X,Y) */
 		if (y < 0x0c)
 		{
-			if (errorlog) fprintf(errorlog,"Unexpected read from top of bitmap!\n");
+			logerror("Unexpected read from top of bitmap!\n");
 			return 0;
 		}
 
@@ -161,7 +161,7 @@ int cloud9_bitmap_regs_r(int offset)
 /***************************************************************************
   cloud9_bitmap_regs_w
 ***************************************************************************/
-void cloud9_bitmap_regs_w(int offset,int data)
+WRITE_HANDLER( cloud9_bitmap_regs_w )
 {
 	unsigned int x, y;
 
@@ -210,7 +210,7 @@ void cloud9_bitmap_regs_w(int offset,int data)
 /***************************************************************************
   cloud9_bitmap_w
 ***************************************************************************/
-void cloud9_bitmap_w(int offset,int data)
+WRITE_HANDLER( cloud9_bitmap_w )
 {
 	UINT8 x, y;
 
@@ -284,7 +284,7 @@ void cloud9_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 
 
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* draw the sprites */
@@ -308,6 +308,6 @@ void cloud9_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				1 + ((*cloud9_color_bank & 0x80) >> 6),
 				xflip,yflip,
 				x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

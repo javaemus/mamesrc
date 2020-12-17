@@ -48,7 +48,7 @@ int vigilant_vh_start(void)
 {
 	generic_vh_start();
 
-	if ((bg_bitmap = osd_create_bitmap(512*3,256)) == 0)
+	if ((bg_bitmap = bitmap_alloc(512*3,256)) == 0)
 	{
 		generic_vh_stop();
 		return 1;
@@ -59,7 +59,7 @@ int vigilant_vh_start(void)
 
 void vigilant_vh_stop(void)
 {
-	osd_free_bitmap(bg_bitmap);
+	bitmap_free(bg_bitmap);
 	generic_vh_stop();
 }
 
@@ -115,7 +115,7 @@ static void update_background( void )
  These are used to index a color triplet of RGB.  The triplet is read
  from RAM, and output to R0-R4, G0-G4, and B0-B4.
  **************************************************************************/
-void vigilant_paletteram_w(int offset, int data)
+WRITE_HANDLER( vigilant_paletteram_w )
 {
 	int bank,r,g,b;
 
@@ -140,7 +140,7 @@ void vigilant_paletteram_w(int offset, int data)
  horiz_scroll_low  = HSPL, an 8-bit register
  horiz_scroll_high = HSPH, a 1-bit register
  **************************************************************************/
-void vigilant_horiz_scroll_w(int offset, int data)
+WRITE_HANDLER( vigilant_horiz_scroll_w )
 {
 	if (offset==0)
 		horiz_scroll_low = data;
@@ -154,7 +154,7 @@ void vigilant_horiz_scroll_w(int offset, int data)
  rear_horiz_scroll_low  = RHSPL, an 8-bit register
  rear_horiz_scroll_high = RHSPH, an 8-bit register but only 3 bits are saved
 ***************************************************************************/
-void vigilant_rear_horiz_scroll_w(int offset, int data)
+WRITE_HANDLER( vigilant_rear_horiz_scroll_w )
 {
 	if (offset==0)
 		rear_horiz_scroll_low = data;
@@ -177,7 +177,7 @@ void vigilant_rear_horiz_scroll_w(int offset, int data)
  palette.  However, the top four bits of the palette inputs are labelled:
  "RCC3", "RCC2", "V256E", "RCC0".  Methinks there's a typo.
  **************************************************************************/
-void vigilant_rear_color_w(int offset, int data)
+WRITE_HANDLER( vigilant_rear_color_w )
 {
 	rear_disable = data & 0x40;
 	rear_color = (data & 0x0d);
@@ -395,7 +395,7 @@ void kikcubic_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		}
 	}
 
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
-	draw_sprites(bitmap,&Machine->drv->visible_area);
+	draw_sprites(bitmap,&Machine->visible_area);
 }

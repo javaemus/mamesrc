@@ -115,12 +115,12 @@ int arabian_vh_start(void)
 	int p1,p2,p3,p4,v1,v2,offs;
 	int i;	/* JB 970727 */
 
-	if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 		return 1;
 
-	if ((tmpbitmap2 = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap2);
+		bitmap_free(tmpbitmap2);
 		return 1;
 	}
 
@@ -176,8 +176,8 @@ after conversion :
 
 void arabian_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap2);
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap2);
+	bitmap_free(tmpbitmap);
 }
 
 
@@ -257,9 +257,9 @@ void arabian_blit_area(UINT8 plane, UINT16 src, UINT8 x, UINT8 y, UINT8 sx, UINT
 }
 
 
-void arabian_blitter_w(int offset,int val)
+WRITE_HANDLER( arabian_blitter_w )
 {
-	spriteram[offset]=val;
+	spriteram[offset] = data;
 
 	if ((offset & 0x07) == 6)
 	{
@@ -279,7 +279,7 @@ void arabian_blitter_w(int offset,int val)
 
 
 
-void arabian_videoram_w(int offset, int val)
+WRITE_HANDLER( arabian_videoram_w )
 {
 	int plane1,plane2,plane3,plane4;
 	unsigned char *bm;
@@ -330,92 +330,92 @@ void arabian_videoram_w(int offset, int val)
 	{
 		bm = &tmpbitmap->line[y     ][x     ];
 		*bm &= 0xf3;
-		if (val & 0x10) *bm |= 8;
-		if (val & 0x01) *bm |= 4;
+		if (data & 0x10) *bm |= 8;
+		if (data & 0x01) *bm |= 4;
 
 		bm = &tmpbitmap->line[y+  dy][x+  dx];
 		*bm &= 0xf3;
-		if (val & 0x20) *bm |= 8;
-		if (val & 0x02) *bm |= 4;
+		if (data & 0x20) *bm |= 8;
+		if (data & 0x02) *bm |= 4;
 
 		bm = &tmpbitmap->line[y+2*dy][x+2*dx];
 		*bm &= 0xf3;
-		if (val & 0x40) *bm |= 8;
-		if (val & 0x04) *bm |= 4;
+		if (data & 0x40) *bm |= 8;
+		if (data & 0x04) *bm |= 4;
 
 		bm = &tmpbitmap->line[y+3*dy][x+3*dx];
 		*bm &= 0xf3;
-		if (val & 0x80) *bm |= 8;
-		if (val & 0x08) *bm |= 4;
+		if (data & 0x80) *bm |= 8;
+		if (data & 0x08) *bm |= 4;
 	}
 
 	if (plane2)
 	{
 		bm = &tmpbitmap->line[y     ][x     ];
 		*bm &= 0xfc;
-		if (val & 0x10) *bm |= 2;
-		if (val & 0x01) *bm |= 1;
+		if (data & 0x10) *bm |= 2;
+		if (data & 0x01) *bm |= 1;
 
 		bm = &tmpbitmap->line[y+  dy][x+  dx];
 		*bm &= 0xfc;
-		if (val & 0x20) *bm |= 2;
-		if (val & 0x02) *bm |= 1;
+		if (data & 0x20) *bm |= 2;
+		if (data & 0x02) *bm |= 1;
 
 		bm = &tmpbitmap->line[y+2*dy][x+2*dx];
 		*bm &= 0xfc;
-		if (val & 0x40) *bm |= 2;
-		if (val & 0x04) *bm |= 1;
+		if (data & 0x40) *bm |= 2;
+		if (data & 0x04) *bm |= 1;
 
 		bm = &tmpbitmap->line[y+3*dy][x+3*dx];
 		*bm &= 0xfc;
-		if (val & 0x80) *bm |= 2;
-		if (val & 0x08) *bm |= 1;
+		if (data & 0x80) *bm |= 2;
+		if (data & 0x08) *bm |= 1;
 	}
 
 	if (plane3)
 	{
 		bm = &tmpbitmap2->line[y     ][x     ];
 		*bm &= 0xf3;
-		if (val & 0x10) *bm |= (16+8);
-		if (val & 0x01) *bm |= (16+4);
+		if (data & 0x10) *bm |= (16+8);
+		if (data & 0x01) *bm |= (16+4);
 
 		bm = &tmpbitmap2->line[y+  dy][x+  dx];
 		*bm &= 0xf3;
-		if (val & 0x20) *bm |= (16+8);
-		if (val & 0x02) *bm |= (16+4);
+		if (data & 0x20) *bm |= (16+8);
+		if (data & 0x02) *bm |= (16+4);
 
 		bm = &tmpbitmap2->line[y+2*dy][x+2*dx];
 		*bm &= 0xf3;
-		if (val & 0x40) *bm |= (16+8);
-		if (val & 0x04) *bm |= (16+4);
+		if (data & 0x40) *bm |= (16+8);
+		if (data & 0x04) *bm |= (16+4);
 
 		bm = &tmpbitmap2->line[y+3*dy][x+3*dx];
 		*bm &= 0xf3;
-		if (val & 0x80) *bm |= (16+8);
-		if (val & 0x08) *bm |= (16+4);
+		if (data & 0x80) *bm |= (16+8);
+		if (data & 0x08) *bm |= (16+4);
 	}
 
 	if (plane4)
 	{
 		bm = &tmpbitmap2->line[y     ][x     ];
 		*bm &= 0xfc;
-		if (val & 0x10) *bm |= (16+2);
-		if (val & 0x01) *bm |= (16+1);
+		if (data & 0x10) *bm |= (16+2);
+		if (data & 0x01) *bm |= (16+1);
 
 		bm = &tmpbitmap2->line[y+  dy][x+  dx];
 		*bm &= 0xfc;
-		if (val & 0x20) *bm |= (16+2);
-		if (val & 0x02) *bm |= (16+1);
+		if (data & 0x20) *bm |= (16+2);
+		if (data & 0x02) *bm |= (16+1);
 
 		bm = &tmpbitmap2->line[y+2*dy][x+2*dx];
 		*bm &= 0xfc;
-		if (val & 0x40) *bm |= (16+2);
-		if (val & 0x04) *bm |= (16+1);
+		if (data & 0x40) *bm |= (16+2);
+		if (data & 0x04) *bm |= (16+1);
 
 		bm = &tmpbitmap2->line[y+3*dy][x+3*dx];
 		*bm &= 0xfc;
-		if (val & 0x80) *bm |= (16+2);
-		if (val & 0x08) *bm |= (16+1);
+		if (data & 0x80) *bm |= (16+2);
+		if (data & 0x08) *bm |= (16+1);
 	}
 
 	/* JB 970727 */
@@ -441,6 +441,6 @@ void arabian_videoram_w(int offset, int val)
 
 void arabian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE, 0);
- 	copybitmap(bitmap,tmpbitmap ,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+	copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE, 0);
+ 	copybitmap(bitmap,tmpbitmap ,0,0,0,0,&Machine->visible_area,TRANSPARENCY_COLOR,0);
 }

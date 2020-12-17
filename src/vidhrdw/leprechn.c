@@ -17,12 +17,12 @@ static int last_command;
 // walks on the rainbow, he'd leave a trail behind him
 static int pending, pending_x, pending_y, pending_color;
 
-void leprechn_graphics_command_w(int offset,int data)
+WRITE_HANDLER( leprechn_graphics_command_w )
 {
     last_command = data;
 }
 
-void leprechn_graphics_data_w(int offset,int data)
+WRITE_HANDLER( leprechn_graphics_data_w )
 {
     int direction;
 
@@ -117,11 +117,11 @@ void leprechn_graphics_data_w(int offset,int data)
     }
 
     // Just a precaution. Doesn't seem to happen.
-    if (errorlog) fprintf(errorlog, "Unknown Graphics Command #%2X at %04X\n", last_command, cpu_get_pc());
+    logerror("Unknown Graphics Command #%2X at %04X\n", last_command, cpu_get_pc());
 }
 
 
-int leprechn_graphics_data_r(int offset)
+READ_HANDLER( leprechn_graphics_data_r )
 {
     return videoram[y * screen_width + x];
 }

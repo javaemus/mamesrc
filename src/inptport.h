@@ -1,6 +1,7 @@
 #ifndef INPTPORT_H
 #define INPTPORT_H
 
+#include "memory.h"
 #include "input.h"
 
 /* input ports handling */
@@ -46,7 +47,7 @@ enum { IPT_END=1,IPT_PORT,
 	IPT_JOYSTICKRIGHT_UP, IPT_JOYSTICKRIGHT_DOWN, IPT_JOYSTICKRIGHT_LEFT, IPT_JOYSTICKRIGHT_RIGHT,
 	IPT_JOYSTICKLEFT_UP, IPT_JOYSTICKLEFT_DOWN, IPT_JOYSTICKLEFT_LEFT, IPT_JOYSTICKLEFT_RIGHT,
 	IPT_BUTTON1, IPT_BUTTON2, IPT_BUTTON3, IPT_BUTTON4,	/* action buttons */
-	IPT_BUTTON5, IPT_BUTTON6, IPT_BUTTON7, IPT_BUTTON8, IPT_BUTTON9,
+	IPT_BUTTON5, IPT_BUTTON6, IPT_BUTTON7, IPT_BUTTON8, IPT_BUTTON9, IPT_BUTTON10,
 
 	/* analog inputs */
 	/* the "arg" field contains the default sensitivity expressed as a percentage */
@@ -227,6 +228,7 @@ enum { IPT_END=1,IPT_PORT,
 #define MAX_DEFSTR_LEN 20
 extern char ipdn_defaultstrings[][MAX_DEFSTR_LEN];
 
+/* this must match the ipdn_defaultstrings list in inptport.c */
 enum {
 	STR_Off,
 	STR_On,
@@ -308,22 +310,26 @@ void update_input_ports(void);	/* called by cpuintrf.c - not for external use */
 void inputport_vblank_end(void);	/* called by cpuintrf.c - not for external use */
 
 int readinputport(int port);
-int input_port_0_r(int offset);
-int input_port_1_r(int offset);
-int input_port_2_r(int offset);
-int input_port_3_r(int offset);
-int input_port_4_r(int offset);
-int input_port_5_r(int offset);
-int input_port_6_r(int offset);
-int input_port_7_r(int offset);
-int input_port_8_r(int offset);
-int input_port_9_r(int offset);
-int input_port_10_r(int offset);
-int input_port_11_r(int offset);
-int input_port_12_r(int offset);
-int input_port_13_r(int offset);
-int input_port_14_r(int offset);
-int input_port_15_r(int offset);
+READ_HANDLER( input_port_0_r );
+READ_HANDLER( input_port_1_r );
+READ_HANDLER( input_port_2_r );
+READ_HANDLER( input_port_3_r );
+READ_HANDLER( input_port_4_r );
+READ_HANDLER( input_port_5_r );
+READ_HANDLER( input_port_6_r );
+READ_HANDLER( input_port_7_r );
+READ_HANDLER( input_port_8_r );
+READ_HANDLER( input_port_9_r );
+READ_HANDLER( input_port_10_r );
+READ_HANDLER( input_port_11_r );
+READ_HANDLER( input_port_12_r );
+READ_HANDLER( input_port_13_r );
+READ_HANDLER( input_port_14_r );
+READ_HANDLER( input_port_15_r );
+READ_HANDLER( input_port_16_r );
+READ_HANDLER( input_port_17_r );
+READ_HANDLER( input_port_18_r );
+READ_HANDLER( input_port_19_r );
 
 struct ipd
 {

@@ -204,7 +204,7 @@ void batman_set_alpha_bank(int bank)
  *
  *************************************/
 
-void batman_colorram_w(int offset, int data)
+WRITE_HANDLER( batman_colorram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram_color[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -227,7 +227,7 @@ void batman_colorram_w(int offset, int data)
 }
 
 
-void batman_playfieldram_w(int offset, int data)
+WRITE_HANDLER( batman_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -245,7 +245,7 @@ void batman_playfieldram_w(int offset, int data)
 }
 
 
-void batman_playfield2ram_w(int offset, int data)
+WRITE_HANDLER( batman_playfield2ram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfield2ram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -352,14 +352,14 @@ void batman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		osd_clearbitmap(bitmap);
 	else
 #endif
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* render the playfield */
 	memset(atarigen_pf2_visit, 0, 64*64);
 #if DEBUG_VIDEO
 	if (show_colors != 1)
 #endif
-	atarigen_pf2_process(pf2_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf2_process(pf2_render_callback, bitmap, &Machine->visible_area);
 
 	/* render the motion objects */
 	atarigen_mo_process(mo_render_callback, bitmap);
@@ -410,8 +410,8 @@ static const UINT8 *update_palette(void)
 	palette_init_used_colors();
 	
 	/* update color usage for the playfields */
-	atarigen_pf_process(pf_color_callback, pf_map, &Machine->drv->visible_area);
-	atarigen_pf2_process(pf2_color_callback, pf_map, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_color_callback, pf_map, &Machine->visible_area);
+	atarigen_pf2_process(pf2_color_callback, pf_map, &Machine->visible_area);
 
 	/* update color usage for the mo's */
 	atarigen_mo_process(mo_color_callback, mo_map);

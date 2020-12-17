@@ -21,21 +21,21 @@ struct Y8950interface
 	void (*handler[MAX_8950])(int linestate);
 	/* Y8950 */
 	int rom_region[MAX_8950]; /* delta-T ADPCM ROM region */
-	int (*keyboardread[MAX_8950])(int offset);
-	void (*keyboardwrite[MAX_8950])(int offset,int data);
-	int (*portread[MAX_8950])(int offset);
-	void (*portwrite[MAX_8950])(int offset,int data);
+	mem_read_handler keyboardread[MAX_8950];
+	mem_write_handler keyboardwrite[MAX_8950];
+	mem_read_handler portread[MAX_8950];
+	mem_write_handler portwrite[MAX_8950];
 };
 
 #define YM3526interface YM3812interface
 
 /* YM3812 */
-int YM3812_status_port_0_r(int offset);
-void YM3812_control_port_0_w(int offset,int data);
-void YM3812_write_port_0_w(int offset,int data);
-int YM3812_status_port_1_r(int offset);
-void YM3812_control_port_1_w(int offset,int data);
-void YM3812_write_port_1_w(int offset,int data);
+READ_HANDLER( YM3812_status_port_0_r );
+WRITE_HANDLER( YM3812_control_port_0_w );
+WRITE_HANDLER( YM3812_write_port_0_w );
+READ_HANDLER( YM3812_status_port_1_r );
+WRITE_HANDLER( YM3812_control_port_1_w );
+WRITE_HANDLER( YM3812_write_port_1_w );
 
 int YM3812_sh_start(const struct MachineSound *msound);
 void YM3812_sh_stop(void);
@@ -55,11 +55,11 @@ int YM3526_sh_start(const struct MachineSound *msound);
 /* Y8950 */
 #define Y8950_status_port_0_r YM3812_status_port_0_r
 #define Y8950_control_port_0_w YM3812_control_port_0_w
-int Y8950_read_port_0_r(int offset);
+READ_HANDLER( Y8950_read_port_0_r );
 #define Y8950_write_port_0_w YM3812_write_port_0_w
 #define Y8950_status_port_1_r YM3812_status_port_1_r
 #define Y8950_control_port_1_w YM3812_control_port_1_w
-int Y8950_read_port_1_r(int offset);
+READ_HANDLER( Y8950_read_port_1_r );
 #define Y8950_write_port_1_w YM3812_write_port_1_w
 int Y8950_sh_start(const struct MachineSound *msound);
 #define Y8950_sh_stop YM3812_sh_stop

@@ -23,7 +23,7 @@ extern void cps2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 /* Export this function so that the vidhrdw routine can drive the
 Q-Sound hardware
 */
-void cps2_qsound_sharedram_w(int offset,int data)
+WRITE_HANDLER( cps2_qsound_sharedram_w )
 {
 	qsound_sharedram_w(offset, data);
 }
@@ -113,6 +113,9 @@ static struct MachineDriver machine_driver_cps2 =
 	60, 0,
 	1,
 	0,
+	#ifdef MESS
+	0,
+	#endif
 
 	/* video hardware */
 	0x30*8+32*2, 0x1c*8+32*3, { 32, 32+0x30*8-1, 32+16, 32+16+0x1c*8-1 },

@@ -57,7 +57,7 @@ static void timer_callback_2608(int param)
 	int n=param&0x7f;
 	int c=param>>7;
 
-//	if(errorlog) fprintf(errorlog,"2608 TimerOver %d\n",c);
+//	logerror("2608 TimerOver %d\n",c);
 	Timer[n][c] = 0;
 	YM2608TimerOver(n,c);
 }
@@ -69,7 +69,7 @@ static void TimerHandler(int n,int c,int count,double stepTime)
 	{	/* Reset FM Timer */
 		if( Timer[n][c] )
 		{
-//			if(errorlog) fprintf(errorlog,"2608 TimerReset %d\n",c);
+//			logerror("2608 TimerReset %d\n",c);
 	 		timer_remove (Timer[n][c]);
 			Timer[n][c] = 0;
 		}
@@ -135,8 +135,8 @@ int YM2608_sh_start(const struct MachineSound *msound)
 		}
 		stream[i] = stream_init_multi(YM2608_NUMBUF,name,vol,rate,i,YM2608UpdateOne);
 		/* setup adpcm buffers */
-		pcmbufa[i]  = NULL;
-		pcmsizea[i] = 0;
+		pcmbufa[i]  = (void *)(memory_region(intf->pcmrom[i]));
+		pcmsizea[i] = memory_region_length(intf->pcmrom[i]);
 	}
 
 	/* rythm rom build */
@@ -228,40 +228,40 @@ void YM2608_sh_reset(void)
 /************************************************/
 /* Status Read for YM2608 - Chip 0				*/
 /************************************************/
-int YM2608_status_port_0_A_r( int offset )
+READ_HANDLER( YM2608_status_port_0_A_r )
 {
-//if(errorlog) fprintf(errorlog,"PC %04x: 2608 S0A=%02X\n",cpu_get_pc(),YM2608Read(0,0));
+//logerror("PC %04x: 2608 S0A=%02X\n",cpu_get_pc(),YM2608Read(0,0));
 	return YM2608Read(0,0);
 }
 
-int YM2608_status_port_0_B_r( int offset )
+READ_HANDLER( YM2608_status_port_0_B_r )
 {
-//if(errorlog) fprintf(errorlog,"PC %04x: 2608 S0B=%02X\n",cpu_get_pc(),YM2608Read(0,2));
+//logerror("PC %04x: 2608 S0B=%02X\n",cpu_get_pc(),YM2608Read(0,2));
 	return YM2608Read(0,2);
 }
 
 /************************************************/
 /* Status Read for YM2608 - Chip 1				*/
 /************************************************/
-int YM2608_status_port_1_A_r( int offset ) {
+READ_HANDLER( YM2608_status_port_1_A_r ) {
 	return YM2608Read(1,0);
 }
 
-int YM2608_status_port_1_B_r( int offset ) {
+READ_HANDLER( YM2608_status_port_1_B_r ) {
 	return YM2608Read(1,2);
 }
 
 /************************************************/
 /* Port Read for YM2608 - Chip 0				*/
 /************************************************/
-int YM2608_read_port_0_r( int offset ){
+READ_HANDLER( YM2608_read_port_0_r ){
 	return YM2608Read(0,1);
 }
 
 /************************************************/
 /* Port Read for YM2608 - Chip 1				*/
 /************************************************/
-int YM2608_read_port_1_r( int offset ){
+READ_HANDLER( YM2608_read_port_1_r ){
 	return YM2608Read(1,1);
 }
 
@@ -269,12 +269,12 @@ int YM2608_read_port_1_r( int offset ){
 /* Control Write for YM2608 - Chip 0			*/
 /* Consists of 2 addresses						*/
 /************************************************/
-void YM2608_control_port_0_A_w(int offset,int data)
+WRITE_HANDLER( YM2608_control_port_0_A_w )
 {
 	YM2608Write(0,0,data);
 }
 
-void YM2608_control_port_0_B_w(int offset,int data)
+WRITE_HANDLER( YM2608_control_port_0_B_w )
 {
 	YM2608Write(0,2,data);
 }
@@ -283,11 +283,11 @@ void YM2608_control_port_0_B_w(int offset,int data)
 /* Control Write for YM2608 - Chip 1			*/
 /* Consists of 2 addresses						*/
 /************************************************/
-void YM2608_control_port_1_A_w(int offset,int data){
+WRITE_HANDLER( YM2608_control_port_1_A_w ){
 	YM2608Write(1,0,data);
 }
 
-void YM2608_control_port_1_B_w(int offset,int data){
+WRITE_HANDLER( YM2608_control_port_1_B_w ){
 	YM2608Write(1,2,data);
 }
 
@@ -295,12 +295,12 @@ void YM2608_control_port_1_B_w(int offset,int data){
 /* Data Write for YM2608 - Chip 0				*/
 /* Consists of 2 addresses						*/
 /************************************************/
-void YM2608_data_port_0_A_w(int offset,int data)
+WRITE_HANDLER( YM2608_data_port_0_A_w )
 {
 	YM2608Write(0,1,data);
 }
 
-void YM2608_data_port_0_B_w(int offset,int data)
+WRITE_HANDLER( YM2608_data_port_0_B_w )
 {
 	YM2608Write(0,3,data);
 }
@@ -309,10 +309,10 @@ void YM2608_data_port_0_B_w(int offset,int data)
 /* Data Write for YM2608 - Chip 1				*/
 /* Consists of 2 addresses						*/
 /************************************************/
-void YM2608_data_port_1_A_w(int offset,int data){
+WRITE_HANDLER( YM2608_data_port_1_A_w ){
 	YM2608Write(1,1,data);
 }
-void YM2608_data_port_1_B_w(int offset,int data){
+WRITE_HANDLER( YM2608_data_port_1_B_w ){
 	YM2608Write(1,3,data);
 }
 

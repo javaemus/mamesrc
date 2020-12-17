@@ -1,14 +1,15 @@
 #ifndef DRIVER_H
 #define DRIVER_H
 
+#include "osd_cpu.h"
+#include "memory.h"
 #include "osdepend.h"
+#include "mame.h"
 #include "common.h"
 #include "drawgfx.h"
 #include "palette.h"
-#include "mame.h"
 #include "cpuintrf.h"
 #include "sndintrf.h"
-#include "memory.h"
 #include "input.h"
 #include "inptport.h"
 #include "usrintrf.h"
@@ -21,7 +22,6 @@
 #ifdef MAME_NET
 #include "network.h"
 #endif /* MAME_NET */
-
 
 struct MachineCPU
 {
@@ -75,14 +75,38 @@ enum
 #if (HAS_M6510)
 	CPU_M6510,
 #endif
+#if (HAS_M6510T)
+	CPU_M6510T,
+#endif
+#if (HAS_M7501)
+	CPU_M7501,
+#endif
+#if (HAS_M8502)
+	CPU_M8502,
+#endif
 #if (HAS_N2A03)
 	CPU_N2A03,
+#endif
+#if (HAS_M4510)
+	CPU_M4510,
 #endif
 #if (HAS_H6280)
 	CPU_H6280,
 #endif
 #if (HAS_I86)
 	CPU_I86,
+#endif
+#if (HAS_I88)
+	CPU_I88,
+#endif
+#if (HAS_I186)
+	CPU_I186,
+#endif
+#if (HAS_I188)
+	CPU_I188,
+#endif
+#if (HAS_I286)
+	CPU_I286,
 #endif
 #if (HAS_V20)
 	CPU_V20,
@@ -204,7 +228,19 @@ enum
 #if (HAS_ADSP2100)
 	CPU_ADSP2100,
 #endif
-	CPU_COUNT
+#if (HAS_ADSP2105)
+	CPU_ADSP2105,
+#endif
+#if (HAS_MIPS)
+	CPU_MIPS,
+#endif
+#if (HAS_SC61860)
+	CPU_SC61860,
+#endif
+#if (HAS_ARM)
+	CPU_ARM,
+#endif
+    CPU_COUNT
 };
 
 /* set this if the CPU is used as a slave for audio. It will not be emulated if */
@@ -246,7 +282,10 @@ struct MachineDriver
 
     /* video hardware */
 	int screen_width,screen_height;
-	struct rectangle visible_area;
+	struct rectangle default_visible_area;	/* the visible area can be changed at */
+									/* run time, but it should never be larger than the */
+									/* one specified here, in order not to force the */
+									/* OS dependant code to resize the display window. */
 	struct GfxDecodeInfo *gfxdecodeinfo;
 	unsigned int total_colors;	/* palette is 3*total_colors bytes long */
 	unsigned int color_table_len;	/* length in shorts of the color lookup table */
@@ -317,6 +356,11 @@ struct MachineDriver
 /* bit 2 of the video attributes indicates whether or not the driver modifies the palette */
 #define	VIDEO_MODIFIES_PALETTE	0x0004
 
+/* bit 3 of the video attributes indicates that the game's palette has 6 or more bits */
+/*       per gun, and would therefore require a 24-bit display. This is entirely up to */
+/*       the OS dpeendant layer, the bitmap will still be 16-bit. */
+#define VIDEO_NEEDS_6BITS_PER_GUN	0x0008
+
 /* ASG 980417 - added: */
 /* bit 4 of the video attributes indicates that the driver wants its refresh after */
 /*       the VBLANK instead of before. */
@@ -365,23 +409,25 @@ struct GameDriver
 
 /* values for the flags field */
 
-#define ORIENTATION_MASK        0x0007
-#define	ORIENTATION_FLIP_X		0x0001	/* mirror everything in the X direction */
-#define	ORIENTATION_FLIP_Y		0x0002	/* mirror everything in the Y direction */
-#define ORIENTATION_SWAP_XY		0x0004	/* mirror along the top-left/bottom-right diagonal */
+#define ORIENTATION_MASK        	0x0007
+#define	ORIENTATION_FLIP_X			0x0001	/* mirror everything in the X direction */
+#define	ORIENTATION_FLIP_Y			0x0002	/* mirror everything in the Y direction */
+#define ORIENTATION_SWAP_XY			0x0004	/* mirror along the top-left/bottom-right diagonal */
 
-#define GAME_NOT_WORKING		0x0008
-#define GAME_WRONG_COLORS		0x0010	/* colors are totally wrong */
-#define GAME_IMPERFECT_COLORS	0x0020	/* colors are not 100% accurate, but close */
-#define GAME_NO_SOUND			0x0040	/* sound is missing */
-#define GAME_IMPERFECT_SOUND	0x0080	/* sound is known to be wrong */
-#define	GAME_REQUIRES_16BIT		0x0100	/* cannot fit in 256 colors */
-#define GAME_NO_COCKTAIL		0x0200	/* screen flip support is missing */
-#define NOT_A_DRIVER			0x4000	/* set by the fake "root" driver_ and by "containers" */
-										/* e.g. driver_neogeo. */
+#define GAME_NOT_WORKING			0x0008
+#define GAME_WRONG_COLORS			0x0010	/* colors are totally wrong */
+#define GAME_IMPERFECT_COLORS		0x0020	/* colors are not 100% accurate, but close */
+#define GAME_NO_SOUND				0x0040	/* sound is missing */
+#define GAME_IMPERFECT_SOUND		0x0080	/* sound is known to be wrong */
+#define	GAME_REQUIRES_16BIT			0x0100	/* cannot fit in 256 colors */
+#define GAME_NO_COCKTAIL			0x0200	/* screen flip support is missing */
+#define GAME_UNEMULATED_PROTECTION	0x0400	/* game's protection not fully emulated */
+#define NOT_A_DRIVER				0x4000	/* set by the fake "root" driver_ and by "containers" */
+											/* e.g. driver_neogeo. */
 #ifdef MESS
-#define GAME_COMPUTER	0x8000			/* Driver is a computer (needs full keyboard) */
-#define GAME_ALIAS		NOT_A_DRIVER	/* Driver is only an alias for an existing model */
+#define GAME_COMPUTER				0x8000	/* Driver is a computer (needs full keyboard) */
+#define GAME_COMPUTER_MODIFIED      0x0800	/* Official? Hack */
+#define GAME_ALIAS					NOT_A_DRIVER	/* Driver is only an alias for an existing model */
 #endif
 
 

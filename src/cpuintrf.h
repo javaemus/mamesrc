@@ -2,6 +2,7 @@
 #define CPUINTRF_H
 
 #include "osd_cpu.h"
+#include "memory.h"
 #include "timer.h"
 
 /* The old system is obsolete and no longer supported by the core */
@@ -14,18 +15,18 @@
 #define HOLD_LINE       2       /* hold interrupt line until enable is true */
 #define PULSE_LINE		3		/* pulse interrupt line for one instruction */
 
-#define MAX_REGS		64		/* maximum number of register of any CPU */
+#define MAX_REGS		128 	/* maximum number of register of any CPU */
 
 /* Values passed to the cpu_info function of a core to retrieve information */
 enum {
 	CPU_INFO_REG,
 	CPU_INFO_FLAGS=MAX_REGS,
 	CPU_INFO_NAME,
-    CPU_INFO_FAMILY,
-    CPU_INFO_VERSION,
-    CPU_INFO_FILE,
-    CPU_INFO_CREDITS,
-    CPU_INFO_REG_LAYOUT,
+	CPU_INFO_FAMILY,
+	CPU_INFO_VERSION,
+	CPU_INFO_FILE,
+	CPU_INFO_CREDITS,
+	CPU_INFO_REG_LAYOUT,
 	CPU_INFO_WIN_LAYOUT
 };
 
@@ -87,14 +88,38 @@ enum {
 #ifndef HAS_M6510
 #define HAS_M6510		0
 #endif
+#ifndef HAS_M6510T
+#define HAS_M6510T		0
+#endif
+#ifndef HAS_M7501
+#define HAS_M7501		0
+#endif
+#ifndef HAS_M8502
+#define HAS_M8502		0
+#endif
 #ifndef HAS_N2A03
 #define HAS_N2A03		0
+#endif
+#ifndef HAS_M4510
+#define HAS_M4510		0
 #endif
 #ifndef HAS_H6280
 #define HAS_H6280		0
 #endif
 #ifndef HAS_I86
 #define HAS_I86 		0
+#endif
+#ifndef HAS_I88
+#define HAS_I88 		0
+#endif
+#ifndef HAS_I186
+#define HAS_I186		0
+#endif
+#ifndef HAS_I188
+#define HAS_I188		0
+#endif
+#ifndef HAS_I286
+#define HAS_I286		0
 #endif
 #ifndef HAS_V20
 #define HAS_V20 		0
@@ -159,6 +184,9 @@ enum {
 #ifndef HAS_M68010
 #define HAS_M68010		0
 #endif
+#ifndef HAS_M68EC020
+#define HAS_M68EC020	0
+#endif
 #ifndef HAS_M68020
 #define HAS_M68020		0
 #endif
@@ -210,42 +238,56 @@ enum {
 #ifndef HAS_ADSP2100
 #define HAS_ADSP2100	0
 #endif
+#ifndef HAS_ADSP2105
+#define HAS_ADSP2105	0
+#endif
+#ifndef HAS_MIPS
+#define HAS_MIPS		0
+#endif
+#ifndef HAS_SC61860
+#define HAS_SC61860		0
+#endif
+#ifndef HAS_ARM
+#define HAS_ARM 		0
+#endif
 
 /* ASG 971222 -- added this generic structure */
 struct cpu_interface
 {
-    unsigned cpu_num;
-    void (*reset)(void *param);
-    void (*exit)(void);
-    int (*execute)(int cycles);
-    void (*burn)(int cycles);
-    unsigned (*get_context)(void *reg);
-    void (*set_context)(void *reg);
+	unsigned cpu_num;
+	void (*reset)(void *param);
+	void (*exit)(void);
+	int (*execute)(int cycles);
+	void (*burn)(int cycles);
+	unsigned (*get_context)(void *reg);
+	void (*set_context)(void *reg);
+	void *(*get_cycle_table)(int which);
+	void (*set_cycle_table)(int which, void *new_table);
     unsigned (*get_pc)(void);
-    void (*set_pc)(unsigned val);
-    unsigned (*get_sp)(void);
-    void (*set_sp)(unsigned val);
-    unsigned (*get_reg)(int regnum);
-    void (*set_reg)(int regnum, unsigned val);
-    void (*set_nmi_line)(int linestate);
-    void (*set_irq_line)(int irqline, int linestate);
-    void (*set_irq_callback)(int(*callback)(int irqline));
-    void (*internal_interrupt)(int type);
-    void (*cpu_state_save)(void *file);
-    void (*cpu_state_load)(void *file);
-    const char* (*cpu_info)(void *context,int regnum);
-    unsigned (*cpu_dasm)(char *buffer,unsigned pc);
+	void (*set_pc)(unsigned val);
+	unsigned (*get_sp)(void);
+	void (*set_sp)(unsigned val);
+	unsigned (*get_reg)(int regnum);
+	void (*set_reg)(int regnum, unsigned val);
+	void (*set_nmi_line)(int linestate);
+	void (*set_irq_line)(int irqline, int linestate);
+	void (*set_irq_callback)(int(*callback)(int irqline));
+	void (*internal_interrupt)(int type);
+	void (*cpu_state_save)(void *file);
+	void (*cpu_state_load)(void *file);
+	const char* (*cpu_info)(void *context,int regnum);
+	unsigned (*cpu_dasm)(char *buffer,unsigned pc);
 	unsigned num_irqs;
 	int default_vector;
-    int *icount;
-    double overclock;
-    int no_int, irq_int, nmi_int;
-    int (*memory_read)(int offset);
-    void (*memory_write)(int offset, int data);
-    void (*set_op_base)(int pc);
+	int *icount;
+	double overclock;
+	int no_int, irq_int, nmi_int;
+	mem_read_handler memory_read;
+	mem_write_handler memory_write;
+	void (*set_op_base)(int pc);
 	int address_shift;
 	unsigned address_bits, endianess, align_unit, max_inst_len;
-    unsigned abits1, abits2, abitsmin;
+	unsigned abits1, abits2, abitsmin;
 };
 
 extern struct cpu_interface cpuintf[];
@@ -254,8 +296,8 @@ void cpu_init(void);
 void cpu_run(void);
 
 /* optional watchdog */
-void watchdog_reset_w(int offset,int data);
-int watchdog_reset_r(int offset);
+WRITE_HANDLER( watchdog_reset_w );
+READ_HANDLER( watchdog_reset_r );
 /* Use this function to reset the machine */
 void machine_reset(void);
 /* Use this function to reset a single CPU */
@@ -283,6 +325,11 @@ void cpu_set_sp(unsigned val);
 unsigned cpu_get_context(void *context);
 /* Set the active CPUs context */
 void cpu_set_context(void *context);
+
+/* Get a pointer to the active CPUs cycle count lookup table */
+void *cpu_get_cycle_table(int which);
+/* Override a pointer to the active CPUs cycle count lookup table */
+void cpu_set_cycle_tbl(int which, void *new_table);
 
 /* Returns a specific register value (mamedbg) */
 unsigned cpu_get_reg(int regnum);
@@ -372,24 +419,27 @@ void cpu_generate_internal_interrupt(int cpunum, int type);
 /* set the vector to be returned during a CPU's interrupt acknowledge cycle */
 void cpu_irq_line_vector_w(int cpunum, int irqline, int vector);
 
+/* use this function to install a driver callback for IRQ acknowledge */
+void cpu_set_irq_callback(int cpunum, int (*callback)(int));
+
 /* use these in your write memory/port handles to set an IRQ vector */
 /* offset corresponds to the irq line number here */
-void cpu_0_irq_line_vector_w(int offset, int data);
-void cpu_1_irq_line_vector_w(int offset, int data);
-void cpu_2_irq_line_vector_w(int offset, int data);
-void cpu_3_irq_line_vector_w(int offset, int data);
-void cpu_4_irq_line_vector_w(int offset, int data);
-void cpu_5_irq_line_vector_w(int offset, int data);
-void cpu_6_irq_line_vector_w(int offset, int data);
-void cpu_7_irq_line_vector_w(int offset, int data);
+WRITE_HANDLER( cpu_0_irq_line_vector_w );
+WRITE_HANDLER( cpu_1_irq_line_vector_w );
+WRITE_HANDLER( cpu_2_irq_line_vector_w );
+WRITE_HANDLER( cpu_3_irq_line_vector_w );
+WRITE_HANDLER( cpu_4_irq_line_vector_w );
+WRITE_HANDLER( cpu_5_irq_line_vector_w );
+WRITE_HANDLER( cpu_6_irq_line_vector_w );
+WRITE_HANDLER( cpu_7_irq_line_vector_w );
 
 /* Obsolete functions: avoid to use them in new drivers if possible. */
 
 /* cause an interrupt on a CPU */
 void cpu_cause_interrupt(int cpu,int type);
 void cpu_clear_pending_interrupts(int cpu);
-void interrupt_enable_w(int offset,int data);
-void interrupt_vector_w(int offset,int data);
+WRITE_HANDLER( interrupt_enable_w );
+WRITE_HANDLER( interrupt_vector_w );
 int interrupt(void);
 int nmi_interrupt(void);
 int m68_level1_irq(void);
@@ -529,10 +579,10 @@ void cpu_dump_states(void);
 
 /* daisy-chain link */
 typedef struct {
-    void (*reset)(int);             /* reset callback     */
-    int  (*interrupt_entry)(int);   /* entry callback     */
-    void (*interrupt_reti)(int);    /* reti callback      */
-    int irq_param;                  /* callback paramater */
+	void (*reset)(int);             /* reset callback     */
+	int  (*interrupt_entry)(int);   /* entry callback     */
+	void (*interrupt_reti)(int);    /* reti callback      */
+	int irq_param;                  /* callback paramater */
 }	Z80_DaisyChain;
 
 #define Z80_MAXDAISY	4		/* maximum of daisy chan device */

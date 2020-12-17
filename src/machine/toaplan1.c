@@ -10,9 +10,9 @@
 #define ASSERT 1
 
 
-int  video_ofs3_r(int offset);
-void video_ofs3_w(int offset, int data);
-void toaplan1_videoram3_w(int offset, int data);
+READ_HANDLER( video_ofs3_r );
+WRITE_HANDLER( video_ofs3_w );
+WRITE_HANDLER( toaplan1_videoram3_w );
 
 int toaplan1_coin_count; /* coin count increments on startup ? , so dont count it */
 
@@ -27,7 +27,7 @@ extern unsigned char *toaplan1_sharedram;
 
 
 
-int demonwld_dsp_in(int offset)
+READ_HANDLER( demonwld_dsp_r )
 {
 	/* DSP can read data from main CPU RAM via DSP IO port 1 */
 
@@ -36,16 +36,15 @@ int demonwld_dsp_in(int offset)
 	switch (main_ram_seg) {
 		case 0xc00000:	input_data = READ_WORD(&(cpu_bankbase[1][(dsp_addr_w)])); break;
 
-		default:		if (errorlog)
-							fprintf(errorlog,"DSP PC:%04x Warning !!! IO reading from %08x (port 1)\n",cpu_getpreviouspc(),main_ram_seg + dsp_addr_w);
+		default:		logerror("DSP PC:%04x Warning !!! IO reading from %08x (port 1)\n",cpu_getpreviouspc(),main_ram_seg + dsp_addr_w);
 	}
-	if (errorlog) fprintf(errorlog,"DSP PC:%04x IO read %04x at %08x (port 1)\n",cpu_getpreviouspc(),input_data,main_ram_seg + dsp_addr_w);
+	logerror("DSP PC:%04x IO read %04x at %08x (port 1)\n",cpu_getpreviouspc(),input_data,main_ram_seg + dsp_addr_w);
 	return input_data;
 }
 
-void demonwld_dsp_out(int fnction,int data)
+WRITE_HANDLER( demonwld_dsp_w )
 {
-	if (fnction == 0) {
+	if (offset == 0) {
 		/* This sets the main CPU RAM address the DSP should */
 		/*		read/write, via the DSP IO port 0 */
 		/* Top three bits of data need to be shifted left 9 places */
@@ -56,33 +55,32 @@ void demonwld_dsp_out(int fnction,int data)
 
 		dsp_addr_w = ((data & 0x1fff) << 1);
 		main_ram_seg = ((data & 0xe000) << 9);
-		if (errorlog) fprintf(errorlog,"DSP PC:%04x IO write %04x (%08x) at port 0\n",cpu_getpreviouspc(),data,main_ram_seg + dsp_addr_w);
+		logerror("DSP PC:%04x IO write %04x (%08x) at port 0\n",cpu_getpreviouspc(),data,main_ram_seg + dsp_addr_w);
 	}
-	if (fnction == 1) {
+	if (offset == 1) {
 		/* Data written to main CPU RAM via DSP IO port 1*/
 
 		dsp_execute = 0;
 		switch (main_ram_seg) {
 			case 0xc00000:	WRITE_WORD(&(cpu_bankbase[1][(dsp_addr_w)]),data);
 							if ((dsp_addr_w < 3) && (data == 0)) dsp_execute = 1; break;
-			default:		if (errorlog)
-								fprintf(errorlog,"DSP PC:%04x Warning !!! IO writing to %08x (port 1)\n",cpu_getpreviouspc(),main_ram_seg + dsp_addr_w);
+			default:		logerror("DSP PC:%04x Warning !!! IO writing to %08x (port 1)\n",cpu_getpreviouspc(),main_ram_seg + dsp_addr_w);
 		}
-		if (errorlog) fprintf(errorlog,"DSP PC:%04x IO write %04x at %08x (port 1)\n",cpu_getpreviouspc(),data,main_ram_seg + dsp_addr_w);
+		logerror("DSP PC:%04x IO write %04x at %08x (port 1)\n",cpu_getpreviouspc(),data,main_ram_seg + dsp_addr_w);
 	}
-	if (fnction == 3) {
+	if (offset == 3) {
 		/* data 0xffff	means inhibit BIO line to DSP and enable  */
 		/*				communication to main processor */
 		/*				Actually only DSP data bit 15 controls this */
 		/* data 0x0000	means set DSP BIO line active and disable */
 		/*				communication to main processor*/
-		if (errorlog) fprintf(errorlog,"DSP PC:%04x IO write %04x at port 3\n",cpu_getpreviouspc(),data);
+		logerror("DSP PC:%04x IO write %04x at port 3\n",cpu_getpreviouspc(),data);
 		if (data & 0x8000) {
 			cpu_set_irq_line(2, TMS320C10_ACTIVE_BIO, CLEAR_LINE);
 		}
 		if (data == 0) {
 			if (dsp_execute) {
-				if (errorlog) fprintf(errorlog,"Turning 68000 on\n");
+				logerror("Turning 68000 on\n");
 				timer_suspendcpu(0, CLEAR, SUSPEND_REASON_HALT);
 				dsp_execute = 0;
 			}
@@ -91,26 +89,25 @@ void demonwld_dsp_out(int fnction,int data)
 	}
 }
 
-void demonwld_dsp_w(int offset,int data)
+WRITE_HANDLER( demonwld_dsp_ctrl_w )
 {
 #if 0
-	if (errorlog) fprintf(errorlog,"68000:%08x  Writing %08x to %08x.\n",cpu_get_pc() ,data ,0xe0000a + offset);
+	logerror("68000:%08x  Writing %08x to %08x.\n",cpu_get_pc() ,data ,0xe0000a + offset);
 #endif
 
 	switch (data) {
 		case 0x0000: 	/* This means assert the INT line to the DSP */
-						if (errorlog) fprintf(errorlog,"Turning DSP on and 68000 off\n");
+						logerror("Turning DSP on and 68000 off\n");
 						timer_suspendcpu(2, CLEAR, SUSPEND_REASON_HALT);
 						cpu_set_irq_line(2, TMS320C10_ACTIVE_INT, ASSERT_LINE);
 						timer_suspendcpu(0, ASSERT, SUSPEND_REASON_HALT);
 						break;
 		case 0x0001: 	/* This means inhibit the INT line to the DSP */
-						if (errorlog) fprintf(errorlog,"Turning DSP off\n");
+						logerror("Turning DSP off\n");
 						cpu_set_irq_line(2, TMS320C10_ACTIVE_INT, CLEAR_LINE);
 						timer_suspendcpu(2, ASSERT, SUSPEND_REASON_HALT);
 						break;
-		default:		if (errorlog)
-							fprintf(errorlog,"68000:%04x  writing unknown command %08x to %08x\n",cpu_getpreviouspc() ,data ,0xe0000a + offset);
+		default:		logerror("68000:%04x  writing unknown command %08x to %08x\n",cpu_getpreviouspc() ,data ,0xe0000a + offset);
 	}
 }
 
@@ -125,25 +122,24 @@ int toaplan1_interrupt(void)
 	return MC68000_INT_NONE;
 }
 
-void toaplan1_int_enable_w(int offset, int data)
+WRITE_HANDLER( toaplan1_int_enable_w )
 {
 	toaplan1_int_enable = data;
 }
 
-int toaplan1_unk_r(int offset)
+READ_HANDLER( toaplan1_unk_r )
 {
 	return unk ^= 1;
 }
 
-int samesame_port_6_r(int offset)
+READ_HANDLER( samesame_port_6_r )
 {
 	/* Bit 0x80 is secondary CPU (HD647180) ready signal */
-	if (errorlog)
-		fprintf(errorlog,"PC:%04x Warning !!! IO reading from $14000a\n",cpu_getpreviouspc());
+	logerror("PC:%04x Warning !!! IO reading from $14000a\n",cpu_getpreviouspc());
 	return (0x80 | input_port_6_r(0));
 }
 
-int vimana_input_port_5_r(int offset)
+READ_HANDLER( vimana_input_port_5_r )
 {
 	int data, p;
 
@@ -166,7 +162,7 @@ int vimana_input_port_5_r(int offset)
 	return p;
 }
 
-int vimana_mcu_r(int offset)
+READ_HANDLER( vimana_mcu_r )
 {
 	int data = 0 ;
 	switch (offset >> 1)
@@ -183,7 +179,7 @@ int vimana_mcu_r(int offset)
 	}
 	return data;
 }
-void vimana_mcu_w(int offset, int data)
+WRITE_HANDLER( vimana_mcu_w )
 {
 	switch (offset >> 1)
 	{
@@ -197,12 +193,12 @@ void vimana_mcu_w(int offset, int data)
 	}
 }
 
-int toaplan1_shared_r(int offset)
+READ_HANDLER( toaplan1_shared_r )
 {
 	return toaplan1_sharedram[offset>>1];
 }
 
-void toaplan1_shared_w(int offset, int data)
+WRITE_HANDLER( toaplan1_shared_w )
 {
 	toaplan1_sharedram[offset>>1] = data;
 }
@@ -219,7 +215,7 @@ void toaplan1_init_machine(void)
 	coin_lockout_global_w(0,0);
 }
 
-void rallybik_coin_w(int offset,int data)
+WRITE_HANDLER( rallybik_coin_w )
 {
 	switch (data) {
 		case 0x08: if (toaplan1_coin_count) { coin_counter_w(0,1); coin_counter_w(0,0); } break;
@@ -233,9 +229,9 @@ void rallybik_coin_w(int offset,int data)
 	}
 }
 
-void toaplan1_coin_w(int offset,int data)
+WRITE_HANDLER( toaplan1_coin_w )
 {
-	if (errorlog) fprintf(errorlog,"Z80 writing %02x to coin control\n",data);
+	logerror("Z80 writing %02x to coin control\n",data);
 	/* This still isnt too clear yet. */
 	/* Coin C has no coin lock ? */
 	/* Are some outputs for lights ? (no space on JAMMA for it though) */

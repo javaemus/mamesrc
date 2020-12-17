@@ -22,13 +22,12 @@
 
 void actfancr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void triothep_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void actfancr_pf1_data_w(int offset, int data);
-int actfancr_pf1_data_r(int offset);
-void triothep_pf1_data_w(int offset, int data);
-void actfancr_pf1_control_w(int offset, int data);
-void actfancr_pf2_data_w(int offset, int data);
-int actfancr_pf2_data_r(int offset);
-void actfancr_pf2_control_w(int offset, int data);
+WRITE_HANDLER( actfancr_pf1_data_w );
+READ_HANDLER( actfancr_pf1_data_r );
+WRITE_HANDLER( actfancr_pf1_control_w );
+WRITE_HANDLER( actfancr_pf2_data_w );
+READ_HANDLER( actfancr_pf2_data_r );
+WRITE_HANDLER( actfancr_pf2_control_w );
 int actfancr_vh_start (void);
 int triothep_vh_start (void);
 
@@ -37,12 +36,12 @@ static unsigned char *actfancr_ram;
 
 /******************************************************************************/
 
-static int actfan_control_0_r(int offset)
+static READ_HANDLER( actfan_control_0_r )
 {
 	return readinputport(2); /* VBL */
 }
 
-static int actfan_control_1_r(int offset)
+static READ_HANDLER( actfan_control_1_r )
 {
 	switch (offset) {
 		case 0: return readinputport(0); /* Player 1 */
@@ -55,12 +54,12 @@ static int actfan_control_1_r(int offset)
 
 static int trio_control_select;
 
-static void triothep_control_select_w(int offset, int data)
+static WRITE_HANDLER( triothep_control_select_w )
 {
 	trio_control_select=data;
 }
 
-static int triothep_control_r(int offset)
+static READ_HANDLER( triothep_control_r )
 {
 	switch (trio_control_select) {
 		case 0: return readinputport(0); /* Player 1 */
@@ -73,7 +72,7 @@ static int triothep_control_r(int offset)
 	return 0xff;
 }
 
-static void actfancr_sound_w(int offset, int data)
+static WRITE_HANDLER( actfancr_sound_w )
 {
 	soundlatch_w(0,data & 0xff);
 	cpu_cause_interrupt(1,M6502_INT_NMI);
@@ -129,7 +128,7 @@ static struct MemoryWriteAddress triothep_writemem[] =
 	{ 0x044000, 0x045fff, actfancr_pf2_data_w, &actfancr_pf2_data },
 	{ 0x046400, 0x0467ff, MWA_NOP }, /* Pf2 rowscroll - is it used? */
 	{ 0x060000, 0x06001f, actfancr_pf1_control_w },
-	{ 0x064000, 0x0647ff, triothep_pf1_data_w, &actfancr_pf1_data },
+	{ 0x064000, 0x0647ff, actfancr_pf1_data_w, &actfancr_pf1_data },
 	{ 0x066400, 0x0667ff, MWA_RAM, &actfancr_pf1_rowscroll_data },
 	{ 0x100000, 0x100001, actfancr_sound_w },
 	{ 0x110000, 0x110001, buffer_spriteram_w },
@@ -190,8 +189,8 @@ INPUT_PORTS_START( actfancr )
 	PORT_START	/* start buttons */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3  )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN  )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -208,7 +207,7 @@ INPUT_PORTS_START( actfancr )
 	PORT_DIPSETTING(    0x04, DEF_STR( 2C_1C ) )
 	PORT_DIPSETTING(    0x0c, DEF_STR( 1C_1C ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( 1C_2C ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Demo_Sounds ) )
@@ -226,7 +225,7 @@ INPUT_PORTS_START( actfancr )
 	PORT_DIPSETTING(    0x03, "3" )
 	PORT_DIPSETTING(    0x02, "4" )
 	PORT_DIPSETTING(    0x01, "5" )
-	PORT_BITX(0,  0x00, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Infinite", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_BITX(0,  0x00, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "100", IP_KEY_NONE, IP_JOY_NONE )
 	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Difficulty ) )
 	PORT_DIPSETTING(    0x04, "Easy" )
 	PORT_DIPSETTING(    0x0c, "Normal" )
@@ -235,10 +234,10 @@ INPUT_PORTS_START( actfancr )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x20, "800000" )
+	PORT_DIPSETTING(    0x00, "None" )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
@@ -270,7 +269,7 @@ INPUT_PORTS_START( triothep )
 	PORT_START	/* start buttons */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3  )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -663,7 +662,7 @@ ROM_END
 
 /******************************************************************************/
 
-static int cycle_r(int offset)
+static READ_HANDLER( cycle_r )
 {
 	int pc=cpu_get_pc();
 	int ret=actfancr_ram[0x26];
@@ -678,7 +677,7 @@ static int cycle_r(int offset)
 	return ret;
 }
 
-static int cyclej_r(int offset)
+static READ_HANDLER( cyclej_r )
 {
 	int pc=cpu_get_pc();
 	int ret=actfancr_ram[0x26];

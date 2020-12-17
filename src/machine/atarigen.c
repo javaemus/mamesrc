@@ -119,7 +119,7 @@ int atarigen_scanline_int_gen(void)
  *
  */
 
-void atarigen_scanline_int_ack_w(int offset, int data)
+WRITE_HANDLER( atarigen_scanline_int_ack_w )
 {
 	atarigen_scanline_int_state = 0;
 	(*update_int_callback)();
@@ -148,7 +148,7 @@ int atarigen_sound_int_gen(void)
  *
  */
 
-void atarigen_sound_int_ack_w(int offset, int data)
+WRITE_HANDLER( atarigen_sound_int_ack_w )
 {
 	atarigen_sound_int_state = 0;
 	(*update_int_callback)();
@@ -177,7 +177,7 @@ int atarigen_video_int_gen(void)
  *
  */
 
-void atarigen_video_int_ack_w(int offset, int data)
+WRITE_HANDLER( atarigen_video_int_ack_w )
 {
 	atarigen_video_int_state = 0;
 	(*update_int_callback)();
@@ -223,7 +223,7 @@ static void scanline_interrupt_callback(int param)
 /* globals */
 const UINT16 *atarigen_eeprom_default;
 UINT8 *atarigen_eeprom;
-int atarigen_eeprom_size;
+size_t atarigen_eeprom_size;
 
 /* statics */
 static UINT8 unlocked;
@@ -254,7 +254,7 @@ void atarigen_eeprom_reset(void)
  *
  */
 
-void atarigen_eeprom_enable_w(int offset, int data)
+WRITE_HANDLER( atarigen_eeprom_enable_w )
 {
 	unlocked = 1;
 }
@@ -269,7 +269,7 @@ void atarigen_eeprom_enable_w(int offset, int data)
  *
  */
 
-void atarigen_eeprom_w(int offset, int data)
+WRITE_HANDLER( atarigen_eeprom_w )
 {
 	if (!unlocked)
 		return;
@@ -287,12 +287,12 @@ void atarigen_eeprom_w(int offset, int data)
  *
  */
 
-int atarigen_eeprom_r(int offset)
+READ_HANDLER( atarigen_eeprom_r )
 {
 	return READ_WORD(&atarigen_eeprom[offset]) | 0xff00;
 }
 
-int atarigen_eeprom_upper_r(int offset)
+READ_HANDLER( atarigen_eeprom_upper_r )
 {
 	return READ_WORD(&atarigen_eeprom[offset]) | 0x00ff;
 }
@@ -448,7 +448,7 @@ void atarigen_slapstic_reset(void)
  *
  */
 
-void atarigen_slapstic_w(int offset, int data)
+WRITE_HANDLER( atarigen_slapstic_w )
 {
 	slapstic_tweak(offset / 2);
 }
@@ -462,7 +462,7 @@ void atarigen_slapstic_w(int offset, int data)
  *
  */
 
-int atarigen_slapstic_r(int offset)
+READ_HANDLER( atarigen_slapstic_r )
 {
 	int bank = slapstic_tweak(offset / 2) * 0x2000;
 	return READ_WORD(&atarigen_slapstic[bank + (offset & 0x1fff)]);
@@ -568,14 +568,14 @@ int atarigen_6502_irq_gen(void)
  *
  */
 
-int atarigen_6502_irq_ack_r(int offset)
+READ_HANDLER( atarigen_6502_irq_ack_r )
 {
 	timed_int = 0;
 	update_6502_irq();
 	return 0;
 }
 
-void atarigen_6502_irq_ack_w(int offset, int data)
+WRITE_HANDLER( atarigen_6502_irq_ack_w )
 {
 	timed_int = 0;
 	update_6502_irq();
@@ -603,7 +603,7 @@ void atarigen_ym2151_irq_gen(int irq)
  *
  */
 
-void atarigen_sound_reset_w(int offset, int data)
+WRITE_HANDLER( atarigen_sound_reset_w )
 {
 	timer_set(TIME_NOW, 0, delayed_sound_reset);
 }
@@ -631,13 +631,13 @@ void atarigen_sound_reset(void)
  *
  */
 
-void atarigen_sound_w(int offset, int data)
+WRITE_HANDLER( atarigen_sound_w )
 {
 	if (!(data & 0x00ff0000))
 		timer_set(TIME_NOW, data & 0xff, delayed_sound_w);
 }
 
-void atarigen_sound_upper_w(int offset, int data)
+WRITE_HANDLER( atarigen_sound_upper_w )
 {
 	if (!(data & 0xff000000))
 		timer_set(TIME_NOW, (data >> 8) & 0xff, delayed_sound_w);
@@ -653,14 +653,14 @@ void atarigen_sound_upper_w(int offset, int data)
  *
  */
 
-int atarigen_sound_r(int offset)
+READ_HANDLER( atarigen_sound_r )
 {
 	atarigen_sound_to_cpu_ready = 0;
 	atarigen_sound_int_ack_w(0, 0);
 	return atarigen_sound_to_cpu | 0xff00;
 }
 
-int atarigen_sound_upper_r(int offset)
+READ_HANDLER( atarigen_sound_upper_r )
 {
 	atarigen_sound_to_cpu_ready = 0;
 	atarigen_sound_int_ack_w(0, 0);
@@ -675,7 +675,7 @@ int atarigen_sound_upper_r(int offset)
  *
  */
 
-void atarigen_6502_sound_w(int offset, int data)
+WRITE_HANDLER( atarigen_6502_sound_w )
 {
 	timer_set(TIME_NOW, data, delayed_6502_sound_w);
 }
@@ -688,7 +688,7 @@ void atarigen_6502_sound_w(int offset, int data)
  *
  */
 
-int atarigen_6502_sound_r(int offset)
+READ_HANDLER( atarigen_6502_sound_r )
 {
 	atarigen_cpu_to_sound_ready = 0;
 	cpu_set_nmi_line(sound_cpu_num, CLEAR_LINE);
@@ -763,7 +763,7 @@ static void delayed_sound_w(int param)
 {
 	/* warn if we missed something */
 	if (atarigen_cpu_to_sound_ready)
-		if (errorlog) fprintf(errorlog, "Missed command from 68010\n");
+		logerror("Missed command from 68010\n");
 
 	/* set up the states and signal an NMI to the sound CPU */
 	atarigen_cpu_to_sound = param;
@@ -787,7 +787,7 @@ static void delayed_6502_sound_w(int param)
 {
 	/* warn if we missed something */
 	if (atarigen_sound_to_cpu_ready)
-		if (errorlog) fprintf(errorlog, "Missed result from 6502\n");
+		logerror("Missed result from 6502\n");
 
 	/* set up the states and signal the sound interrupt to the main CPU */
 	atarigen_sound_to_cpu = param;
@@ -815,7 +815,7 @@ static UINT8 *speed_a, *speed_b;
 static UINT32 speed_pc;
 
 /* prototypes */
-static int m6502_speedup_r(int offset);
+static READ_HANDLER( m6502_speedup_r );
 
 
 /*
@@ -836,14 +836,14 @@ void atarigen_init_6502_speedup(int cpunum, int compare_pc1, int compare_pc2)
 	address_low = memory[compare_pc1 + 1] | (memory[compare_pc1 + 2] << 8);
 	address_high = memory[compare_pc1 + 4] | (memory[compare_pc1 + 5] << 8);
 	if (address_low != address_high - 1)
-		if (errorlog) fprintf(errorlog, "Error: address %04X does not point to a speedup location!", compare_pc1);
+		logerror("Error: address %04X does not point to a speedup location!", compare_pc1);
 	speed_a = &memory[address_low];
 
 	/* determine the pointer to the second speed check location */
 	address_low = memory[compare_pc2 + 1] | (memory[compare_pc2 + 2] << 8);
 	address_high = memory[compare_pc2 + 4] | (memory[compare_pc2 + 5] << 8);
 	if (address_low != address_high - 1)
-		if (errorlog) fprintf(errorlog, "Error: address %04X does not point to a speedup location!", compare_pc2);
+		logerror("Error: address %04X does not point to a speedup location!", compare_pc2);
 	speed_b = &memory[address_low];
 
 	/* install a handler on the second address */
@@ -959,7 +959,7 @@ void atarigen_set_oki6295_vol(int volume)
  *
  */
 
-static int m6502_speedup_r(int offset)
+static READ_HANDLER( m6502_speedup_r )
 {
 	int result = speed_b[0];
 
@@ -990,10 +990,10 @@ UINT8 *atarigen_alpharam;
 UINT8 *atarigen_vscroll;
 UINT8 *atarigen_hscroll;
 
-int atarigen_playfieldram_size;
-int atarigen_playfield2ram_size;
-int atarigen_spriteram_size;
-int atarigen_alpharam_size;
+size_t atarigen_playfieldram_size;
+size_t atarigen_playfield2ram_size;
+size_t atarigen_spriteram_size;
+size_t atarigen_alpharam_size;
 
 
 
@@ -1168,7 +1168,7 @@ void atarigen_video_control_update(const UINT8 *data)
  *
  */
 
-void atarigen_video_control_w(int offset, int data)
+WRITE_HANDLER( atarigen_video_control_w )
 {
 	int oldword = READ_WORD(&atarigen_video_control_data[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -1257,8 +1257,7 @@ void atarigen_video_control_w(int offset, int data)
 		case 0x00:
 		default:
 			if (oldword != newword)
-				if (errorlog)
-					fprintf(errorlog, "video_control_w(%02X, %04X) ** [prev=%04X]\n", offset, newword, oldword);
+				logerror("video_control_w(%02X, %04X) ** [prev=%04X]\n", offset, newword, oldword);
 			break;
 	}
 }
@@ -1271,9 +1270,9 @@ void atarigen_video_control_w(int offset, int data)
  *
  */
 
-int atarigen_video_control_r(int offset)
+READ_HANDLER( atarigen_video_control_r )
 {
-	if (errorlog) fprintf(errorlog, "video_control_r(%02X)\n", offset);
+	logerror("video_control_r(%02X)\n", offset);
 
 	/* a read from offset 0 returns the current scanline */
 	/* also sets bit 0x4000 if we're in VBLANK */
@@ -1283,7 +1282,7 @@ int atarigen_video_control_r(int offset)
 
 		if (result > 255)
 			result = 255;
-		if (result > Machine->drv->visible_area.max_y)
+		if (result > Machine->visible_area.max_y)
 			result |= 0x4000;
 
 		return result;
@@ -1416,7 +1415,7 @@ void atarigen_mo_update(const UINT8 *base, int link, int scanline)
 		/* bounds checking */
 		if (data >= molist_upper_bound)
 		{
-			if (errorlog) fprintf(errorlog, "Motion object list exceeded maximum\n");
+			logerror("Motion object list exceeded maximum\n");
 			break;
 		}
 
@@ -1721,7 +1720,7 @@ static int build_rle_tables(void)
 	rle_table[2] = rle_table[3] = &base[0x200];
 	rle_table[4] = rle_table[6] = &base[0x300];
 	rle_table[5] = rle_table[7] = &base[0x400];
-	
+
 	/* set the bpps */
 	rle_bpp[0] = 4;
 	rle_bpp[1] = rle_bpp[2] = rle_bpp[3] = 5;
@@ -2697,13 +2696,11 @@ static int internal_pf_init(struct playfield_data *pf, const struct atarigen_pf_
 {
 	/* allocate the bitmap */
 	if (!source_desc->noscroll)
-		pf->bitmap = osd_new_bitmap(source_desc->tilewidth * source_desc->xtiles,
-									source_desc->tileheight * source_desc->ytiles,
-									Machine->scrbitmap->depth);
+		pf->bitmap = bitmap_alloc(source_desc->tilewidth * source_desc->xtiles,
+									source_desc->tileheight * source_desc->ytiles);
 	else
-		pf->bitmap = osd_new_bitmap(Machine->drv->screen_width,
-									Machine->drv->screen_height,
-									Machine->scrbitmap->depth);
+		pf->bitmap = bitmap_alloc(Machine->drv->screen_width,
+									Machine->drv->screen_height);
 	if (!pf->bitmap)
 		return 1;
 
@@ -2764,7 +2761,7 @@ int atarigen_pf_init(const struct atarigen_pf_desc *source_desc)
 	if (!result)
 	{
 		/* allocate the overrender bitmap */
-		atarigen_pf_overrender_bitmap = osd_new_bitmap(Machine->drv->screen_width, Machine->drv->screen_height, Machine->scrbitmap->depth);
+		atarigen_pf_overrender_bitmap = bitmap_alloc(Machine->drv->screen_width, Machine->drv->screen_height);
 		if (!atarigen_pf_overrender_bitmap)
 		{
 			internal_pf_free(&playfield);
@@ -2801,7 +2798,7 @@ int atarigen_pf2_init(const struct atarigen_pf_desc *source_desc)
 static void internal_pf_free(struct playfield_data *pf)
 {
 	if (pf->bitmap)
-		osd_free_bitmap(pf->bitmap);
+		bitmap_free(pf->bitmap);
 	pf->bitmap = NULL;
 
 	if (pf->dirty)
@@ -2827,7 +2824,7 @@ void atarigen_pf_free(void)
 
 	/* free the overrender bitmap */
 	if (atarigen_pf_overrender_bitmap)
-		osd_free_bitmap(atarigen_pf_overrender_bitmap);
+		bitmap_free(atarigen_pf_overrender_bitmap);
 	atarigen_pf_overrender_bitmap = NULL;
 }
 
@@ -3048,7 +3045,7 @@ int atarigen_get_hblank(void)
  *
  */
 
-void atarigen_halt_until_hblank_0_w(int offset, int data)
+WRITE_HANDLER( atarigen_halt_until_hblank_0_w )
 {
 	/* halt the CPU until the next HBLANK */
 	int hpos = cpu_gethorzbeampos();
@@ -3073,7 +3070,7 @@ void atarigen_halt_until_hblank_0_w(int offset, int data)
  *
  */
 
-void atarigen_666_paletteram_w(int offset, int data)
+WRITE_HANDLER( atarigen_666_paletteram_w )
 {
 	int oldword = READ_WORD(&paletteram[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -3102,7 +3099,7 @@ void atarigen_666_paletteram_w(int offset, int data)
  *
  */
 
-void atarigen_expanded_666_paletteram_w(int offset, int data)
+WRITE_HANDLER( atarigen_expanded_666_paletteram_w )
 {
 	COMBINE_WORD_MEM(&paletteram[offset], data);
 
@@ -3222,8 +3219,8 @@ void atarigen_update_messages(void)
 		/* draw a row of spaces at the top and bottom */
 		for (i = 0; i < maxwidth; i++)
 		{
-			ui_text(" ", x + i * Machine->uifontwidth, y);
-			ui_text(" ", x + i * Machine->uifontwidth, y + (lines + 1) * Machine->uifontheight);
+			ui_text(Machine->scrbitmap, " ", x + i * Machine->uifontwidth, y);
+			ui_text(Machine->scrbitmap, " ", x + i * Machine->uifontwidth, y + (lines + 1) * Machine->uifontheight);
 		}
 		y += Machine->uifontheight;
 
@@ -3235,11 +3232,11 @@ void atarigen_update_messages(void)
 
 			for (j = 0; j < dx; j += Machine->uifontwidth)
 			{
-				ui_text(" ", x + j, y);
-				ui_text(" ", x + (maxwidth - 1) * Machine->uifontwidth - j, y);
+				ui_text(Machine->scrbitmap, " ", x + j, y);
+				ui_text(Machine->scrbitmap, " ", x + (maxwidth - 1) * Machine->uifontwidth - j, y);
 			}
 
-			ui_text(message_text[i], x + dx, y);
+			ui_text(Machine->scrbitmap, message_text[i], x + dx, y);
 			y += Machine->uifontheight;
 		}
 
@@ -3247,7 +3244,8 @@ void atarigen_update_messages(void)
 		message_countdown--;
 
 		/* if a coin is inserted, make the message go away */
-		if (keyboard_pressed(KEYCODE_3) || keyboard_pressed(KEYCODE_4))
+		if (keyboard_pressed(KEYCODE_5) || keyboard_pressed(KEYCODE_6) ||
+		    keyboard_pressed(KEYCODE_7) || keyboard_pressed(KEYCODE_8))
 			message_countdown = 0;
 	}
 	else

@@ -13,6 +13,111 @@
 	TODO :
             - What does 0x3c0006-7 *REALLY* do?
 
+
+known problems, some might have already been fixed:
+
+ssideki2:
+locks up at random times
+
+gpilots:
+bad sound (clipping and such)
+
+popbounc:
+hangs after a few seconds of gameplay if sound is off. Fixed with a patch.
+
+neoturf:
+There appear to be some bad/inverted palette shifts on the scorecards that
+appear when you double/triple bogie.
+
+lastbld2:
+hangs during the intermission between level 1 and 2. If you skip the intermission
+before it hangs, it goes on playing.
+
+Se anche Sidekick 3 e 4 usano la stessa tecnica, allora e' evidente che il
+campo si vede male perche' gli emu Neo Geo attualmente usano un engine "tile
+by tile" e non "line by line", ed e' lo stesso motivo per cui ad esempio in
+Fighter's History i fondali che dovrebbero essere prospettici restano
+immobili (e credo sia anche lo stesso motivo per cui in Zed Blade i fondali
+sono ugualmente immobili).
+
+2020 Baseball = When the batter gets hit by the pitcher the game resets,
+only on  arcade mode, in console mode it works fine
+
+Ninja Combat = The music stops after the charge move is used ( the
+dragon)
+
+Ninja Commando = The music stops a little after the intro
+
+magdrop2
+In a two player game if P2 wins a game, then BOTH players are shown to lose, If P1 wins then P1 is correctly shown as the winner!!
+
+
+So far Ninja Combat, Ninja Commando, Alpha Mission 2, and Blues Journey, still have sound problems, and Burning Fight
+quits playing right after I choose my character. Am I the only one with these problems? Please let me know cause im trying to FIX
+
+Shock Trooper get stucked after killing the first final enemy
+
+blazstar,
+Although the sound is perfect, there is still a problem
+with parallax, in level 2.
+Actually, the speed of scrolling should be twice as
+fast as now.
+
+samsho4,
+I've just played Samurai Showdown 4, the level with the coast in the
+background, and the water animation seems much to fast. I've made this
+observation in at least another NeoGeo game (don't remember which
+one anymore).
+
+Shock Troopers - this has bad bugs. The game stops scrolling when you kill
+the mid-boss on any of the 3 starting levels. There are also some
+sprite/collision problems in the Jungle route. I'm told MAME32 works, so
+perhaps this can still be fixed for the DOS final.
+
+rbffspec
+at the beginning of Hong Kong level, sky abruptly disappears while it scrolls up.
+
+lastblad
+rom M1 could be bad (second half is mostly FF, missing music in some levels)
+
+in the game Super Spy, the white dialog box that appers when you are in a room
+and somebody is talking at you, is missing. the text is black, and it is hard
+to read because all the background is very dark. the dialog box missing has white colour.
+
+---2020 Super Baseball---
+Game resets when batter is hit by pitch.
+
+---Cyberlip---
+Crashes during the demo display (reported but I don't see it)
+
+
+
+doubledr,
+garbage sound during the movie in attract mode
+
+kof94,
+possible wrong scroll at the beginning of Japan match (abruptly clipped ground)
+
+tpgolf:
+clipped tiles at the sides of the screen during scrolling
+
+mahretsu:
+the song should stop while you are playing. You can hear the real sound
+  effects if you continue a lost game.
+
+
+
+
+ncombat,
+sound hangs when you use the power up
+
+ncommand,
+no music and reduced sound effects during gameplay
+
+savagere,
+BAD clipping during intro
+
+
 =============================================================================
 
 Points to note, known and proven information deleted from this map:
@@ -102,15 +207,15 @@ extern unsigned char *vidram;
 extern unsigned char *neogeo_ram;
 extern unsigned char *neogeo_sram;
 
-void neogeo_sram_lock_w(int offset,int data);
-void neogeo_sram_unlock_w(int offset,int data);
-int neogeo_sram_r(int offset);
-void neogeo_sram_w(int offset,int data);
+WRITE_HANDLER( neogeo_sram_lock_w );
+WRITE_HANDLER( neogeo_sram_unlock_w );
+READ_HANDLER( neogeo_sram_r );
+WRITE_HANDLER( neogeo_sram_w );
 void neogeo_nvram_handler(void *file,int read_or_write);
 
 extern int	memcard_status;
-int	neogeo_memcard_r(int offset);
-void neogeo_memcard_w(int offset,int data);
+READ_HANDLER( 	neogeo_memcard_r );
+WRITE_HANDLER( neogeo_memcard_w );
 
 
 
@@ -120,31 +225,26 @@ void neogeo_vh_raster_partial_refresh(struct osd_bitmap *bitmap,int current_line
 void neogeo_vh_raster_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 int  neogeo_mvs_vh_start(void);
 void neogeo_vh_stop(void);
-void neogeo_paletteram_w(int offset,int data);
-int  neogeo_paletteram_r(int offset);
-void neogeo_setpalbank0(int offset, int data);
-void neogeo_setpalbank1(int offset, int data);
+WRITE_HANDLER( neogeo_paletteram_w );
+READ_HANDLER( neogeo_paletteram_r );
+WRITE_HANDLER( neogeo_setpalbank0_w );
+WRITE_HANDLER( neogeo_setpalbank1_w );
 
-void neo_board_fix(int offset, int data);
-void neo_game_fix(int offset, int data);
+WRITE_HANDLER( neo_board_fix_w );
+WRITE_HANDLER( neo_game_fix_w );
 
-void vidram_modulo_w(int offset, int data);
-void vidram_data_w(int offset, int data);
-void vidram_offset_w(int offset, int data);
+WRITE_HANDLER( vidram_modulo_w );
+WRITE_HANDLER( vidram_data_w );
+WRITE_HANDLER( vidram_offset_w );
 
-int vidram_data_r(int offset);
-int vidram_modulo_r(int offset);
+READ_HANDLER( vidram_data_r );
+READ_HANDLER( vidram_modulo_r );
 
 /* debug, used to 'see' the locations mapped in ROM space */
 /* with the debugger */
-int mish_vid_r(int offset);
-void mish_vid_w(int offset, int data);
+READ_HANDLER( mish_vid_r );
+WRITE_HANDLER( mish_vid_w );
 /* end debug */
-
-void neo_unknown1(int offset, int data);
-void neo_unknown2(int offset, int data);
-void neo_unknown3(int offset, int data);
-void neo_unknown4(int offset, int data);
 
 
 /* from machine/neogeo.c */
@@ -216,7 +316,7 @@ static int raster_enable=1;
 			neogeo_vh_raster_partial_refresh(Machine->scrbitmap,line-RASTER_VBLANK_END+FIRST_VISIBLE_LINE-1);
 
 		/* return a standard vblank interrupt */
-//if (errorlog) fprintf(errorlog,"trigger IRQ1\n");
+//logerror("trigger IRQ1\n");
 		return 1;      /* vertical blank */
 	}
 
@@ -224,7 +324,7 @@ static int raster_enable=1;
 	{
 		if (line == irq2start || line == lastirq2line + irq2repeat)
 		{
-//			if (errorlog) fprintf(errorlog,"trigger IRQ2 at raster line %d (screen line %d)\n",line,line-RASTER_VBLANK_END+FIRST_VISIBLE_LINE);
+//			logerror("trigger IRQ2 at raster line %d (screen line %d)\n",line,line-RASTER_VBLANK_END+FIRST_VISIBLE_LINE);
 			if (raster_enable && osd_skip_this_frame()==0)
 				neogeo_vh_raster_partial_refresh(Machine->scrbitmap,line-RASTER_VBLANK_END+FIRST_VISIBLE_LINE-1);
 
@@ -242,7 +342,7 @@ static int pending_command;
 static int result_code;
 
 /* Calendar, coins + Z80 communication */
-static int timer_r (int offset)
+static READ_HANDLER( timer_r )
 {
 	int res;
 
@@ -250,7 +350,7 @@ static int timer_r (int offset)
 	int coinflip = read_4990_testbit();
 	int databit = read_4990_databit();
 
-//	if (errorlog) fprintf(errorlog,"CPU %04x - Read timer\n",cpu_get_pc());
+//	logerror("CPU %04x - Read timer\n",cpu_get_pc());
 
 	res = readinputport(4) ^ (coinflip << 6) ^ (databit << 7);
 
@@ -265,7 +365,7 @@ static int timer_r (int offset)
 	return res;
 }
 
-static void neo_z80_w(int offset, int data)
+static WRITE_HANDLER( neo_z80_w )
 {
 	soundlatch_w(0,(data>>8)&0xff);
 	pending_command = 1;
@@ -279,12 +379,12 @@ static void neo_z80_w(int offset, int data)
 int neogeo_has_trackball;
 static int ts;
 
-static void trackball_select_w(int offset,int data)
+static WRITE_HANDLER( trackball_select_w )
 {
 	ts = data & 1;
 }
 
-static int controller1_r (int offset)
+static READ_HANDLER( controller1_r )
 {
 	int res;
 
@@ -302,7 +402,7 @@ static int controller1_r (int offset)
 
 	return res;
 }
-static int controller2_r (int offset)
+static READ_HANDLER( controller2_r )
 {
 	int res;
 
@@ -318,16 +418,16 @@ static int controller2_r (int offset)
 
 	return res;
 }
-static int controller3_r (int offset)
+static READ_HANDLER( controller3_r )
 {
 	if (memcard_status==0)
 		return (readinputport(2) << 8);
 	else
 		return ((readinputport(2) << 8)&0x8FFF);
 }
-static int controller4_r (int offset) { return readinputport(6); }
+static READ_HANDLER( controller4_r ) { return readinputport(6); }
 
-static void neo_bankswitch_w(int offset, int data)
+static WRITE_HANDLER( neo_bankswitch_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1);
 	int bankaddress;
@@ -335,7 +435,7 @@ static void neo_bankswitch_w(int offset, int data)
 
 	if (memory_region_length(REGION_CPU1) <= 0x100000)
 	{
-if (errorlog) fprintf(errorlog,"warning: bankswitch to %02x but no banks available\n",data);
+logerror("warning: bankswitch to %02x but no banks available\n",data);
 		return;
 	}
 
@@ -343,7 +443,7 @@ if (errorlog) fprintf(errorlog,"warning: bankswitch to %02x but no banks availab
 	bankaddress = (data+1)*0x100000;
 	if (bankaddress >= memory_region_length(REGION_CPU1))
 	{
-if (errorlog) fprintf(errorlog,"PC %06x: warning: bankswitch to empty bank %02x\n",cpu_get_pc(),data);
+logerror("PC %06x: warning: bankswitch to empty bank %02x\n",cpu_get_pc(),data);
 		bankaddress = 0x100000;
 	}
 
@@ -353,7 +453,7 @@ if (errorlog) fprintf(errorlog,"PC %06x: warning: bankswitch to empty bank %02x\
 
 
 /* TODO: Figure out how this really works! */
-static int neo_control_r(int offset)
+static READ_HANDLER( neo_control_r )
 {
 	int line,irq_bit;
 
@@ -382,7 +482,7 @@ static int neo_control_r(int offset)
 		D is unknown (counter of some kind, used in a couple of places).
 		  in blazstar, this controls the background speed in level 2.
 	*/
-//if (errorlog) fprintf(errorlog,"PC %06x: neo_control_r\n",cpu_get_pc());
+//logerror("PC %06x: neo_control_r\n",cpu_get_pc());
 
 	line = RASTER_LINES - cpu_getiloops();
 	irq_bit = (irq2enable && (line == irq2start || line == lastirq2line + irq2repeat)) ||
@@ -393,7 +493,7 @@ static int neo_control_r(int offset)
 			| (neogeo_frame_counter & 0x0007);		/* frame counter */
 
 #if 0
-if (errorlog) fprintf(errorlog,"PC %06x: read 0x3c0006\n",cpu_get_pc());
+logerror("PC %06x: read 0x3c0006\n",cpu_get_pc());
 	switch(neogeo_game_fix)
 	{
 		case 0:
@@ -424,7 +524,7 @@ int neogeo_irq2type;
 static int irq2repeat_limit;
 
 /* this does much more than this, but I'm not sure exactly what */
-void neo_control_w(int offset, int data)
+WRITE_HANDLER( neo_control_w )
 {
     /* Games which definitely need IRQ2:
     neocup98
@@ -470,7 +570,7 @@ void neo_control_w(int offset, int data)
 		irq2repeat_limit = 29;
 }
 
-static void neo_irq2pos_w(int offset,int data)
+static WRITE_HANDLER( neo_irq2pos_w )
 {
 	static int value;
 	int line;
@@ -530,14 +630,14 @@ static struct MemoryWriteAddress neogeo_writemem[] =
 /* both games write to 0000fe before writing to 200000. The two things could be related. */
 /* sidkicks reads and writes to several addresses in this range, using this for copy */
 /* protection. Custom parts instead of the banked ROMs? */
-//	{ 0x280050, 0x280051, write_4990_control },
+//	{ 0x280050, 0x280051, write_4990_control_w },
 	{ 0x2ffff0, 0x2fffff, neo_bankswitch_w },      /* NOTE THIS CHANGE TO END AT FF !!! */
 	{ 0x300000, 0x300001, watchdog_reset_w },
 	{ 0x320000, 0x320001, neo_z80_w },	/* Sound CPU */
 	{ 0x380000, 0x380001, trackball_select_w },	/* Used by bios, unknown */
 	{ 0x380030, 0x380031, MWA_NOP },    /* Used by bios, unknown */
 	{ 0x380040, 0x380041, MWA_NOP },	/* Output leds */
-	{ 0x380050, 0x380051, write_4990_control },
+	{ 0x380050, 0x380051, write_4990_control_w },
 	{ 0x380060, 0x380063, MWA_NOP },	/* Used by bios, unknown */
 	{ 0x3800e0, 0x3800e3, MWA_NOP },	/* Used by bios, unknown */
 
@@ -545,12 +645,12 @@ static struct MemoryWriteAddress neogeo_writemem[] =
 	{ 0x3a0010, 0x3a0011, MWA_NOP },
 	{ 0x3a0002, 0x3a0003, MWA_NOP },
 	{ 0x3a0012, 0x3a0013, MWA_NOP },
-	{ 0x3a000a, 0x3a000b, neo_board_fix }, /* Select board FIX char rom */
-	{ 0x3a001a, 0x3a001b, neo_game_fix },  /* Select game FIX char rom */
+	{ 0x3a000a, 0x3a000b, neo_board_fix_w }, /* Select board FIX char rom */
+	{ 0x3a001a, 0x3a001b, neo_game_fix_w },  /* Select game FIX char rom */
 	{ 0x3a000c, 0x3a000d, neogeo_sram_lock_w },
 	{ 0x3a001c, 0x3a001d, neogeo_sram_unlock_w },
-	{ 0x3a000e, 0x3a000f, neogeo_setpalbank1 },
-	{ 0x3a001e, 0x3a001f, neogeo_setpalbank0 },    /* Palette banking */
+	{ 0x3a000e, 0x3a000f, neogeo_setpalbank1_w },
+	{ 0x3a001e, 0x3a001f, neogeo_setpalbank0_w },    /* Palette banking */
 
 	{ 0x3c0000, 0x3c0001, vidram_offset_w },
 	{ 0x3c0002, 0x3c0003, vidram_data_w },
@@ -593,7 +693,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 };
 
 
-static int z80_port_r(int offset)
+static READ_HANDLER( z80_port_r )
 {
 	static int bank[4];
 
@@ -662,13 +762,13 @@ static int z80_port_r(int offset)
 			}
 
 		default:
-if (errorlog) fprintf(errorlog,"CPU #1 PC %04x: read unmapped port %02x\n",cpu_get_pc(),offset&0xff);
+logerror("CPU #1 PC %04x: read unmapped port %02x\n",cpu_get_pc(),offset&0xff);
 			return 0;
 			break;
 	}
 }
 
-static void z80_port_w(int offset,int data)
+static WRITE_HANDLER( z80_port_w )
 {
 	switch (offset & 0xff)
 	{
@@ -701,7 +801,7 @@ static void z80_port_w(int offset,int data)
 			break;
 
 		default:
-if (errorlog) fprintf(errorlog,"CPU #1 PC %04x: write %02x to unmapped port %02x\n",cpu_get_pc(),data,offset&0xff);
+logerror("CPU #1 PC %04x: write %02x to unmapped port %02x\n",cpu_get_pc(),data,offset&0xff);
 			break;
 	}
 }
@@ -1228,31 +1328,31 @@ ROM_END
 
 ROM_START( ridhero )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n046001a.038", 0x000000, 0x040000, 0xdabfac95 )
+	ROM_LOAD_ODD ( "n046001a.038", 0x000000, 0x040000, BADCRC ( 0xdabfac95 ) )
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_64K( "n046001a.378", 0x197d1a28 )
+	NEO_SFIX_64K( "n046001a.378", BADCRC ( 0x197d1a28 ) )
 
-	NEO_BIOS_SOUND_64K( "n046001a.478", 0xf7196558 )
+	NEO_BIOS_SOUND_64K( "n046001a.478", BADCRC ( 0xf7196558 ) )
 
 	ROM_REGION( 0x100000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n046001a.178", 0x000000, 0x080000, 0xcdf74a42 )
-	ROM_LOAD( "n046001a.17c", 0x080000, 0x080000, 0xe2fd2371 )
+	ROM_LOAD( "n046001a.178", 0x000000, 0x080000, BADCRC ( 0xcdf74a42 ) )
+	ROM_LOAD( "n046001a.17c", 0x080000, 0x080000, BADCRC ( 0xe2fd2371 ) )
 
 	ROM_REGION( 0x200000, REGION_SOUND2 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n046001a.278", 0x000000, 0x080000, 0x94092bce )
-	ROM_LOAD( "n046001a.27c", 0x080000, 0x080000, 0x4e2cd7c3 )
-	ROM_LOAD( "n046001b.278", 0x100000, 0x080000, 0x069c71ed )
-	ROM_LOAD( "n046001b.27c", 0x180000, 0x080000, 0x89fbb825 )
+	ROM_LOAD( "n046001a.278", 0x000000, 0x080000, BADCRC ( 0x94092bce ) )
+	ROM_LOAD( "n046001a.27c", 0x080000, 0x080000, BADCRC ( 0x4e2cd7c3 ) )
+	ROM_LOAD( "n046001b.278", 0x100000, 0x080000, BADCRC ( 0x069c71ed ) )
+	ROM_LOAD( "n046001b.27c", 0x180000, 0x080000, BADCRC ( 0x89fbb825 ) )
 
 	ROM_REGION( 0x200000, REGION_GFX2 )
-	ROM_LOAD( "n046001a.538", 0x000000, 0x40000, 0x24096241 ) /* Plane 0,1 */
+	ROM_LOAD( "n046001a.538", 0x000000, 0x40000, BADCRC ( 0x24096241 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x100000, 0x40000 )
-	ROM_LOAD( "n046001a.53c", 0x040000, 0x40000, 0x7026a3a2 ) /* Plane 0,1 */
+	ROM_LOAD( "n046001a.53c", 0x040000, 0x40000, BADCRC ( 0x7026a3a2 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x140000, 0x40000 )
-	ROM_LOAD( "n046001a.638", 0x080000, 0x40000, 0xdf6a5b00 ) /* Plane 2,3 */
+	ROM_LOAD( "n046001a.638", 0x080000, 0x40000, BADCRC ( 0xdf6a5b00 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x180000, 0x40000 )
-	ROM_LOAD( "n046001a.63c", 0x0c0000, 0x40000, 0x15220d51 ) /* Plane 2,3 */
+	ROM_LOAD( "n046001a.63c", 0x0c0000, 0x40000, BADCRC ( 0x15220d51 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x1c0000, 0x40000 )
 ROM_END
 
@@ -1378,39 +1478,39 @@ ROM_END
 
 ROM_START( kotm )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n058001a.038", 0x000000, 0x040000, 0xd239c184 )
+	ROM_LOAD_ODD ( "n058001a.038", 0x000000, 0x040000, BADCRC ( 0xd239c184 ) )
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
-	ROM_LOAD_ODD ( "n058001a.03c", 0x080000, 0x040000, 0x7291a388 )
+	ROM_LOAD_ODD ( "n058001a.03c", 0x080000, 0x040000, BADCRC ( 0x7291a388 ) )
 	ROM_CONTINUE (                 0x080000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_128K( "n058001a.378", 0x1a2eeeb3 )
+	NEO_SFIX_128K( "n058001a.378", BADCRC ( 0x1a2eeeb3 ) )
 
-	NEO_BIOS_SOUND_128K( "n058001a.4f8", 0x40797389 )
+	NEO_BIOS_SOUND_128K( "n058001a.4f8", BADCRC ( 0x40797389 ) )
 
 	ROM_REGION( 0x200000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n058001a.1f8", 0x000000, 0x080000, 0xc3df83ba )
-	ROM_LOAD( "n058001a.1fc", 0x080000, 0x080000, 0x22aa6096 )
-	ROM_LOAD( "n058001b.1f8", 0x100000, 0x080000, 0xdf9a4854 )
-	ROM_LOAD( "n058001b.1fc", 0x180000, 0x080000, 0x71f53a38 )
+	ROM_LOAD( "n058001a.1f8", 0x000000, 0x080000, BADCRC ( 0xc3df83ba ) )
+	ROM_LOAD( "n058001a.1fc", 0x080000, 0x080000, BADCRC ( 0x22aa6096 ) )
+	ROM_LOAD( "n058001b.1f8", 0x100000, 0x080000, BADCRC ( 0xdf9a4854 ) )
+	ROM_LOAD( "n058001b.1fc", 0x180000, 0x080000, BADCRC ( 0x71f53a38 ) )
 
 	NO_DELTAT_REGION
 
 	ROM_REGION( 0x400000, REGION_GFX2 )
-	ROM_LOAD( "n058001a.538", 0x000000, 0x40000, 0x493db90e ) /* Plane 0,1 */
+	ROM_LOAD( "n058001a.538", 0x000000, 0x40000, BADCRC ( 0x493db90e ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x200000, 0x40000 )
-	ROM_LOAD( "n058001a.53c", 0x040000, 0x40000, 0x0d211945 ) /* Plane 0,1 */
+	ROM_LOAD( "n058001a.53c", 0x040000, 0x40000, BADCRC ( 0x0d211945 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x240000, 0x40000 )
-	ROM_LOAD( "n058001b.538", 0x080000, 0x40000, 0xcabb7b58 ) /* Plane 0,1 */
+	ROM_LOAD( "n058001b.538", 0x080000, 0x40000, BADCRC ( 0xcabb7b58 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x280000, 0x40000 )
-	ROM_LOAD( "n058001b.53c", 0x0c0000, 0x40000, 0xc7c20718 ) /* Plane 0,1 */
+	ROM_LOAD( "n058001b.53c", 0x0c0000, 0x40000, BADCRC ( 0xc7c20718 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x2c0000, 0x40000 )
-	ROM_LOAD( "n058001a.638", 0x100000, 0x40000, 0x8bc1c3a0 ) /* Plane 2,3 */
+	ROM_LOAD( "n058001a.638", 0x100000, 0x40000, BADCRC ( 0x8bc1c3a0 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x300000, 0x40000 )
-	ROM_LOAD( "n058001a.63c", 0x140000, 0x40000, 0xcc793bbf ) /* Plane 2,3 */
+	ROM_LOAD( "n058001a.63c", 0x140000, 0x40000, BADCRC ( 0xcc793bbf ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x340000, 0x40000 )
-	ROM_LOAD( "n058001b.638", 0x180000, 0x40000, 0xfde45b59 ) /* Plane 2,3 */
+	ROM_LOAD( "n058001b.638", 0x180000, 0x40000, BADCRC ( 0xfde45b59 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x380000, 0x40000 )
-	ROM_LOAD( "n058001b.63c", 0x1c0000, 0x40000, 0xb89b4201 ) /* Plane 2,3 */
+	ROM_LOAD( "n058001b.63c", 0x1c0000, 0x40000, BADCRC ( 0xb89b4201 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x3c0000, 0x40000 )
 ROM_END
 
@@ -1502,36 +1602,36 @@ ROM_END
 
 ROM_START( lbowling )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n050001a.038", 0x000000, 0x040000, 0x380e358d )
+	ROM_LOAD_ODD ( "n050001a.038", 0x000000, 0x040000, BADCRC ( 0x380e358d ) )
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_128K( "n050001a.378", 0x5fcdc0ed )
+	NEO_SFIX_128K( "n050001a.378", BADCRC ( 0x5fcdc0ed ) )
 
-	NEO_BIOS_SOUND_64K( "n050001a.478", 0x535ec016 )
+	NEO_BIOS_SOUND_64K( "n050001a.478", BADCRC ( 0x535ec016 ) )
 
 	ROM_REGION( 0x100000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n050001a.178", 0x000000, 0x080000, 0x0fb74872 )
-	ROM_LOAD( "n050001a.17c", 0x080000, 0x080000, 0x029faa57 )
+	ROM_LOAD( "n050001a.178", 0x000000, 0x080000, BADCRC ( 0x0fb74872 ) )
+	ROM_LOAD( "n050001a.17c", 0x080000, 0x080000, BADCRC ( 0x029faa57 ) )
 
 	ROM_REGION( 0x080000, REGION_SOUND2 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n050001a.278", 0x000000, 0x080000, 0x2efd5ada )
+	ROM_LOAD( "n050001a.278", 0x000000, 0x080000, BADCRC ( 0x2efd5ada ) )
 
 	ROM_REGION( 0x400000, REGION_GFX2 )
-	ROM_LOAD( "n050001a.538", 0x000000, 0x40000, 0x17df7955 ) /* Plane 0,1 */
+	ROM_LOAD( "n050001a.538", 0x000000, 0x40000, BADCRC ( 0x17df7955 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x200000, 0x40000 )
-	ROM_LOAD( "n050001a.53c", 0x040000, 0x40000, 0x67bf2d89 ) /* Plane 0,1 */
+	ROM_LOAD( "n050001a.53c", 0x040000, 0x40000, BADCRC ( 0x67bf2d89 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x240000, 0x40000 )
-	ROM_LOAD( "n050001b.538", 0x080000, 0x40000, 0x00d36f90 ) /* Plane 0,1 */
+	ROM_LOAD( "n050001b.538", 0x080000, 0x40000, BADCRC ( 0x00d36f90 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x280000, 0x40000 )
-	ROM_LOAD( "n050001b.53c", 0x0c0000, 0x40000, 0x4e971be9 ) /* Plane 0,1 */
+	ROM_LOAD( "n050001b.53c", 0x0c0000, 0x40000, BADCRC ( 0x4e971be9 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x2c0000, 0x40000 )
-	ROM_LOAD( "n050001a.638", 0x100000, 0x40000, 0x84fd2c90 ) /* Plane 2,3 */
+	ROM_LOAD( "n050001a.638", 0x100000, 0x40000, BADCRC ( 0x84fd2c90 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x300000, 0x40000 )
-	ROM_LOAD( "n050001a.63c", 0x140000, 0x40000, 0xcb4fbeb0 ) /* Plane 2,3 */
+	ROM_LOAD( "n050001a.63c", 0x140000, 0x40000, BADCRC ( 0xcb4fbeb0 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x340000, 0x40000 )
-	ROM_LOAD( "n050001b.638", 0x180000, 0x40000, 0xc2ddf431 ) /* Plane 2,3 */
+	ROM_LOAD( "n050001b.638", 0x180000, 0x40000, BADCRC ( 0xc2ddf431 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x380000, 0x40000 )
-	ROM_LOAD( "n050001b.63c", 0x1c0000, 0x40000, 0xe67f8c81 ) /* Plane 2,3 */
+	ROM_LOAD( "n050001b.63c", 0x1c0000, 0x40000, BADCRC ( 0xe67f8c81 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x3c0000, 0x40000 )
 ROM_END
 
@@ -1639,69 +1739,69 @@ ROM_END
 
 ROM_START( eightman )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n046001a.038", 0x000000, 0x040000, 0xe23e2631 )
+	ROM_LOAD_ODD ( "n046001a.038", 0x000000, 0x040000, BADCRC ( 0xe23e2631 ) )
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_128K( "n046001a.378", 0xa402202b )
+	NEO_SFIX_128K( "n046001a.378", BADCRC ( 0xa402202b ) )
 
-	NEO_BIOS_SOUND_128K( "n046001a.4f8", 0x68b6e0ef )
+	NEO_BIOS_SOUND_128K( "n046001a.4f8", BADCRC ( 0x68b6e0ef ) )
 
 	ROM_REGION( 0x200000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n046001a.1f8", 0x000000, 0x080000, 0x0a2299b4 )
-	ROM_LOAD( "n046001a.1fc", 0x080000, 0x080000, 0xb695e254 )
-	ROM_LOAD( "n046001b.1f8", 0x100000, 0x080000, 0x6c3c3fec )
-	ROM_LOAD( "n046001b.1fc", 0x180000, 0x080000, 0x375764df )
+	ROM_LOAD( "n046001a.1f8", 0x000000, 0x080000, BADCRC ( 0x0a2299b4 ) )
+	ROM_LOAD( "n046001a.1fc", 0x080000, 0x080000, BADCRC ( 0xb695e254 ) )
+	ROM_LOAD( "n046001b.1f8", 0x100000, 0x080000, BADCRC ( 0x6c3c3fec ) )
+	ROM_LOAD( "n046001b.1fc", 0x180000, 0x080000, BADCRC ( 0x375764df ) )
 
 	NO_DELTAT_REGION
 
 	ROM_REGION( 0x300000, REGION_GFX2 )
-	ROM_LOAD( "n046001a.538", 0x000000, 0x40000, 0xc916c9bf ) /* Plane 0,1 */
+	ROM_LOAD( "n046001a.538", 0x000000, 0x40000, BADCRC ( 0xc916c9bf ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x180000, 0x40000 )
-	ROM_LOAD( "n046001a.53c", 0x040000, 0x40000, 0x4b057b13 ) /* Plane 0,1 */
+	ROM_LOAD( "n046001a.53c", 0x040000, 0x40000, BADCRC ( 0x4b057b13 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x1c0000, 0x40000 )
-	ROM_LOAD( "n046001b.538", 0x080000, 0x40000, 0x12d53af0 ) /* Plane 0,1 */
+	ROM_LOAD( "n046001b.538", 0x080000, 0x40000, BADCRC ( 0x12d53af0 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x200000, 0x40000 )
-	ROM_LOAD( "n046001a.638", 0x0c0000, 0x40000, 0x7114bce3 ) /* Plane 2,3 */
+	ROM_LOAD( "n046001a.638", 0x0c0000, 0x40000, BADCRC ( 0x7114bce3 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x240000, 0x40000 )
-	ROM_LOAD( "n046001a.63c", 0x100000, 0x40000, 0x51da9a34 ) /* Plane 2,3 */
+	ROM_LOAD( "n046001a.63c", 0x100000, 0x40000, BADCRC ( 0x51da9a34 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x280000, 0x40000 )
-	ROM_LOAD( "n046001b.638", 0x140000, 0x40000, 0x43cf58f9 ) /* Plane 2,3 */
+	ROM_LOAD( "n046001b.638", 0x140000, 0x40000, BADCRC ( 0x43cf58f9 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x2c0000, 0x40000 )
 ROM_END
 
 ROM_START( minasan )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n054001a.038", 0x000000, 0x040000, 0x86805d5a )
+	ROM_LOAD_ODD ( "n054001a.038", 0x000000, 0x040000, BADCRC ( 0x86805d5a ) )
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_128K( "n054001a.378", 0xe5824baa )
+	NEO_SFIX_128K( "n054001a.378", BADCRC ( 0xe5824baa ) )
 
-	NEO_BIOS_SOUND_64K( "n054001a.478", 0x19ef88ea )
+	NEO_BIOS_SOUND_64K( "n054001a.478", BADCRC ( 0x19ef88ea ) )
 
 	ROM_REGION( 0x100000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n054001a.178", 0x000000, 0x080000, 0x79d65e8e )
-	ROM_LOAD( "n054001a.17c", 0x080000, 0x080000, 0x0b3854d5 )
+	ROM_LOAD( "n054001a.178", 0x000000, 0x080000, BADCRC ( 0x79d65e8e ) )
+	ROM_LOAD( "n054001a.17c", 0x080000, 0x080000, BADCRC ( 0x0b3854d5 ) )
 
 	ROM_REGION( 0x100000, REGION_SOUND2 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n054001a.278", 0x000000, 0x080000, 0x0100e548 )
-	ROM_LOAD( "n054001a.27c", 0x080000, 0x080000, 0x0c31c5b0 )
+	ROM_LOAD( "n054001a.278", 0x000000, 0x080000, BADCRC ( 0x0100e548 ) )
+	ROM_LOAD( "n054001a.27c", 0x080000, 0x080000, BADCRC ( 0x0c31c5b0 ) )
 
 	ROM_REGION( 0x400000, REGION_GFX2 )
-	ROM_LOAD( "n054001a.538", 0x000000, 0x40000, 0x43f48265 ) /* Plane 0,1 */
+	ROM_LOAD( "n054001a.538", 0x000000, 0x40000, BADCRC ( 0x43f48265 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x200000, 0x40000 )
-	ROM_LOAD( "n054001a.53c", 0x040000, 0x40000, 0xcbf9eef8 ) /* Plane 0,1 */
+	ROM_LOAD( "n054001a.53c", 0x040000, 0x40000, BADCRC ( 0xcbf9eef8 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x240000, 0x40000 )
-	ROM_LOAD( "n054001b.538", 0x080000, 0x40000, 0x3dae0a05 ) /* Plane 0,1 */
+	ROM_LOAD( "n054001b.538", 0x080000, 0x40000, BADCRC ( 0x3dae0a05 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x280000, 0x40000 )
-	ROM_LOAD( "n054001b.53c", 0x0c0000, 0x40000, 0x6979368e ) /* Plane 0,1 */
+	ROM_LOAD( "n054001b.53c", 0x0c0000, 0x40000, BADCRC ( 0x6979368e ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x2c0000, 0x40000 )
-	ROM_LOAD( "n054001a.638", 0x100000, 0x40000, 0xf774d850 ) /* Plane 2,3 */
+	ROM_LOAD( "n054001a.638", 0x100000, 0x40000, BADCRC ( 0xf774d850 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x300000, 0x40000 )
-	ROM_LOAD( "n054001a.63c", 0x140000, 0x40000, 0x14a81e58 ) /* Plane 2,3 */
+	ROM_LOAD( "n054001a.63c", 0x140000, 0x40000, BADCRC ( 0x14a81e58 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x340000, 0x40000 )
-	ROM_LOAD( "n054001b.638", 0x180000, 0x40000, 0x0fb30b5b ) /* Plane 2,3 */
+	ROM_LOAD( "n054001b.638", 0x180000, 0x40000, BADCRC ( 0x0fb30b5b ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x380000, 0x40000 )
-	ROM_LOAD( "n054001b.63c", 0x1c0000, 0x40000, 0xcfa90d59 ) /* Plane 2,3 */
+	ROM_LOAD( "n054001b.63c", 0x1c0000, 0x40000, BADCRC ( 0xcfa90d59 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x3c0000, 0x40000 )
 ROM_END
 
@@ -1837,71 +1937,71 @@ ROM_END
 
 ROM_START( fbfrenzy )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n046001a.038", 0x000000, 0x040000, 0xc9fc879c )
+	ROM_LOAD_ODD ( "n046001a.038", 0x000000, 0x040000, BADCRC ( 0xc9fc879c ) )
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_128K( "n046001a.378", 0x8472ed44 )
+	NEO_SFIX_128K( "n046001a.378", BADCRC ( 0x8472ed44 ) )
 
-	NEO_BIOS_SOUND_128K( "n046001a.4f8", 0x079a203c )
+	NEO_BIOS_SOUND_128K( "n046001a.4f8", BADCRC ( 0x079a203c ) )
 
 	ROM_REGION( 0x200000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n046001a.1f8", 0x000000, 0x080000, 0xd295da77 )
-	ROM_LOAD( "n046001a.1fc", 0x080000, 0x080000, 0x249b7f52 )
-	ROM_LOAD( "n046001b.1f8", 0x100000, 0x080000, 0xe438fb9d )
-	ROM_LOAD( "n046001b.1fc", 0x180000, 0x080000, 0x4f9bc109 )
+	ROM_LOAD( "n046001a.1f8", 0x000000, 0x080000, BADCRC ( 0xd295da77 ) )
+	ROM_LOAD( "n046001a.1fc", 0x080000, 0x080000, BADCRC ( 0x249b7f52 ) )
+	ROM_LOAD( "n046001b.1f8", 0x100000, 0x080000, BADCRC ( 0xe438fb9d ) )
+	ROM_LOAD( "n046001b.1fc", 0x180000, 0x080000, BADCRC ( 0x4f9bc109 ) )
 
 	NO_DELTAT_REGION
 
 	ROM_REGION( 0x300000, REGION_GFX2 )
-	ROM_LOAD( "n046001a.538", 0x000000, 0x40000, 0xcd377680 ) /* Plane 0,1 */
+	ROM_LOAD( "n046001a.538", 0x000000, 0x40000, BADCRC ( 0xcd377680 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x180000, 0x40000 )
-	ROM_LOAD( "n046001a.53c", 0x040000, 0x40000, 0x2f6d09c2 ) /* Plane 0,1 */
+	ROM_LOAD( "n046001a.53c", 0x040000, 0x40000, BADCRC ( 0x2f6d09c2 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x1c0000, 0x40000 )
-	ROM_LOAD( "n046001b.538", 0x080000, 0x40000, 0x9abe41c8 ) /* Plane 0,1 */
+	ROM_LOAD( "n046001b.538", 0x080000, 0x40000, BADCRC ( 0x9abe41c8 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x200000, 0x40000 )
-	ROM_LOAD( "n046001a.638", 0x0c0000, 0x40000, 0x8b76358f ) /* Plane 2,3 */
+	ROM_LOAD( "n046001a.638", 0x0c0000, 0x40000, BADCRC ( 0x8b76358f ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x240000, 0x40000 )
-	ROM_LOAD( "n046001a.63c", 0x100000, 0x40000, 0x77e45dd2 ) /* Plane 2,3 */
+	ROM_LOAD( "n046001a.63c", 0x100000, 0x40000, BADCRC ( 0x77e45dd2 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x280000, 0x40000 )
-	ROM_LOAD( "n046001b.638", 0x140000, 0x40000, 0x336540a8 ) /* Plane 2,3 */
+	ROM_LOAD( "n046001b.638", 0x140000, 0x40000, BADCRC ( 0x336540a8 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x2c0000, 0x40000 )
 ROM_END
 
 ROM_START( bakatono )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n058001a.038", 0x000000, 0x040000, 0x083ca651 )
+	ROM_LOAD_ODD ( "n058001a.038", 0x000000, 0x040000, BADCRC ( 0x083ca651 ) )
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
-	ROM_LOAD_ODD ( "n058001a.03c", 0x080000, 0x040000, 0xb3bc26ae )
+	ROM_LOAD_ODD ( "n058001a.03c", 0x080000, 0x040000, BADCRC ( 0xb3bc26ae ) )
 	ROM_CONTINUE (                 0x080000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_128K( "n058001a.378", 0xf3ef4485)
+	NEO_SFIX_128K( "n058001a.378", BADCRC ( 0xf3ef4485))
 
-	NEO_BIOS_SOUND_64K( "n058001a.4f8", 0xa5e05789 )
+	NEO_BIOS_SOUND_64K( "n058001a.4f8", BADCRC ( 0xa5e05789 ) )
 
 	ROM_REGION( 0x200000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n058001a.1f8", 0x000000, 0x080000, 0xd3edbde6 )
-	ROM_LOAD( "n058001a.1fc", 0x080000, 0x080000, 0xcc487705 )
-	ROM_LOAD( "n058001b.1f8", 0x100000, 0x080000, 0xe28cf9b3 )
-	ROM_LOAD( "n058001b.1fc", 0x180000, 0x080000, 0x96c3ece9 )
+	ROM_LOAD( "n058001a.1f8", 0x000000, 0x080000, BADCRC ( 0xd3edbde6 ) )
+	ROM_LOAD( "n058001a.1fc", 0x080000, 0x080000, BADCRC ( 0xcc487705 ) )
+	ROM_LOAD( "n058001b.1f8", 0x100000, 0x080000, BADCRC ( 0xe28cf9b3 ) )
+	ROM_LOAD( "n058001b.1fc", 0x180000, 0x080000, BADCRC ( 0x96c3ece9 ) )
 
 	NO_DELTAT_REGION
 
 	ROM_REGION( 0x400000, REGION_GFX2 )
-	ROM_LOAD( "n058001a.538", 0x000000, 0x40000, 0xacb82025 ) /* Plane 0,1 */
+	ROM_LOAD( "n058001a.538", 0x000000, 0x40000, BADCRC ( 0xacb82025 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x200000, 0x40000 )
-	ROM_LOAD( "n058001a.53c", 0x040000, 0x40000, 0xc6954f8e ) /* Plane 0,1 */
+	ROM_LOAD( "n058001a.53c", 0x040000, 0x40000, BADCRC ( 0xc6954f8e ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x240000, 0x40000 )
-	ROM_LOAD( "n058001b.538", 0x080000, 0x40000, 0xeb751be8 ) /* Plane 0,1 */
+	ROM_LOAD( "n058001b.538", 0x080000, 0x40000, BADCRC ( 0xeb751be8 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x280000, 0x40000 )
-	ROM_LOAD( "n058001b.53c", 0x0c0000, 0x40000, 0x1d39bad6 ) /* Plane 0,1 */
+	ROM_LOAD( "n058001b.53c", 0x0c0000, 0x40000, BADCRC ( 0x1d39bad6 ) ) /* Plane 0,1 */
 	ROM_CONTINUE(             0x2c0000, 0x40000 )
-	ROM_LOAD( "n058001a.638", 0x100000, 0x40000, 0x647ba28f ) /* Plane 2,3 */
+	ROM_LOAD( "n058001a.638", 0x100000, 0x40000, BADCRC ( 0x647ba28f ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x300000, 0x40000 )
-	ROM_LOAD( "n058001a.63c", 0x140000, 0x40000, 0xdffefa4f ) /* Plane 2,3 */
+	ROM_LOAD( "n058001a.63c", 0x140000, 0x40000, BADCRC ( 0xdffefa4f ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x340000, 0x40000 )
-	ROM_LOAD( "n058001b.638", 0x180000, 0x40000, 0x6135247a ) /* Plane 2,3 */
+	ROM_LOAD( "n058001b.638", 0x180000, 0x40000, BADCRC ( 0x6135247a ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x380000, 0x40000 )
-	ROM_LOAD( "n058001b.63c", 0x1c0000, 0x40000, 0x0d40c953 ) /* Plane 2,3 */
+	ROM_LOAD( "n058001b.63c", 0x1c0000, 0x40000, BADCRC ( 0x0d40c953 ) ) /* Plane 2,3 */
 	ROM_CONTINUE(             0x3c0000, 0x40000 )
 ROM_END
 
@@ -2207,38 +2307,38 @@ ROM_END
 
 ROM_START( ncommand )
 	ROM_REGION( 0x100000, REGION_CPU1 )
-	ROM_LOAD_ODD ( "n054001a.038", 0x000000, 0x040000, 0xfdaaca42)
+	ROM_LOAD_ODD ( "n054001a.038", 0x000000, 0x040000, BADCRC ( 0xfdaaca42))
 	ROM_CONTINUE (                 0x000000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
-	ROM_LOAD_ODD ( "n054001a.03c", 0x080000, 0x040000, 0xb34e91fe)
+	ROM_LOAD_ODD ( "n054001a.03c", 0x080000, 0x040000, BADCRC ( 0xb34e91fe))
 	ROM_CONTINUE (                 0x080000 & ~1, 0x040000 | ROMFLAG_ALTERNATE )
 
-	NEO_SFIX_128K( "n054001a.378", 0xdb8f9c8e)
+	NEO_SFIX_128K( "n054001a.378", BADCRC ( 0xdb8f9c8e))
 
-	NEO_BIOS_SOUND_64K( "n054001a.4f8", 0x26e93026 )
+	NEO_BIOS_SOUND_64K( "n054001a.4f8", BADCRC ( 0x26e93026 ) )
 
 	ROM_REGION( 0x180000, REGION_SOUND1 | REGIONFLAG_SOUNDONLY )
-	ROM_LOAD( "n054001a.1f8", 0x000000, 0x080000, 0x222e71c8 )
-	ROM_LOAD( "n054001a.1fc", 0x080000, 0x080000, 0x12acd064 )
-	ROM_LOAD( "n054001b.1f8", 0x100000, 0x080000, 0x80b8a984 )
+	ROM_LOAD( "n054001a.1f8", 0x000000, 0x080000, BADCRC ( 0x222e71c8 ) )
+	ROM_LOAD( "n054001a.1fc", 0x080000, 0x080000, BADCRC ( 0x12acd064 ) )
+	ROM_LOAD( "n054001b.1f8", 0x100000, 0x080000, BADCRC ( 0x80b8a984 ) )
 
 	NO_DELTAT_REGION
 
 	ROM_REGION( 0x400000, REGION_GFX2 )
-	ROM_LOAD( "n054001a.538", 0x000000, 0x40000, 0x73acaa79) /* Plane 0,1 */
+	ROM_LOAD( "n054001a.538", 0x000000, 0x40000, BADCRC ( 0x73acaa79))  /* Plane 0,1 */
 	ROM_CONTINUE(             0x200000, 0x40000 )
-	ROM_LOAD( "n054001a.53c", 0x040000, 0x40000, 0xad56623d) /* Plane 0,1 */
+	ROM_LOAD( "n054001a.53c", 0x040000, 0x40000, BADCRC ( 0xad56623d))  /* Plane 0,1 */
 	ROM_CONTINUE(             0x240000, 0x40000 )
-	ROM_LOAD( "n054001b.538", 0x080000, 0x40000, 0xc8d763cd) /* Plane 0,1 */
+	ROM_LOAD( "n054001b.538", 0x080000, 0x40000, BADCRC ( 0xc8d763cd))  /* Plane 0,1 */
 	ROM_CONTINUE(             0x280000, 0x40000 )
-	ROM_LOAD( "n054001b.53c", 0x0c0000, 0x40000, 0x63829529) /* Plane 0,1 */
+	ROM_LOAD( "n054001b.53c", 0x0c0000, 0x40000, BADCRC ( 0x63829529))  /* Plane 0,1 */
 	ROM_CONTINUE(             0x2c0000, 0x40000 )
-	ROM_LOAD( "n054001a.638", 0x100000, 0x40000, 0x7b24359f) /* Plane 2,3 */
+	ROM_LOAD( "n054001a.638", 0x100000, 0x40000, BADCRC ( 0x7b24359f))  /* Plane 2,3 */
 	ROM_CONTINUE(             0x300000, 0x40000 )
-	ROM_LOAD( "n054001a.63c", 0x140000, 0x40000, 0x0913a784) /* Plane 2,3 */
+	ROM_LOAD( "n054001a.63c", 0x140000, 0x40000, BADCRC ( 0x0913a784))  /* Plane 2,3 */
 	ROM_CONTINUE(             0x340000, 0x40000 )
-	ROM_LOAD( "n054001b.638", 0x180000, 0x40000, 0x574612ec) /* Plane 2,3 */
+	ROM_LOAD( "n054001b.638", 0x180000, 0x40000, BADCRC ( 0x574612ec))  /* Plane 2,3 */
 	ROM_CONTINUE(             0x380000, 0x40000 )
-	ROM_LOAD( "n054001b.63c", 0x1c0000, 0x40000, 0x990d302a) /* Plane 2,3 */
+	ROM_LOAD( "n054001b.63c", 0x1c0000, 0x40000, BADCRC ( 0x990d302a))  /* Plane 2,3 */
 	ROM_CONTINUE(             0x3c0000, 0x40000 )
 ROM_END
 
@@ -4516,23 +4616,23 @@ GAME( 1999, mslugx,   neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Met
 GAME( 1999, kof99,    neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "The King of Fighters '99 - Millennium Battle" )
 GAME( 1999, garou,    neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Garou - Mark of the Wolves" )
 
-/* Alpha Denshi Co / ADK (changed name in 1993) */
-GAME( 1990, maglord,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co", "Magician Lord (set 1)" )
-GAME( 1990, maglordh, maglord,  neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co", "Magician Lord (set 2)" )
-GAME( 1990, ncombat,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co", "Ninja Combat" )
-GAME( 1990, bjourney, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co", "Blue's Journey / Raguy" )
-GAME( 1991, crsword,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co", "Crossed Swords" )
-GAME( 1991, trally,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co", "Thrash Rally" )
-GAME( 1992, ncommand, neogeo,   neogeo, neogeo,  mgd2,   ROT0,       "Alpha Denshi Co", "Ninja Commando" )
-GAME( 1992, wh1,      neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co", "World Heroes" )
-GAME( 1993, wh2,      neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK",             "World Heroes 2" )
-GAME( 1994, wh2j,     neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",       "World Heroes 2 Jet" )
-GAME( 1994, aodk,     neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",       "Aggressors of Dark Kombat / Tsuukai GANGAN Koushinkyoku" )
-GAME( 1995, whp,      neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",       "World Heroes Perfect" )
-GAME( 1995, mosyougi, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",       "Syougi No Tatsujin - Master of Syougi" )
-GAME( 1996, overtop,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK",             "Over Top" )
-GAME( 1996, ninjamas, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",       "Ninja Master's - haoh-ninpo-cho" )
-GAME( 1996, twinspri, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK",             "Twinkle Star Sprites" )
+/* Alpha Denshi Co. / ADK (changed name in 1993) */
+GAME( 1990, maglord,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Magician Lord (set 1)" )
+GAME( 1990, maglordh, maglord,  neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Magician Lord (set 2)" )
+GAME( 1990, ncombat,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Ninja Combat" )
+GAME( 1990, bjourney, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Blue's Journey / Raguy" )
+GAME( 1991, crsword,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Crossed Swords" )
+GAME( 1991, trally,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Thrash Rally" )
+GAME( 1992, ncommand, neogeo,   neogeo, neogeo,  mgd2,   ROT0,       "Alpha Denshi Co.", "Ninja Commando" )
+GAME( 1992, wh1,      neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "World Heroes" )
+GAME( 1993, wh2,      neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK",              "World Heroes 2" )
+GAME( 1994, wh2j,     neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",        "World Heroes 2 Jet" )
+GAME( 1994, aodk,     neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",        "Aggressors of Dark Kombat / Tsuukai GANGAN Koushinkyoku" )
+GAME( 1995, whp,      neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",        "World Heroes Perfect" )
+GAME( 1995, mosyougi, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",        "Syougi No Tatsujin - Master of Syougi" )
+GAME( 1996, overtop,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK",              "Over Top" )
+GAME( 1996, ninjamas, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",        "Ninja Master's - haoh-ninpo-cho" )
+GAME( 1996, twinspri, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK",              "Twinkle Star Sprites" )
 
 /* Aicom */
 GAME( 1994, janshin,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Aicom", "Jyanshin Densetsu - Quest of Jongmaster" )
@@ -4583,14 +4683,14 @@ GAME( 1995, galaxyfg, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Sunsoft", 
 GAME( 1996, wakuwak7, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Sunsoft", "Waku Waku 7" )
 
 /* Taito */
-GAME( 1994, pbobble,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Taito", "Puzzle Bobble / Bust-A-Move" )
-GAME( 1999, pbobbl2n, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Taito (SNK license)", "Puzzle Bobble 2 / Bust-A-Move Again" )
+GAME( 1994, pbobble,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Taito", "Puzzle Bobble / Bust-A-Move (Neo-Geo)" )
+GAME( 1999, pbobbl2n, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Taito (SNK license)", "Puzzle Bobble 2 / Bust-A-Move Again (Neo-Geo)" )
 
 /* Takara */
 GAME( 1995, marukodq, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Takara", "Chibi Marukochan Deluxe Quiz" )
 
 /* Technos */
-GAME( 1995, doubledr, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Technos", "Double Dragon (Neo Geo)" )
+GAME( 1995, doubledr, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Technos", "Double Dragon (Neo-Geo)" )
 GAME( 1995, gowcaizr, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Technos", "Voltage Fighter - Gowcaizer / Choujin Gakuen Gowcaizer")
 GAME( 1996, sdodgeb,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Technos", "Super Dodge Ball / Kunio no Nekketsu Toukyuu Densetsu" )
 

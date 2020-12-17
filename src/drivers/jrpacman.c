@@ -93,25 +93,63 @@ OUT on port $0 sets the interrupt vector
 #include "vidhrdw/generic.h"
 
 
-void jrpacman_init_machine(void);
-int jrpacman_interrupt(void);
-
 extern unsigned char *jrpacman_scroll,*jrpacman_bgpriority;
 extern unsigned char *jrpacman_charbank,*jrpacman_spritebank;
 extern unsigned char *jrpacman_palettebank,*jrpacman_colortablebank;
 void jrpacman_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int jrpacman_vh_start(void);
 void jrpacman_vh_stop(void);
-void jrpacman_videoram_w(int offset,int data);
-void jrpacman_palettebank_w(int offset,int data);
-void jrpacman_colortablebank_w(int offset,int data);
-void jrpacman_charbank_w(int offset,int data);
-void jrpacman_flipscreen_w(int offset,int data);
+WRITE_HANDLER( jrpacman_videoram_w );
+WRITE_HANDLER( jrpacman_palettebank_w );
+WRITE_HANDLER( jrpacman_colortablebank_w );
+WRITE_HANDLER( jrpacman_charbank_w );
+WRITE_HANDLER( jrpacman_flipscreen_w );
 void jrpacman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 extern unsigned char *pengo_soundregs;
-void pengo_sound_enable_w(int offset,int data);
-void pengo_sound_w(int offset,int data);
+WRITE_HANDLER( pengo_sound_enable_w );
+WRITE_HANDLER( pengo_sound_w );
+
+
+
+static int speedcheat = 0;	/* a well known hack allows to make JrPac Man run at four times */
+				/* his usual speed. When we start the emulation, we check if the */
+				/* hack can be applied, and set this flag accordingly. */
+
+static void jrpacman_init_machine(void)
+{
+	unsigned char *RAM = memory_region(REGION_CPU1);
+
+
+	/* check if the loaded set of ROMs allows the Pac Man speed hack */
+	if (RAM[0x180b] == 0xbe || RAM[0x180b] == 0x01)
+		speedcheat = 1;
+	else speedcheat = 0;
+}
+
+
+static int jrpacman_interrupt(void)
+{
+	unsigned char *RAM = memory_region(REGION_CPU1);
+
+
+	/* speed up cheat */
+	if (speedcheat)
+	{
+		if (readinputport(3) & 1)	/* check status of the fake dip switch */
+		{
+			/* activate the cheat */
+			RAM[0x180b] = 0x01;
+		}
+		else
+		{
+			/* remove the cheat */
+			RAM[0x180b] = 0xbe;
+		}
+	}
+
+	return interrupt();
+}
 
 
 
@@ -317,14 +355,14 @@ ROM_START( jrpacman )
 	ROM_REGION( 0x2000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "jrp2e.bin",    0x0000, 0x2000, 0x73477193 )
 
-	ROM_REGION( 0x0140, REGION_PROMS )
-	ROM_LOAD( "jrpacman.9e",  0x0000, 0x0020, 0x90012b3f ) /* palette low bits */
-	ROM_LOAD( "jrpacman.9f",  0x0020, 0x0020, 0x8300178e ) /* palette high bits */
-	ROM_LOAD( "jrpacman.9p",  0x0040, 0x0100, 0x9f6ea9d8 ) /* color lookup table */
+	ROM_REGION( 0x0300, REGION_PROMS )
+	ROM_LOAD( "jrprom.9e",    0x0000, 0x0100, 0x029d35c4 ) /* palette low bits */
+	ROM_LOAD( "jrprom.9f",    0x0100, 0x0100, 0xeee34a79 ) /* palette high bits */
+	ROM_LOAD( "jrprom.9p",    0x0200, 0x0100, 0x9f6ea9d8 ) /* color lookup table */
 
-	ROM_REGION( 0x0100, REGION_SOUND1 )	/* sound prom */
-	/* I don't know if this is correct. I'm using the Pac Man one. */
-	ROM_LOAD( "pacman.spr",   0x0000, 0x0100, BADCRC( 0xa9cc86bf ) )
+	ROM_REGION( 0x0200, REGION_SOUND1 )	/* sound prom */
+	ROM_LOAD( "jrprom.7p",    0x0000, 0x0100, 0xa9cc86bf )
+	ROM_LOAD( "jrprom.5s",    0x0100, 0x0100, 0x77245b66 )	/* timing - not used */
 ROM_END
 
 

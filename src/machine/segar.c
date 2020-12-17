@@ -14,13 +14,13 @@ void (*sega_decrypt)(int,unsigned int *);
 
 unsigned char *segar_mem;
 
-extern void segar_characterram_w(int offset,int data);
-extern void segar_characterram2_w(int offset,int data);
-extern void segar_colortable_w(int offset,int data);
-extern void segar_bcolortable_w(int offset,int data);
+WRITE_HANDLER( segar_characterram_w );
+WRITE_HANDLER( segar_characterram2_w );
+WRITE_HANDLER( segar_colortable_w );
+WRITE_HANDLER( segar_bcolortable_w );
 
 
-void segar_wr(int offset, int data)
+WRITE_HANDLER( segar_w )
 {
 	int pc,op,page,off;
 	unsigned int bad;
@@ -84,7 +84,7 @@ void segar_wr(int offset, int data)
 	}
 	else
 	{
-		if (errorlog) fprintf(errorlog, "unmapped write at %04X:%02X\n",off,data);
+		logerror("unmapped write at %04X:%02X\n",off,data);
 	}
 }
 

@@ -278,15 +278,12 @@ void HD63484_command_w(UINT16 cmd)
 
 	if (fifo_counter >= len)
 	{
-		if (errorlog)
-		{
-			int i;
+		int i;
 
-			fprintf(errorlog,"PC %05x: HD63484 command %s (%04x) ",cpu_get_pc(),instruction_name[fifo[0]>>10],fifo[0]);
-			for (i = 1;i < fifo_counter;i++)
-				fprintf(errorlog,"%04x ",fifo[i]);
-			fprintf(errorlog,"\n");
-		}
+		logerror("PC %05x: HD63484 command %s (%04x) ",cpu_get_pc(),instruction_name[fifo[0]>>10],fifo[0]);
+		for (i = 1;i < fifo_counter;i++)
+			logerror("%04x ",fifo[i]);
+		logerror("\n");
 
 		if (fifo[0] == 0x0400)	/* ORG */
 			org = ((fifo[1] & 0x00ff) << 12) | ((fifo[2] & 0xfff0) >> 4);
@@ -431,7 +428,7 @@ rwp /= 2;
 			cpy = (dst - 2*org) / 384;
 		}
 		else
-if (errorlog) fprintf(errorlog,"unsupported command\n");
+logerror("unsupported command\n");
 
 		fifo_counter = 0;
 	}
@@ -439,25 +436,25 @@ if (errorlog) fprintf(errorlog,"unsupported command\n");
 
 static int regno;
 
-static int HD63484_status_r(int offset)
+static READ_HANDLER( HD63484_status_r )
 {
 	if (offset == 1) return 0xff;	/* high 8 bits - not used */
 
-if (errorlog && cpu_get_pc() != 0xfced6) fprintf(errorlog,"%05x: HD63484 status read\n",cpu_get_pc());
+	if (cpu_get_pc() != 0xfced6) logerror("%05x: HD63484 status read\n",cpu_get_pc());
 	return 0x22;	/* write FIFO ready + command end */
 }
 
-static void HD63484_address_w(int offset,int data)
+static WRITE_HANDLER( HD63484_address_w )
 {
 	static unsigned char reg[2];
 
 	reg[offset] = data;
 	regno = reg[0];	/* only low 8 bits are used */
 //if (offset == 0)
-//	if (errorlog) fprintf(errorlog,"PC %05x: HD63484 select register %02x\n",cpu_get_pc(),regno);
+//	logerror("PC %05x: HD63484 select register %02x\n",cpu_get_pc(),regno);
 }
 
-static void HD63484_data_w(int offset,int data)
+static WRITE_HANDLER( HD63484_data_w )
 {
 	static unsigned char dat[2];
 
@@ -470,14 +467,14 @@ static void HD63484_data_w(int offset,int data)
 			HD63484_command_w(val);
 		else
 		{
-if (errorlog) fprintf(errorlog,"PC %05x: HD63484 register %02x write %04x\n",cpu_get_pc(),regno,val);
+logerror("PC %05x: HD63484 register %02x write %04x\n",cpu_get_pc(),regno,val);
 			HD63484_reg[regno/2] = val;
 			if (regno & 0x80) regno += 2;	/* autoincrement */
 		}
 	}
 }
 
-static int HD63484_data_r(int offset)
+static READ_HANDLER( HD63484_data_r )
 {
 	int res;
 
@@ -487,7 +484,7 @@ static int HD63484_data_r(int offset)
 	}
 	else
 	{
-if (errorlog) fprintf(errorlog,"%05x: HD63484 read register %02x\n",cpu_get_pc(),regno);
+logerror("%05x: HD63484 read register %02x\n",cpu_get_pc(),regno);
 		res = 0;
 	}
 
@@ -581,7 +578,7 @@ static int shanghai_interrupt(void)
 	return interrupt();
 }
 
-static void shanghai_coin_w(int offset,int data)
+static WRITE_HANDLER( shanghai_coin_w )
 {
 	coin_counter_w(0,data & 1);
 	coin_counter_w(1,data & 2);
@@ -777,4 +774,4 @@ ROM_END
 
 
 
-GAMEX( 1988, shanghai, 0, shanghai, shanghai, 0, ROT0, "Sun Electronics (licensed from Activision)", "Shanghai", GAME_NOT_WORKING )
+GAMEX( 1988, shanghai, 0, shanghai, shanghai, 0, ROT0, "Sunsoft", "Shanghai", GAME_NOT_WORKING )

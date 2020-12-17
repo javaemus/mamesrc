@@ -33,7 +33,7 @@
 #define MAXFREQ (139+139/3)
 
 #if VERBOSE
-#define LOG(x) if( errorlog ) fprintf x
+#define LOG(x) logerror x
 #else
 #define LOG(x)
 #endif
@@ -66,7 +66,7 @@ static INT16 backgroundwave[32] =
 {
    0x4000, 0x4000, 0x4000, 0x4000, 0x4000, 0x4000, 0x4000, 0x4000,
    0x4000, 0x4000, 0x4000, 0x4000, 0x4000, 0x4000, 0x4000, 0x4000,
-   0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,
+  -0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,
   -0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,-0x4000,
 };
 
@@ -107,14 +107,14 @@ static void tone_update(int ch, INT16 *buffer, int length)
 	}
 }
 
-void galaxian_pitch_w(int offset,int data)
+WRITE_HANDLER( galaxian_pitch_w )
 {
 	stream_update(tone_stream,0);
 
 	pitch = data;
 }
 
-void galaxian_vol_w(int offset,int data)
+WRITE_HANDLER( galaxian_vol_w )
 {
 	stream_update(tone_stream,0);
 
@@ -132,7 +132,7 @@ static void noise_timer_cb(int param)
 	}
 }
 
-void galaxian_noise_enable_w(int offset,int data)
+WRITE_HANDLER( galaxian_noise_enable_w )
 {
 #if SAMPLES
 	if (deathsampleloaded)
@@ -168,7 +168,7 @@ void galaxian_noise_enable_w(int offset,int data)
 	}
 }
 
-void galaxian_shoot_enable_w(int offset,int data)
+WRITE_HANDLER( galaxian_shoot_enable_w )
 {
 	if( data & 1 && !(last_port2 & 1) )
 	{
@@ -387,7 +387,7 @@ int galaxian_sh_start(const struct MachineSound *msound)
 			AMP(70), AMP(50), AMP(25), AMP( 0)
 		};
 		shootwave[i] = charge_discharge[j];
-		LOG((errorlog, "shoot[%5d] $%04x (sweep: %3d, j:%d)\n", i, shootwave[i] & 0xffff, sweep, j));
+		LOG(("shoot[%5d] $%04x (sweep: %3d, j:%d)\n", i, shootwave[i] & 0xffff, sweep, j));
 		/*
 		 * The current sweep and a 2200/10000 fraction (R45 and R48)
 		 * of the noise are frequency modulating the NE555 chip.
@@ -467,7 +467,7 @@ int galaxian_sh_start(const struct MachineSound *msound)
 		else
 			r1b += 1.0/10000;
 		tonewave[3][i] = V(1.0/r0b, 1.0/r1b);
-		LOG((errorlog, "tone[%2d]: $%02x $%02x $%02x $%02x\n", i, tonewave[0][i], tonewave[1][i], tonewave[2][i], tonewave[3][i]));
+		LOG(("tone[%2d]: $%02x $%02x $%02x $%02x\n", i, tonewave[0][i], tonewave[1][i], tonewave[2][i], tonewave[3][i]));
 	}
 
 	pitch = 0;
@@ -525,7 +525,7 @@ void galaxian_sh_stop(void)
 	shootwave = 0;
 }
 
-void galaxian_background_enable_w(int offset,int data)
+WRITE_HANDLER( galaxian_background_enable_w )
 {
 	mixer_set_volume(channellfo+offset,(data & 1) ? 100 : 0);
 }
@@ -538,7 +538,7 @@ static void lfo_timer_cb(int param)
 		freq = MAXFREQ;
 }
 
-void galaxian_lfo_freq_w(int offset,int data)
+WRITE_HANDLER( galaxian_lfo_freq_w )
 {
 #if NEW_LFO
 	static int lfobit[4];
@@ -595,7 +595,7 @@ void galaxian_lfo_freq_w(int offset,int data)
 #undef Cap
 #undef Vbe
 #undef Vcc
-	if( errorlog ) fprintf(errorlog, "lfo timer bits:%d%d%d%d r1:%d, r2:%d, re: %d, td: %9.2fsec\n", lfobit[0], lfobit[1], lfobit[2], lfobit[3], (int)r1, (int)r2, (int)Re, td);
+	logerror("lfo timer bits:%d%d%d%d r1:%d, r2:%d, re: %d, td: %9.2fsec\n", lfobit[0], lfobit[1], lfobit[2], lfobit[3], (int)r1, (int)r2, (int)Re, td);
 	lfotimer = timer_pulse( TIME_IN_SEC(td / (MAXFREQ-MINFREQ)), 0, lfo_timer_cb);
 #else
 	static int lfobit[4];
@@ -659,7 +659,7 @@ void galaxian_lfo_freq_w(int offset,int data)
 	/* I used an arbitrary value for max. Ra of 2M */
 	rx = rx + 2000000.0 * r0 / (r0+r1);
 
-	LOG((errorlog, "lfotimer bits:%d%d%d%d r0:%d, r1:%d, rx: %d, time: %9.2fus\n", lfobit[3], lfobit[2], lfobit[1], lfobit[0], (int)r0, (int)r1, (int)rx, 0.639 * rx));
+	LOG(("lfotimer bits:%d%d%d%d r0:%d, r1:%d, rx: %d, time: %9.2fus\n", lfobit[3], lfobit[2], lfobit[1], lfobit[0], (int)r0, (int)r1, (int)rx, 0.639 * rx));
 	lfotimer = timer_pulse( TIME_IN_USEC(0.639 * rx / (MAXFREQ-MINFREQ)), 0, lfo_timer_cb);
 #endif
 }

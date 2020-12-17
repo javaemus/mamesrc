@@ -53,8 +53,8 @@ write:
 #include "vidhrdw/generic.h"
 
 
-void crbaloon_spritectrl_w(int offset,int data);
-void crbaloon_flipscreen_w(int offset,int data);
+WRITE_HANDLER( crbaloon_spritectrl_w );
+WRITE_HANDLER( crbaloon_flipscreen_w );
 void crbaloon_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void crbaloon_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
@@ -63,8 +63,8 @@ int val06,val08,val0a;
 
 static void crbaloon_machine_init(void)
 {
-	/* MIXER B = 0, MIXER C = 1 */
-	SN76477_mixer_b_w(0, 0);
+	/* MIXER A = 0, MIXER C = 1 */
+	SN76477_mixer_a_w(0, 0);
 	SN76477_mixer_c_w(0, 1);
 	/* ENVELOPE is constant: pin1 = hi, pin 28 = lo */
 	SN76477_envelope_w(0, 1);
@@ -73,7 +73,7 @@ static void crbaloon_machine_init(void)
     SN76477_enable_w(0, 0);
 }
 
-void crbaloon_06_w(int offset,int data)
+WRITE_HANDLER( crbaloon_06_w )
 {
 	val06 = data;
 
@@ -106,12 +106,12 @@ void crbaloon_06_w(int offset,int data)
 
 		if( data & 0x20 )
 		{
-			/* APPEAR is connected to MIXER A */
-			SN76477_mixer_a_w(0, 1);
+			/* APPEAR is connected to MIXER B */
+			SN76477_mixer_b_w(0, 1);
 		}
 		else
 		{
-			SN76477_mixer_a_w(0, 4);
+			SN76477_mixer_b_w(0, 4);
 		}
 
 		/* constant: pin1 = hi, pin 28 = lo */
@@ -119,19 +119,19 @@ void crbaloon_06_w(int offset,int data)
 	}
 }
 
-void crbaloon_08_w(int offset,int data)
+WRITE_HANDLER( crbaloon_08_w )
 {
 	val08 = data;
 
 	crbaloon_flipscreen_w(offset,data & 1);
 }
 
-void crbaloon_0a_w(int offset,int data)
+WRITE_HANDLER( crbaloon_0a_w )
 {
 	val0a = data;
 }
 
-int crbaloon_IN2_r(int offset)
+READ_HANDLER( crbaloon_IN2_r )
 {
 	extern int crbaloon_collision;
 
@@ -143,17 +143,17 @@ int crbaloon_IN2_r(int offset)
 	/* the following is needed for the game to boot up */
 	if (val06 & 0x80)
 	{
-if (errorlog) fprintf(errorlog,"PC %04x: %02x high\n",cpu_get_pc(),offset);
+logerror("PC %04x: %02x high\n",cpu_get_pc(),offset);
 		return (input_port_2_r(0) & 0xf0) | 0x07;
 	}
 	else
 	{
-if (errorlog) fprintf(errorlog,"PC %04x: %02x low\n",cpu_get_pc(),offset);
+logerror("PC %04x: %02x low\n",cpu_get_pc(),offset);
 		return (input_port_2_r(0) & 0xf0) | 0x07;
 	}
 }
 
-int crbaloon_IN3_r(int offset)
+READ_HANDLER( crbaloon_IN3_r )
 {
 	if (val08 & 0x02)
 		/* enable coin & start input? Wild guess!!! */
@@ -162,18 +162,18 @@ int crbaloon_IN3_r(int offset)
 	/* the following is needed for the game to boot up */
 	if (val0a & 0x01)
 	{
-if (errorlog) fprintf(errorlog,"PC %04x: 03 high\n",cpu_get_pc());
+logerror("PC %04x: 03 high\n",cpu_get_pc());
 		return (input_port_3_r(0) & 0x0f) | 0x00;
 	}
 	else
 	{
-if (errorlog) fprintf(errorlog,"PC %04x: 03 low\n",cpu_get_pc());
+logerror("PC %04x: 03 low\n",cpu_get_pc());
 		return (input_port_3_r(0) & 0x0f) | 0x00;
 	}
 }
 
 
-int crbaloon_IN_r(int offset)
+READ_HANDLER( crbaloon_IN_r )
 {
 	switch (offset & 0x03)
 	{

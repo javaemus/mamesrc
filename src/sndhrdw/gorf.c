@@ -132,7 +132,7 @@ int gorf_sh_start(const struct MachineSound *msound)
     return 0;
 }
 
-int gorf_speech_r(int offset)
+READ_HANDLER( gorf_speech_r )
 {
     int Phoneme,Intonation;
     int i = 0;
@@ -146,11 +146,11 @@ int gorf_speech_r(int offset)
     Phoneme = data & 0x3F;
     Intonation = data >> 6;
 
-    if(errorlog) fprintf(errorlog,"Date : %d Speech : %s at intonation %d\n",Phoneme, PhonemeTable[Phoneme],Intonation);
+    logerror("Date : %d Speech : %s at intonation %d\n",Phoneme, PhonemeTable[Phoneme],Intonation);
 
 	 if(Phoneme==63) {
    		sample_stop(GorfChannel);
-                if (errorlog && strlen(totalword)>2) fprintf(errorlog,"Clearing sample %s\n",totalword);
+                if (strlen(totalword)>2) logerror("Clearing sample %s\n",totalword);
                 totalword[0] = 0;				   /* Clear the total word stack */
 					 return data;
     }
@@ -160,7 +160,7 @@ int gorf_speech_r(int offset)
 	 if (strlen(totalword) == 0) {
 		 strcpy(totalword,PhonemeTable[Phoneme]);	                   /* Copy over the first phoneme */
 		 if (plural != 0) {
-			 if (errorlog) fprintf(errorlog,"found a possible plural at %d\n",plural-1);
+			 logerror("found a possible plural at %d\n",plural-1);
 			 if (!strcmp("S",totalword)) {		   /* Plural check */
 				 sample_start(GorfChannel, num_samples-2, 0);	   /* play the sample at position of word */
 				 sample_set_freq(GorfChannel, GorfBaseFrequency);    /* play at correct rate */
@@ -174,20 +174,20 @@ int gorf_speech_r(int offset)
 	 } else
 		 strcat(totalword,PhonemeTable[Phoneme]);	                   /* Copy over the first phoneme */
 
-	 if(errorlog) fprintf(errorlog,"Total word = %s\n",totalword);
+	 logerror("Total word = %s\n",totalword);
 
 	 for (i=0; GorfWordTable[i]; i++) {
 		 if (!strcmp(GorfWordTable[i],totalword)) {		   /* Scan the word (sample) table for the complete word */
 			 if ((!strcmp("GDTO1RFYA2N",totalword)) || (!strcmp("RO1U1BAH1T",totalword)) || (!strcmp("KO1UH3I3E1N",totalword)) || (!strcmp("WORAYY1EH3R",totalword)) || (!strcmp("IN",totalword)) ) {              /* May be plural */
 				 plural=i+1;
 				 strcpy(oldword,totalword);
-		  if (errorlog) fprintf(errorlog,"Storing sample position %d and copying string %s\n",plural,oldword);
+		  logerror("Storing sample position %d and copying string %s\n",plural,oldword);
 			 } else {
              plural=0;
           }
           sample_start(GorfChannel, i, 0);	                   /* play the sample at position of word */
           sample_set_freq(GorfChannel, GorfBaseFrequency);       /* play at correct rate */
-          if (errorlog) fprintf(errorlog,"Playing sample %d",i);
+          logerror("Playing sample %d",i);
           totalword[0] = 0;				   /* Clear the total word stack */
           return data;
        }
@@ -204,7 +204,7 @@ int gorf_status_r(void)
 
 /* Read from port 2 (0x12) returns speech status as 0x80 */
 
-int gorf_port_2_r(int offset)
+READ_HANDLER( gorf_port_2_r )
 {
     int Ans;
 

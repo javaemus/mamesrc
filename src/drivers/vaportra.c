@@ -1,9 +1,8 @@
 /***************************************************************************
 
+  Vapor Trail (World version)  (c) 1989 Data East Corporation
   Vapor Trail (USA version)    (c) 1989 Data East USA
   Kuhga (Japanese version)     (c) 1989 Data East Corporation
-
-  A 'World' version of Vapor Trail also exists but isn't yet dumped.
 
   Emulation by Bryan McPhail, mish@tendril.co.uk
 
@@ -17,35 +16,35 @@ int  vaportra_vh_start(void);
 void vaportra_vh_stop (void);
 void vaportra_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-void vaportra_pf1_data_w(int offset,int data);
-void vaportra_pf2_data_w(int offset,int data);
-void vaportra_pf3_data_w(int offset,int data);
-void vaportra_pf4_data_w(int offset,int data);
-int vaportra_pf1_data_r(int offset);
-int vaportra_pf2_data_r(int offset);
-int vaportra_pf3_data_r(int offset);
-int vaportra_pf4_data_r(int offset);
+WRITE_HANDLER( vaportra_pf1_data_w );
+WRITE_HANDLER( vaportra_pf2_data_w );
+WRITE_HANDLER( vaportra_pf3_data_w );
+WRITE_HANDLER( vaportra_pf4_data_w );
+READ_HANDLER( vaportra_pf1_data_r );
+READ_HANDLER( vaportra_pf2_data_r );
+READ_HANDLER( vaportra_pf3_data_r );
+READ_HANDLER( vaportra_pf4_data_r );
 
-void vaportra_control_0_w(int offset,int data);
-void vaportra_control_1_w(int offset,int data);
-void vaportra_control_2_w(int offset,int data);
-void vaportra_palette_24bit_rg(int offset,int data);
-void vaportra_palette_24bit_b(int offset,int data);
+WRITE_HANDLER( vaportra_control_0_w );
+WRITE_HANDLER( vaportra_control_1_w );
+WRITE_HANDLER( vaportra_control_2_w );
+WRITE_HANDLER( vaportra_palette_24bit_rg_w );
+WRITE_HANDLER( vaportra_palette_24bit_b_w );
 
 extern unsigned char *vaportra_pf1_data,*vaportra_pf2_data,*vaportra_pf3_data,*vaportra_pf4_data;
 static unsigned char *vaportra_ram;
 
-void vaportra_update_sprites(int offset, int data);
+WRITE_HANDLER( vaportra_update_sprites_w );
 
 /******************************************************************************/
 
-static void vaportra_sound_w(int offset,int data)
+static WRITE_HANDLER( vaportra_sound_w )
 {
 	soundlatch_w(0,data & 0xff);
 	cpu_cause_interrupt(1,H6280_INT_IRQ1);
 }
 
-static int vaportra_control_r(int offset)
+static READ_HANDLER( vaportra_control_r )
 {
 	switch (offset)
 	{
@@ -57,7 +56,7 @@ static int vaportra_control_r(int offset)
 			return (readinputport(0) + (readinputport(1) << 8));
 	}
 
-	if (errorlog) fprintf(errorlog,"Unknown control read at %d\n",offset);
+	logerror("Unknown control read at %d\n",offset);
 	return 0xffff;
 }
 
@@ -95,10 +94,10 @@ static struct MemoryWriteAddress vaportra_writemem[] =
 	{ 0x282000, 0x283fff, vaportra_pf3_data_w, &vaportra_pf3_data },
 	{ 0x2c0000, 0x2c000f, vaportra_control_1_w },
 
-	{ 0x300000, 0x3009ff, vaportra_palette_24bit_rg, &paletteram },
-	{ 0x304000, 0x3049ff, vaportra_palette_24bit_b, &paletteram_2 },
+	{ 0x300000, 0x3009ff, vaportra_palette_24bit_rg_w, &paletteram },
+	{ 0x304000, 0x3049ff, vaportra_palette_24bit_b_w, &paletteram_2 },
 	{ 0x308000, 0x308001, MWA_NOP },
-	{ 0x30c000, 0x30c001, vaportra_update_sprites },
+	{ 0x30c000, 0x30c001, vaportra_update_sprites_w },
 	{ 0xff8000, 0xff87ff, MWA_BANK2, &spriteram },
 	{ 0xffc000, 0xffffff, MWA_BANK1, &vaportra_ram },
 	{ -1 }  /* end of table */
@@ -106,7 +105,7 @@ static struct MemoryWriteAddress vaportra_writemem[] =
 
 /******************************************************************************/
 
-static void YM2151_w(int offset, int data)
+static WRITE_HANDLER( YM2151_w )
 {
 	switch (offset) {
 	case 0:
@@ -118,7 +117,7 @@ static void YM2151_w(int offset, int data)
 	}
 }
 
-static void YM2203_w(int offset, int data)
+static WRITE_HANDLER( YM2203_w )
 {
 	switch (offset) {
 	case 0:
@@ -306,7 +305,7 @@ static struct OKIM6295interface okim6295_interface =
 	2,              /* 2 chips */
 	{ 7757, 15514 },/* Frequency */
 	{ REGION_SOUND1, REGION_SOUND2 },	/* memory regions */
-	{ 50, 25 }		/* Note!  Keep chip 1 (voices) louder than chip 2 */
+	{ 75, 50 }		/* Note!  Keep chip 1 (voices) louder than chip 2 */
 };
 
 static struct YM2203interface ym2203_interface =
@@ -389,6 +388,34 @@ static struct MachineDriver machine_driver_vaportra =
 
 ROM_START( vaportra )
 	ROM_REGION( 0x80000, REGION_CPU1 ) /* 68000 code */
+  	ROM_LOAD_EVEN( "fl_02-1.bin", 0x00000, 0x20000, 0x9ae36095 )
+  	ROM_LOAD_ODD ( "fl_00-1.bin", 0x00000, 0x20000, 0xc08cc048 )
+	ROM_LOAD_EVEN( "fl_03.bin",   0x40000, 0x20000, 0x80bd2844 )
+ 	ROM_LOAD_ODD ( "fl_01.bin",   0x40000, 0x20000, 0x9474b085 )
+
+	ROM_REGION( 0x10000, REGION_CPU2 )	/* Sound CPU */
+	ROM_LOAD( "fj04",    0x00000, 0x10000, 0xe9aedf9b )
+
+	ROM_REGION( 0x080000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "vtmaa00.bin",   0x000000, 0x80000, 0x0330e13b ) /* chars & tiles */
+
+	ROM_REGION( 0x100000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+  	ROM_LOAD( "vtmaa01.bin",   0x000000, 0x80000, 0xc217a31b ) /* tiles 2 */
+	ROM_LOAD( "vtmaa02.bin",   0x080000, 0x80000, 0x091ff98e ) /* tiles 3 */
+
+	ROM_REGION( 0x100000, REGION_GFX3 | REGIONFLAG_DISPOSE )
+  	ROM_LOAD( "vtmaa03.bin",   0x000000, 0x80000, 0x1a30bf81 ) /* sprites */
+  	ROM_LOAD( "vtmaa04.bin",   0x080000, 0x80000, 0xb713e9cc )
+
+	ROM_REGION( 0x20000, REGION_SOUND1 )	/* ADPCM samples */
+	ROM_LOAD( "fj06",    0x00000, 0x20000, 0x6e98a235 )
+
+	ROM_REGION( 0x20000, REGION_SOUND2 )	/* ADPCM samples */
+	ROM_LOAD( "fj05",    0x00000, 0x20000, 0x39cda2b5 )
+ROM_END
+
+ROM_START( vaportru )
+	ROM_REGION( 0x80000, REGION_CPU1 ) /* 68000 code */
   	ROM_LOAD_EVEN( "fj02",   0x00000, 0x20000, 0xa2affb73 )
   	ROM_LOAD_ODD ( "fj00",   0x00000, 0x20000, 0xef05e07b )
 	ROM_LOAD_EVEN( "fj03",   0x40000, 0x20000, 0x44893379 )
@@ -454,7 +481,7 @@ static void vaportra_decrypt(void)
 		RAM[i]=(RAM[i] & 0x7e) | ((RAM[i] & 0x01) << 7) | ((RAM[i] & 0x80) >> 7);
 }
 
-static int cycle_r(int offset)
+static READ_HANDLER( cycle_r )
 {
 	int pc=cpu_get_pc();
 	int ret=READ_WORD(&vaportra_ram[0x6]);
@@ -474,5 +501,6 @@ static void init_vaportra(void)
 
 /******************************************************************************/
 
-GAME( 1989, vaportra, 0,        vaportra, vaportra, vaportra, ROT270, "Data East USA", "Vapor Trail - Hyper Offence Formation (US)" )
+GAME( 1989, vaportra, 0,        vaportra, vaportra, vaportra, ROT270, "Data East Corporation", "Vapor Trail - Hyper Offence Formation (World revision 1)" )
+GAME( 1989, vaportru, vaportra, vaportra, vaportra, vaportra, ROT270, "Data East USA", "Vapor Trail - Hyper Offence Formation (US)" )
 GAME( 1989, kuhga,    vaportra, vaportra, vaportra, vaportra, ROT270, "Data East Corporation", "Kuhga - Operation Code 'Vapor Trail' (Japan revision 3)" )

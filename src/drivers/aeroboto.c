@@ -21,22 +21,22 @@ void aeroboto_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 static int player;
 
-static int aeroboto_in0_r(int offset)
+static READ_HANDLER( aeroboto_in0_r )
 {
 	return readinputport(player);
 }
 
-static int aeroboto_201_r(int offset)
+static READ_HANDLER( aeroboto_201_r )
 {
 	/* if you keep a button pressed during boot, the game will expect this */
 	/* serie of values to be returned from 3004, and display "PASS 201" if it is */
 	int res[4] = { 0xff,0x9f,0x1b,0x03};
 	static int count;
-	if (errorlog) fprintf(errorlog,"PC %04x: read 3004\n",cpu_get_pc());
+	logerror("PC %04x: read 3004\n",cpu_get_pc());
 	return res[(count++)&3];
 }
 
-static void aeroboto_3000_w(int ofset,int data)
+static WRITE_HANDLER( aeroboto_3000_w )
 {
 	/* bit 0 selects player1/player2 controls */
 	player = data & 1;
@@ -45,11 +45,6 @@ static void aeroboto_3000_w(int ofset,int data)
 	aeroboto_charbank = (data & 0x02) >> 1;
 
 	/* there's probably a flip screen here as well */
-}
-
-static int pip(int offset)
-{
-	return rand() & 0xff;
 }
 
 static struct MemoryReadAddress readmem[] =

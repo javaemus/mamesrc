@@ -123,7 +123,7 @@ int m68000_execute(int cycles)
 
             skiptrace++;
 
-            if ((skiptrace > 0) && (errorlog))
+            if (skiptrace > 0)
             {
 			    int mycount, areg, dreg;
 
@@ -134,8 +134,8 @@ int m68000_execute(int cycles)
                     dreg = dreg + regs.d[mycount];
                 }
 
-           	    fprintf(errorlog,"=> %8x %8x ",areg,dreg);
-			    fprintf(errorlog,"%6x %4x %d\n",regs.pc,regs.sr & 0x271F,m68000_ICount);
+           	    logerror("=> %8x %8x ",areg,dreg);
+			    logerror("%6x %4x %d\n",regs.pc,regs.sr & 0x271F,m68000_ICount);
             }
             #endif
 
@@ -231,7 +231,7 @@ unsigned m68000_get_reg(int regnum)
 			{
 				unsigned offset = regs.isp + 4 * (REG_SP_CONTENTS - regnum);
 				if( offset < 0xfffffd )
-					return cpu_readmem24_dword( offset );
+					return cpu_readmem24bew_dword( offset );
             }
     }
     return 0;
@@ -270,7 +270,7 @@ void m68000_set_reg(int regnum, unsigned val)
 			{
 				unsigned offset = regs.isp + 4 * (REG_SP_CONTENTS - regnum);
 				if( offset < 0xfffffd )
-					cpu_writemem24_dword( offset, val );
+					cpu_writemem24bew_dword( offset, val );
             }
     }
 }
@@ -406,7 +406,7 @@ extern int m68k_disassemble(char* str_buff, int pc);
 
 unsigned m68000_dasm(char *buffer, unsigned pc)
 {
-	change_pc24(pc);
+	change_pc24bew(pc);
 #ifdef MAME_DEBUG
     return m68k_disassemble(buffer, pc);
 #else
@@ -419,7 +419,7 @@ unsigned m68000_dasm(char *buffer, unsigned pc)
  * M68010 section
  ****************************************************************************/
 
-#if HAS_M68010
+#if (HAS_M68010)
 
 void m68010_reset(void *param)
 {
@@ -452,7 +452,7 @@ const char *m68010_info(void *context, int regnum)
 
 unsigned m68010_dasm(char *buffer, unsigned pc)
 {
-	change_pc24(pc);
+	change_pc24bew(pc);
 #ifdef MAME_DEBUG
     return m68k_disassemble(buffer, pc);
 #else
@@ -466,7 +466,7 @@ unsigned m68010_dasm(char *buffer, unsigned pc)
  * M68020 section
  ****************************************************************************/
 
-#if HAS_M68EC020
+#if (HAS_M68EC020)
 
 void m68ec020_reset(void *param)
 {
@@ -499,7 +499,7 @@ const char *m68ec020_info(void *context, int regnum)
 
 unsigned m68ec020_dasm(char *buffer, unsigned pc)
 {
-	change_pc24(pc);
+	change_pc24bew(pc);
 #ifdef MAME_DEBUG
     return m68k_disassemble(buffer, pc);
 #else
@@ -509,7 +509,7 @@ unsigned m68ec020_dasm(char *buffer, unsigned pc)
 }
 #endif
 
-#if HAS_M68020
+#if (HAS_M68020)
 
 void m68020_reset(void *param)
 {
@@ -542,7 +542,7 @@ const char *m68020_info(void *context, int regnum)
 
 unsigned m68020_dasm(char *buffer, unsigned pc)
 {
-	change_pc24(pc);
+	change_pc24bew(pc);
 #ifdef MAME_DEBUG
     return m68k_disassemble(buffer, pc);
 #else

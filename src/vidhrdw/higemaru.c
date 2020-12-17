@@ -56,9 +56,9 @@ void higemaru_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 
 
 
-void higemaru_c800_w(int offset,int data)
+WRITE_HANDLER( higemaru_c800_w )
 {
-if (errorlog && (data & 0x7c)) fprintf(errorlog,"c800 = %02x\n",data);
+	if (data & 0x7c) logerror("c800 = %02x\n",data);
 
 	/* bits 0 and 1 are coin counters */
 	coin_counter_w(0,data & 2);
@@ -111,7 +111,7 @@ void higemaru_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 
 	/* copy the background graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* Draw the sprites. */
@@ -139,7 +139,7 @@ void higemaru_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				col,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+				&Machine->visible_area,TRANSPARENCY_PEN,15);
 
 		/* draw again with wraparound */
 		drawgfx(bitmap,Machine->gfx[1],
@@ -147,6 +147,6 @@ void higemaru_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				col,
 				flipx,flipy,
 				sx - 256,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+				&Machine->visible_area,TRANSPARENCY_PEN,15);
 	}
 }

@@ -22,12 +22,12 @@
 
 ***************************************************************************/
 
-void ms_soundlatch_w (int offset,int data);
-void ms_soundlatch2_w(int offset,int data);
-void ms_YM2151_register_port_0_w(int offset,int data);
-void ms_YM2151_data_port_0_w(int offset,int data);
-void ms_OKIM6295_data_0_w(int offset,int data);
-void ms_OKIM6295_data_1_w(int offset,int data);
+WRITE_HANDLER( ms_soundlatch_w );
+WRITE_HANDLER( ms_soundlatch2_w );
+WRITE_HANDLER( ms_YM2151_register_port_0_w );
+WRITE_HANDLER( ms_YM2151_data_port_0_w );
+WRITE_HANDLER( ms_OKIM6295_data_0_w );
+WRITE_HANDLER( ms_OKIM6295_data_1_w );
 
 
 /***************************************************************************
@@ -280,7 +280,7 @@ static struct GfxLayout _name_ =\
 	char buf[80];\
 	sprintf(buf,_format_,_offset_);\
 	usrintf_showmessage(buf);\
-	if (errorlog) fprintf(errorlog, "CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf); \
+	logerror("CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf); \
 }
 
 #define SHOW_WRITE_ERROR(_format_,_offset_,_data_)\
@@ -288,7 +288,7 @@ static struct GfxLayout _name_ =\
 	char buf[80];\
 	sprintf(buf,_format_,_offset_,_data_);\
 	usrintf_showmessage(buf);\
-	if (errorlog) fprintf(errorlog, "CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf); \
+	logerror("CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf); \
 }
 
 #else
@@ -296,21 +296,15 @@ static struct GfxLayout _name_ =\
 #define SHOW_READ_ERROR(_format_,_offset_)\
 {\
 	char buf[80];\
-	if (errorlog)\
-	{ \
-		sprintf(buf,_format_,_offset_);\
-		if (errorlog) fprintf(errorlog, "CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf);\
-	} \
+	sprintf(buf,_format_,_offset_);\
+	logerror("CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf);\
 }
 
 #define SHOW_WRITE_ERROR(_format_,_offset_,_data_)\
 {\
 	char buf[80];\
-	if (errorlog)\
-	{ \
-		sprintf(buf,_format_,_offset_,_data_); \
-		fprintf(errorlog, "CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf); \
-	} \
+	sprintf(buf,_format_,_offset_,_data_); \
+	logerror("CPU #0 PC %06X : Warning, %s\n",cpu_get_pc(), buf); \
 }
 
 #endif
@@ -338,13 +332,13 @@ extern int megasys1_8x8_scroll_2_factor, megasys1_16x16_scroll_2_factor;
 /* Functions */
 int  megasys1_vh_start(void);
 
-int  megasys1_scrollram_0_r(int offset);
-int  megasys1_scrollram_1_r(int offset);
-int  megasys1_scrollram_2_r(int offset);
+READ_HANDLER( megasys1_scrollram_0_r );
+READ_HANDLER( megasys1_scrollram_1_r );
+READ_HANDLER( megasys1_scrollram_2_r );
 
-void megasys1_scrollram_0_w(int offset, int data);
-void megasys1_scrollram_1_w(int offset, int data);
-void megasys1_scrollram_2_w(int offset, int data);
+WRITE_HANDLER( megasys1_scrollram_0_w );
+WRITE_HANDLER( megasys1_scrollram_1_w );
+WRITE_HANDLER( megasys1_scrollram_2_w );
 
 void megasys1_scroll_0_flag_w(int data);
 void megasys1_scroll_1_flag_w(int data);

@@ -24,7 +24,7 @@ void k88games_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
 static unsigned char *nvram;
-static int nvram_size;
+static size_t nvram_size;
 
 static void nvram_handler(void *file,int read_or_write)
 {
@@ -48,7 +48,7 @@ static int k88games_interrupt(void)
 
 static int zoomreadroms;
 
-static int bankedram_r(int offset)
+static READ_HANDLER( bankedram_r )
 {
 	if (videobank) return ram[offset];
 	else
@@ -60,13 +60,13 @@ static int bankedram_r(int offset)
 	}
 }
 
-static void bankedram_w(int offset,int data)
+static WRITE_HANDLER( bankedram_w )
 {
 	if (videobank) ram[offset] = data;
 	else K051316_0_w(offset,data);
 }
 
-static void k88games_5f84_w(int offset,int data)
+static WRITE_HANDLER( k88games_5f84_w )
 {
 	/* bits 0/1 coin counters */
 	coin_counter_w(0,data & 0x01);
@@ -84,13 +84,13 @@ static void k88games_5f84_w(int offset,int data)
 	}
 }
 
-static void k88games_sh_irqtrigger_w(int offset,int data)
+static WRITE_HANDLER( k88games_sh_irqtrigger_w )
 {
 	cpu_cause_interrupt(1,0xff);
 }
 
 /* handle fake button for speed cheat */
-static int cheat_r(int offset)
+static READ_HANDLER( cheat_r )
 {
 	int res;
 	static int cheat = 0;
@@ -111,7 +111,7 @@ static int speech_chip;
 static int invalid_code;
 static int total_samples[] = { 0x39, 0x15 };
 
-static void speech_control_w( int offset, int data )
+static WRITE_HANDLER( speech_control_w )
 {
 	int reset = ( ( data >> 1 ) & 1 );
 	int start = ( ~data ) & 1;
@@ -124,7 +124,7 @@ static void speech_control_w( int offset, int data )
 		UPD7759_start_w( speech_chip, start );
 }
 
-static void speech_msg_w( int offset, int data )
+static WRITE_HANDLER( speech_msg_w )
 {
 	UPD7759_message_w( speech_chip, data );
 	invalid_code = (data == total_samples[speech_chip]);
@@ -539,7 +539,7 @@ static void k88games_banking( int lines )
 	unsigned char *RAM = memory_region(REGION_CPU1);
 	int offs;
 
-if (errorlog) fprintf(errorlog,"%04x: bank select %02x\n",cpu_get_pc(),lines);
+logerror("%04x: bank select %02x\n",cpu_get_pc(),lines);
 
 	/* bits 0-2 select ROM bank for 0000-1fff */
 	/* bit 3: when 1, palette RAM at 1000-1fff */

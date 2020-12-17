@@ -14,7 +14,6 @@
 #include "mamedbg.h"
 #include "i8039.h"
 
-extern FILE *errorlog;
 
 /* Layout of the registers in the debugger */
 static UINT8 i8039_reg_layout[] = {
@@ -194,14 +193,12 @@ INLINE void M_XCHD(UINT8 addr)
 
 INLINE void M_ILLEGAL(void)
 {
-	if (errorlog)
-	  fprintf(errorlog, "I8039:  PC = %04x,  Illegal opcode = %02x\n", R.PC.w.l-1, M_RDMEM(R.PC.w.l-1));
+	logerror("I8039:  PC = %04x,  Illegal opcode = %02x\n", R.PC.w.l-1, M_RDMEM(R.PC.w.l-1));
 }
 
 INLINE void M_UNDEFINED(void)
 {
-	if (errorlog)
-	  fprintf(errorlog, "I8039:  PC = %04x,  Unimplemented opcode = %02x\n", R.PC.w.l-1, M_RDMEM(R.PC.w.l-1));
+	logerror("I8039:  PC = %04x,  Unimplemented opcode = %02x\n", R.PC.w.l-1, M_RDMEM(R.PC.w.l-1));
 }
 
 
@@ -572,7 +569,7 @@ static int Timer_IRQ(void)
 {
 	if (R.tirq_en && !R.irq_executing)
 	{
-		if (errorlog) fprintf(errorlog, "I8039:  TIMER INTERRUPT\n");
+		logerror("I8039:  TIMER INTERRUPT\n");
 		R.irq_executing = I8039_TIMER_INT;
 		push(R.PC.b.l);
 		push((R.PC.b.h & 0x0f) | (R.PSW & 0xf0));
@@ -590,7 +587,7 @@ static int Timer_IRQ(void)
 static int Ext_IRQ(void)
 {
 	if (R.xirq_en) {
-//if (errorlog) fprintf(errorlog, "I8039:  EXT INTERRUPT\n");
+//logerror("I8039:  EXT INTERRUPT\n");
 		R.irq_executing = I8039_EXT_INT;
 		push(R.PC.b.l);
 		push((R.PC.b.h & 0x0f) | (R.PSW & 0xf0));
@@ -672,7 +669,7 @@ int i8039_execute(int cycles)
 
 		opcode=M_RDOP(R.PC.w.l);
 
-/*      if (errorlog) fprintf(errorlog, "I8039:  PC = %04x,  opcode = %02x\n", R.PC.w.l, opcode); */
+/*      logerror("I8039:  PC = %04x,  opcode = %02x\n", R.PC.w.l, opcode); */
 
         R.PC.w.l++;
 		i8039_ICount -= opcode_main[opcode].cycles;
@@ -922,7 +919,7 @@ unsigned i8039_dasm(char *buffer, unsigned pc)
 /**************************************************************************
  * I8035 section
  **************************************************************************/
-#if HAS_I8035
+#if (HAS_I8035)
 /* Layout of the registers in the debugger */
 static UINT8 i8035_reg_layout[] = {
 	I8035_PC, I8035_SP, I8035_PSW, I8035_A, I8035_IRQ_STATE, -1,
@@ -979,7 +976,7 @@ unsigned i8035_dasm(char *buffer, unsigned pc)
 /**************************************************************************
  * I8048 section
  **************************************************************************/
-#if HAS_I8048
+#if (HAS_I8048)
 /* Layout of the registers in the debugger */
 static UINT8 i8048_reg_layout[] = {
 	I8048_PC, I8048_SP, I8048_PSW, I8048_A, I8048_IRQ_STATE, -1,
@@ -1034,7 +1031,7 @@ unsigned i8048_dasm(char *buffer, unsigned pc)
 /**************************************************************************
  * N7751 section
  **************************************************************************/
-#if HAS_N7751
+#if (HAS_N7751)
 /* Layout of the registers in the debugger */
 static UINT8 n7751_reg_layout[] = {
 	N7751_PC, N7751_SP, N7751_PSW, N7751_A, N7751_IRQ_STATE, -1,

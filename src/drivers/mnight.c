@@ -11,10 +11,10 @@ TODO:
 #include "driver.h"
 #include "vidhrdw/generic.h"
 
-void mnight_bgvideoram_w(int offset, int data);
-void mnight_fgvideoram_w(int offset, int data);
-void mnight_sprite_overdraw_w(int offset, int data);
-void mnight_background_enable_w(int offset, int data);
+WRITE_HANDLER( mnight_bgvideoram_w );
+WRITE_HANDLER( mnight_fgvideoram_w );
+WRITE_HANDLER( mnight_sprite_overdraw_w );
+WRITE_HANDLER( mnight_background_enable_w );
 int  mnight_vh_start(void);
 void mnight_vh_stop(void);
 void mnight_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
@@ -26,9 +26,9 @@ extern unsigned char    *mnight_spoverdraw_ram;
 extern unsigned char    *mnight_spriteram;
 extern unsigned char    *mnight_background_videoram;
 extern unsigned char    *mnight_foreground_videoram;
-extern int      mnight_spriteram_size;
-extern int      mnight_backgroundram_size;
-extern int      mnight_foregroundram_size;
+extern size_t mnight_spriteram_size;
+extern size_t mnight_backgroundram_size;
+extern size_t mnight_foregroundram_size;
 
 static int mnight_bank_latch = 255, main_cpu_num;
 
@@ -42,12 +42,12 @@ int mnight_interrupt(void)
 	return 0x00d7;	/* RST 10h */
 }
 
-int mnight_bankselect_r(int offset)
+READ_HANDLER( mnight_bankselect_r )
 {
 	return mnight_bank_latch;
 }
 
-void mnight_bankselect_w(int offset, int data)
+WRITE_HANDLER( mnight_bankselect_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1+main_cpu_num);
 	int bankaddress;

@@ -236,7 +236,7 @@ void cps1_debug_tiles(struct osd_bitmap *bitmap)
     }
 }
 
-extern void cps2_qsound_sharedram_w(int offset,int data);
+WRITE_HANDLER( cps2_qsound_sharedram_w );
 
 void cps2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
@@ -308,16 +308,16 @@ void cps2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
     char text1[256];
     sprintf(text1, "GFX CODE=%06x  :  QSOUND CODE=%04x", cps2_start, qcode );
     dt[0].text = text1;
-    dt[0].color = DT_COLOR_RED;
+    dt[0].color = UI_COLOR_INVERSE;
     dt[0].x = (Machine->uiwidth - Machine->uifontwidth * strlen(text1)) / 2;
     dt[0].y = 8*23;
     dt[1].text = instructions;
-    dt[1].color = DT_COLOR_WHITE;
+    dt[1].color = UI_COLOR_NORMAL;
     dt[1].x = (Machine->uiwidth - Machine->uifontwidth * strlen(instructions)) / 2;
     dt[1].y = dt[0].y+2*Machine->uifontheight;
 
     dt[2].text = 0; /* terminate array */
-	displaytext(dt,0,0);
+	displaytext(Machine->scrbitmap,dt,0,0);
     }
 }
 

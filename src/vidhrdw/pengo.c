@@ -166,7 +166,7 @@ int pacman_vh_start(void)
 
 
 
-void pengo_gfxbank_w(int offset,int data)
+WRITE_HANDLER( pengo_gfxbank_w )
 {
 	/* the Pengo hardware can set independently the palette bank, color lookup */
 	/* table, and chars/sprites. However the game always set them together (and */
@@ -179,7 +179,7 @@ void pengo_gfxbank_w(int offset,int data)
 	}
 }
 
-void pengo_flipscreen_w(int offset,int data)
+WRITE_HANDLER( pengo_flipscreen_w )
 {
 	if (flipscreen != (data & 1))
 	{
@@ -240,11 +240,11 @@ void pengo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					colorram[offs] & 0x1f,
 					flipscreen,flipscreen,
 					sx*8,sy*8,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
         }
 	}
 
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
     /* Draw the sprites. Note that it is important to draw them exactly in this */
 	/* order, to have the correct priorities. */

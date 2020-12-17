@@ -18,9 +18,9 @@
 
 
 unsigned char *matmania_videoram2,*matmania_colorram2;
-int matmania_videoram2_size;
+size_t matmania_videoram2_size;
 unsigned char *matmania_videoram3,*matmania_colorram3;
-int matmania_videoram3_size;
+size_t matmania_videoram3_size;
 unsigned char *matmania_scroll;
 static struct osd_bitmap *tmpbitmap2;
 static unsigned char *dirtybuffer2;
@@ -86,7 +86,7 @@ void matmania_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 
 
 
-void matmania_paletteram_w(int offset,int data)
+WRITE_HANDLER( matmania_paletteram_w )
 {
 	int bit0,bit1,bit2,bit3,val;
 	int r,g,b;
@@ -140,7 +140,7 @@ int matmania_vh_start(void)
 	memset(dirtybuffer2,1,matmania_videoram3_size);
 
 	/* Mat Mania has a virtual screen twice as large as the visible screen */
-	if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width,2* Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,2* Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer);
 		free(dirtybuffer2);
@@ -148,7 +148,7 @@ int matmania_vh_start(void)
 	}
 
 	/* Mat Mania has a virtual screen twice as large as the visible screen */
-	if ((tmpbitmap2 = osd_create_bitmap(Machine->drv->screen_width,2 * Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(Machine->drv->screen_width,2 * Machine->drv->screen_height)) == 0)
 	{
 		free(tmpbitmap);
 		free(dirtybuffer);
@@ -170,12 +170,12 @@ void matmania_vh_stop(void)
 {
 	free(dirtybuffer);
 	free(dirtybuffer2);
-	osd_free_bitmap(tmpbitmap);
-	osd_free_bitmap(tmpbitmap2);
+	bitmap_free(tmpbitmap);
+	bitmap_free(tmpbitmap2);
 }
 
 
-void matmania_videoram3_w(int offset,int data)
+WRITE_HANDLER( matmania_videoram3_w )
 {
 	if (matmania_videoram3[offset] != data)
 	{
@@ -187,7 +187,7 @@ void matmania_videoram3_w(int offset,int data)
 
 
 
-void matmania_colorram3_w(int offset,int data)
+WRITE_HANDLER( matmania_colorram3_w )
 {
 	if (matmania_colorram3[offset] != data)
 	{
@@ -261,9 +261,9 @@ void matmania_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 		scrolly = -*matmania_scroll;
 		if (*matmania_pageselect)
-			copyscrollbitmap(bitmap,tmpbitmap2,0,0,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+			copyscrollbitmap(bitmap,tmpbitmap2,0,0,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 		else
-			copyscrollbitmap(bitmap,tmpbitmap,0,0,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+			copyscrollbitmap(bitmap,tmpbitmap,0,0,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -277,7 +277,7 @@ void matmania_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					(spriteram[offs] & 0x08) >> 3,
 					spriteram[offs] & 0x04,spriteram[offs] & 0x02,
 					239 - spriteram[offs+3],(240 - spriteram[offs+2]) & 0xff,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 
@@ -296,7 +296,7 @@ void matmania_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				(matmania_colorram2[offs] & 0x30) >> 4,
 				0,0,
 				8*sx,8*sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }
 
@@ -363,9 +363,9 @@ void maniach_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 		scrolly = -*matmania_scroll;
 		if (*matmania_pageselect)
-			copyscrollbitmap(bitmap,tmpbitmap2,0,0,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+			copyscrollbitmap(bitmap,tmpbitmap2,0,0,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 		else
-			copyscrollbitmap(bitmap,tmpbitmap,0,0,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+			copyscrollbitmap(bitmap,tmpbitmap,0,0,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -379,7 +379,7 @@ void maniach_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					(spriteram[offs] & 0x08) >> 3,
 					spriteram[offs] & 0x04,spriteram[offs] & 0x02,
 					239 - spriteram[offs+3],(240 - spriteram[offs+2]) & 0xff,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 
@@ -398,6 +398,6 @@ void maniach_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				(matmania_colorram2[offs] & 0x30) >> 4,
 				0,0,
 				8*sx,8*sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

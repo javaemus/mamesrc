@@ -11,17 +11,14 @@
 #include "vidhrdw/vector.h"
 #include "datafile.h"
 #include <stdarg.h>
+#include "ui_text.h"
 
 #ifdef MESS
   #include "mess/mess.h"
 #endif
 
-#define SEL_BITS 12
-#define SEL_MASK ((1<<SEL_BITS)-1)
-
 extern int mame_debug;
 
-extern int need_to_clear_bitmap;	/* used to tell updatescreen() to clear the bitmap */
 extern int bitmap_dirty;	/* set by osd_clearbitmap() */
 
 /* Variables for stat menu */
@@ -31,9 +28,9 @@ extern unsigned int coins[COIN_COUNTERS];
 extern unsigned int coinlockedout[COIN_COUNTERS];
 
 /* MARTINEZ.F 990207 Memory Card */
-#ifndef NEOFREE
+#ifndef MESS
 #ifndef TINY_COMPILE
-int 		memcard_menu(int);
+int 		memcard_menu(struct osd_bitmap *bitmap, int);
 extern int	mcd_action;
 extern int	mcd_number;
 extern int	memcard_status;
@@ -54,7 +51,32 @@ static int setup_selected;
 static int osd_selected;
 static int jukebox_selected;
 static int single_step;
+static int trueorientation;
+static int orientation_count;
 
+
+static void switch_ui_orientation(void)
+{
+	if (orientation_count == 0)
+	{
+		trueorientation = Machine->orientation;
+		Machine->orientation = Machine->ui_orientation;
+		set_pixel_functions();
+	}
+
+	orientation_count++;
+}
+
+static void switch_true_orientation(void)
+{
+	orientation_count--;
+
+	if (orientation_count == 0)
+	{
+		Machine->orientation = trueorientation;
+		set_pixel_functions();
+	}
+}
 
 
 void set_ui_visarea (int xmin, int ymin, int xmax, int ymax)
@@ -114,6 +136,138 @@ void set_ui_visarea (int xmin, int ymin, int xmax, int ymax)
 
 struct GfxElement *builduifont(void)
 {
+    static unsigned char fontdata6x8[] =
+	{
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x7c,0x80,0x98,0x90,0x80,0xbc,0x80,0x7c,0xf8,0x04,0x64,0x44,0x04,0xf4,0x04,0xf8,
+		0x7c,0x80,0x98,0x88,0x80,0xbc,0x80,0x7c,0xf8,0x04,0x64,0x24,0x04,0xf4,0x04,0xf8,
+		0x7c,0x80,0x88,0x98,0x80,0xbc,0x80,0x7c,0xf8,0x04,0x24,0x64,0x04,0xf4,0x04,0xf8,
+		0x7c,0x80,0x90,0x98,0x80,0xbc,0x80,0x7c,0xf8,0x04,0x44,0x64,0x04,0xf4,0x04,0xf8,
+		0x30,0x48,0x84,0xb4,0xb4,0x84,0x48,0x30,0x30,0x48,0x84,0x84,0x84,0x84,0x48,0x30,
+		0x00,0xfc,0x84,0x8c,0xd4,0xa4,0xfc,0x00,0x00,0xfc,0x84,0x84,0x84,0x84,0xfc,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x68,0x78,0x78,0x30,0x00,0x00,
+		0x80,0xc0,0xe0,0xf0,0xe0,0xc0,0x80,0x00,0x04,0x0c,0x1c,0x3c,0x1c,0x0c,0x04,0x00,
+		0x20,0x70,0xf8,0x20,0x20,0xf8,0x70,0x20,0x48,0x48,0x48,0x48,0x48,0x00,0x48,0x00,
+		0x00,0x00,0x30,0x68,0x78,0x30,0x00,0x00,0x00,0x30,0x68,0x78,0x78,0x30,0x00,0x00,
+		0x70,0xd8,0xe8,0xe8,0xf8,0xf8,0x70,0x00,0x1c,0x7c,0x74,0x44,0x44,0x4c,0xcc,0xc0,
+		0x20,0x70,0xf8,0x70,0x70,0x70,0x70,0x00,0x70,0x70,0x70,0x70,0xf8,0x70,0x20,0x00,
+		0x00,0x10,0xf8,0xfc,0xf8,0x10,0x00,0x00,0x00,0x20,0x7c,0xfc,0x7c,0x20,0x00,0x00,
+		0xb0,0x54,0xb8,0xb8,0x54,0xb0,0x00,0x00,0x00,0x28,0x6c,0xfc,0x6c,0x28,0x00,0x00,
+		0x00,0x30,0x30,0x78,0x78,0xfc,0x00,0x00,0xfc,0x78,0x78,0x30,0x30,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x20,0x20,0x20,0x20,0x00,0x20,0x00,
+		0x50,0x50,0x50,0x00,0x00,0x00,0x00,0x00,0x00,0x50,0xf8,0x50,0xf8,0x50,0x00,0x00,
+		0x20,0x70,0xc0,0x70,0x18,0xf0,0x20,0x00,0x40,0xa4,0x48,0x10,0x20,0x48,0x94,0x08,
+		0x60,0x90,0xa0,0x40,0xa8,0x90,0x68,0x00,0x10,0x20,0x40,0x00,0x00,0x00,0x00,0x00,
+		0x20,0x40,0x40,0x40,0x40,0x40,0x20,0x00,0x10,0x08,0x08,0x08,0x08,0x08,0x10,0x00,
+		0x20,0xa8,0x70,0xf8,0x70,0xa8,0x20,0x00,0x00,0x20,0x20,0xf8,0x20,0x20,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x30,0x30,0x60,0x00,0x00,0x00,0xf8,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x30,0x30,0x00,0x00,0x08,0x10,0x20,0x40,0x80,0x00,0x00,
+		0x70,0x88,0x88,0x88,0x88,0x88,0x70,0x00,0x10,0x30,0x10,0x10,0x10,0x10,0x10,0x00,
+		0x70,0x88,0x08,0x10,0x20,0x40,0xf8,0x00,0x70,0x88,0x08,0x30,0x08,0x88,0x70,0x00,
+		0x10,0x30,0x50,0x90,0xf8,0x10,0x10,0x00,0xf8,0x80,0xf0,0x08,0x08,0x88,0x70,0x00,
+		0x70,0x80,0xf0,0x88,0x88,0x88,0x70,0x00,0xf8,0x08,0x08,0x10,0x20,0x20,0x20,0x00,
+		0x70,0x88,0x88,0x70,0x88,0x88,0x70,0x00,0x70,0x88,0x88,0x88,0x78,0x08,0x70,0x00,
+		0x00,0x00,0x30,0x30,0x00,0x30,0x30,0x00,0x00,0x00,0x30,0x30,0x00,0x30,0x30,0x60,
+		0x10,0x20,0x40,0x80,0x40,0x20,0x10,0x00,0x00,0x00,0xf8,0x00,0xf8,0x00,0x00,0x00,
+		0x40,0x20,0x10,0x08,0x10,0x20,0x40,0x00,0x70,0x88,0x08,0x10,0x20,0x00,0x20,0x00,
+		0x30,0x48,0x94,0xa4,0xa4,0x94,0x48,0x30,0x70,0x88,0x88,0xf8,0x88,0x88,0x88,0x00,
+		0xf0,0x88,0x88,0xf0,0x88,0x88,0xf0,0x00,0x70,0x88,0x80,0x80,0x80,0x88,0x70,0x00,
+		0xf0,0x88,0x88,0x88,0x88,0x88,0xf0,0x00,0xf8,0x80,0x80,0xf0,0x80,0x80,0xf8,0x00,
+		0xf8,0x80,0x80,0xf0,0x80,0x80,0x80,0x00,0x70,0x88,0x80,0x98,0x88,0x88,0x70,0x00,
+		0x88,0x88,0x88,0xf8,0x88,0x88,0x88,0x00,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x00,
+		0x08,0x08,0x08,0x08,0x88,0x88,0x70,0x00,0x88,0x90,0xa0,0xc0,0xa0,0x90,0x88,0x00,
+		0x80,0x80,0x80,0x80,0x80,0x80,0xf8,0x00,0x88,0xd8,0xa8,0x88,0x88,0x88,0x88,0x00,
+		0x88,0xc8,0xa8,0x98,0x88,0x88,0x88,0x00,0x70,0x88,0x88,0x88,0x88,0x88,0x70,0x00,
+		0xf0,0x88,0x88,0xf0,0x80,0x80,0x80,0x00,0x70,0x88,0x88,0x88,0x88,0x88,0x70,0x08,
+		0xf0,0x88,0x88,0xf0,0x88,0x88,0x88,0x00,0x70,0x88,0x80,0x70,0x08,0x88,0x70,0x00,
+		0xf8,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x88,0x88,0x88,0x88,0x88,0x88,0x70,0x00,
+		0x88,0x88,0x88,0x88,0x88,0x50,0x20,0x00,0x88,0x88,0x88,0x88,0xa8,0xd8,0x88,0x00,
+		0x88,0x50,0x20,0x20,0x20,0x50,0x88,0x00,0x88,0x88,0x88,0x50,0x20,0x20,0x20,0x00,
+		0xf8,0x08,0x10,0x20,0x40,0x80,0xf8,0x00,0x30,0x20,0x20,0x20,0x20,0x20,0x30,0x00,
+		0x40,0x40,0x20,0x20,0x10,0x10,0x08,0x08,0x30,0x10,0x10,0x10,0x10,0x10,0x30,0x00,
+		0x20,0x50,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xfc,
+		0x40,0x20,0x10,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x70,0x08,0x78,0x88,0x78,0x00,
+		0x80,0x80,0xf0,0x88,0x88,0x88,0xf0,0x00,0x00,0x00,0x70,0x88,0x80,0x80,0x78,0x00,
+		0x08,0x08,0x78,0x88,0x88,0x88,0x78,0x00,0x00,0x00,0x70,0x88,0xf8,0x80,0x78,0x00,
+		0x18,0x20,0x70,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0x78,0x88,0x88,0x78,0x08,0x70,
+		0x80,0x80,0xf0,0x88,0x88,0x88,0x88,0x00,0x20,0x00,0x20,0x20,0x20,0x20,0x20,0x00,
+		0x20,0x00,0x20,0x20,0x20,0x20,0x20,0xc0,0x80,0x80,0x90,0xa0,0xe0,0x90,0x88,0x00,
+		0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x00,0x00,0x00,0xf0,0xa8,0xa8,0xa8,0xa8,0x00,
+		0x00,0x00,0xb0,0xc8,0x88,0x88,0x88,0x00,0x00,0x00,0x70,0x88,0x88,0x88,0x70,0x00,
+		0x00,0x00,0xf0,0x88,0x88,0xf0,0x80,0x80,0x00,0x00,0x78,0x88,0x88,0x78,0x08,0x08,
+		0x00,0x00,0xb0,0xc8,0x80,0x80,0x80,0x00,0x00,0x00,0x78,0x80,0x70,0x08,0xf0,0x00,
+		0x20,0x20,0x70,0x20,0x20,0x20,0x18,0x00,0x00,0x00,0x88,0x88,0x88,0x98,0x68,0x00,
+		0x00,0x00,0x88,0x88,0x88,0x50,0x20,0x00,0x00,0x00,0xa8,0xa8,0xa8,0xa8,0x50,0x00,
+		0x00,0x00,0x88,0x50,0x20,0x50,0x88,0x00,0x00,0x00,0x88,0x88,0x88,0x78,0x08,0x70,
+		0x00,0x00,0xf8,0x10,0x20,0x40,0xf8,0x00,0x08,0x10,0x10,0x20,0x10,0x10,0x08,0x00,
+		0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x40,0x20,0x20,0x10,0x20,0x20,0x40,0x00,
+		0x00,0x68,0xb0,0x00,0x00,0x00,0x00,0x00,0x20,0x50,0x20,0x50,0xa8,0x50,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x20,0x20,0x40,0x0C,0x10,0x38,0x10,0x20,0x20,0xC0,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x28,0x28,0x50,0x00,0x00,0x00,0x00,0x00,0x00,0xA8,0x00,
+		0x70,0xA8,0xF8,0x20,0x20,0x20,0x20,0x00,0x70,0xA8,0xF8,0x20,0x20,0xF8,0xA8,0x70,
+		0x20,0x50,0x88,0x00,0x00,0x00,0x00,0x00,0x44,0xA8,0x50,0x20,0x68,0xD4,0x28,0x00,
+		0x88,0x70,0x88,0x60,0x30,0x88,0x70,0x00,0x00,0x10,0x20,0x40,0x20,0x10,0x00,0x00,
+		0x78,0xA0,0xA0,0xB0,0xA0,0xA0,0x78,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0x20,0x20,0x00,0x00,0x00,0x00,0x00,
+		0x10,0x10,0x20,0x00,0x00,0x00,0x00,0x00,0x28,0x50,0x50,0x00,0x00,0x00,0x00,0x00,
+		0x28,0x28,0x50,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x78,0x78,0x30,0x00,0x00,
+		0x00,0x00,0x00,0x78,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFC,0x00,0x00,0x00,0x00,
+		0x68,0xB0,0x00,0x00,0x00,0x00,0x00,0x00,0xF4,0x5C,0x54,0x54,0x00,0x00,0x00,0x00,
+		0x88,0x70,0x78,0x80,0x70,0x08,0xF0,0x00,0x00,0x40,0x20,0x10,0x20,0x40,0x00,0x00,
+		0x00,0x00,0x70,0xA8,0xB8,0xA0,0x78,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x50,0x88,0x88,0x50,0x20,0x20,0x20,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x00,0x20,0x20,0x20,0x20,0x20,0x00,
+		0x00,0x20,0x70,0xA8,0xA0,0xA8,0x70,0x20,0x30,0x48,0x40,0xE0,0x40,0x48,0xF0,0x00,
+		0x00,0x48,0x30,0x48,0x48,0x30,0x48,0x00,0x88,0x88,0x50,0xF8,0x20,0xF8,0x20,0x00,
+		0x20,0x20,0x20,0x00,0x20,0x20,0x20,0x00,0x78,0x80,0x70,0x88,0x70,0x08,0xF0,0x00,
+		0xD8,0xD8,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x48,0x94,0xA4,0xA4,0x94,0x48,0x30,
+		0x60,0x10,0x70,0x90,0x70,0x00,0x00,0x00,0x00,0x28,0x50,0xA0,0x50,0x28,0x00,0x00,
+		0x00,0x00,0x00,0xF8,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x78,0x00,0x00,0x00,0x00,
+		0x30,0x48,0xB4,0xB4,0xA4,0xB4,0x48,0x30,0x7C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x60,0x90,0x90,0x60,0x00,0x00,0x00,0x00,0x20,0x20,0xF8,0x20,0x20,0x00,0xF8,0x00,
+		0x60,0x90,0x20,0x40,0xF0,0x00,0x00,0x00,0x60,0x90,0x20,0x90,0x60,0x00,0x00,0x00,
+		0x10,0x20,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x88,0x88,0x88,0xC8,0xB0,0x80,
+		0x78,0xD0,0xD0,0xD0,0x50,0x50,0x50,0x00,0x00,0x00,0x00,0x30,0x30,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x10,0x20,0x00,0x20,0x60,0x20,0x20,0x70,0x00,0x00,0x00,
+		0x20,0x50,0x20,0x00,0x00,0x00,0x00,0x00,0x00,0xA0,0x50,0x28,0x50,0xA0,0x00,0x00,
+		0x40,0x48,0x50,0x28,0x58,0xA8,0x38,0x08,0x40,0x48,0x50,0x28,0x44,0x98,0x20,0x3C,
+		0xC0,0x28,0xD0,0x28,0xD8,0xA8,0x38,0x08,0x20,0x00,0x20,0x40,0x80,0x88,0x70,0x00,
+		0x40,0x20,0x70,0x88,0xF8,0x88,0x88,0x00,0x10,0x20,0x70,0x88,0xF8,0x88,0x88,0x00,
+		0x70,0x00,0x70,0x88,0xF8,0x88,0x88,0x00,0x68,0xB0,0x70,0x88,0xF8,0x88,0x88,0x00,
+		0x50,0x00,0x70,0x88,0xF8,0x88,0x88,0x00,0x20,0x50,0x70,0x88,0xF8,0x88,0x88,0x00,
+		0x78,0xA0,0xA0,0xF0,0xA0,0xA0,0xB8,0x00,0x70,0x88,0x80,0x80,0x88,0x70,0x08,0x70,
+		0x40,0x20,0xF8,0x80,0xF0,0x80,0xF8,0x00,0x10,0x20,0xF8,0x80,0xF0,0x80,0xF8,0x00,
+		0x70,0x00,0xF8,0x80,0xF0,0x80,0xF8,0x00,0x50,0x00,0xF8,0x80,0xF0,0x80,0xF8,0x00,
+		0x40,0x20,0x70,0x20,0x20,0x20,0x70,0x00,0x10,0x20,0x70,0x20,0x20,0x20,0x70,0x00,
+		0x70,0x00,0x70,0x20,0x20,0x20,0x70,0x00,0x50,0x00,0x70,0x20,0x20,0x20,0x70,0x00,
+		0x70,0x48,0x48,0xE8,0x48,0x48,0x70,0x00,0x68,0xB0,0x88,0xC8,0xA8,0x98,0x88,0x00,
+		0x40,0x20,0x70,0x88,0x88,0x88,0x70,0x00,0x10,0x20,0x70,0x88,0x88,0x88,0x70,0x00,
+		0x70,0x00,0x70,0x88,0x88,0x88,0x70,0x00,0x68,0xB0,0x70,0x88,0x88,0x88,0x70,0x00,
+		0x50,0x00,0x70,0x88,0x88,0x88,0x70,0x00,0x00,0x88,0x50,0x20,0x50,0x88,0x00,0x00,
+		0x00,0x74,0x88,0x90,0xA8,0x48,0xB0,0x00,0x40,0x20,0x88,0x88,0x88,0x88,0x70,0x00,
+		0x10,0x20,0x88,0x88,0x88,0x88,0x70,0x00,0x70,0x00,0x88,0x88,0x88,0x88,0x70,0x00,
+		0x50,0x00,0x88,0x88,0x88,0x88,0x70,0x00,0x10,0xA8,0x88,0x50,0x20,0x20,0x20,0x00,
+		0x00,0x80,0xF0,0x88,0x88,0xF0,0x80,0x80,0x60,0x90,0x90,0xB0,0x88,0x88,0xB0,0x00,
+		0x40,0x20,0x70,0x08,0x78,0x88,0x78,0x00,0x10,0x20,0x70,0x08,0x78,0x88,0x78,0x00,
+		0x70,0x00,0x70,0x08,0x78,0x88,0x78,0x00,0x68,0xB0,0x70,0x08,0x78,0x88,0x78,0x00,
+		0x50,0x00,0x70,0x08,0x78,0x88,0x78,0x00,0x20,0x50,0x70,0x08,0x78,0x88,0x78,0x00,
+		0x00,0x00,0xF0,0x28,0x78,0xA0,0x78,0x00,0x00,0x00,0x70,0x88,0x80,0x78,0x08,0x70,
+		0x40,0x20,0x70,0x88,0xF8,0x80,0x70,0x00,0x10,0x20,0x70,0x88,0xF8,0x80,0x70,0x00,
+		0x70,0x00,0x70,0x88,0xF8,0x80,0x70,0x00,0x50,0x00,0x70,0x88,0xF8,0x80,0x70,0x00,
+		0x40,0x20,0x00,0x60,0x20,0x20,0x70,0x00,0x10,0x20,0x00,0x60,0x20,0x20,0x70,0x00,
+		0x20,0x50,0x00,0x60,0x20,0x20,0x70,0x00,0x50,0x00,0x00,0x60,0x20,0x20,0x70,0x00,
+		0x50,0x60,0x10,0x78,0x88,0x88,0x70,0x00,0x68,0xB0,0x00,0xF0,0x88,0x88,0x88,0x00,
+		0x40,0x20,0x00,0x70,0x88,0x88,0x70,0x00,0x10,0x20,0x00,0x70,0x88,0x88,0x70,0x00,
+		0x20,0x50,0x00,0x70,0x88,0x88,0x70,0x00,0x68,0xB0,0x00,0x70,0x88,0x88,0x70,0x00,
+		0x00,0x50,0x00,0x70,0x88,0x88,0x70,0x00,0x00,0x20,0x00,0xF8,0x00,0x20,0x00,0x00,
+		0x00,0x00,0x68,0x90,0xA8,0x48,0xB0,0x00,0x40,0x20,0x88,0x88,0x88,0x98,0x68,0x00,
+		0x10,0x20,0x88,0x88,0x88,0x98,0x68,0x00,0x70,0x00,0x88,0x88,0x88,0x98,0x68,0x00,
+		0x50,0x00,0x88,0x88,0x88,0x98,0x68,0x00,0x10,0x20,0x88,0x88,0x88,0x78,0x08,0x70,
+		0x80,0xF0,0x88,0x88,0xF0,0x80,0x80,0x80,0x50,0x00,0x88,0x88,0x88,0x78,0x08,0x70
+    };
+#if 0
 	static unsigned char fontdata6x8[] =
 	{
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -181,79 +335,12 @@ struct GfxElement *builduifont(void)
 		0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x40,0x20,0x20,0x10,0x20,0x20,0x40,0x00,
 		0x00,0x68,0xb0,0x00,0x00,0x00,0x00,0x00,0x20,0x50,0x20,0x50,0xa8,0x50,0x00,0x00,
 	};
-#if 0	   /* HJB 990215 unused!? */
-	static unsigned char fontdata8x8[] =
-	{
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x3C,0x42,0x99,0xBD,0xBD,0x99,0x42,0x3C,0x3C,0x42,0x81,0x81,0x81,0x81,0x42,0x3C,
-		0xFE,0x82,0x8A,0xD2,0xA2,0x82,0xFE,0x00,0xFE,0x82,0x82,0x82,0x82,0x82,0xFE,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x38,0x64,0x74,0x7C,0x38,0x00,0x00,
-		0x80,0xC0,0xF0,0xFC,0xF0,0xC0,0x80,0x00,0x01,0x03,0x0F,0x3F,0x0F,0x03,0x01,0x00,
-		0x18,0x3C,0x7E,0x18,0x7E,0x3C,0x18,0x00,0xEE,0xEE,0xEE,0xCC,0x00,0xCC,0xCC,0x00,
-		0x00,0x00,0x30,0x68,0x78,0x30,0x00,0x00,0x00,0x38,0x64,0x74,0x7C,0x38,0x00,0x00,
-		0x3C,0x66,0x7A,0x7A,0x7E,0x7E,0x3C,0x00,0x0E,0x3E,0x3A,0x22,0x26,0x6E,0xE4,0x40,
-		0x18,0x3C,0x7E,0x3C,0x3C,0x3C,0x3C,0x00,0x3C,0x3C,0x3C,0x3C,0x7E,0x3C,0x18,0x00,
-		0x08,0x7C,0x7E,0x7E,0x7C,0x08,0x00,0x00,0x10,0x3E,0x7E,0x7E,0x3E,0x10,0x00,0x00,
-		0x58,0x2A,0xDC,0xC8,0xDC,0x2A,0x58,0x00,0x24,0x66,0xFF,0xFF,0x66,0x24,0x00,0x00,
-		0x00,0x10,0x10,0x38,0x38,0x7C,0xFE,0x00,0xFE,0x7C,0x38,0x38,0x10,0x10,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x1C,0x1C,0x1C,0x18,0x00,0x18,0x18,0x00,
-		0x6C,0x6C,0x24,0x00,0x00,0x00,0x00,0x00,0x00,0x28,0x7C,0x28,0x7C,0x28,0x00,0x00,
-		0x10,0x38,0x60,0x38,0x0C,0x78,0x10,0x00,0x40,0xA4,0x48,0x10,0x24,0x4A,0x04,0x00,
-		0x18,0x34,0x18,0x3A,0x6C,0x66,0x3A,0x00,0x18,0x18,0x20,0x00,0x00,0x00,0x00,0x00,
-		0x30,0x60,0x60,0x60,0x60,0x60,0x30,0x00,0x0C,0x06,0x06,0x06,0x06,0x06,0x0C,0x00,
-		0x10,0x54,0x38,0x7C,0x38,0x54,0x10,0x00,0x00,0x18,0x18,0x7E,0x18,0x18,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x18,0x18,0x30,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x18,0x18,0x00,0x00,0x00,0x04,0x08,0x10,0x20,0x40,0x00,0x00,
-		0x38,0x4C,0xC6,0xC6,0xC6,0x64,0x38,0x00,0x18,0x38,0x18,0x18,0x18,0x18,0x7E,0x00,
-		0x7C,0xC6,0x0E,0x3C,0x78,0xE0,0xFE,0x00,0x7E,0x0C,0x18,0x3C,0x06,0xC6,0x7C,0x00,
-		0x1C,0x3C,0x6C,0xCC,0xFE,0x0C,0x0C,0x00,0xFC,0xC0,0xFC,0x06,0x06,0xC6,0x7C,0x00,
-		0x3C,0x60,0xC0,0xFC,0xC6,0xC6,0x7C,0x00,0xFE,0xC6,0x0C,0x18,0x30,0x30,0x30,0x00,
-		0x78,0xC4,0xE4,0x78,0x86,0x86,0x7C,0x00,0x7C,0xC6,0xC6,0x7E,0x06,0x0C,0x78,0x00,
-		0x00,0x00,0x18,0x00,0x00,0x18,0x00,0x00,0x00,0x00,0x18,0x00,0x00,0x18,0x18,0x30,
-		0x1C,0x38,0x70,0xE0,0x70,0x38,0x1C,0x00,0x00,0x7C,0x00,0x00,0x7C,0x00,0x00,0x00,
-		0x70,0x38,0x1C,0x0E,0x1C,0x38,0x70,0x00,0x7C,0xC6,0xC6,0x1C,0x18,0x00,0x18,0x00,
-		0x3C,0x42,0x99,0xA1,0xA5,0x99,0x42,0x3C,0x38,0x6C,0xC6,0xC6,0xFE,0xC6,0xC6,0x00,
-		0xFC,0xC6,0xC6,0xFC,0xC6,0xC6,0xFC,0x00,0x3C,0x66,0xC0,0xC0,0xC0,0x66,0x3C,0x00,
-		0xF8,0xCC,0xC6,0xC6,0xC6,0xCC,0xF8,0x00,0xFE,0xC0,0xC0,0xFC,0xC0,0xC0,0xFE,0x00,
-		0xFE,0xC0,0xC0,0xFC,0xC0,0xC0,0xC0,0x00,0x3E,0x60,0xC0,0xCE,0xC6,0x66,0x3E,0x00,
-		0xC6,0xC6,0xC6,0xFE,0xC6,0xC6,0xC6,0x00,0x7E,0x18,0x18,0x18,0x18,0x18,0x7E,0x00,
-		0x06,0x06,0x06,0x06,0xC6,0xC6,0x7C,0x00,0xC6,0xCC,0xD8,0xF0,0xF8,0xDC,0xCE,0x00,
-		0x60,0x60,0x60,0x60,0x60,0x60,0x7E,0x00,0xC6,0xEE,0xFE,0xFE,0xD6,0xC6,0xC6,0x00,
-		0xC6,0xE6,0xF6,0xFE,0xDE,0xCE,0xC6,0x00,0x7C,0xC6,0xC6,0xC6,0xC6,0xC6,0x7C,0x00,
-		0xFC,0xC6,0xC6,0xC6,0xFC,0xC0,0xC0,0x00,0x7C,0xC6,0xC6,0xC6,0xDE,0xCC,0x7A,0x00,
-		0xFC,0xC6,0xC6,0xCE,0xF8,0xDC,0xCE,0x00,0x78,0xCC,0xC0,0x7C,0x06,0xC6,0x7C,0x00,
-		0x7E,0x18,0x18,0x18,0x18,0x18,0x18,0x00,0xC6,0xC6,0xC6,0xC6,0xC6,0xC6,0x7C,0x00,
-		0xC6,0xC6,0xC6,0xEE,0x7C,0x38,0x10,0x00,0xC6,0xC6,0xD6,0xFE,0xFE,0xEE,0xC6,0x00,
-		0xC6,0xEE,0x3C,0x38,0x7C,0xEE,0xC6,0x00,0x66,0x66,0x66,0x3C,0x18,0x18,0x18,0x00,
-		0xFE,0x0E,0x1C,0x38,0x70,0xE0,0xFE,0x00,0x3C,0x30,0x30,0x30,0x30,0x30,0x3C,0x00,
-		0x60,0x60,0x30,0x18,0x0C,0x06,0x06,0x00,0x3C,0x0C,0x0C,0x0C,0x0C,0x0C,0x3C,0x00,
-		0x18,0x3C,0x66,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,
-		0x30,0x30,0x18,0x00,0x00,0x00,0x00,0x00,0x00,0x3C,0x06,0x3E,0x66,0x66,0x3C,0x00,
-		0x60,0x7C,0x66,0x66,0x66,0x66,0x7C,0x00,0x00,0x3C,0x66,0x60,0x60,0x66,0x3C,0x00,
-		0x06,0x3E,0x66,0x66,0x66,0x66,0x3E,0x00,0x00,0x3C,0x66,0x66,0x7E,0x60,0x3C,0x00,
-		0x1C,0x30,0x78,0x30,0x30,0x30,0x30,0x00,0x00,0x3E,0x66,0x66,0x66,0x3E,0x06,0x3C,
-		0x60,0x7C,0x76,0x66,0x66,0x66,0x66,0x00,0x18,0x00,0x38,0x18,0x18,0x18,0x18,0x00,
-		0x0C,0x00,0x1C,0x0C,0x0C,0x0C,0x0C,0x38,0x60,0x60,0x66,0x6C,0x78,0x6C,0x66,0x00,
-		0x38,0x18,0x18,0x18,0x18,0x18,0x18,0x00,0x00,0xEC,0xFE,0xFE,0xFE,0xD6,0xC6,0x00,
-		0x00,0x7C,0x76,0x66,0x66,0x66,0x66,0x00,0x00,0x3C,0x66,0x66,0x66,0x66,0x3C,0x00,
-		0x00,0x7C,0x66,0x66,0x66,0x7C,0x60,0x60,0x00,0x3E,0x66,0x66,0x66,0x3E,0x06,0x06,
-		0x00,0x7E,0x70,0x60,0x60,0x60,0x60,0x00,0x00,0x3C,0x60,0x3C,0x06,0x66,0x3C,0x00,
-		0x30,0x78,0x30,0x30,0x30,0x30,0x1C,0x00,0x00,0x66,0x66,0x66,0x66,0x6E,0x3E,0x00,
-		0x00,0x66,0x66,0x66,0x66,0x3C,0x18,0x00,0x00,0xC6,0xD6,0xFE,0xFE,0x7C,0x6C,0x00,
-		0x00,0x66,0x3C,0x18,0x3C,0x66,0x66,0x00,0x00,0x66,0x66,0x66,0x66,0x3E,0x06,0x3C,
-		0x00,0x7E,0x0C,0x18,0x30,0x60,0x7E,0x00,0x0E,0x18,0x0C,0x38,0x0C,0x18,0x0E,0x00,
-		0x18,0x18,0x18,0x00,0x18,0x18,0x18,0x00,0x70,0x18,0x30,0x1C,0x30,0x18,0x70,0x00,
-		0x00,0x00,0x76,0xDC,0x00,0x00,0x00,0x00,0x10,0x28,0x10,0x54,0xAA,0x44,0x00,0x00,
-	};
 #endif
+
 	static struct GfxLayout fontlayout6x8 =
 	{
 		6,8,	/* 6*8 characters */
-		128,	/* 128 characters */
+		256,	/* 256 characters */
 		1,	/* 1 bit per pixel */
 		{ 0 },
 		{ 0, 1, 2, 3, 4, 5, 6, 7 }, /* straightforward layout */
@@ -263,7 +350,7 @@ struct GfxElement *builduifont(void)
 	static struct GfxLayout fontlayout12x8 =
 	{
 		12,8,	/* 12*8 characters */
-		128,	/* 128 characters */
+		256,	/* 256 characters */
 		1,	/* 1 bit per pixel */
 		{ 0 },
 		{ 0,0, 1,1, 2,2, 3,3, 4,4, 5,5, 6,6, 7,7 }, /* straightforward layout */
@@ -273,34 +360,19 @@ struct GfxElement *builduifont(void)
 	static struct GfxLayout fontlayout12x16 =
 	{
 		12,16,	/* 6*8 characters */
-		128,	/* 128 characters */
+		256,	/* 256 characters */
 		1,	/* 1 bit per pixel */
 		{ 0 },
 		{ 0,0, 1,1, 2,2, 3,3, 4,4, 5,5, 6,6, 7,7 }, /* straightforward layout */
 		{ 0*8,0*8, 1*8,1*8, 2*8,2*8, 3*8,3*8, 4*8,4*8, 5*8,5*8, 6*8,6*8, 7*8,7*8 },
 		8*8 /* every char takes 8 consecutive bytes */
 	};
-#if 0	/* HJB 990215 unused!? */
-	static struct GfxLayout fontlayout8x8 =
-	{
-		8,8,	/* 8*8 characters */
-		128,	/* 128 characters */
-		1,	/* 1 bit per pixel */
-		{ 0 },
-		{ 0, 1, 2, 3, 4, 5, 6, 7 }, /* straightforward layout */
-		{ 0*8, 1*8, 2*8, 3*8, 4*8, 5*8, 6*8, 7*8 },
-		8*8 /* every char takes 8 consecutive bytes */
-	};
-#endif
+
 	struct GfxElement *font;
 	static unsigned short colortable[2*2];	/* ASG 980209 */
-	int trueorientation;
 
 
-	/* hack: force the display into standard orientation to avoid */
-	/* creating a rotated font */
-	trueorientation = Machine->orientation;
-	Machine->orientation = Machine->ui_orientation;
+	switch_ui_orientation();
 
 	if ((Machine->drv->video_attributes & VIDEO_PIXEL_ASPECT_RATIO_MASK)
 			== VIDEO_PIXEL_ASPECT_RATIO_1_2)
@@ -330,7 +402,7 @@ struct GfxElement *builduifont(void)
 		font->total_colors = 2;
 	}
 
-	Machine->orientation = trueorientation;
+	switch_true_orientation();
 
 	return font;
 }
@@ -344,19 +416,13 @@ struct GfxElement *builduifont(void)
 
 ***************************************************************************/
 
-void displaytext(const struct DisplayText *dt,int erase,int update_screen)
+void displaytext(struct osd_bitmap *bitmap,const struct DisplayText *dt,int erase,int update_screen)
 {
-	int trueorientation;
-
-
 	if (erase)
-		osd_clearbitmap(Machine->scrbitmap);
+		osd_clearbitmap(bitmap);
 
 
-	/* hack: force the display into standard orientation to avoid */
-	/* rotating the user interface */
-	trueorientation = Machine->orientation;
-	Machine->orientation = Machine->ui_orientation;
+	switch_ui_orientation();
 
 	osd_mark_dirty (0,0,Machine->uiwidth-1,Machine->uiheight-1,1);	/* ASG 971011 */
 
@@ -412,7 +478,7 @@ void displaytext(const struct DisplayText *dt,int erase,int update_screen)
 
 			if (!wrapped)
 			{
-				drawgfx(Machine->scrbitmap,Machine->uifont,*c,dt->color,0,0,x+Machine->uixmin,y+Machine->uiymin,0,TRANSPARENCY_NONE,0);
+				drawgfx(bitmap,Machine->uifont,*c,dt->color,0,0,x+Machine->uixmin,y+Machine->uiymin,0,TRANSPARENCY_NONE,0);
 				x += Machine->uifontwidth;
 			}
 
@@ -422,141 +488,40 @@ void displaytext(const struct DisplayText *dt,int erase,int update_screen)
 		dt++;
 	}
 
-	Machine->orientation = trueorientation;
+	switch_true_orientation();
 
-	if (update_screen) osd_update_video_and_audio();
+	if (update_screen) update_video_and_audio();
 }
 
 /* Writes messages on the screen. */
-static void ui_text_ex(const char* buf_begin, const char* buf_end, int x, int y, int color)
+static void ui_text_ex(struct osd_bitmap *bitmap,const char* buf_begin, const char* buf_end, int x, int y, int color)
 {
-	int trueorientation;
-
-	/* hack: force the display into standard orientation to avoid */
-	/* rotating the text */
-	trueorientation = Machine->orientation;
-	Machine->orientation = Machine->ui_orientation;
+	switch_ui_orientation();
 
 	for (;buf_begin != buf_end; ++buf_begin)
 	{
-		drawgfx(Machine->scrbitmap,Machine->uifont,*buf_begin,color,0,0,
+		drawgfx(bitmap,Machine->uifont,*buf_begin,color,0,0,
 				x + Machine->uixmin,
 				y + Machine->uiymin, 0,TRANSPARENCY_NONE,0);
 		x += Machine->uifontwidth;
 	}
 
-	Machine->orientation = trueorientation;
+	switch_true_orientation();
 }
 
 /* Writes messages on the screen. */
-void ui_text(const char *buf,int x,int y)
+void ui_text(struct osd_bitmap *bitmap,const char *buf,int x,int y)
 {
-	ui_text_ex(buf, buf + strlen(buf), x, y, DT_COLOR_WHITE);
-}
-
-INLINE void drawpixel(int x, int y, unsigned short color)
-{
-	int temp;
-
-	if (Machine->ui_orientation & ORIENTATION_SWAP_XY)
-	{
-		temp = x; x = y; y = temp;
-	}
-	if (Machine->ui_orientation & ORIENTATION_FLIP_X)
-		x = Machine->scrbitmap->width - x - 1;
-	if (Machine->ui_orientation & ORIENTATION_FLIP_Y)
-		y = Machine->scrbitmap->height - y - 1;
-
-	if (Machine->scrbitmap->depth == 16)
-		*(unsigned short *)&Machine->scrbitmap->line[y][x*2] = color;
-	else
-		Machine->scrbitmap->line[y][x] = color;
-
-	osd_mark_dirty(x,y,x,y,1);
-}
-
-INLINE void drawhline_norotate(int x, int w, int y, unsigned short color)
-{
-	if (Machine->scrbitmap->depth == 16)
-	{
-		int i;
-		for (i = x; i < x+w; i++)
-			*(unsigned short *)&Machine->scrbitmap->line[y][i*2] = color;
-	}
-	else
-		memset(&Machine->scrbitmap->line[y][x], color, w);
-
-	osd_mark_dirty(x,y,x+w-1,y,1);
-}
-
-INLINE void drawvline_norotate(int x, int y, int h, unsigned short color)
-{
-	int i;
-
-	if (Machine->scrbitmap->depth == 16)
-	{
-		for (i = y; i < y+h; i++)
-			*(unsigned short *)&Machine->scrbitmap->line[i][x*2] = color;
-	}
-	else
-	{
-		for (i = y; i < y+h; i++)
-			Machine->scrbitmap->line[i][x] = color;
-	}
-
-	osd_mark_dirty(x,y,x,y+h-1,1);
-}
-
-INLINE void drawhline(int x, int w, int y, unsigned short color)
-{
-	if (Machine->ui_orientation & ORIENTATION_SWAP_XY)
-	{
-		if (Machine->ui_orientation & ORIENTATION_FLIP_X)
-			y = Machine->scrbitmap->width - y - 1;
-		if (Machine->ui_orientation & ORIENTATION_FLIP_Y)
-			x = Machine->scrbitmap->height - x - w;
-
-		drawvline_norotate(y,x,w,color);
-	}
-	else
-	{
-		if (Machine->ui_orientation & ORIENTATION_FLIP_X)
-			x = Machine->scrbitmap->width - x - w;
-		if (Machine->ui_orientation & ORIENTATION_FLIP_Y)
-			y = Machine->scrbitmap->height - y - 1;
-
-		drawhline_norotate(x,w,y,color);
-	}
-}
-
-INLINE void drawvline(int x, int y, int h, unsigned short color)
-{
-	if (Machine->ui_orientation & ORIENTATION_SWAP_XY)
-	{
-		if (Machine->ui_orientation & ORIENTATION_FLIP_X)
-			y = Machine->scrbitmap->width - y - h;
-		if (Machine->ui_orientation & ORIENTATION_FLIP_Y)
-			x = Machine->scrbitmap->height - x - 1;
-
-		drawhline_norotate(y,h,x,color);
-	}
-	else
-	{
-		if (Machine->ui_orientation & ORIENTATION_FLIP_X)
-			x = Machine->scrbitmap->width - x - 1;
-		if (Machine->ui_orientation & ORIENTATION_FLIP_Y)
-			y = Machine->scrbitmap->height - y - h;
-
-		drawvline_norotate(x,y,h,color);
-	}
+	ui_text_ex(bitmap, buf, buf + strlen(buf), x, y, UI_COLOR_NORMAL);
 }
 
 
-void ui_drawbox(int leftx,int topy,int width,int height)
+void ui_drawbox(struct osd_bitmap *bitmap,int leftx,int topy,int width,int height)
 {
-	int y;
 	unsigned short black,white;
 
+
+	switch_ui_orientation();
 
 	if (leftx < 0) leftx = 0;
 	if (topy < 0) topy = 0;
@@ -569,20 +534,22 @@ void ui_drawbox(int leftx,int topy,int width,int height)
 	black = Machine->uifont->colortable[0];
 	white = Machine->uifont->colortable[1];
 
-	drawhline(leftx,width,topy, 		white);
-	drawhline(leftx,width,topy+height-1,white);
-	drawvline(leftx,		topy,height,white);
-	drawvline(leftx+width-1,topy,height,white);
-	for (y = topy+1;y < topy+height-1;y++)
-		drawhline(leftx+1,width-2,y,black);
+	plot_box(bitmap,leftx,        topy,         width,  1,       white);
+	plot_box(bitmap,leftx,        topy+height-1,width,  1,       white);
+	plot_box(bitmap,leftx,        topy,         1,      height,  white);
+	plot_box(bitmap,leftx+width-1,topy,         1,      height,  white);
+	plot_box(bitmap,leftx+1,      topy+1,       width-2,height-2,black);
+
+	switch_true_orientation();
 }
 
 
-static void drawbar(int leftx,int topy,int width,int height,int percentage,int default_percentage)
+static void drawbar(struct osd_bitmap *bitmap,int leftx,int topy,int width,int height,int percentage,int default_percentage)
 {
-	int y;
 	unsigned short black,white;
 
+
+	switch_ui_orientation();
 
 	if (leftx < 0) leftx = 0;
 	if (topy < 0) topy = 0;
@@ -595,18 +562,17 @@ static void drawbar(int leftx,int topy,int width,int height,int percentage,int d
 	black = Machine->uifont->colortable[0];
 	white = Machine->uifont->colortable[1];
 
-	for (y = topy;y < topy + height/8;y++)
-		drawpixel(leftx+(width-1)*default_percentage/100, y, white);
+	plot_box(bitmap,leftx+(width-1)*default_percentage/100,topy,1,height/8,white);
 
-	drawhline(leftx,width,topy+height/8,white);
+	plot_box(bitmap,leftx,topy+height/8,width,1,white);
 
-	for (y = topy+height/8;y < topy+height-height/8;y++)
-		drawhline(leftx,1+(width-1)*percentage/100,y,white);
+	plot_box(bitmap,leftx,topy+height/8,1+(width-1)*percentage/100,height-2*(height/8),white);
 
-	drawhline(leftx,width,topy+height-height/8-1,white);
+	plot_box(bitmap,leftx,topy+height-height/8-1,width,1,white);
 
-	for (y = topy+height-height/8;y < topy + height;y++)
-		drawpixel(leftx+(width-1)*default_percentage/100, y, white);
+	plot_box(bitmap,leftx+(width-1)*default_percentage/100,topy+height-height/8,1,height/8,white);
+
+	switch_true_orientation();
 }
 
 /* Extract one line from a multiline buffer */
@@ -677,36 +643,36 @@ static void multilinebox_size(int* dx, int* dy, const char* begin, const char* e
 }
 
 /* Display a multiline string */
-static void ui_multitext_ex(const char* begin, const char* end, unsigned max, int x, int y, int color)
+static void ui_multitext_ex(struct osd_bitmap *bitmap, const char* begin, const char* end, unsigned max, int x, int y, int color)
 {
 	while (begin != end)
 	{
 		const char* line_begin = begin;
 		unsigned len = multiline_extract(&begin,end,max);
-		ui_text_ex(line_begin, line_begin + len,x,y,color);
+		ui_text_ex(bitmap, line_begin, line_begin + len,x,y,color);
 		y += 3*Machine->uifontheight/2;
 	}
 }
 
 /* Display a multiline string with box */
-static void ui_multitextbox_ex(const char* begin, const char* end, unsigned max, int x, int y, int dx, int dy, int color)
+static void ui_multitextbox_ex(struct osd_bitmap *bitmap,const char* begin, const char* end, unsigned max, int x, int y, int dx, int dy, int color)
 {
-	ui_drawbox(x,y,dx,dy);
+	ui_drawbox(bitmap,x,y,dx,dy);
 	x += Machine->uifontwidth/2;
 	y += Machine->uifontheight/2;
-	ui_multitext_ex(begin,end,max,x,y,color);
+	ui_multitext_ex(bitmap,begin,end,max,x,y,color);
 }
 
-void ui_displaymenu(const char **items,const char **subitems,char *flag,int selected,int arrowize_subitem)
+void ui_displaymenu(struct osd_bitmap *bitmap,const char **items,const char **subitems,char *flag,int selected,int arrowize_subitem)
 {
 	struct DisplayText dt[256];
 	int curr_dt;
-	char lefthilight[2] = "\x1a";
-	char righthilight[2] = "\x1b";
-	char uparrow[2] = "\x18";
-	char downarrow[2] = "\x19";
-	char leftarrow[2] = "\x11";
-	char rightarrow[2] = "\x10";
+	const char *lefthilight = ui_getstring (UI_lefthilight);
+	const char *righthilight = ui_getstring (UI_righthilight);
+	const char *uparrow = ui_getstring (UI_uparrow);
+	const char *downarrow = ui_getstring (UI_downarrow);
+	const char *leftarrow = ui_getstring (UI_leftarrow);
+	const char *rightarrow = ui_getstring (UI_rightarrow);
 	int i,count,len,maxlen,highlen;
 	int leftoffs,topoffs,visible,topitem;
 	int selected_long;
@@ -740,7 +706,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 	topoffs = (Machine->uiheight - (3 * visible + 1) * Machine->uifontheight / 2) / 2;
 
 	/* black background */
-	ui_drawbox(leftoffs,topoffs,maxlen * Machine->uifontwidth,(3 * visible + 1) * Machine->uifontheight / 2);
+	ui_drawbox(bitmap,leftoffs,topoffs,maxlen * Machine->uifontwidth,(3 * visible + 1) * Machine->uifontheight / 2);
 
 	selected_long = 0;
 	curr_dt = 0;
@@ -751,7 +717,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 		if (i == 0 && item > 0)
 		{
 			dt[curr_dt].text = uparrow;
-			dt[curr_dt].color = DT_COLOR_WHITE;
+			dt[curr_dt].color = UI_COLOR_NORMAL;
 			dt[curr_dt].x = (Machine->uiwidth - Machine->uifontwidth * strlen(uparrow)) / 2;
 			dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 			curr_dt++;
@@ -759,7 +725,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 		else if (i == visible - 1 && item < count - 1)
 		{
 			dt[curr_dt].text = downarrow;
-			dt[curr_dt].color = DT_COLOR_WHITE;
+			dt[curr_dt].color = UI_COLOR_NORMAL;
 			dt[curr_dt].x = (Machine->uiwidth - Machine->uifontwidth * strlen(downarrow)) / 2;
 			dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 			curr_dt++;
@@ -771,7 +737,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 				int sublen;
 				len = strlen(items[item]);
 				dt[curr_dt].text = items[item];
-				dt[curr_dt].color = DT_COLOR_WHITE;
+				dt[curr_dt].color = UI_COLOR_NORMAL;
 				dt[curr_dt].x = leftoffs + 3*Machine->uifontwidth/2;
 				dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 				curr_dt++;
@@ -786,7 +752,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 					dt[curr_dt].text = subitems[item];
 				}
 				/* If this item is flagged, draw it in inverse print */
-				dt[curr_dt].color = (flag && flag[item]) ? DT_COLOR_YELLOW : DT_COLOR_WHITE;
+				dt[curr_dt].color = (flag && flag[item]) ? UI_COLOR_INVERSE : UI_COLOR_NORMAL;
 				dt[curr_dt].x = leftoffs + Machine->uifontwidth * (maxlen-1-sublen) - Machine->uifontwidth/2;
 				dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 				curr_dt++;
@@ -794,7 +760,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 			else
 			{
 				dt[curr_dt].text = items[item];
-				dt[curr_dt].color = DT_COLOR_WHITE;
+				dt[curr_dt].color = UI_COLOR_NORMAL;
 				dt[curr_dt].x = (Machine->uiwidth - Machine->uifontwidth * strlen(items[item])) / 2;
 				dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 				curr_dt++;
@@ -808,7 +774,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 		if (arrowize_subitem & 1)
 		{
 			dt[curr_dt].text = leftarrow;
-			dt[curr_dt].color = DT_COLOR_WHITE;
+			dt[curr_dt].color = UI_COLOR_NORMAL;
 			dt[curr_dt].x = leftoffs + Machine->uifontwidth * (maxlen-2 - strlen(subitems[selected])) - Machine->uifontwidth/2 - 1;
 			dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 			curr_dt++;
@@ -816,7 +782,7 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 		if (arrowize_subitem & 2)
 		{
 			dt[curr_dt].text = rightarrow;
-			dt[curr_dt].color = DT_COLOR_WHITE;
+			dt[curr_dt].color = UI_COLOR_NORMAL;
 			dt[curr_dt].x = leftoffs + Machine->uifontwidth * (maxlen-1) - Machine->uifontwidth/2;
 			dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 			curr_dt++;
@@ -825,20 +791,20 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 	else
 	{
 		dt[curr_dt].text = righthilight;
-		dt[curr_dt].color = DT_COLOR_WHITE;
+		dt[curr_dt].color = UI_COLOR_NORMAL;
 		dt[curr_dt].x = leftoffs + Machine->uifontwidth * (maxlen-1) - Machine->uifontwidth/2;
 		dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 		curr_dt++;
 	}
 	dt[curr_dt].text = lefthilight;
-	dt[curr_dt].color = DT_COLOR_WHITE;
+	dt[curr_dt].color = UI_COLOR_NORMAL;
 	dt[curr_dt].x = leftoffs + Machine->uifontwidth/2;
 	dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 	curr_dt++;
 
 	dt[curr_dt].text = 0;	/* terminate array */
 
-	displaytext(dt,0,0);
+	displaytext(bitmap,dt,0,0);
 
 	if (selected_long)
 	{
@@ -858,12 +824,12 @@ void ui_displaymenu(const char **items,const char **subitems,char *flag,int sele
 		if (long_y + long_dy > Machine->uiheight)
 			long_y = topoffs + i * 3*Machine->uifontheight/2 - long_dy;
 
-		ui_multitextbox_ex(subitems[selected],subitems[selected] + strlen(subitems[selected]), long_max, long_x,long_y,long_dx,long_dy, DT_COLOR_WHITE);
+		ui_multitextbox_ex(bitmap,subitems[selected],subitems[selected] + strlen(subitems[selected]), long_max, long_x,long_y,long_dx,long_dy, UI_COLOR_NORMAL);
 	}
 }
 
 
-void ui_displaymessagewindow(const char *text)
+void ui_displaymessagewindow(struct osd_bitmap *bitmap,const char *text)
 {
 	struct DisplayText dt[256];
 	int curr_dt;
@@ -927,7 +893,7 @@ void ui_displaymessagewindow(const char *text)
 	topoffs = (Machine->uiheight - (3 * lines + 1) * Machine->uifontheight / 2) / 2;
 
 	/* black background */
-	ui_drawbox(leftoffs,topoffs,maxlen * Machine->uifontwidth,(3 * lines + 1) * Machine->uifontheight / 2);
+	ui_drawbox(bitmap,leftoffs,topoffs,maxlen * Machine->uifontwidth,(3 * lines + 1) * Machine->uifontheight / 2);
 
 	curr_dt = 0;
 	c = textcopy;
@@ -953,7 +919,7 @@ void ui_displaymessagewindow(const char *text)
 			dt[curr_dt].x = leftoffs + Machine->uifontwidth/2;
 
 		dt[curr_dt].text = c2;
-		dt[curr_dt].color = DT_COLOR_WHITE;
+		dt[curr_dt].color = UI_COLOR_NORMAL;
 		dt[curr_dt].y = topoffs + (3*i+1)*Machine->uifontheight/2;
 		curr_dt++;
 
@@ -962,12 +928,12 @@ void ui_displaymessagewindow(const char *text)
 
 	dt[curr_dt].text = 0;	/* terminate array */
 
-	displaytext(dt,0,0);
+	displaytext(bitmap,dt,0,0);
 }
 
 
 
-#ifndef NEOFREE
+#ifndef MESS
 #ifndef TINY_COMPILE
 extern int no_of_tiles;
 void NeoMVSDrawGfx(unsigned char **line,const struct GfxElement *gfx,
@@ -980,13 +946,12 @@ extern struct GameDriver driver_neogeo;
 #endif
 #endif
 
-static void showcharset(void)
+static void showcharset(struct osd_bitmap *bitmap)
 {
 	int i;
 	char buf[80];
 	int bank,color,firstdrawn;
 	int palpage;
-	int trueorientation;
 	int changed;
 	int game_is_neogeo=0;
 	unsigned char *orig_used_colors=0;
@@ -1000,7 +965,7 @@ static void showcharset(void)
 		memcpy(orig_used_colors,palette_used_colors,Machine->drv->total_colors * sizeof(unsigned char));
 	}
 
-#ifndef NEOFREE
+#ifndef MESS
 #ifndef TINY_COMPILE
 	if (Machine->gamedrv->clone_of == &driver_neogeo ||
 			(Machine->gamedrv->clone_of &&
@@ -1032,7 +997,7 @@ static void showcharset(void)
 		{
 			int lastdrawn=0;
 
-			osd_clearbitmap(Machine->scrbitmap);
+			osd_clearbitmap(bitmap);
 
 			/* validity chack after char bank change */
 			if (bank >= 0)
@@ -1046,15 +1011,12 @@ static void showcharset(void)
 
 			if(bank!=2 || !game_is_neogeo)
 			{
+				switch_ui_orientation();
+
 				if (bank >= 0)
 				{
 					int table_offs;
 					int flipx,flipy;
-
-					/* hack: force the display into standard orientation to avoid */
-					/* rotating the user interface */
-					trueorientation = Machine->orientation;
-					Machine->orientation = Machine->ui_orientation;
 
 					if (palette_used_colors)
 					{
@@ -1083,7 +1045,7 @@ static void showcharset(void)
 
 					for (i = 0; i+firstdrawn < Machine->gfx[bank]->total_elements && i<cpx*cpy; i++)
 					{
-						drawgfx(Machine->scrbitmap,Machine->gfx[bank],
+						drawgfx(bitmap,Machine->gfx[bank],
 								i+firstdrawn,color,  /*sprite num, color*/
 								flipx,flipy,
 								(i % cpx) * Machine->gfx[bank]->width + Machine->uixmin,
@@ -1092,12 +1054,10 @@ static void showcharset(void)
 
 						lastdrawn = i+firstdrawn;
 					}
-
-					Machine->orientation = trueorientation;
 				}
 				else
 				{
-					int sx,sy,x,y,colors;
+					int sx,sy,colors;
 
 					colors = Machine->drv->total_colors - 256 * palpage;
 					if (colors > 256) colors = 256;
@@ -1115,12 +1075,12 @@ static void showcharset(void)
 
 						sx = 3*Machine->uifontwidth + (Machine->uifontwidth*4/3)*(i % 16);
 						sprintf(bf,"%X",i);
-						ui_text(bf,sx,2*Machine->uifontheight);
+						ui_text(bitmap,bf,sx,2*Machine->uifontheight);
 						if (16*i < colors)
 						{
 							sy = 3*Machine->uifontheight + (Machine->uifontheight)*(i % 16);
 							sprintf(bf,"%3X",i+16*palpage);
-							ui_text(bf,0,sy);
+							ui_text(bitmap,bf,0,sy);
 						}
 					}
 
@@ -1128,38 +1088,13 @@ static void showcharset(void)
 					{
 						sx = Machine->uixmin + 3*Machine->uifontwidth + (Machine->uifontwidth*4/3)*(i % 16);
 						sy = Machine->uiymin + 2*Machine->uifontheight + (Machine->uifontheight)*(i / 16) + Machine->uifontheight;
-						for (y = 0;y < Machine->uifontheight;y++)
-						{
-							for (x = 0;x < Machine->uifontwidth*4/3;x++)
-							{
-								int tx,ty;
-								if (Machine->ui_orientation & ORIENTATION_SWAP_XY)
-								{
-									ty = sx + x;
-									tx = sy + y;
-								}
-								else
-								{
-									tx = sx + x;
-									ty = sy + y;
-								}
-								if (Machine->ui_orientation & ORIENTATION_FLIP_X)
-									tx = Machine->scrbitmap->width-1 - tx;
-								if (Machine->ui_orientation & ORIENTATION_FLIP_Y)
-									ty = Machine->scrbitmap->height-1 - ty;
-
-								if (Machine->scrbitmap->depth == 16)
-									((unsigned short *)Machine->scrbitmap->line[ty])[tx]
-											= Machine->pens[i + 256*palpage];
-								else
-									Machine->scrbitmap->line[ty][tx]
-											= Machine->pens[i + 256*palpage];
-							}
-						}
+						plot_box(bitmap,sx,sy,Machine->uifontwidth*4/3,Machine->uifontheight,Machine->pens[i + 256*palpage]);
 					}
 				}
+
+				switch_true_orientation();
 			}
-#ifndef NEOFREE
+#ifndef MESS
 #ifndef TINY_COMPILE
 			else	/* neogeo sprite tiles */
 			{
@@ -1180,15 +1115,15 @@ static void showcharset(void)
 
 				for (i = 0; i+firstdrawn < no_of_tiles && i<cpx*cpy; i++)
 				{
-					if (Machine->scrbitmap->depth == 16)
-						NeoMVSDrawGfx16(Machine->scrbitmap->line,Machine->gfx[bank],
+					if (bitmap->depth == 16)
+						NeoMVSDrawGfx16(bitmap->line,Machine->gfx[bank],
 							i+firstdrawn,color,  /*sprite num, color*/
 							0,0,
 							(i % cpx) * Machine->gfx[bank]->width + Machine->uixmin,
 							Machine->uifontheight+1 + (i / cpx) * Machine->gfx[bank]->height + Machine->uiymin,
 							16,16,&clip);
 					else
-						NeoMVSDrawGfx(Machine->scrbitmap->line,Machine->gfx[bank],
+						NeoMVSDrawGfx(bitmap->line,Machine->gfx[bank],
 							i+firstdrawn,color,  /*sprite num, color*/
 							0,0,
 							(i % cpx) * Machine->gfx[bank]->width + Machine->uixmin,
@@ -1205,16 +1140,12 @@ static void showcharset(void)
 				sprintf(buf,"GFXSET %d COLOR %2X CODE %X-%X",bank,color,firstdrawn,lastdrawn);
 			else
 				strcpy(buf,"PALETTE");
-			ui_text(buf,0,0);
+			ui_text(bitmap,buf,0,0);
 
 			changed = 0;
 		}
 
-		/* Necessary to keep the video from getting stuck if a frame happens to be skipped in here */
-/* I beg to differ - the OS dependant code must not assume that */
-/* osd_skip_this_frame() is called before osd_update_video_and_audio() - NS */
-//		osd_skip_this_frame();
-		osd_update_video_and_audio();
+		update_video_and_audio();
 
 		if (code_pressed(KEYCODE_LCONTROL) || code_pressed(KEYCODE_RCONTROL))
 		{
@@ -1306,12 +1237,12 @@ static void showcharset(void)
 		}
 
 		if (input_ui_pressed(IPT_UI_SNAPSHOT))
-			osd_save_snapshot();
+			osd_save_snapshot(bitmap);
 	} while (!input_ui_pressed(IPT_UI_SHOW_GFX) &&
 			!input_ui_pressed(IPT_UI_CANCEL));
 
 	/* clear the screen before returning */
-	osd_clearbitmap(Machine->scrbitmap);
+	osd_clearbitmap(bitmap);
 
 	if (palette_used_colors)
 	{
@@ -1328,13 +1259,12 @@ static void showcharset(void)
 
 
 #ifdef MAME_DEBUG
-static void showtotalcolors(void)
+static void showtotalcolors(struct osd_bitmap *bitmap)
 {
 	char *used;
 	int i,l,x,y,total;
 	unsigned char r,g,b;
 	char buf[40];
-	int trueorientation;
 
 
 	used = malloc(64*64*64);
@@ -1343,32 +1273,15 @@ static void showtotalcolors(void)
 	for (i = 0;i < 64*64*64;i++)
 		used[i] = 0;
 
-	if (Machine->scrbitmap->depth == 16)
+	for (y = 0;y < bitmap->height;y++)
 	{
-		for (y = 0;y < Machine->scrbitmap->height;y++)
+		for (x = 0;x < bitmap->width;x++)
 		{
-			for (x = 0;x < Machine->scrbitmap->width;x++)
-			{
-				osd_get_pen(((unsigned short *)Machine->scrbitmap->line[y])[x],&r,&g,&b);
-				r >>= 2;
-				g >>= 2;
-				b >>= 2;
-				used[64*64*r+64*g+b] = 1;
-			}
-		}
-	}
-	else
-	{
-		for (y = 0;y < Machine->scrbitmap->height;y++)
-		{
-			for (x = 0;x < Machine->scrbitmap->width;x++)
-			{
-				osd_get_pen(Machine->scrbitmap->line[y][x],&r,&g,&b);
-				r >>= 2;
-				g >>= 2;
-				b >>= 2;
-				used[64*64*r+64*g+b] = 1;
-			}
+			osd_get_pen(read_pixel(bitmap,x,y),&r,&g,&b);
+			r >>= 2;
+			g >>= 2;
+			b >>= 2;
+			used[64*64*r+64*g+b] = 1;
 		}
 	}
 
@@ -1376,24 +1289,21 @@ static void showtotalcolors(void)
 	for (i = 0;i < 64*64*64;i++)
 		if (used[i]) total++;
 
-	/* hack: force the display into standard orientation to avoid */
-	/* rotating the text */
-	trueorientation = Machine->orientation;
-	Machine->orientation = Machine->ui_orientation;
+	switch_ui_orientation();
 
 	sprintf(buf,"%5d colors",total);
 	l = strlen(buf);
 	for (i = 0;i < l;i++)
-		drawgfx(Machine->scrbitmap,Machine->uifont,buf[i],total>256?DT_COLOR_YELLOW:DT_COLOR_WHITE,0,0,Machine->uixmin+i*Machine->uifontwidth,Machine->uiymin,0,TRANSPARENCY_NONE,0);
+		drawgfx(bitmap,Machine->uifont,buf[i],total>256?UI_COLOR_INVERSE:UI_COLOR_NORMAL,0,0,Machine->uixmin+i*Machine->uifontwidth,Machine->uiymin,0,TRANSPARENCY_NONE,0);
 
-	Machine->orientation = trueorientation;
+	switch_true_orientation();
 
 	free(used);
 }
 #endif
 
 
-static int setdipswitches(int selected)
+static int setdipswitches(struct osd_bitmap *bitmap,int selected)
 {
 	const char *menu_item[128];
 	const char *menu_subitem[128];
@@ -1428,7 +1338,7 @@ static int setdipswitches(int selected)
 
 	if (total == 0) return 0;
 
-	menu_item[total] = "Return to Main Menu";
+	menu_item[total] = ui_getstring (UI_returntomain);
 	menu_item[total + 1] = 0;	/* terminate array */
 	total++;
 
@@ -1444,7 +1354,7 @@ static int setdipswitches(int selected)
 				in++;
 
 			if ((in->type & ~IPF_MASK) != IPT_DIPSWITCH_SETTING)
-				menu_subitem[i] = "INVALID";
+				menu_subitem[i] = ui_getstring (UI_INVALID);
 			else menu_subitem[i] = input_port_name(in);
 		}
 		else menu_subitem[i] = 0;	/* no subitem */
@@ -1486,7 +1396,7 @@ static int setdipswitches(int selected)
 		}
 	}
 
-	ui_displaymenu(menu_item,menu_subitem,flag,sel,arrowize);
+	ui_displaymenu(bitmap,menu_item,menu_subitem,flag,sel,arrowize);
 
 	if (input_ui_pressed_repeat(IPT_UI_DOWN,8))
 		sel = (sel + 1) % total;
@@ -1569,7 +1479,7 @@ static int record_first_insert = 1;
 
 static char menu_subitem_buffer[400][96];
 
-static int setdefcodesettings(int selected)
+static int setdefcodesettings(struct osd_bitmap *bitmap,int selected)
 {
 	const char *menu_item[400];
 	const char *menu_subitem[400];
@@ -1605,7 +1515,7 @@ static int setdefcodesettings(int selected)
 
 	if (total == 0) return 0;
 
-	menu_item[total] = "Return to Main Menu";
+	menu_item[total] = ui_getstring (UI_returntomain);
 	menu_item[total + 1] = 0;	/* terminate array */
 	total++;
 
@@ -1625,7 +1535,7 @@ static int setdefcodesettings(int selected)
 		int ret;
 
 		menu_subitem[sel & SEL_MASK] = "    ";
-		ui_displaymenu(menu_item,menu_subitem,flag,sel & SEL_MASK,3);
+		ui_displaymenu(bitmap,menu_item,menu_subitem,flag,sel & SEL_MASK,3);
 
 		ret = seq_read_async(&entry[sel & SEL_MASK]->seq,record_first_insert);
 
@@ -1650,7 +1560,7 @@ static int setdefcodesettings(int selected)
 	}
 
 
-	ui_displaymenu(menu_item,menu_subitem,flag,sel,0);
+	ui_displaymenu(bitmap,menu_item,menu_subitem,flag,sel,0);
 
 	if (input_ui_pressed_repeat(IPT_UI_DOWN,8))
 	{
@@ -1697,7 +1607,7 @@ static int setdefcodesettings(int selected)
 
 
 
-static int setcodesettings(int selected)
+static int setcodesettings(struct osd_bitmap *bitmap,int selected)
 {
 	const char *menu_item[400];
 	const char *menu_subitem[400];
@@ -1732,7 +1642,7 @@ static int setcodesettings(int selected)
 
 	if (total == 0) return 0;
 
-	menu_item[total] = "Return to Main Menu";
+	menu_item[total] = ui_getstring (UI_returntomain);
 	menu_item[total + 1] = 0;	/* terminate array */
 	total++;
 
@@ -1758,7 +1668,7 @@ static int setcodesettings(int selected)
 		int ret;
 
 		menu_subitem[sel & SEL_MASK] = "    ";
-		ui_displaymenu(menu_item,menu_subitem,flag,sel & SEL_MASK,3);
+		ui_displaymenu(bitmap,menu_item,menu_subitem,flag,sel & SEL_MASK,3);
 
 		ret = seq_read_async(&entry[sel & SEL_MASK]->seq,record_first_insert);
 
@@ -1782,7 +1692,7 @@ static int setcodesettings(int selected)
 	}
 
 
-	ui_displaymenu(menu_item,menu_subitem,flag,sel,0);
+	ui_displaymenu(bitmap,menu_item,menu_subitem,flag,sel,0);
 
 	if (input_ui_pressed_repeat(IPT_UI_DOWN,8))
 	{
@@ -1828,7 +1738,7 @@ static int setcodesettings(int selected)
 }
 
 
-static int calibratejoysticks(int selected)
+static int calibratejoysticks(struct osd_bitmap *bitmap,int selected)
 {
 	char *msg;
 	char buf[2048];
@@ -1857,7 +1767,7 @@ static int calibratejoysticks(int selected)
 			sel &= 0xff;
 		}
 
-		ui_displaymessagewindow(buf);
+		ui_displaymessagewindow(bitmap,buf);
 	}
 	else
 	{
@@ -1872,7 +1782,7 @@ static int calibratejoysticks(int selected)
 		else
 		{
 			strcpy (buf, msg);
-			ui_displaymessagewindow(buf);
+			ui_displaymessagewindow(bitmap,buf);
 			sel |= 1 << SEL_BITS;
 		}
 	}
@@ -1890,7 +1800,7 @@ static int calibratejoysticks(int selected)
 }
 
 
-static int settraksettings(int selected)
+static int settraksettings(struct osd_bitmap *bitmap,int selected)
 {
 	const char *menu_item[40];
 	const char *menu_subitem[40];
@@ -1930,7 +1840,7 @@ static int settraksettings(int selected)
 
 	total2 = total * ENTRIES;
 
-	menu_item[total2] = "Return to Main Menu";
+	menu_item[total2] = ui_getstring (UI_returntomain);
 	menu_item[total2 + 1] = 0;	/* terminate array */
 	total2++;
 
@@ -1949,23 +1859,24 @@ static int settraksettings(int selected)
 			delta = IP_GET_DELTA(entry[i/ENTRIES]);
 			reverse = (entry[i/ENTRIES]->type & IPF_REVERSE);
 
+			strcat (label[i], " ");
 			switch (i%ENTRIES)
 			{
 				case 0:
-					strcat (label[i], " Key/Joy Speed");
+					strcat (label[i], ui_getstring (UI_keyjoyspeed));
 					sprintf(setting[i],"%d",delta);
 					if (i == sel) arrowize = 3;
 					break;
 				case 1:
-					strcat (label[i], " Reverse");
+					strcat (label[i], ui_getstring (UI_reverse));
 					if (reverse)
-						sprintf(setting[i],"On");
+						sprintf(setting[i],ui_getstring (UI_on));
 					else
-						sprintf(setting[i],"Off");
+						sprintf(setting[i],ui_getstring (UI_off));
 					if (i == sel) arrowize = 3;
 					break;
 				case 2:
-					strcat (label[i], " Sensitivity");
+					strcat (label[i], ui_getstring (UI_sensitivity));
 					sprintf(setting[i],"%3d%%",sensitivity);
 					if (i == sel) arrowize = 3;
 					break;
@@ -1979,7 +1890,7 @@ static int settraksettings(int selected)
 		else menu_subitem[i] = 0;	/* no subitem */
 	}
 
-	ui_displaymenu(menu_item,menu_subitem,0,sel,arrowize);
+	ui_displaymenu(bitmap,menu_item,menu_subitem,0,sel,arrowize);
 
 	if (input_ui_pressed_repeat(IPT_UI_DOWN,8))
 		sel = (sel + 1) % total2;
@@ -2074,7 +1985,7 @@ static int settraksettings(int selected)
 }
 
 #ifndef MESS
-static int mame_stats(int selected)
+static int mame_stats(struct osd_bitmap *bitmap,int selected)
 {
 	char temp[10];
 	char buf[2048];
@@ -2087,17 +1998,19 @@ static int mame_stats(int selected)
 
 	if (dispensed_tickets)
 	{
-		strcat(buf, "Tickets dispensed: ");
+		strcat(buf, ui_getstring (UI_tickets));
+		strcat(buf, ": ");
 		sprintf(temp, "%d\n\n", dispensed_tickets);
 		strcat(buf, temp);
 	}
 
-	for (i=0;  i<COIN_COUNTERS; i++)
+	for (i=0; i<COIN_COUNTERS; i++)
 	{
-		sprintf(temp, "Coin %c: ", i+'A');
+		strcat(buf, ui_getstring (UI_coin));
+		sprintf(temp, " %c: ", i+'A');
 		strcat(buf, temp);
 		if (!coins[i])
-			strcat (buf, "NA");
+			strcat (buf, ui_getstring (UI_NA));
 		else
 		{
 			sprintf (temp, "%d", coins[i]);
@@ -2105,7 +2018,9 @@ static int mame_stats(int selected)
 		}
 		if (coinlockedout[i])
 		{
-			strcat(buf, " (locked)\n");
+			strcat(buf, " ");
+			strcat(buf, ui_getstring (UI_locked));
+			strcat(buf, "\n");
 		}
 		else
 		{
@@ -2115,9 +2030,14 @@ static int mame_stats(int selected)
 
 	{
 		/* menu system, use the normal menu keys */
-		strcat(buf,"\n\t\x1a Return to Main Menu \x1b");
+		strcat(buf,"\n\t");
+		strcat(buf,ui_getstring (UI_lefthilight));
+		strcat(buf," ");
+		strcat(buf,ui_getstring (UI_returntomain));
+		strcat(buf," ");
+		strcat(buf,ui_getstring (UI_righthilight));
 
-		ui_displaymessagewindow(buf);
+		ui_displaymessagewindow(bitmap,buf);
 
 		if (input_ui_pressed(IPT_UI_SELECT))
 			sel = -1;
@@ -2139,26 +2059,26 @@ static int mame_stats(int selected)
 }
 #endif
 
-int showcopyright(void)
+int showcopyright(struct osd_bitmap *bitmap)
 {
 	int done;
 	char buf[1000];
+	char buf2[256];
 
+	strcpy (buf, ui_getstring(UI_copyright1));
+	strcat (buf, "\n\n");
+	sprintf(buf2, ui_getstring(UI_copyright2), Machine->gamedrv->description);
+	strcat (buf, buf2);
+	strcat (buf, "\n\n");
+	strcat (buf, ui_getstring(UI_copyright3));
 
-	sprintf(buf,
-			"Usage of emulators in conjunction with ROMs you don't own "
-			"is forbidden by copyright law.\n\n"
-			"IF YOU ARE NOT LEGALLY ENTITLED TO PLAY \"%s\" ON THIS EMULATOR, "
-			"PRESS ESC.\n\n"
-			"Otherwise, type OK to continue",
-			Machine->gamedrv->description);
-	ui_displaymessagewindow(buf);
+	ui_displaymessagewindow(bitmap,buf);
 
 	setup_selected = -1;////
 	done = 0;
 	do
 	{
-		osd_update_video_and_audio();
+		update_video_and_audio();
 		osd_poll_joysticks();
 		if (input_ui_pressed(IPT_UI_CANCEL))
 		{
@@ -2174,26 +2094,29 @@ int showcopyright(void)
 	} while (done < 2);
 
 	setup_selected = 0;////
-	osd_clearbitmap(Machine->scrbitmap);
-	osd_update_video_and_audio();
+	osd_clearbitmap(bitmap);
+	update_video_and_audio();
 
 	return 0;
 }
 
-static int displaygameinfo(int selected)
+static int displaygameinfo(struct osd_bitmap *bitmap,int selected)
 {
 	int i;
 	char buf[2048];
+	char buf2[32];
 	int sel;
 
 
 	sel = selected - 1;
 
 
-	sprintf(buf,"%s\n%s %s\n\nCPU:\n",Machine->gamedrv->description,Machine->gamedrv->year,Machine->gamedrv->manufacturer);
+	sprintf(buf,"%s\n%s %s\n\n%s:\n",Machine->gamedrv->description,Machine->gamedrv->year,Machine->gamedrv->manufacturer,
+		ui_getstring (UI_cpu));
 	i = 0;
 	while (i < MAX_CPU && Machine->drv->cpu[i].cpu_type)
 	{
+
 		if (Machine->drv->cpu[i].cpu_clock >= 1000000)
 			sprintf(&buf[strlen(buf)],"%s %d.%06d MHz",
 					cputype_name(Machine->drv->cpu[i].cpu_type),
@@ -2206,16 +2129,20 @@ static int displaygameinfo(int selected)
 					Machine->drv->cpu[i].cpu_clock % 1000);
 
 		if (Machine->drv->cpu[i].cpu_type & CPU_AUDIO_CPU)
-			strcat(buf," (sound)");
+		{
+			sprintf (buf2, " (%s)", ui_getstring (UI_sound_lc));
+			strcat(buf, buf2);
+		}
 
 		strcat(buf,"\n");
 
 		i++;
 	}
 
-	strcat(buf,"\nSound");
+	sprintf (buf2, "\n%s", ui_getstring (UI_sound));
+	strcat (buf, buf2);
 	if (Machine->drv->sound_attributes & SOUND_SUPPORTS_STEREO)
-		sprintf(&buf[strlen(buf)]," (stereo)");
+		sprintf(&buf[strlen(buf)]," (%s)", ui_getstring (UI_stereo));
 	strcat(buf,":\n");
 
 	i = 0;
@@ -2244,13 +2171,13 @@ static int displaygameinfo(int selected)
 	}
 
 	if (Machine->drv->video_attributes & VIDEO_TYPE_VECTOR)
-		sprintf(&buf[strlen(buf)],"\nVector Game\n");
+		sprintf(&buf[strlen(buf)],"\n%s\n", ui_getstring (UI_vectorgame));
 	else
 	{
 		int pixelx,pixely,tmax,tmin,rem;
 
-		pixelx = 4 * (Machine->drv->visible_area.max_y - Machine->drv->visible_area.min_y + 1);
-		pixely = 3 * (Machine->drv->visible_area.max_x - Machine->drv->visible_area.min_x + 1);
+		pixelx = 4 * (Machine->visible_area.max_y - Machine->visible_area.min_y + 1);
+		pixely = 3 * (Machine->visible_area.max_x - Machine->visible_area.min_x + 1);
 
 		/* calculate MCD */
 		if (pixelx >= pixely)
@@ -2273,10 +2200,10 @@ static int displaygameinfo(int selected)
 		pixelx /= tmin;
 		pixely /= tmin;
 
-		sprintf(&buf[strlen(buf)],"\nScreen resolution:\n");
+		sprintf(&buf[strlen(buf)],"\n%s:\n", ui_getstring (UI_screenres));
 		sprintf(&buf[strlen(buf)],"%d x %d (%s) %f Hz\n",
-				Machine->drv->visible_area.max_x - Machine->drv->visible_area.min_x + 1,
-				Machine->drv->visible_area.max_y - Machine->drv->visible_area.min_y + 1,
+				Machine->visible_area.max_x - Machine->visible_area.min_x + 1,
+				Machine->visible_area.max_y - Machine->visible_area.min_y + 1,
 				(Machine->gamedrv->flags & ORIENTATION_SWAP_XY) ? "V" : "H",
 				Machine->drv->frames_per_second);
 #if 0
@@ -2296,16 +2223,14 @@ static int displaygameinfo(int selected)
 	{
 		/* startup info, print MAME version and ask for any key */
 
-		#ifndef MESS
-		strcat(buf,"\n\tMAME ");    /* \t means that the line will be centered */
-		#else
-		strcat(buf,"\n\tMESS ");    /* \t means that the line will be centered */
-		#endif
+		sprintf (buf2, "\n\t%s ", ui_getstring (UI_mame));	/* \t means that the line will be centered */
+		strcat(buf, buf2);
 
 		strcat(buf,build_version);
-		strcat(buf,"\n\tPress any key");
-		ui_drawbox(0,0,Machine->uiwidth,Machine->uiheight);
-		ui_displaymessagewindow(buf);
+		sprintf (buf2, "\n\t%s", ui_getstring (UI_anykey));
+		strcat(buf,buf2);
+		ui_drawbox(bitmap,0,0,Machine->uiwidth,Machine->uiheight);
+		ui_displaymessagewindow(bitmap,buf);
 
 		sel = 0;
 		if (code_read_async() != CODE_NONE)
@@ -2314,9 +2239,14 @@ static int displaygameinfo(int selected)
 	else
 	{
 		/* menu system, use the normal menu keys */
-		strcat(buf,"\n\t\x1a Return to Main Menu \x1b");
+		strcat(buf,"\n\t");
+		strcat(buf,ui_getstring (UI_lefthilight));
+		strcat(buf," ");
+		strcat(buf,ui_getstring (UI_returntomain));
+		strcat(buf," ");
+		strcat(buf,ui_getstring (UI_righthilight));
 
-		ui_displaymessagewindow(buf);
+		ui_displaymessagewindow(bitmap,buf);
 
 		if (input_ui_pressed(IPT_UI_SELECT))
 			sel = -1;
@@ -2338,67 +2268,69 @@ static int displaygameinfo(int selected)
 }
 
 
-int showgamewarnings(void)
+int showgamewarnings(struct osd_bitmap *bitmap)
 {
 	int i;
 	char buf[2048];
 
 	if (Machine->gamedrv->flags &
-			(GAME_NOT_WORKING | GAME_WRONG_COLORS | GAME_IMPERFECT_COLORS |
+			(GAME_NOT_WORKING | GAME_UNEMULATED_PROTECTION | GAME_WRONG_COLORS | GAME_IMPERFECT_COLORS |
 			  GAME_NO_SOUND | GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL))
 	{
 		int done;
 
-		#ifndef MESS
-		strcpy(buf, "There are known problems with this game:\n\n");
-		#else
-		strcpy(buf, "There are known problems with this system:\n\n");
-		#endif
-
+		strcpy(buf, ui_getstring (UI_knownproblems));
+		strcat(buf, "\n\n");
 
 #ifdef MESS
 		if (Machine->gamedrv->flags & GAME_COMPUTER)
 		{
-			strcpy(buf, "The emulated system is a computer: \n\n");
-			strcat(buf, "The keyboard emulation may not be 100% accurate.\n");
+			strcpy(buf, ui_getstring (UI_comp1));
+			strcat(buf, "\n\n");
+			strcat(buf, ui_getstring (UI_comp2));
+			strcat(buf, "\n");
 		}
 #endif
 
 		if (Machine->gamedrv->flags & GAME_IMPERFECT_COLORS)
 		{
-			strcat(buf, "The colors aren't 100% accurate.\n");
+			strcat(buf, ui_getstring (UI_imperfectcolors));
+			strcat(buf, "\n");
 		}
 
 		if (Machine->gamedrv->flags & GAME_WRONG_COLORS)
 		{
-			strcat(buf, "The colors are completely wrong.\n");
+			strcat(buf, ui_getstring (UI_wrongcolors));
+			strcat(buf, "\n");
 		}
 
 		if (Machine->gamedrv->flags & GAME_IMPERFECT_SOUND)
 		{
-			strcat(buf, "The sound emulation isn't 100% accurate.\n");
+			strcat(buf, ui_getstring (UI_imperfectsound));
+			strcat(buf, "\n");
 		}
 
 		if (Machine->gamedrv->flags & GAME_NO_SOUND)
 		{
-			strcat(buf, "The game lacks sound.\n");
+			strcat(buf, ui_getstring (UI_nosound));
+			strcat(buf, "\n");
 		}
 
 		if (Machine->gamedrv->flags & GAME_NO_COCKTAIL)
 		{
-			strcat(buf, "Screen flipping in cocktail mode is not supported.\n");
+			strcat(buf, ui_getstring (UI_nococktail));
+			strcat(buf, "\n");
 		}
 
-		if (Machine->gamedrv->flags & GAME_NOT_WORKING)
+		if (Machine->gamedrv->flags & (GAME_NOT_WORKING | GAME_UNEMULATED_PROTECTION))
 		{
 			const struct GameDriver *maindrv;
 			int foundworking;
 
-			#ifdef MESS
-			strcpy(buf,"THIS SYSTEM DOESN'T WORK PROPERLY");
-			#else
-			strcpy(buf,"THIS GAME DOESN'T WORK PROPERLY");
-			#endif
+			if (Machine->gamedrv->flags & GAME_NOT_WORKING)
+				strcpy(buf, ui_getstring (UI_brokengame));
+			if (Machine->gamedrv->flags & GAME_UNEMULATED_PROTECTION)
+				strcat(buf, ui_getstring (UI_brokenprotection));
 
 			if (Machine->gamedrv->clone_of && !(Machine->gamedrv->clone_of->flags & NOT_A_DRIVER))
 				maindrv = Machine->gamedrv->clone_of;
@@ -2410,10 +2342,14 @@ int showgamewarnings(void)
 			{
 				if (drivers[i] == maindrv || drivers[i]->clone_of == maindrv)
 				{
-					if ((drivers[i]->flags & GAME_NOT_WORKING) == 0)
+					if ((drivers[i]->flags & (GAME_NOT_WORKING | GAME_UNEMULATED_PROTECTION)) == 0)
 					{
 						if (foundworking == 0)
-							strcat(buf,"\n\nThere are working clones of this game. They are:\n\n");
+						{
+							strcat(buf,"\n\n");
+							strcat(buf, ui_getstring (UI_workingclones));
+							strcat(buf,"\n\n");
+						}
 						foundworking = 1;
 
 						sprintf(&buf[strlen(buf)],"%s\n",drivers[i]->name);
@@ -2423,14 +2359,15 @@ int showgamewarnings(void)
 			}
 		}
 
-		strcat(buf,"\n\nType OK to continue");
+		strcat(buf,"\n\n");
+		strcat(buf,ui_getstring (UI_typeok));
 
-		ui_displaymessagewindow(buf);
+		ui_displaymessagewindow(bitmap,buf);
 
 		done = 0;
 		do
 		{
-			osd_update_video_and_audio();
+			update_video_and_audio();
 			osd_poll_joysticks();
 			if (input_ui_pressed(IPT_UI_CANCEL))
 				return 1;
@@ -2444,31 +2381,31 @@ int showgamewarnings(void)
 	}
 
 
-	osd_clearbitmap(Machine->scrbitmap);
+	osd_clearbitmap(bitmap);
 
 	/* clear the input memory */
-	while (code_read_async() != CODE_NONE);
+	while (code_read_async() != CODE_NONE) {};
 
-	while (displaygameinfo(0) == 1)
+	while (displaygameinfo(bitmap,0) == 1)
 	{
-		osd_update_video_and_audio();
+		update_video_and_audio();
 		osd_poll_joysticks();
 	}
 
 	#ifdef MESS
-	while (displayimageinfo(0) == 1)
+	while (displayimageinfo(bitmap,0) == 1)
 	{
-		osd_update_video_and_audio();
+		update_video_and_audio();
 		osd_poll_joysticks();
 	}
 	#endif
 
-	osd_clearbitmap(Machine->scrbitmap);
+	osd_clearbitmap(bitmap);
 	/* make sure that the screen is really cleared, in case autoframeskip kicked in */
-	osd_update_video_and_audio();
-	osd_update_video_and_audio();
-	osd_update_video_and_audio();
-	osd_update_video_and_audio();
+	update_video_and_audio();
+	update_video_and_audio();
+	update_video_and_audio();
+	update_video_and_audio();
 
 	return 0;
 }
@@ -2521,12 +2458,12 @@ static int count_lines_in_buffer (char *buffer)
 }
 
 /* Display lines from buffer, starting with line 'scroll', in a width x height text window */
-static void display_scroll_message (int *scroll, int width, int height, char *buf)
+static void display_scroll_message (struct osd_bitmap *bitmap, int *scroll, int width, int height, char *buf)
 {
 	struct DisplayText dt[256];
 	int curr_dt = 0;
-	char uparrow[2] = "\x18";
-	char downarrow[2] = "\x19";
+	const char *uparrow = ui_getstring (UI_uparrow);
+	const char *downarrow = ui_getstring (UI_downarrow);
 	char textcopy[2048];
 	char *copy;
 	int leftoffs,topoffs;
@@ -2539,7 +2476,7 @@ static void display_scroll_message (int *scroll, int width, int height, char *bu
 	leftoffs = (Machine->uiwidth - Machine->uifontwidth * (width + 1)) / 2;
 	if (leftoffs < 0) leftoffs = 0;
 	topoffs = (Machine->uiheight - (3 * height + 1) * Machine->uifontheight / 2) / 2;
-	ui_drawbox(leftoffs,topoffs,(width + 1) * Machine->uifontwidth,(3 * height + 1) * Machine->uifontheight / 2);
+	ui_drawbox(bitmap,leftoffs,topoffs,(width + 1) * Machine->uifontwidth,(3 * height + 1) * Machine->uifontheight / 2);
 
 	buflines = count_lines_in_buffer (buf);
 	if (first > 0)
@@ -2559,7 +2496,7 @@ static void display_scroll_message (int *scroll, int width, int height, char *bu
 	{
 		/* indicate that scrolling upward is possible */
 		dt[curr_dt].text = uparrow;
-		dt[curr_dt].color = DT_COLOR_WHITE;
+		dt[curr_dt].color = UI_COLOR_NORMAL;
 		dt[curr_dt].x = (Machine->uiwidth - Machine->uifontwidth * strlen(uparrow)) / 2;
 		dt[curr_dt].y = topoffs + (3*curr_dt+1)*Machine->uifontheight/2;
 		curr_dt++;
@@ -2611,7 +2548,7 @@ static void display_scroll_message (int *scroll, int width, int height, char *bu
 			dt[curr_dt].x = leftoffs + Machine->uifontwidth/2;
 
 		dt[curr_dt].text = copystart;
-		dt[curr_dt].color = DT_COLOR_WHITE;
+		dt[curr_dt].color = UI_COLOR_NORMAL;
 		dt[curr_dt].y = topoffs + (3*curr_dt+1)*Machine->uifontheight/2;
 		curr_dt++;
 	}
@@ -2620,7 +2557,7 @@ static void display_scroll_message (int *scroll, int width, int height, char *bu
 	{
 		/* indicate that scrolling downward is possible */
 		dt[curr_dt].text = downarrow;
-		dt[curr_dt].color = DT_COLOR_WHITE;
+		dt[curr_dt].color = UI_COLOR_NORMAL;
 		dt[curr_dt].x = (Machine->uiwidth - Machine->uifontwidth * strlen(downarrow)) / 2;
 		dt[curr_dt].y = topoffs + (3*curr_dt+1)*Machine->uifontheight/2;
 		curr_dt++;
@@ -2628,18 +2565,13 @@ static void display_scroll_message (int *scroll, int width, int height, char *bu
 
 	dt[curr_dt].text = 0;	/* terminate array */
 
-	displaytext(dt,0,0);
+	displaytext(bitmap,dt,0,0);
 }
 
 
 /* Display text entry for current driver from history.dat and mameinfo.dat. */
-static int displayhistory (int selected)
+static int displayhistory (struct osd_bitmap *bitmap, int selected)
 {
-	#ifndef MESS
-	char *msg = "\tHistory not available\n\n\t\x1a Return to Main Menu \x1b";
-	#else
-	char *msg = "\tSysInfo.dat Missing\n\n\t\x1a Return to Main Menu \x1b";
-	#endif
 	static int scroll = 0;
 	static char *buf = 0;
 	int maxcols,maxrows;
@@ -2665,7 +2597,13 @@ static int displayhistory (int selected)
 			{
 				scroll = 0;
 				wordwrap_text_buffer (buf, maxcols);
-				strcat(buf,"\n\t\x1a Return to Main Menu \x1b\n");
+				strcat(buf,"\n\t");
+				strcat(buf,ui_getstring (UI_lefthilight));
+				strcat(buf," ");
+				strcat(buf,ui_getstring (UI_returntomain));
+				strcat(buf," ");
+				strcat(buf,ui_getstring (UI_righthilight));
+				strcat(buf,"\n");
 			}
 			else
 			{
@@ -2677,9 +2615,21 @@ static int displayhistory (int selected)
 
 	{
 		if (buf)
-			display_scroll_message (&scroll, maxcols, maxrows, buf);
+			display_scroll_message (bitmap, &scroll, maxcols, maxrows, buf);
 		else
-			ui_displaymessagewindow (msg);
+		{
+			char msg[80];
+
+			strcpy(msg,"\t");
+			strcat(msg,ui_getstring(UI_historymissing));
+			strcat(msg,"\n\n\t");
+			strcat(msg,ui_getstring (UI_lefthilight));
+			strcat(msg," ");
+			strcat(msg,ui_getstring (UI_returntomain));
+			strcat(msg," ");
+			strcat(msg,ui_getstring (UI_righthilight));
+			ui_displaymessagewindow(bitmap,msg);
+		}
 
 		if ((scroll > 0) && input_ui_pressed_repeat(IPT_UI_UP,4))
 		{
@@ -2721,55 +2671,62 @@ static int displayhistory (int selected)
 }
 
 
-#ifndef NEOFREE
+#ifndef MESS
 #ifndef TINY_COMPILE
-int memcard_menu(int selection)
+int memcard_menu(struct osd_bitmap *bitmap, int selection)
 {
 	int sel;
 	int menutotal = 0;
 	const char *menuitem[10];
-	char	buffer[300];
-	char	*msg;
+	char buf[256];
+	char buf2[256];
 
 	sel = selection - 1 ;
 
-	sprintf(buffer, "Load Memory Card %03d", mcd_number);
-	menuitem[menutotal++] = buffer;
-	menuitem[menutotal++] = "Eject Memory Card";
-	menuitem[menutotal++] = "Create Memory Card";
-	menuitem[menutotal++] = "Call Memory Card Manager (RESET)";
-	menuitem[menutotal++] = "Return to Main Menu";
+	sprintf(buf, "%s %03d", ui_getstring (UI_loadcard), mcd_number);
+	menuitem[menutotal++] = buf;
+	menuitem[menutotal++] = ui_getstring (UI_ejectcard);
+	menuitem[menutotal++] = ui_getstring (UI_createcard);
+	menuitem[menutotal++] = ui_getstring (UI_resetcard);
+	menuitem[menutotal++] = ui_getstring (UI_returntomain);
 	menuitem[menutotal] = 0;
 
 	if (mcd_action!=0)
 	{
+		strcpy (buf2, "\n");
+
 		switch(mcd_action)
 		{
-		case	1:
-			msg = "\nFailed To Load Memory Card!\n\n";
-			break;
-		case	2:
-			msg = "\nLoad OK!\n\n";
-			break;
-		case	3:
-			msg = "\nMemory Card Ejected!\n\n";
-			break;
-		case	4:
-			msg = "\nMemory Card Created OK!\n\n";
-			break;
-		case	5:
-			msg = "\nFailed To Create Memory Card!\n(It already exists ?)\n\n";
-			break;
-		default:
-			msg = "\nDAMN!! Internal Error!\n\n";
+			case 1:
+				strcat (buf2, ui_getstring (UI_loadfailed));
+				break;
+			case 2:
+				strcat (buf2, ui_getstring (UI_loadok));
+				break;
+			case 3:
+				strcat (buf2, ui_getstring (UI_cardejected));
+				break;
+			case 4:
+				strcat (buf2, ui_getstring (UI_cardcreated));
+				break;
+			case 5:
+				strcat (buf2, ui_getstring (UI_cardcreatedfailed));
+				strcat (buf2, "\n");
+				strcat (buf2, ui_getstring (UI_cardcreatedfailed2));
+				break;
+			default:
+				strcat (buf2, ui_getstring (UI_carderror));
+				break;
 		}
-		ui_displaymessagewindow(msg);
+
+		strcat (buf2, "\n\n");
+		ui_displaymessagewindow(bitmap,buf2);
 		if (input_ui_pressed(IPT_UI_SELECT))
 			mcd_action = 0;
 	}
 	else
 	{
-		ui_displaymenu(menuitem,0,0,sel,0);
+		ui_displaymenu(bitmap,menuitem,0,0,sel,0);
 
 		if (input_ui_pressed_repeat(IPT_UI_RIGHT,8))
 			mcd_number = (mcd_number + 1) % 1000;
@@ -2859,13 +2816,9 @@ static void setup_menu_init(void)
 {
 	menu_total = 0;
 
-	menu_item[menu_total] = "Input (general)"; menu_action[menu_total++] = UI_DEFCODE;
-	#ifndef MESS
-	menu_item[menu_total] = "Input (this game)"; menu_action[menu_total++] = UI_CODE;
-	#else
-	menu_item[menu_total] = "Input (this machine)"; menu_action[menu_total++] = UI_CODE;
-	#endif
-	menu_item[menu_total] = "Dip Switches"; menu_action[menu_total++] = UI_SWITCH;
+	menu_item[menu_total] = ui_getstring (UI_inputgeneral); menu_action[menu_total++] = UI_DEFCODE;
+	menu_item[menu_total] = ui_getstring (UI_inputspecific); menu_action[menu_total++] = UI_CODE;
+	menu_item[menu_total] = ui_getstring (UI_dipswitches); menu_action[menu_total++] = UI_SWITCH;
 
 	/* Determine if there are any analog controls */
 	{
@@ -2885,58 +2838,52 @@ static void setup_menu_init(void)
 
 		if (num != 0)
 		{
-			menu_item[menu_total] = "Analog Controls"; menu_action[menu_total++] = UI_ANALOG;
+			menu_item[menu_total] = ui_getstring (UI_analogcontrols); menu_action[menu_total++] = UI_ANALOG;
 		}
 	}
 
 	/* Joystick calibration possible? */
 	if ((osd_joystick_needs_calibration()) != 0)
 	{
-		menu_item[menu_total] = "Calibrate Joysticks"; menu_action[menu_total++] = UI_CALIBRATE;
+		menu_item[menu_total] = ui_getstring (UI_calibrate); menu_action[menu_total++] = UI_CALIBRATE;
 	}
 
-	#ifndef MESS
-	menu_item[menu_total] = "Bookkeeping Info"; menu_action[menu_total++] = UI_STATS;
-	menu_item[menu_total] = "Game Information"; menu_action[menu_total++] = UI_GAMEINFO;
-	menu_item[menu_total] = "Game History"; menu_action[menu_total++] = UI_HISTORY;
-	#else
-	menu_item[menu_total] = "Machine Information"; menu_action[menu_total++] = UI_GAMEINFO;
-	menu_item[menu_total] = "Image Information"; menu_action[menu_total++] = UI_IMAGEINFO;
-	menu_item[menu_total] = "File Manager"; menu_action[menu_total++] = UI_FILEMANAGER;
-	menu_item[menu_total] = "Tape Control"; menu_action[menu_total++] = UI_TAPECONTROL;
-	menu_item[menu_total] = "Machine Usage & History"; menu_action[menu_total++] = UI_HISTORY;
-	#endif
+#ifndef MESS
+	menu_item[menu_total] = ui_getstring (UI_bookkeeping); menu_action[menu_total++] = UI_STATS;
+	menu_item[menu_total] = ui_getstring (UI_gameinfo); menu_action[menu_total++] = UI_GAMEINFO;
+	menu_item[menu_total] = ui_getstring (UI_history); menu_action[menu_total++] = UI_HISTORY;
+#else
+	menu_item[menu_total] = ui_getstring (UI_imageinfo); menu_action[menu_total++] = UI_IMAGEINFO;
+	menu_item[menu_total] = ui_getstring (UI_filemanager); menu_action[menu_total++] = UI_FILEMANAGER;
+	menu_item[menu_total] = ui_getstring (UI_tapecontrol); menu_action[menu_total++] = UI_TAPECONTROL;
+	menu_item[menu_total] = ui_getstring (UI_history); menu_action[menu_total++] = UI_HISTORY;
+#endif
 
 	if (options.cheat)
 	{
-		menu_item[menu_total] = "Cheat"; menu_action[menu_total++] = UI_CHEAT;
+		menu_item[menu_total] = ui_getstring (UI_cheat); menu_action[menu_total++] = UI_CHEAT;
 	}
 
-#ifndef NEOFREE
+#ifndef MESS
 #ifndef TINY_COMPILE
 	if (Machine->gamedrv->clone_of == &driver_neogeo ||
 			(Machine->gamedrv->clone_of &&
 				Machine->gamedrv->clone_of->clone_of == &driver_neogeo))
 	{
-		menu_item[menu_total] = "Memory Card"; menu_action[menu_total++] = UI_MEMCARD;
+		menu_item[menu_total] = ui_getstring (UI_memorycard); menu_action[menu_total++] = UI_MEMCARD;
 	}
 #endif
 #endif
 
-	#ifndef MESS
-	menu_item[menu_total] = "Reset Game"; menu_action[menu_total++] = UI_RESET;
-	menu_item[menu_total] = "Return to Game"; menu_action[menu_total++] = UI_EXIT;
-	#else
-	menu_item[menu_total] = "Reset Machine"; menu_action[menu_total++] = UI_RESET;
-	menu_item[menu_total] = "Return to Machine"; menu_action[menu_total++] = UI_EXIT;
-	#endif
+	menu_item[menu_total] = ui_getstring (UI_resetgame); menu_action[menu_total++] = UI_RESET;
+	menu_item[menu_total] = ui_getstring (UI_returntogame); menu_action[menu_total++] = UI_EXIT;
 	menu_item[menu_total] = 0; /* terminate array */
 }
 
 
-static int setup_menu(int selected)
+static int setup_menu(struct osd_bitmap *bitmap, int selected)
 {
-	int sel,res;
+	int sel,res=-1;
 	static int menu_lastselected = 0;
 
 
@@ -2949,159 +2896,67 @@ static int setup_menu(int selected)
 		switch (menu_action[sel & SEL_MASK])
 		{
 			case UI_SWITCH:
-				res = setdipswitches(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = setdipswitches(bitmap, sel >> SEL_BITS);
 				break;
-
 			case UI_DEFCODE:
-				res = setdefcodesettings(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = setdefcodesettings(bitmap, sel >> SEL_BITS);
 				break;
-
 			case UI_CODE:
-				res = setcodesettings(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = setcodesettings(bitmap, sel >> SEL_BITS);
 				break;
-
 			case UI_ANALOG:
-				res = settraksettings(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = settraksettings(bitmap, sel >> SEL_BITS);
 				break;
-
 			case UI_CALIBRATE:
-				res = calibratejoysticks(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = calibratejoysticks(bitmap, sel >> SEL_BITS);
 				break;
-
-
-			#ifndef MESS
+#ifndef MESS
 			case UI_STATS:
-				res = mame_stats(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = mame_stats(bitmap, sel >> SEL_BITS);
 				break;
-			#endif
-
 			case UI_GAMEINFO:
-				res = displaygameinfo(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = displaygameinfo(bitmap, sel >> SEL_BITS);
 				break;
-
-			#ifdef MESS
+#endif
+#ifdef MESS
 			case UI_IMAGEINFO:
-				res = displayimageinfo(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = displayimageinfo(bitmap, sel >> SEL_BITS);
 				break;
 			case UI_FILEMANAGER:
-				res = filemanager(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = filemanager(bitmap, sel >> SEL_BITS);
 				break;
 			case UI_TAPECONTROL:
-				res = tapecontrol(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = tapecontrol(bitmap, sel >> SEL_BITS);
 				break;
-			#endif
-
+#endif
 			case UI_HISTORY:
-				res = displayhistory(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = displayhistory(bitmap, sel >> SEL_BITS);
 				break;
-
 			case UI_CHEAT:
-osd_sound_enable(0);
-while (seq_pressed(input_port_type_seq(IPT_UI_SELECT)))
-	osd_update_video_and_audio();	  /* give time to the sound hardware to apply the volume change */
-				cheat_menu();
-osd_sound_enable(1);
-sel = sel & SEL_MASK;
+				res = cheat_menu(bitmap, sel >> SEL_BITS);
 				break;
-
-#ifndef NEOFREE
+#ifndef MESS
 #ifndef TINY_COMPILE
 			case UI_MEMCARD:
-				res = memcard_menu(sel >> SEL_BITS);
-				if (res == -1)
-				{
-					menu_lastselected = sel;
-					sel = -1;
-				}
-				else
-					sel = (sel & SEL_MASK) | (res << SEL_BITS);
+				res = memcard_menu(bitmap, sel >> SEL_BITS);
 				break;
 #endif
 #endif
 		}
 
+		if (res == -1)
+		{
+			menu_lastselected = sel;
+			sel = -1;
+		}
+		else
+			sel = (sel & SEL_MASK) | (res << SEL_BITS);
+
 		return sel + 1;
 	}
 
 
-	ui_displaymenu(menu_item,0,0,sel,0);
+	ui_displaymenu(bitmap,menu_item,0,0,sel,0);
 
 	if (input_ui_pressed_repeat(IPT_UI_DOWN,8))
 		sel = (sel + 1) % menu_total;
@@ -3170,7 +3025,7 @@ sel = sel & SEL_MASK;
 
 *********************************************************************/
 
-static void displayosd(const char *text,int percentage,int default_percentage)
+static void displayosd(struct osd_bitmap *bitmap,const char *text,int percentage,int default_percentage)
 {
 	struct DisplayText dt[2];
 	int avail;
@@ -3178,30 +3033,30 @@ static void displayosd(const char *text,int percentage,int default_percentage)
 
 	avail = (Machine->uiwidth / Machine->uifontwidth) * 19 / 20;
 
-	ui_drawbox((Machine->uiwidth - Machine->uifontwidth * avail) / 2,
+	ui_drawbox(bitmap,(Machine->uiwidth - Machine->uifontwidth * avail) / 2,
 			(Machine->uiheight - 7*Machine->uifontheight/2),
 			avail * Machine->uifontwidth,
 			3*Machine->uifontheight);
 
 	avail--;
 
-	drawbar((Machine->uiwidth - Machine->uifontwidth * avail) / 2,
+	drawbar(bitmap,(Machine->uiwidth - Machine->uifontwidth * avail) / 2,
 			(Machine->uiheight - 3*Machine->uifontheight),
 			avail * Machine->uifontwidth,
 			Machine->uifontheight,
 			percentage,default_percentage);
 
 	dt[0].text = text;
-	dt[0].color = DT_COLOR_WHITE;
+	dt[0].color = UI_COLOR_NORMAL;
 	dt[0].x = (Machine->uiwidth - Machine->uifontwidth * strlen(text)) / 2;
 	dt[0].y = (Machine->uiheight - 2*Machine->uifontheight) + 2;
 	dt[1].text = 0; /* terminate array */
-	displaytext(dt,0,0);
+	displaytext(bitmap,dt,0,0);
 }
 
 
 
-static void onscrd_volume(int increment,int arg)
+static void onscrd_volume(struct osd_bitmap *bitmap,int increment,int arg)
 {
 	char buf[20];
 	int attenuation;
@@ -3216,11 +3071,11 @@ static void onscrd_volume(int increment,int arg)
 	}
 	attenuation = osd_get_mastervolume();
 
-	sprintf(buf,"Volume %3ddB",attenuation);
-	displayosd(buf,100 * (attenuation + 32) / 32,100);
+	sprintf(buf,"%s %3ddB", ui_getstring (UI_volume), attenuation);
+	displayosd(bitmap,buf,100 * (attenuation + 32) / 32,100);
 }
 
-static void onscrd_mixervol(int increment,int arg)
+static void onscrd_mixervol(struct osd_bitmap *bitmap,int increment,int arg)
 {
 	static void *driver = 0;
 	char buf[40];
@@ -3295,15 +3150,15 @@ static void onscrd_mixervol(int increment,int arg)
 	volume = mixer_get_mixing_level(arg);
 
 	if (proportional)
-		sprintf(buf,"ALL CHANNELS Relative %3d%%", volume);
+		sprintf(buf,"%s %s %3d%%", ui_getstring (UI_allchannels), ui_getstring (UI_relative), volume);
 	else if (doallchannels)
-		sprintf(buf,"ALL CHANNELS Volume %3d%%",volume);
+		sprintf(buf,"%s %s %3d%%", ui_getstring (UI_allchannels), ui_getstring (UI_volume), volume);
 	else
-		sprintf(buf,"%s Volume %3d%%",mixer_get_name(arg),volume);
-	displayosd(buf,volume,mixer_get_default_mixing_level(arg));
+		sprintf(buf,"%s %s %3d%%",mixer_get_name(arg), ui_getstring (UI_volume), volume);
+	displayosd(bitmap,buf,volume,mixer_get_default_mixing_level(arg));
 }
 
-static void onscrd_brightness(int increment,int arg)
+static void onscrd_brightness(struct osd_bitmap *bitmap,int increment,int arg)
 {
 	char buf[20];
 	int brightness;
@@ -3319,11 +3174,11 @@ static void onscrd_brightness(int increment,int arg)
 	}
 	brightness = osd_get_brightness();
 
-	sprintf(buf,"Brightness %3d%%",brightness);
-	displayosd(buf,brightness,100);
+	sprintf(buf,"%s %3d%%", ui_getstring (UI_brightness), brightness);
+	displayosd(bitmap,buf,brightness,100);
 }
 
-static void onscrd_gamma(int increment,int arg)
+static void onscrd_gamma(struct osd_bitmap *bitmap,int increment,int arg)
 {
 	char buf[20];
 	float gamma_correction;
@@ -3340,11 +3195,11 @@ static void onscrd_gamma(int increment,int arg)
 	}
 	gamma_correction = osd_get_gamma();
 
-	sprintf(buf,"Gamma %1.2f",gamma_correction);
-	displayosd(buf,100*(gamma_correction-0.5)/(2.0-0.5),100*(1.0-0.5)/(2.0-0.5));
+	sprintf(buf,"%s %1.2f", ui_getstring (UI_gamma), gamma_correction);
+	displayosd(bitmap,buf,100*(gamma_correction-0.5)/(2.0-0.5),100*(1.0-0.5)/(2.0-0.5));
 }
 
-static void onscrd_vector_intensity(int increment,int arg)
+static void onscrd_vector_intensity(struct osd_bitmap *bitmap,int increment,int arg)
 {
 	char buf[30];
 	float intensity_correction;
@@ -3361,12 +3216,12 @@ static void onscrd_vector_intensity(int increment,int arg)
 	}
 	intensity_correction = vector_get_intensity();
 
-	sprintf(buf,"Vector intensity %1.2f",intensity_correction);
-	displayosd(buf,100*(intensity_correction-0.5)/(3.0-0.5),100*(1.5-0.5)/(3.0-0.5));
+	sprintf(buf,"%s %1.2f", ui_getstring (UI_vectorintensity), intensity_correction);
+	displayosd(bitmap,buf,100*(intensity_correction-0.5)/(3.0-0.5),100*(1.5-0.5)/(3.0-0.5));
 }
 
 
-static void onscrd_overclock(int increment,int arg)
+static void onscrd_overclock(struct osd_bitmap *bitmap,int increment,int arg)
 {
 	char buf[30];
 	double overclock;
@@ -3392,14 +3247,14 @@ static void onscrd_overclock(int increment,int arg)
 	oc = 100 * timer_get_overclock(arg) + 0.5;
 
 	if( doallcpus )
-		sprintf(buf,"ALL CPUS Overclock %3d%%", oc);
+		sprintf(buf,"%s %s %3d%%", ui_getstring (UI_allcpus), ui_getstring (UI_overclock), oc);
 	else
-		sprintf(buf,"Overclock CPU#%d %3d%%", arg, oc);
-	displayosd(buf,oc/2,100/2);
+		sprintf(buf,"%s %s%d %3d%%", ui_getstring (UI_overclock), ui_getstring (UI_cpu), arg, oc);
+	displayosd(bitmap,buf,oc/2,100/2);
 }
 
 #define MAX_OSD_ITEMS 30
-static void (*onscrd_fnc[MAX_OSD_ITEMS])(int increment,int arg);
+static void (*onscrd_fnc[MAX_OSD_ITEMS])(struct osd_bitmap *bitmap,int increment,int arg);
 static int onscrd_arg[MAX_OSD_ITEMS];
 static int onscrd_total_items;
 
@@ -3452,7 +3307,7 @@ static void onscrd_init(void)
 	onscrd_total_items = item;
 }
 
-static int on_screen_display(int selected)
+static int on_screen_display(struct osd_bitmap *bitmap, int selected)
 {
 	int increment,sel;
 	static int lastselected = 0;
@@ -3472,7 +3327,7 @@ static int on_screen_display(int selected)
 	if (input_ui_pressed_repeat(IPT_UI_UP,8))
 		sel = (sel + onscrd_total_items - 1) % onscrd_total_items;
 
-	(*onscrd_fnc[sel])(increment,onscrd_arg[sel]);
+	(*onscrd_fnc[sel])(bitmap,increment,onscrd_arg[sel]);
 
 	lastselected = sel;
 
@@ -3494,7 +3349,7 @@ static int on_screen_display(int selected)
 *********************************************************************/
 
 
-static void displaymessage(const char *text)
+static void displaymessage(struct osd_bitmap *bitmap,const char *text)
 {
 	struct DisplayText dt[2];
 	int avail;
@@ -3502,23 +3357,23 @@ static void displaymessage(const char *text)
 
 	if (Machine->uiwidth < Machine->uifontwidth * strlen(text))
 	{
-		ui_displaymessagewindow(text);
+		ui_displaymessagewindow(bitmap,text);
 		return;
 	}
 
 	avail = strlen(text)+2;
 
-	ui_drawbox((Machine->uiwidth - Machine->uifontwidth * avail) / 2,
+	ui_drawbox(bitmap,(Machine->uiwidth - Machine->uifontwidth * avail) / 2,
 			Machine->uiheight - 3*Machine->uifontheight,
 			avail * Machine->uifontwidth,
 			2*Machine->uifontheight);
 
 	dt[0].text = text;
-	dt[0].color = DT_COLOR_WHITE;
+	dt[0].color = UI_COLOR_NORMAL;
 	dt[0].x = (Machine->uiwidth - Machine->uifontwidth * strlen(text)) / 2;
 	dt[0].y = Machine->uiheight - 5*Machine->uifontheight/2;
 	dt[1].text = 0; /* terminate array */
-	displaytext(dt,0,0);
+	displaytext(bitmap,dt,0,0);
 }
 
 
@@ -3534,10 +3389,18 @@ void CLIB_DECL usrintf_showmessage(const char *text,...)
 	messagecounter = 2 * Machine->drv->frames_per_second;
 }
 
+void CLIB_DECL usrintf_showmessage_secs(int seconds, const char *text,...)
+{
+	va_list arg;
+	va_start(arg,text);
+	vsprintf(messagetext,text,arg);
+	va_end(arg);
+	messagecounter = seconds * Machine->drv->frames_per_second;
+}
 
 
 
-int handle_user_interface(void)
+int handle_user_interface(struct osd_bitmap *bitmap)
 {
 	static int show_profiler;
 #ifdef MAME_DEBUG
@@ -3574,7 +3437,7 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 			int y0 = Machine->uiymin + Machine->uiheight - Machine->uifont->height - 2;
 			for( x = 0; text[x]; x++ )
 			{
-				drawgfx(Machine->scrbitmap,
+				drawgfx(bitmap,
 					Machine->uifont,text[x],0,0,0,
 					x0+x*Machine->uifont->width,
 					y0,0,TRANSPARENCY_NONE,0);
@@ -3592,7 +3455,7 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 			int y0 = Machine->uiymin + Machine->uiheight - Machine->uifont->height - 2;
 			for( x = 0; text[x]; x++ )
 			{
-				drawgfx(Machine->scrbitmap,
+				drawgfx(bitmap,
 					Machine->uifont,text[x],0,0,0,
 					x0+x*Machine->uifont->width,
 					y0,0,TRANSPARENCY_NONE,0);
@@ -3607,10 +3470,10 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 
 	/* if the user pressed F12, save the screen to a file */
 	if (input_ui_pressed(IPT_UI_SNAPSHOT))
-		osd_save_snapshot();
+		osd_save_snapshot(bitmap);
 
-	/* This call is for the cheat, it must be called at least each frames */
-	if (options.cheat) DoCheat();
+	/* This call is for the cheat, it must be called once a frame */
+	if (options.cheat) DoCheat(bitmap);
 
 	/* if the user pressed ESC, stop the emulation */
 	/* but don't quit if the setup menu is on screen */
@@ -3627,7 +3490,7 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 			need_to_clear_bitmap = 1;
 		}
 	}
-	if (setup_selected != 0) setup_selected = setup_menu(setup_selected);
+	if (setup_selected != 0) setup_selected = setup_menu(bitmap, setup_selected);
 
 	if (!mame_debug && osd_selected == 0 && input_ui_pressed(IPT_UI_ON_SCREEN_DISPLAY))
 	{
@@ -3639,7 +3502,7 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 			need_to_clear_bitmap = 1;
 		}
 	}
-	if (osd_selected != 0) osd_selected = on_screen_display(osd_selected);
+	if (osd_selected != 0) osd_selected = on_screen_display(bitmap, osd_selected);
 
 
 #if 0
@@ -3715,21 +3578,21 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 			{
 				if (need_to_clear_bitmap || bitmap_dirty)
 				{
-					osd_clearbitmap(Machine->scrbitmap);
+					osd_clearbitmap(bitmap);
 					need_to_clear_bitmap = 0;
-					(*Machine->drv->vh_update)(Machine->scrbitmap,bitmap_dirty);
+					draw_screen(bitmap_dirty);
 					bitmap_dirty = 0;
 				}
 #ifdef MAME_DEBUG
 /* keep calling vh_screenrefresh() while paused so we can stuff */
 /* debug code in there */
-(*Machine->drv->vh_update)(Machine->scrbitmap,bitmap_dirty);
+draw_screen(bitmap_dirty);
 #endif
 			}
 			profiler_mark(PROFILER_END);
 
 			if (input_ui_pressed(IPT_UI_SNAPSHOT))
-				osd_save_snapshot();
+				osd_save_snapshot(bitmap);
 
 			if (setup_selected == 0 && input_ui_pressed(IPT_UI_CANCEL))
 				return 1;
@@ -3744,7 +3607,7 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 					need_to_clear_bitmap = 1;
 				}
 			}
-			if (setup_selected != 0) setup_selected = setup_menu(setup_selected);
+			if (setup_selected != 0) setup_selected = setup_menu(bitmap, setup_selected);
 
 			if (!mame_debug && osd_selected == 0 && input_ui_pressed(IPT_UI_ON_SCREEN_DISPLAY))
 			{
@@ -3756,12 +3619,12 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 					need_to_clear_bitmap = 1;
 				}
 			}
-			if (osd_selected != 0) osd_selected = on_screen_display(osd_selected);
+			if (osd_selected != 0) osd_selected = on_screen_display(bitmap, osd_selected);
 
 			/* show popup message if any */
-			if (messagecounter > 0) displaymessage(messagetext);
+			if (messagecounter > 0) displaymessage(bitmap, messagetext);
 
-			osd_update_video_and_audio();
+			update_video_and_audio();
 			osd_poll_joysticks();
 		}
 
@@ -3779,7 +3642,7 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 	/* show popup message if any */
 	if (messagecounter > 0)
 	{
-		displaymessage(messagetext);
+		displaymessage(bitmap, messagetext);
 
 		if (--messagecounter == 0)
 			/* tell updatescreen() to clean after us */
@@ -3807,10 +3670,10 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 			/* tell updatescreen() to clean after us */
 			need_to_clear_bitmap = 1;
 	}
-	if (show_total_colors) showtotalcolors();
+	if (show_total_colors) showtotalcolors(bitmap);
 #endif
 
-	if (show_profiler) profiler_show();
+	if (show_profiler) profiler_show(bitmap);
 
 
 	/* if the user pressed F4, show the character set */
@@ -3818,7 +3681,7 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 	{
 		osd_sound_enable(0);
 
-		showcharset();
+		showcharset(bitmap);
 
 		osd_sound_enable(1);
 	}
@@ -3842,6 +3705,8 @@ void init_user_interface(void)
 	jukebox_selected = -1;
 
 	single_step = 0;
+
+	orientation_count = 0;
 }
 
 int onscrd_active(void)

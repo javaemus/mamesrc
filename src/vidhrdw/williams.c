@@ -219,16 +219,16 @@ void williams_vh_update(int counter)
 	if (counter == 0) counter = 256;
 
 	/* determine the clip rect */
-	clip.min_x = Machine->drv->visible_area.min_x;
-	clip.max_x = Machine->drv->visible_area.max_x;
+	clip.min_x = Machine->visible_area.min_x;
+	clip.max_x = Machine->visible_area.max_x;
 	clip.min_y = counter - 16;
 	clip.max_y = clip.min_y + 15;
 
 	/* combine the clip rect with the visible rect */
-	if (Machine->drv->visible_area.min_y > clip.min_y)
-		clip.min_y = Machine->drv->visible_area.min_y;
-	if (Machine->drv->visible_area.max_y < clip.max_y)
-		clip.max_y = Machine->drv->visible_area.max_y;
+	if (Machine->visible_area.min_y > clip.min_y)
+		clip.min_y = Machine->visible_area.min_y;
+	if (Machine->visible_area.max_y < clip.max_y)
+		clip.max_y = Machine->visible_area.max_y;
 
 	/* copy */
 	if (Machine->scrbitmap->depth == 8)
@@ -277,7 +277,7 @@ void williams_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
  *
  *************************************/
 
-void williams_videoram_w(int offset, int data)
+WRITE_HANDLER( williams_videoram_w )
 {
 	/* only update if different */
 	if (williams_videoram[offset] != data)
@@ -289,7 +289,7 @@ void williams_videoram_w(int offset, int data)
 }
 
 
-int williams_video_counter_r(int offset)
+READ_HANDLER( williams_video_counter_r )
 {
 	return cpu_getscanline() & 0xfc;
 }
@@ -373,7 +373,7 @@ static void williams2_update_tiles(int y, const struct rectangle *clip)
 
 		drawgfx(Machine->scrbitmap, Machine->gfx[0], map & williams2_tilemap_mask,
 				color, map & williams2_M7_flip, 0, col * 24 - xpixeloffset, y,
-				&Machine->drv->visible_area, TRANSPARENCY_NONE, 0);
+				&Machine->visible_area, TRANSPARENCY_NONE, 0);
 	}
 }
 
@@ -386,16 +386,16 @@ void williams2_vh_update(int counter)
 	if (counter == 0) counter = 256;
 
 	/* determine the clip rect */
-	clip.min_x = Machine->drv->visible_area.min_x;
-	clip.max_x = Machine->drv->visible_area.max_x;
+	clip.min_x = Machine->visible_area.min_x;
+	clip.max_x = Machine->visible_area.max_x;
 	clip.min_y = counter - 16;
 	clip.max_y = clip.min_y + 15;
 
 	/* combine the clip rect with the visible rect */
-	if (Machine->drv->visible_area.min_y > clip.min_y)
-		clip.min_y = Machine->drv->visible_area.min_y;
-	if (Machine->drv->visible_area.max_y < clip.max_y)
-		clip.max_y = Machine->drv->visible_area.max_y;
+	if (Machine->visible_area.min_y > clip.min_y)
+		clip.min_y = Machine->visible_area.min_y;
+	if (Machine->visible_area.max_y < clip.max_y)
+		clip.max_y = Machine->visible_area.max_y;
 
 	/* redraw the tiles */
 	williams2_update_tiles(counter - 16, &clip);
@@ -471,7 +471,7 @@ static void williams2_update_bg_color(unsigned int offset)
 }
 
 
-void williams2_fg_select_w(int offset, int data)
+WRITE_HANDLER( williams2_fg_select_w )
 {
 	unsigned int i, palindex;
 
@@ -487,7 +487,7 @@ void williams2_fg_select_w(int offset, int data)
 }
 
 
-void williams2_bg_select_w(int offset, int data)
+WRITE_HANDLER( williams2_bg_select_w )
 {
 	unsigned int i, palindex;
 
@@ -528,7 +528,7 @@ void williams2_bg_select_w(int offset, int data)
  *
  *************************************/
 
-void williams2_videoram_w(int offset, int data)
+WRITE_HANDLER( williams2_videoram_w )
 {
 	/* bank 3 doesn't touch the screen */
 	if ((williams2_bank & 0x03) == 0x03)
@@ -582,7 +582,7 @@ int blaster_vh_start(void)
 	for (i = 0; i < 256; i++)
 	{
 		/* mark as used only the colors used for the visible background lines */
-		if (i < Machine->drv->visible_area.min_y || i > Machine->drv->visible_area.max_y)
+		if (i < Machine->visible_area.min_y || i > Machine->visible_area.max_y)
 			palette_used_colors[16 + i] = PALETTE_COLOR_UNUSED;
 
 		/* TODO: this leaves us with a total of 255+1 colors used, which is just */
@@ -591,9 +591,9 @@ int blaster_vh_start(void)
 		/* To do it correctly, vh_screenrefresh() should group the background */
 		/* lines of the same color and mark the others as COLOR_UNUSED. */
 		/* The background is very redundant so this can be done easily. */
-		palette_used_colors[16 + 0 + Machine->drv->visible_area.min_y] = PALETTE_COLOR_TRANSPARENT;
-		palette_used_colors[16 + 1 + Machine->drv->visible_area.min_y] = PALETTE_COLOR_TRANSPARENT;
-		palette_used_colors[16 + 2 + Machine->drv->visible_area.min_y] = PALETTE_COLOR_TRANSPARENT;
+		palette_used_colors[16 + 0 + Machine->visible_area.min_y] = PALETTE_COLOR_TRANSPARENT;
+		palette_used_colors[16 + 1 + Machine->visible_area.min_y] = PALETTE_COLOR_TRANSPARENT;
+		palette_used_colors[16 + 2 + Machine->visible_area.min_y] = PALETTE_COLOR_TRANSPARENT;
 	}
 
 	return 0;
@@ -629,13 +629,13 @@ void blaster_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
  *
  *************************************/
 
-void blaster_remap_select_w(int offset, int data)
+WRITE_HANDLER( blaster_remap_select_w )
 {
 	blaster_remap = blaster_remap_lookup + data * 256;
 }
 
 
-void blaster_video_bits_w(int offset, int data)
+WRITE_HANDLER( blaster_video_bits_w )
 {
 	*blaster_video_bits = data;
 	blaster_erase_screen = data & 0x02;
@@ -707,7 +707,7 @@ void blaster_video_bits_w(int offset, int data)
  *
  *************************************/
 
-void williams_blitter_w(int offset, int data)
+WRITE_HANDLER( williams_blitter_w )
 {
 	int sstart, dstart, w, h, count;
 
@@ -748,14 +748,11 @@ void williams_blitter_w(int offset, int data)
 		scanline_dirty[w++ % 256] = 1;
 
 	/* Log blits */
-	if (errorlog)
-	{
-		fprintf(errorlog,"---------- Blit %02X--------------PC: %04X\n",data,cpu_get_pc());
-		fprintf(errorlog,"Source : %02X %02X\n",williams_blitterram[2],williams_blitterram[3]);
-		fprintf(errorlog,"Dest   : %02X %02X\n",williams_blitterram[4],williams_blitterram[5]);
-		fprintf(errorlog,"W H    : %02X %02X (%d,%d)\n",williams_blitterram[6],williams_blitterram[7],williams_blitterram[6]^4,williams_blitterram[7]^4);
-		fprintf(errorlog,"Mask   : %02X\n",williams_blitterram[1]);
-	}
+	logerror("---------- Blit %02X--------------PC: %04X\n",data,cpu_get_pc());
+	logerror("Source : %02X %02X\n",williams_blitterram[2],williams_blitterram[3]);
+	logerror("Dest   : %02X %02X\n",williams_blitterram[4],williams_blitterram[5]);
+	logerror("W H    : %02X %02X (%d,%d)\n",williams_blitterram[6],williams_blitterram[7],williams_blitterram[6]^4,williams_blitterram[7]^4);
+	logerror("Mask   : %02X\n",williams_blitterram[1]);
 }
 
 

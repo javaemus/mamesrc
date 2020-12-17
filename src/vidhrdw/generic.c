@@ -12,19 +12,16 @@
 
 
 unsigned char *videoram;
-int videoram_size;
+size_t videoram_size;
 unsigned char *colorram;
 unsigned char *spriteram;	/* not used in this module... */
 unsigned char *spriteram_2;	/* ... */
 unsigned char *spriteram_3;	/* ... */
 unsigned char *buffered_spriteram;	/* not used in this module... */
 unsigned char *buffered_spriteram_2;	/* ... */
-int spriteram_size;	/* ... here just for convenience */
-int spriteram_2_size;	/* ... here just for convenience */
-int spriteram_3_size;	/* ... here just for convenience */
-unsigned char *flip_screen;	/* ... */
-unsigned char *flip_screen_x;	/* ... */
-unsigned char *flip_screen_y;	/* ... */
+size_t spriteram_size;	/* ... here just for convenience */
+size_t spriteram_2_size;	/* ... here just for convenience */
+size_t spriteram_3_size;	/* ... here just for convenience */
 unsigned char *dirtybuffer;
 struct osd_bitmap *tmpbitmap;
 
@@ -42,7 +39,7 @@ int generic_vh_start(void)
 
 	if (videoram_size == 0)
 	{
-if (errorlog) fprintf(errorlog,"Error: generic_vh_start() called but videoram_size not initialized\n");
+logerror("Error: generic_vh_start() called but videoram_size not initialized\n");
 		return 1;
 	}
 
@@ -50,7 +47,7 @@ if (errorlog) fprintf(errorlog,"Error: generic_vh_start() called but videoram_si
 		return 1;
 	memset(dirtybuffer,1,videoram_size);
 
-	if ((tmpbitmap = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer);
 		return 1;
@@ -62,7 +59,7 @@ if (errorlog) fprintf(errorlog,"Error: generic_vh_start() called but videoram_si
 
 int generic_bitmapped_vh_start(void)
 {
-	if ((tmpbitmap = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		return 1;
 	}
@@ -79,7 +76,7 @@ int generic_bitmapped_vh_start(void)
 void generic_vh_stop(void)
 {
 	free(dirtybuffer);
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap);
 
 	dirtybuffer = 0;
 	tmpbitmap = 0;
@@ -87,7 +84,7 @@ void generic_vh_stop(void)
 
 void generic_bitmapped_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap);
 
 	tmpbitmap = 0;
 }
@@ -102,21 +99,21 @@ void generic_bitmapped_vh_stop(void)
 void generic_bitmapped_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	if (full_refresh)
-		copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }
 
 
-int videoram_r(int offset)
+READ_HANDLER( videoram_r )
 {
 	return videoram[offset];
 }
 
-int colorram_r(int offset)
+READ_HANDLER( colorram_r )
 {
 	return colorram[offset];
 }
 
-void videoram_w(int offset,int data)
+WRITE_HANDLER( videoram_w )
 {
 	if (videoram[offset] != data)
 	{
@@ -126,7 +123,7 @@ void videoram_w(int offset,int data)
 	}
 }
 
-void colorram_w(int offset,int data)
+WRITE_HANDLER( colorram_w )
 {
 	if (colorram[offset] != data)
 	{
@@ -138,22 +135,22 @@ void colorram_w(int offset,int data)
 
 
 
-int spriteram_r(int offset)
+READ_HANDLER( spriteram_r )
 {
 	return spriteram[offset];
 }
 
-void spriteram_w(int offset,int data)
+WRITE_HANDLER( spriteram_w )
 {
 	spriteram[offset] = data;
 }
 
-int spriteram_2_r(int offset)
+READ_HANDLER( spriteram_2_r )
 {
 	return spriteram_2[offset];
 }
 
-void spriteram_2_w(int offset,int data)
+WRITE_HANDLER( spriteram_2_w )
 {
 	spriteram_2[offset] = data;
 }
@@ -201,12 +198,12 @@ more control is needed over what is buffered.
 
 */
 
-void buffer_spriteram_w(int offset,int data)
+WRITE_HANDLER( buffer_spriteram_w )
 {
 	memcpy(buffered_spriteram,spriteram,spriteram_size);
 }
 
-void buffer_spriteram_2_w(int offset,int data)
+WRITE_HANDLER( buffer_spriteram_2_w )
 {
 	memcpy(buffered_spriteram_2,spriteram_2,spriteram_2_size);
 }

@@ -23,18 +23,18 @@ Notes:
 /* in machine/mexico86.c */
 extern unsigned char *mexico86_protection_ram;
 int mexico86_m68705_interrupt(void);
-int mexico86_68705_portA_r(int offset);
-void mexico86_68705_portA_w(int offset,int data);
-void mexico86_68705_ddrA_w(int offset,int data);
-int mexico86_68705_portB_r(int offset);
-void mexico86_68705_portB_w(int offset,int data);
-void mexico86_68705_ddrB_w(int offset,int data);
+READ_HANDLER( mexico86_68705_portA_r );
+WRITE_HANDLER( mexico86_68705_portA_w );
+WRITE_HANDLER( mexico86_68705_ddrA_w );
+READ_HANDLER( mexico86_68705_portB_r );
+WRITE_HANDLER( mexico86_68705_portB_w );
+WRITE_HANDLER( mexico86_68705_ddrB_w );
 
 /* in vidhrdw/mexico86.c */
 extern unsigned char *mexico86_videoram,*mexico86_objectram;
-extern int mexico86_objectram_size;
+extern size_t mexico86_objectram_size;
 void mexico86_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-void mexico86_bankswitch_w(int offs,int data);
+WRITE_HANDLER( mexico86_bankswitch_w );
 void mexico86_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void kikikai_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
@@ -42,12 +42,12 @@ void kikikai_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 static unsigned char *shared;
 
-static int shared_r(int offset)
+static READ_HANDLER( shared_r )
 {
 	return shared[offset];
 }
 
-static void shared_w(int offset,int data)
+static WRITE_HANDLER( shared_w )
 {
 	shared[offset] = data;
 }
@@ -63,7 +63,7 @@ bit 2 = sound cpu reset line
 bit 1 = microcontroller reset line
 bit 0 = ? (unused?)
 */
-static void mexico86_f008_w(int offset,int data)
+static WRITE_HANDLER( mexico86_f008_w )
 {
 	cpu_set_reset_line(1,(data & 4) ? CLEAR_LINE : ASSERT_LINE);
 	cpu_set_reset_line(2,(data & 2) ? CLEAR_LINE : ASSERT_LINE);
@@ -175,6 +175,9 @@ INPUT_PORTS_START( mexico86 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START
+	/* When Bit 1 is On, the machine waits a signal from another one */
+	/* Seems like if you can join two cabinets, one as master */
+	/* and the other as slave, probably to play four players */
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -203,15 +206,15 @@ INPUT_PORTS_START( mexico86 )
 	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0c, 0x08, "Timer" )
+	PORT_DIPSETTING(    0x04, "Slow" )
+	PORT_DIPSETTING(    0x08, "Normal" )
+	PORT_DIPSETTING(    0x0c, "Fast" )
+	PORT_DIPSETTING(    0x00, "Fastest" )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	/* The following dip seems to be related with the first one */
 	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -269,11 +272,11 @@ INPUT_PORTS_START( kikikai )
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Cabinet ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Cocktail ) )
-	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Flip_Screen ) )
 	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_SERVICE( 0x04, IP_ACTIVE_LOW )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
 	PORT_DIPNAME( 0x30, 0x30, DEF_STR( Coin_A ) )

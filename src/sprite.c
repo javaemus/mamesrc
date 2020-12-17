@@ -130,10 +130,8 @@ static long mask_buffer_alloc( long size ){
 	if( req_size>mask_buffer_size ){
 		mask_buffer = realloc( mask_buffer, req_size );
 		mask_buffer_size = req_size;
-		if( errorlog ){
-			fprintf( errorlog, "increased sprite mask buffer size to %d bytes.\n", mask_buffer_size );
-			if( !mask_buffer ) fprintf( errorlog, "Error! insufficient memory for mask_buffer_alloc\n" );
-		}
+		logerror("increased sprite mask buffer size to %d bytes.\n", mask_buffer_size );
+		if( !mask_buffer ) logerror("Error! insufficient memory for mask_buffer_alloc\n" );
 	}
 	mask_buffer_used = req_size;
 	memset( &mask_buffer[result], 0x00, size ); /* clear it */
@@ -855,7 +853,7 @@ skip3:
 /*********************************************************************/
 
 void sprite_init( void ){
-	const struct rectangle *clip = &Machine->drv->visible_area;
+	const struct rectangle *clip = &Machine->visible_area;
 	int left = clip->min_x;
 	int top = clip->min_y;
 	int right = clip->max_x+1;

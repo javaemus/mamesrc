@@ -92,21 +92,31 @@ Playfield ROM: 136023.306,136023.305
 #include "driver.h"
 #include "vidhrdw/generic.h"
 
-extern unsigned char *enable_nvRAM;
-extern unsigned char *cloak_sharedram;
-extern int  cloak_sharedram_r(int offset);
-extern void cloak_sharedram_w(int offset, int data);
-extern void cloak_paletteram_w(int offset,int data);
-extern int  graph_processor_r(int offset);
-extern void graph_processor_w(int offset, int data);
-extern void cloak_clearbmp_w(int offset, int data);
+static unsigned char *enable_nvRAM;
+static unsigned char *cloak_sharedram;
+WRITE_HANDLER( cloak_paletteram_w );
+READ_HANDLER( graph_processor_r );
+WRITE_HANDLER( graph_processor_w );
+WRITE_HANDLER( cloak_clearbmp_w );
 extern int  cloak_vh_start(void);
 extern void cloak_vh_stop(void);
 extern void cloak_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
 static unsigned char *nvram;
-static int nvram_size;
+static size_t nvram_size;
+
+
+static READ_HANDLER( cloak_sharedram_r )
+{
+	return cloak_sharedram[offset];
+}
+
+static WRITE_HANDLER( cloak_sharedram_w )
+{
+	cloak_sharedram[offset] = data;
+}
+
 
 static void nvram_handler(void *file, int read_or_write)
 {
@@ -122,7 +132,7 @@ static void nvram_handler(void *file, int read_or_write)
 }
 
 
-void cloak_led_w(int offset,int data)
+WRITE_HANDLER( cloak_led_w )
 {
 	osd_led_w(1 - offset,~data >> 7);
 }

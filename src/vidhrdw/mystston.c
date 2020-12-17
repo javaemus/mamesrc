@@ -18,7 +18,7 @@
 
 
 unsigned char *mystston_videoram2,*mystston_colorram2;
-int mystston_videoram2_size;
+size_t mystston_videoram2_size;
 unsigned char *mystston_scroll;
 static int textcolor;
 static int flipscreen;
@@ -78,7 +78,7 @@ int mystston_vh_start(void)
 	memset(dirtybuffer,1,videoram_size);
 
 	/* Mysterious Stones has a virtual screen twice as large as the visible screen */
-	if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer);
 		return 1;
@@ -97,12 +97,12 @@ int mystston_vh_start(void)
 void mystston_vh_stop(void)
 {
 	free(dirtybuffer);
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap);
 }
 
 
 
-void mystston_2000_w(int offset,int data)
+WRITE_HANDLER( mystston_2000_w )
 {
 	/* bits 0 and 1 are text color */
 	textcolor = ((data & 0x01) << 1) | ((data & 0x02) >> 1);
@@ -119,7 +119,7 @@ void mystston_2000_w(int offset,int data)
 	}
 
 	/* other bits unused? */
-if (errorlog) fprintf(errorlog,"PC %04x: 2000 = %02x\n",cpu_get_pc(),data);
+logerror("PC %04x: 2000 = %02x\n",cpu_get_pc(),data);
 }
 
 
@@ -177,7 +177,7 @@ void mystston_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		scrolly = -*mystston_scroll;
 		if (flipscreen) scrolly = 256 - scrolly;
 
-		copyscrollbitmap(bitmap,tmpbitmap,0,0,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap,0,0,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -206,7 +206,7 @@ void mystston_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					(spriteram[offs] & 0x08) >> 3,
 					flipx,flipy,
 					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 
@@ -230,6 +230,6 @@ void mystston_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				textcolor,
 				flipscreen,flipscreen,
 				8*sx,8*sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

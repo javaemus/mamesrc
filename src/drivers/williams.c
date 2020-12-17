@@ -523,18 +523,18 @@ void williams2_init_machine(void);
 void joust2_init_machine(void);
 
 /* banking */
-void williams_vram_select_w(int offset, int data);
-void defender_bank_select_w(int offset, int data);
-void blaster_bank_select_w(int offset, int data);
-void blaster_vram_select_w(int offset, int data);
-void williams2_bank_select(int offset, int data);
+WRITE_HANDLER( williams_vram_select_w );
+WRITE_HANDLER( defender_bank_select_w );
+WRITE_HANDLER( blaster_bank_select_w );
+WRITE_HANDLER( blaster_vram_select_w );
+WRITE_HANDLER( williams2_bank_select_w );
 
 /* misc */
-void williams2_7segment(int offset, int data);
+WRITE_HANDLER( williams2_7segment_w );
 
 /* Mayday protection */
 extern UINT8 *mayday_protection;
-int mayday_protection_r(int offset);
+READ_HANDLER( mayday_protection_r );
 
 
 
@@ -564,13 +564,13 @@ extern UINT8 *blaster_color_zero_flags;
 extern UINT8 *blaster_video_bits;
 
 
-void defender_videoram_w(int offset,int data);
-void williams_videoram_w(int offset,int data);
-void williams2_videoram_w(int offset,int data);
-void williams_blitter_w(int offset,int data);
-void blaster_remap_select_w(int offset, int data);
-void blaster_video_bits_w(int offset, int data);
-int williams_video_counter_r(int offset);
+WRITE_HANDLER( defender_videoram_w );
+WRITE_HANDLER( williams_videoram_w );
+WRITE_HANDLER( williams2_videoram_w );
+WRITE_HANDLER( williams_blitter_w );
+WRITE_HANDLER( blaster_remap_select_w );
+WRITE_HANDLER( blaster_video_bits_w );
+READ_HANDLER( williams_video_counter_r );
 
 
 int williams_vh_start(void);
@@ -583,8 +583,8 @@ void blaster_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 int williams2_vh_start(void);
 void williams2_vh_stop(void);
 
-void williams2_fg_select_w(int offset, int data);
-void williams2_bg_select_w(int offset, int data);
+WRITE_HANDLER( williams2_fg_select_w );
+WRITE_HANDLER( williams2_bg_select_w );
 
 
 
@@ -766,12 +766,12 @@ static struct MemoryWriteAddress williams2_writemem[] =
 	{ 0x0000, 0x8fff, williams2_videoram_w, &videoram, &videoram_size },
 	{ 0x9000, 0xbfff, MWA_RAM },
 	{ 0xc000, 0xc7ff, MWA_RAM },
-	{ 0xc800, 0xc800, williams2_bank_select },
+	{ 0xc800, 0xc800, williams2_bank_select_w },
 	{ 0xc880, 0xc887, williams_blitter_w, &williams_blitterram },
 	{ 0xc900, 0xc900, watchdog_reset_w },
 	{ 0xc980, 0xc983, pia_1_w },
 	{ 0xc984, 0xc987, pia_0_w },
-	{ 0xc98c, 0xc98c, williams2_7segment },
+	{ 0xc98c, 0xc98c, williams2_7segment_w },
 	{ 0xcb00, 0xcb00, williams2_fg_select_w },
 	{ 0xcb20, 0xcb20, williams2_bg_select_w },
 	{ 0xcb40, 0xcb40, MWA_RAM, &williams2_xscroll_low },
@@ -1990,23 +1990,6 @@ ROM_START( defence )
 ROM_END
 
 
-ROM_START( defcomnd )
-	ROM_REGION( 0x15000, REGION_CPU1 )
-	ROM_LOAD( "dfndr-c.rom", 0x0d000, 0x1000, 0x2a256b93 )
-	ROM_LOAD( "dfndr-b.rom", 0x0e000, 0x1000, 0xe34e87fc )
-	ROM_LOAD( "dfndr-a.rom", 0x0f000, 0x1000, 0xf78d62fa )
-	/* bank 0 is the place for CMOS ram */
-	ROM_LOAD( "dfndr-d.rom", 0x10000, 0x1000, 0xef2179fe )
-	ROM_LOAD( "dfndr-e.rom", 0x11000, 0x1000, 0x4fa3d99c )
-	ROM_LOAD( "dfndr-f.rom", 0x12000, 0x1000, 0x03721aa7 )
-	ROM_LOAD( "dfndr-i.rom", 0x13000, 0x1000, 0x5998a4cf )
-	ROM_LOAD( "dfndr-g.rom", 0x14000, 0x1000, 0xa1b63291 )
-
-	ROM_REGION( 0x10000, REGION_CPU2 )     /* 64k for the sound CPU */
-	ROM_LOAD( "dfndr-h.rom", 0xf000, 0x1000, 0x30fced3d )
-ROM_END
-
-
 ROM_START( mayday )
 	ROM_REGION( 0x15000, REGION_CPU1 )
 	ROM_LOAD( "ic03-3.bin",  0x0d000, 0x1000, 0xa1ff6e62 )
@@ -2511,7 +2494,6 @@ GAME( 1980, defendg,  defender, defender, defender, defender, ROT0,   "Williams"
 GAME( 1980, defendw,  defender, defender, defender, defender, ROT0,   "Williams", "Defender (White label)" )
 GAMEX(1980, defndjeu, defender, defender, defender, defndjeu, ROT0,   "Jeutel", "Defender ? (bootleg)", GAME_NOT_WORKING )
 GAME( 1980, defcmnd,  defender, defender, defender, defender, ROT0,   "bootleg", "Defense Command (set 1)" )
-GAMEX(1980, defcomnd, defender, defender, defender, defender, ROT0,   "<unknown>", "Defense Command (set 2)", GAME_NOT_WORKING )
 GAME( 1981, defence,  defender, defender, defender, defender, ROT0,   "Outer Limits", "Defence Command" )
 
 GAME( 1980, mayday,   0,        defender, defender, mayday,   ROT0,   "<unknown>", "Mayday (set 1)" )

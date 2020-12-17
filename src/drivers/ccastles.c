@@ -85,19 +85,17 @@ extern unsigned char *ccastles_sprite_bank;
 extern unsigned char *ccastles_scrollx;
 extern unsigned char *ccastles_scrolly;
 
-void ccastles_paletteram_w(int offset,int data);
+WRITE_HANDLER( ccastles_paletteram_w );
 int ccastles_vh_start(void);
 void ccastles_vh_stop(void);
 void ccastles_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-int ccastles_bitmode_r(int offset);
-void ccastles_bitmode_w(int offset, int data);
-
-void ccastles_flipscreen_w(int offset,int data);
+READ_HANDLER( ccastles_bitmode_r );
+WRITE_HANDLER( ccastles_bitmode_w );
 
 
 static unsigned char *nvram;
-static int nvram_size;
+static size_t nvram_size;
 
 static void nvram_handler(void *file,int read_or_write)
 {
@@ -113,18 +111,18 @@ static void nvram_handler(void *file,int read_or_write)
 }
 
 
-static void ccastles_led_w(int offset,int data)
+static WRITE_HANDLER( ccastles_led_w )
 {
 	osd_led_w(offset,~data);
 }
 
-static void ccastles_coin_counter_w(int offset,int data)
+static WRITE_HANDLER( ccastles_coin_counter_w )
 {
 	/* this is not working, haven't investigated why */
 	coin_counter_w(offset^1, ~data);
 }
 
-static void ccastles_bankswitch_w(int offset, int data)
+static WRITE_HANDLER( ccastles_bankswitch_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1);
 
@@ -173,7 +171,7 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x9e87, 0x9e87, ccastles_bankswitch_w },
 	{ 0x9f00, 0x9f01, MWA_RAM, &ccastles_screen_inc_enable },
 	{ 0x9f02, 0x9f03, MWA_RAM, &ccastles_screen_inc },
-	{ 0x9f04, 0x9f04, ccastles_flipscreen_w },
+	{ 0x9f04, 0x9f04, flip_screen_w },
 	{ 0x9f05, 0x9f06, MWA_RAM },
 	{ 0x9f07, 0x9f07, MWA_RAM, &ccastles_sprite_bank },
 	{ 0x9f80, 0x9fbf, ccastles_paletteram_w },

@@ -9,17 +9,17 @@
 
 unsigned char *zerozone_videoram;
 
-extern int videoram_size;
+extern size_t videoram_size;
 static unsigned char *video_dirty;
 
 
 
-int zerozone_videoram_r(int offset)
+READ_HANDLER( zerozone_videoram_r )
 {
 	return READ_WORD(&zerozone_videoram[offset]);
 }
 
-void zerozone_videoram_w(int offset,int data)
+WRITE_HANDLER( zerozone_videoram_w )
 {
 	int oldword = READ_WORD (&zerozone_videoram[offset]);
 	int newword = COMBINE_WORD (oldword, data);

@@ -8,8 +8,8 @@
 
 int  goindol_vh_start(void);
 void goindol_vh_stop(void);
-void goindol_fg_videoram_w(int offset,int data);
-void goindol_bg_videoram_w(int offset,int data);
+WRITE_HANDLER( goindol_fg_videoram_w );
+WRITE_HANDLER( goindol_bg_videoram_w );
 void goindol_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void goindol_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 
@@ -19,13 +19,13 @@ extern unsigned char 	*goindol_fg_videoram;
 extern unsigned char 	*goindol_bg_videoram;
 extern unsigned char 	*goindol_spriteram1;
 extern unsigned char 	*goindol_spriteram2;
-extern int 	 	goindol_spriteram_size;
-extern int 	 	goindol_fg_videoram_size;
-extern int 	 	goindol_bg_videoram_size;
+extern size_t goindol_spriteram_size;
+extern size_t goindol_fg_videoram_size;
+extern size_t goindol_bg_videoram_size;
 extern int 	 	goindol_char_bank;
 
 
-void goindol_bankswitch_w(int offset,int data)
+WRITE_HANDLER( goindol_bankswitch_w )
 {
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);

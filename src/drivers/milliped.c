@@ -47,17 +47,69 @@ driver by Ivan Mackintosh
 #include "machine/atari_vg.h"
 
 
-void milliped_paletteram_w(int offset,int data);
+WRITE_HANDLER( milliped_paletteram_w );
 void milliped_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-int milliped_IN0_r(int offset);
-int milliped_IN1_r(int offset);
-void milliped_input_select_w(int offset,int data);
+/*
+ * This wrapper routine is necessary because Millipede requires a direction bit
+ * to be set or cleared. The direction bit is held until the mouse is moved
+ * again. We still don't understand why the difference between
+ * two consecutive reads must not exceed 7. After all, the input is 4 bits
+ * wide, and we have a fifth bit for the sign...
+ *
+ * The other reason it is necessary is that Millipede uses the same address to
+ * read the dipswitches.
+ */
 
-void milliped_led_w (int offset, int data)
+static UINT8 dsw_select;
+
+static WRITE_HANDLER( milliped_input_select_w )
+{
+	dsw_select = (data == 0);
+}
+
+static READ_HANDLER( milliped_IN0_r )
+{
+	static int oldpos,sign;
+	int newpos;
+
+	if (dsw_select)
+		return (readinputport(0) | sign);
+
+	newpos = readinputport(6);
+	if (newpos != oldpos)
+	{
+		sign = (newpos - oldpos) & 0x80;
+		oldpos = newpos;
+	}
+
+	return ((readinputport(0) & 0x70) | (oldpos & 0x0f) | sign );
+}
+
+static READ_HANDLER( milliped_IN1_r )
+{
+	static int oldpos,sign;
+	int newpos;
+
+	if (dsw_select)
+		return (readinputport(1) | sign);
+
+	newpos = readinputport(7);
+	if (newpos != oldpos)
+	{
+		sign = (newpos - oldpos) & 0x80;
+		oldpos = newpos;
+	}
+
+	return ((readinputport(1) & 0x70) | (oldpos & 0x0f) | sign );
+}
+
+static WRITE_HANDLER( milliped_led_w )
 {
 	osd_led_w (offset, ~(data >> 7));
 }
+
+
 
 static struct MemoryReadAddress readmem[] =
 {
@@ -91,7 +143,7 @@ static struct MemoryWriteAddress writemem[] =
 //	{ 0x2506, 0x2507, MWA_NOP }, /* ? */
 	{ 0x2600, 0x2600, MWA_NOP }, /* IRQ ack */
 	{ 0x2680, 0x2680, watchdog_reset_w },
-	{ 0x2700, 0x2700, atari_vg_earom_ctrl },
+	{ 0x2700, 0x2700, atari_vg_earom_ctrl_w },
 	{ 0x2780, 0x27bf, atari_vg_earom_w },
 	{ 0x4000, 0x73ff, MWA_ROM },
 	{ -1 }	/* end of table */

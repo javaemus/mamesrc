@@ -634,7 +634,7 @@ INLINE void apu_regwrite(int chip,int address, uint8 value)
       break;
    default:
 #ifdef MAME_DEBUG
-if (errorlog) fprintf(errorlog,"invalid apu write: $%02X at $%04X\n", value, address);
+logerror("invalid apu write: $%02X at $%04X\n", value, address);
 #endif
       break;
    }
@@ -714,10 +714,10 @@ INLINE void apu_write(int chip,int address, uint8 value)
 /* EXTERNAL INTERFACE FUNCTIONS */
 
 /* REGISTER READ/WRITE FUNCTIONS */
-int NESPSG_0_r(int offset) {return apu_read(0,offset);}
-int NESPSG_1_r(int offset) {return apu_read(1,offset);}
-void NESPSG_0_w(int offset,int data) {apu_write(0,offset,data);}
-void NESPSG_1_w(int offset,int data) {apu_write(1,offset,data);}
+READ_HANDLER( NESPSG_0_r ) {return apu_read(0,offset);}
+READ_HANDLER( NESPSG_1_r ) {return apu_read(1,offset);}
+WRITE_HANDLER( NESPSG_0_w ) {apu_write(0,offset,data);}
+WRITE_HANDLER( NESPSG_1_w ) {apu_write(1,offset,data);}
 
 /* INITIALIZE APU SYSTEM */
 int NESPSG_sh_start(const struct MachineSound *msound)

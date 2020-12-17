@@ -146,14 +146,12 @@ mooncrsb    bootleg of mooncrs2. ROM/RAM check erased.
 
 extern unsigned char *galaxian_attributesram;
 extern unsigned char *galaxian_bulletsram;
-extern int galaxian_bulletsram_size;
+extern size_t galaxian_bulletsram_size;
 void galaxian_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-void galaxian_flipx_w(int offset,int data);
-void galaxian_flipy_w(int offset,int data);
-void galaxian_attributes_w(int offset,int data);
-void galaxian_stars_w(int offset,int data);
-void scramble_background_w(int offset, int data);
-void mooncrst_gfxextend_w(int offset,int data);
+WRITE_HANDLER( galaxian_attributes_w );
+WRITE_HANDLER( galaxian_stars_w );
+WRITE_HANDLER( scramble_background_w );
+WRITE_HANDLER( mooncrst_gfxextend_w );
 int  galaxian_vh_start(void);
 int  mooncrst_vh_start(void);
 int   moonqsr_vh_start(void);
@@ -166,29 +164,35 @@ void galaxian_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 int  galaxian_vh_interrupt(void);
 int  scramble_vh_interrupt(void);
 int  devilfsg_vh_interrupt(void);
-void jumpbug_gfxbank_w(int offset,int data);
-void pisces_gfxbank_w(int offset,int data);
+int   jumpbug_vh_interrupt(void);
+WRITE_HANDLER( jumpbug_gfxbank_w );
+WRITE_HANDLER( pisces_gfxbank_w );
 
-void galaxian_pitch_w(int offset,int data);
-void galaxian_vol_w(int offset,int data);
-void galaxian_noise_enable_w(int offset,int data);
-void galaxian_background_enable_w(int offset,int data);
-void galaxian_shoot_enable_w(int offset,int data);
-void galaxian_lfo_freq_w(int offset,int data);
+WRITE_HANDLER( galaxian_pitch_w );
+WRITE_HANDLER( galaxian_vol_w );
+WRITE_HANDLER( galaxian_noise_enable_w );
+WRITE_HANDLER( galaxian_background_enable_w );
+WRITE_HANDLER( galaxian_shoot_enable_w );
+WRITE_HANDLER( galaxian_lfo_freq_w );
 int  galaxian_sh_start(const struct MachineSound *msound);
 void galaxian_sh_stop(void);
 void galaxian_sh_update(void);
 
-int scramblb_protection_1_r(int offset);
-int scramblb_protection_2_r(int offset);
+READ_HANDLER( scramblb_protection_1_r );
+READ_HANDLER( scramblb_protection_2_r );
 
 
-static void galaxian_coin_lockout_w(int offset, int data)
+static WRITE_HANDLER( galaxian_coin_lockout_w )
 {
 	coin_lockout_global_w(offset, data ^ 1);
 }
 
-static int galapx_funky_r(int offset)
+static WRITE_HANDLER( galaxian_leds_w )
+{
+	osd_led_w(offset,data);
+}
+
+static READ_HANDLER( galapx_funky_r )
 {
 	return 0xff;
 }
@@ -198,7 +202,7 @@ static int galapx_funky_r(int offset)
 static int kingball_speech_dip;
 
 /* Hack? If $b003 is high, we'll check our "fake" speech dipswitch */
-static int kingball_IN0_r (int offset)
+static READ_HANDLER( kingball_IN0_r )
 {
 	if (kingball_speech_dip)
 		return (readinputport (0) & 0x80) >> 1;
@@ -206,24 +210,24 @@ static int kingball_IN0_r (int offset)
 		return readinputport (0);
 }
 
-static void kingball_speech_dip_w (int offset, int data)
+static WRITE_HANDLER( kingball_speech_dip_w )
 {
 	kingball_speech_dip = data;
 }
 
 static int kingball_sound;
 
-static void kingball_sound1_w (int offset, int data)
+static WRITE_HANDLER( kingball_sound1_w )
 {
 	kingball_sound = (kingball_sound & ~0x01) | data;
-	if (errorlog) fprintf (errorlog, "kingball_sample latch: %02x (%02x)\n", kingball_sound, data);
+	logerror("kingball_sample latch: %02x (%02x)\n", kingball_sound, data);
 }
 
-static void kingball_sound2_w (int offset, int data)
+static WRITE_HANDLER( kingball_sound2_w )
 {
 	kingball_sound = (kingball_sound & ~0x02) | (data << 1);
 	soundlatch_w (0, kingball_sound | 0xf0);
-	if (errorlog) fprintf (errorlog, "kingball_sample play: %02x (%02x)\n", kingball_sound, data);
+	logerror("kingball_sample play: %02x (%02x)\n", kingball_sound, data);
 }
 
 
@@ -245,7 +249,7 @@ static void machine_init_kingball(void)
 }
 
 
-static int jumpbug_protection_r(int offset)
+static READ_HANDLER( jumpbug_protection_r )
 {
 	switch (offset)
 	{
@@ -255,13 +259,13 @@ static int jumpbug_protection_r(int offset)
 	case 0x0235:  return 0x02;
 	case 0x0311:  return 0x00;  /* not checked */
 	default:
-		if (errorlog)  fprintf(errorlog, "Unknown protection read. Offset: %04X  PC=%04X\n",0xb000+offset,cpu_get_pc());
+		logerror("Unknown protection read. Offset: %04X  PC=%04X\n",0xb000+offset,cpu_get_pc());
 	}
 
 	return 0;
 }
 
-static int checkmaj_protection_r(int offset)
+static READ_HANDLER( checkmaj_protection_r )
 {
 	switch (cpu_get_pc())
 	{
@@ -272,14 +276,14 @@ static int checkmaj_protection_r(int offset)
 	case 0x10f1:  return 0xaa;
 	case 0x1402:  return 0xaa;
 	default:
-		if (errorlog)  fprintf(errorlog, "Unknown protection read. PC=%04X\n",cpu_get_pc());
+		logerror("Unknown protection read. PC=%04X\n",cpu_get_pc());
 	}
 
 	return 0;
 }
 
 /* Send sound data to the sound cpu and cause an nmi */
-static void checkman_sound_command_w (int offset, int data)
+static WRITE_HANDLER( checkman_sound_command_w )
 {
 	soundlatch_w (0,data);
 	cpu_cause_interrupt (1, Z80_NMI_INT);
@@ -308,7 +312,7 @@ static struct MemoryWriteAddress galaxian_writemem[] =
 	{ 0x5840, 0x585f, MWA_RAM, &spriteram, &spriteram_size },
 	{ 0x5860, 0x587f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
 	{ 0x5880, 0x58ff, MWA_RAM },
-	{ 0x6000, 0x6001, osd_led_w },
+	{ 0x6000, 0x6001, galaxian_leds_w },
 	{ 0x6004, 0x6007, galaxian_lfo_freq_w },
 	{ 0x6800, 0x6802, galaxian_background_enable_w },
 	{ 0x6803, 0x6803, galaxian_noise_enable_w },
@@ -316,8 +320,8 @@ static struct MemoryWriteAddress galaxian_writemem[] =
 	{ 0x6806, 0x6807, galaxian_vol_w },
 	{ 0x7001, 0x7001, interrupt_enable_w },
 	{ 0x7004, 0x7004, galaxian_stars_w },
-	{ 0x7006, 0x7006, galaxian_flipx_w },
-	{ 0x7007, 0x7007, galaxian_flipy_w },
+	{ 0x7006, 0x7006, flip_screen_x_w },
+	{ 0x7007, 0x7007, flip_screen_y_w },
 	{ 0x7800, 0x7800, galaxian_pitch_w },
 	{ -1 }	/* end of table */
 };
@@ -355,8 +359,8 @@ static struct MemoryWriteAddress mooncrst_writemem[] =
 	{ 0xb000, 0xb000, interrupt_enable_w },	/* not Checkman */
 	{ 0xb001, 0xb001, interrupt_enable_w },	/* Checkman only */
 	{ 0xb004, 0xb004, galaxian_stars_w },
-	{ 0xb006, 0xb006, galaxian_flipx_w },
-	{ 0xb007, 0xb007, galaxian_flipy_w },
+	{ 0xb006, 0xb006, flip_screen_x_w },
+	{ 0xb007, 0xb007, flip_screen_y_w },
 	{ 0xb800, 0xb800, galaxian_pitch_w },
 	{ -1 }	/* end of table */
 };
@@ -395,8 +399,8 @@ static struct MemoryWriteAddress scramblb_writemem[] =
 	{ 0x7002, 0x7002, coin_counter_w },
 	{ 0x7003, 0x7003, scramble_background_w },
 	{ 0x7004, 0x7004, galaxian_stars_w },
-	{ 0x7006, 0x7006, galaxian_flipx_w },
-	{ 0x7007, 0x7007, galaxian_flipy_w },
+	{ 0x7006, 0x7006, flip_screen_x_w },
+	{ 0x7007, 0x7007, flip_screen_y_w },
 	{ 0x7800, 0x7800, galaxian_pitch_w },
 	{ -1 }	/* end of table */
 };
@@ -433,8 +437,8 @@ static struct MemoryWriteAddress jumpbug_writemem[] =
 	{ 0x7001, 0x7001, interrupt_enable_w },
 	{ 0x7002, 0x7002, coin_counter_w },
 	{ 0x7004, 0x7004, galaxian_stars_w },
-	{ 0x7006, 0x7006, galaxian_flipx_w },
-	{ 0x7007, 0x7007, galaxian_flipy_w },
+	{ 0x7006, 0x7006, flip_screen_x_w },
+	{ 0x7007, 0x7007, flip_screen_y_w },
 	{ 0x8000, 0xafff, MWA_ROM },
 	{ 0xfff0, 0xffff, MWA_RAM },
 	{ -1 }	/* end of table */
@@ -450,8 +454,8 @@ static struct MemoryWriteAddress checkmaj_writemem[] =
 	{ 0x5860, 0x587f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
 	{ 0x5880, 0x58ff, MWA_RAM },
 	{ 0x7001, 0x7001, interrupt_enable_w },
-	{ 0x7006, 0x7006, galaxian_flipx_w },
-	{ 0x7007, 0x7007, galaxian_flipy_w },
+	{ 0x7006, 0x7006, flip_screen_x_w },
+	{ 0x7007, 0x7007, flip_screen_y_w },
 	{ 0x7800, 0x7800, checkman_sound_command_w },
 	{ -1 }	/* end of table */
 };
@@ -528,8 +532,8 @@ static struct MemoryWriteAddress kingball_writemem[] =
 	{ 0xb002, 0xb002, kingball_sound2_w },
 	{ 0xb003, 0xb003, kingball_speech_dip_w },
 //	{ 0xb004, 0xb004, galaxian_stars_w },
-	{ 0xb006, 0xb006, galaxian_flipx_w },
-	{ 0xb007, 0xb007, galaxian_flipy_w },
+	{ 0xb006, 0xb006, flip_screen_x_w },
+	{ 0xb007, 0xb007, flip_screen_y_w },
 	{ 0xb800, 0xb800, galaxian_pitch_w },
 	{ -1 }	/* end of table */
 };
@@ -554,13 +558,13 @@ static struct IOReadPort kingball_sound_readport[] =
 
 static struct IOWritePort kingball_sound_writeport[] =
 {
-	{ 0x00, 0x00, DAC_data_w },
+	{ 0x00, 0x00, DAC_0_data_w },
 	{ -1 }	/* end of table */
 };
 
 
 /* Zig Zag can swap ROMs 2 and 3 as a form of copy protection */
-static void zigzag_sillyprotection_w(int offset,int data)
+static WRITE_HANDLER( zigzag_sillyprotection_w )
 {
 	unsigned char *RAM = memory_region(REGION_CPU1);
 
@@ -582,17 +586,17 @@ static void zigzag_sillyprotection_w(int offset,int data)
 /* but the way the 8910 is hooked up is even sillier! */
 static int latch;
 
-static void zigzag_8910_latch(int offset,int data)
+static WRITE_HANDLER( zigzag_8910_latch_w )
 {
 	latch = offset;
 }
 
-static void zigzag_8910_data_trigger(int offset,int data)
+static WRITE_HANDLER( zigzag_8910_data_trigger_w )
 {
 	AY8910_write_port_0_w(0,latch);
 }
 
-static void zigzag_8910_control_trigger(int offset,int data)
+static WRITE_HANDLER( zigzag_8910_control_trigger_w )
 {
 	AY8910_control_port_0_w(0,latch);
 }
@@ -616,17 +620,17 @@ static struct MemoryWriteAddress zigzag_writemem[] =
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x4000, 0x47ff, MWA_RAM },
 	{ 0x4800, 0x4800, MWA_NOP },	/* part of the 8910 interface */
-	{ 0x4801, 0x4801, zigzag_8910_data_trigger },
-	{ 0x4803, 0x4803, zigzag_8910_control_trigger },
-	{ 0x4900, 0x49ff, zigzag_8910_latch },
+	{ 0x4801, 0x4801, zigzag_8910_data_trigger_w },
+	{ 0x4803, 0x4803, zigzag_8910_control_trigger_w },
+	{ 0x4900, 0x49ff, zigzag_8910_latch_w },
 	{ 0x4a00, 0x4a00, MWA_NOP },	/* part of the 8910 interface */
 	{ 0x5000, 0x53ff, videoram_w, &videoram, &videoram_size },
 	{ 0x5800, 0x583f, galaxian_attributes_w, &galaxian_attributesram },
 	{ 0x5840, 0x587f, MWA_RAM, &spriteram, &spriteram_size },	/* no bulletsram, all sprites */
 	{ 0x7001, 0x7001, interrupt_enable_w },
 	{ 0x7002, 0x7002, zigzag_sillyprotection_w },
-	{ 0x7006, 0x7006, galaxian_flipx_w },
-	{ 0x7007, 0x7007, galaxian_flipy_w },
+	{ 0x7006, 0x7006, flip_screen_x_w },
+	{ 0x7007, 0x7007, flip_screen_y_w },
 	{ -1 }	/* end of table */
 };
 
@@ -643,7 +647,7 @@ INPUT_PORTS_START( galaxian )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
 	PORT_SERVICE( 0x40, IP_ACTIVE_HIGH )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )
 
 	PORT_START      /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -684,7 +688,7 @@ INPUT_PORTS_START( superg )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
 	PORT_SERVICE( 0x40, IP_ACTIVE_HIGH )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )
 
 	PORT_START      /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -709,6 +713,47 @@ INPUT_PORTS_START( superg )
 	PORT_DIPSETTING(    0x00, "3" )
 	PORT_DIPSETTING(    0x04, "5" )
 	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	PORT_BIT( 0xf0, IP_ACTIVE_HIGH, IPT_UNUSED )
+INPUT_PORTS_END
+
+INPUT_PORTS_START( zerotime )
+	PORT_START      /* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_COIN1 )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_COIN2 )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_2WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_2WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
+	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
+	PORT_SERVICE( 0x40, IP_ACTIVE_HIGH )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )
+
+	PORT_START      /* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START2 )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_2WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_2WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* probably unused */
+	PORT_DIPNAME( 0xc0, 0x40, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x40, "A 1C/1C  B 1C/2C " )
+	PORT_DIPSETTING(    0xc0, "A 1C/1C  B 1C/3C " )
+	PORT_DIPSETTING(    0x00, "A 1C/2C  B 1C/4C " )
+	PORT_DIPSETTING(    0x80, "A 1C/2C  B 1C/5C " )
+
+	PORT_START      /* DSW0 */
+	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x03, "6000" )
+	PORT_DIPSETTING(    0x02, "7000" )
+	PORT_DIPSETTING(    0x01, "9000" )
+	PORT_DIPSETTING(    0x00, "None" )
+	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x00, "3" )
+	PORT_DIPSETTING(    0x04, "5" )
+	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Unknown ) )		/* used */
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
 	PORT_BIT( 0xf0, IP_ACTIVE_HIGH, IPT_UNUSED )
@@ -779,7 +824,7 @@ INPUT_PORTS_START( warofbug )
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_SERVICE1 )
 	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 	PORT_DIPNAME( 0xc0, 0x00, DEF_STR( Coinage ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( 2C_1C ) )
@@ -813,7 +858,7 @@ INPUT_PORTS_START( redufo )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
 	PORT_SERVICE( 0x40, IP_ACTIVE_HIGH )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )
 
 	PORT_START      /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -1175,9 +1220,9 @@ INPUT_PORTS_START( azurian )
 	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Coinage ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( 2C_1C ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( 1C_1C ) )
-	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Unknown ) )		/* used */
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+    PORT_DIPNAME( 0x02, 0x00, DEF_STR( Bonus_Life ) )
+    PORT_DIPSETTING(    0x00, "5000" )
+    PORT_DIPSETTING(    0x02, "7000" )
 	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Unknown ) )		/* used */
 	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -1280,7 +1325,7 @@ INPUT_PORTS_START( swarm )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
 	PORT_SERVICE( 0x40, IP_ACTIVE_HIGH )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )
 
 	PORT_START      /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -1359,7 +1404,7 @@ INPUT_PORTS_START( blkhole )
 	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
 	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )
 
 	PORT_START      /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -1401,7 +1446,7 @@ INPUT_PORTS_START( mooncrst )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
 	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* "reset" on schematics */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )	/* works only in the Gremlin version */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )	/* works only in the Gremlin version */
 
 	PORT_START	/* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -1525,7 +1570,7 @@ INPUT_PORTS_START( moonqsr )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
 	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* "reset" on schematics */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )
 
 	PORT_START      /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -1605,7 +1650,7 @@ INPUT_PORTS_START( moonal2 )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
 	PORT_SERVICE( 0x40, IP_ACTIVE_HIGH )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_COIN3 )	/* works only in the Gremlin version */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SERVICE1 )	/* works only in the Gremlin version */
 
 	PORT_START	/* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
@@ -1924,7 +1969,7 @@ static struct MachineDriver machine_driver_jumpbug =
 			CPU_Z80,
 			3072000,	/* 3.072 Mhz */
 			jumpbug_readmem,jumpbug_writemem,0,0,
-			galaxian_vh_interrupt,1
+			jumpbug_vh_interrupt,1
 		}
 	},
 	16000.0/132/2, 2500,	/* frames per second, vblank duration */
@@ -2244,6 +2289,22 @@ ROM_START( swarm )
 	ROM_LOAD( "galaxian.clr", 0x0000, 0x0020, 0xc3ac9467 )
 ROM_END
 
+ROM_START( zerotime )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "zt-p01c.016",  0x0000, 0x0800, 0x90a2bc61 )
+	ROM_LOAD( "zt-2.016",     0x0800, 0x0800, 0xa433067e )
+	ROM_LOAD( "zt-3.016",     0x1000, 0x0800, 0xaaf038d4 )
+	ROM_LOAD( "zt-4.016",     0x1800, 0x0800, 0x786d690a )
+	ROM_LOAD( "zt-5.016",     0x2000, 0x0800, 0xaf9260d7 )
+
+	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "ztc-2.016",    0x0000, 0x0800, 0x1b13ca05 )
+	ROM_LOAD( "ztc-1.016",    0x0800, 0x0800, 0x5cd7df03 )
+
+	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_LOAD( "galaxian.clr", 0x0000, 0x0020, 0xc3ac9467 )
+ROM_END
+
 ROM_START( pisces )
 	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
 	ROM_LOAD( "pisces.a1",    0x0000, 0x0800, 0x856b8e1f )
@@ -2355,6 +2416,25 @@ ROM_START( redufo )
 
 	ROM_REGION( 0x0020, REGION_PROMS )
 	ROM_LOAD( "galaxian.clr", 0x0000, 0x0020, 0xc3ac9467 )
+ROM_END
+
+
+ROM_START( exodus )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "exodus1.bin",  0x0000, 0x0800, 0x5dfe65e1 )
+	ROM_LOAD( "exodus2.bin",  0x0800, 0x0800, 0x6559222f )
+	ROM_LOAD( "exodus3.bin",  0x1000, 0x0800, 0xbf7030e8 )
+	ROM_LOAD( "exodus4.bin",  0x1800, 0x0800, 0x3607909e )
+	ROM_LOAD( "exodus9.bin",  0x2000, 0x0800, 0x994a90c4 )
+	ROM_LOAD( "exodus10.bin", 0x2800, 0x0800, 0xfbd11187 )
+	ROM_LOAD( "exodus11.bin", 0x3000, 0x0800, 0xfd07d811 )
+
+	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "exodus5.bin",  0x0000, 0x0800, 0xb34c7cb4 )
+	ROM_LOAD( "exodus6.bin",  0x0800, 0x0800, 0x50a2d447 )
+
+	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_LOAD( "l06_prom.bin", 0x0000, 0x0020, 0x6a0c7d87 )
 ROM_END
 
 ROM_START( pacmanbl )
@@ -3072,12 +3152,14 @@ GAME( 1979, galap1,   galaxian, galaxian, superg,   0,        ROT90,  "hack", "S
 GAME( 1979, galap4,   galaxian, galaxian, superg,   0,        ROT90,  "hack", "Galaxian Part 4" )
 GAME( 1979, galturbo, galaxian, galaxian, superg,   0,        ROT90,  "hack", "Galaxian Turbo" )
 GAME( 1979, swarm,    galaxian, galaxian, swarm,    0,        ROT90,  "hack", "Swarm" )
+GAME( 1979, zerotime, galaxian, galaxian, zerotime, 0,        ROT90,  "Petaco S.A.", "Zero Time" )
 GAME( ????, pisces,   0,        pisces,   pisces,   pisces,   ROT90,  "<unknown>", "Pisces" )
 GAME( 1980, uniwars,  0,        pisces,   superg,   pisces,   ROT90,  "Irem", "UniWar S" )
 GAME( 1980, gteikoku, uniwars,  pisces,   superg,   pisces,   ROT90,  "Irem", "Gingateikoku No Gyakushu" )
 GAME( 1980, spacbatt, uniwars,  pisces,   superg,   pisces,   ROT90,  "bootleg", "Space Battle" )
 GAME( 1981, warofbug, 0,        warofbug, warofbug, 0,        ROT90,  "Armenia", "War of the Bugs" )
-GAME( ????, redufo,   0,        warofbug, redufo,   0,        ROT90,  "Hara Industries??", "Defend the Terra Attack on the Red UFO" )
+GAME( ????, redufo,   0,        warofbug, redufo,   0,        ROT90,  "bootleg", "Defend the Terra Attack on the Red UFO (bootleg)" )
+GAME( ????, exodus,   redufo,   warofbug, redufo,   0,        ROT90,  "Subelectro", "Exodus (bootleg?)" )
 GAME( 1981, pacmanbl, pacman,   pacmanbl, pacmanbl, 0,        ROT270, "bootleg", "Pac-Man (bootleg on Galaxian hardware)" )
 GAME( 1984, devilfsg, devilfsh, devilfsg, devilfsg, 0,        ROT270, "Vision / Artic", "Devil Fish (Galaxian hardware, bootleg?)" )
 GAME( 1982, zigzag,   0,        zigzag,   zigzag,   0,        ROT90,  "LAX", "Zig Zag (Galaxian hardware, set 1)" )

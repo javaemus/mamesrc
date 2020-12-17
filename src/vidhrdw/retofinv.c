@@ -8,7 +8,7 @@
 
 #include "driver.h"
 
-unsigned int retofinv_videoram_size;
+size_t retofinv_videoram_size;
 unsigned char *retofinv_sprite_ram1;
 unsigned char *retofinv_sprite_ram2;
 unsigned char *retofinv_sprite_ram3;
@@ -94,7 +94,7 @@ int retofinv_vh_start(void)
 	{
 		return 1;
 	}
-	if ((bitmap_bg = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+	if ((bitmap_bg = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		free(bg_dirtybuffer);
 		return 1;
@@ -107,37 +107,37 @@ int retofinv_vh_start(void)
 void retofinv_vh_stop(void)
 {
 	free(bg_dirtybuffer);
-	osd_free_bitmap(bitmap_bg);
+	bitmap_free(bitmap_bg);
 }
 
-void retofinv_flip_screen_w(int offset, int data)
+WRITE_HANDLER( retofinv_flip_screen_w )
 {
 	flipscreen = data;
 	memset(bg_dirtybuffer,1,retofinv_videoram_size);
 	fillbitmap(bitmap_bg,Machine->pens[0],0);
 }
 
-int retofinv_bg_videoram_r(int offset)
+READ_HANDLER( retofinv_bg_videoram_r )
 {
 	return retofinv_bg_videoram[offset];
 }
 
-int retofinv_fg_videoram_r(int offset)
+READ_HANDLER( retofinv_fg_videoram_r )
 {
 	return retofinv_fg_videoram[offset];
 }
 
-int retofinv_bg_colorram_r(int offset)
+READ_HANDLER( retofinv_bg_colorram_r )
 {
 	return retofinv_bg_colorram[offset];
 }
 
-int retofinv_fg_colorram_r(int offset)
+READ_HANDLER( retofinv_fg_colorram_r )
 {
 	return retofinv_fg_colorram[offset];
 }
 
-void retofinv_bg_videoram_w(int offset,int data)
+WRITE_HANDLER( retofinv_bg_videoram_w )
 {
 	if (retofinv_bg_videoram[offset] != data)
 	{
@@ -146,13 +146,13 @@ void retofinv_bg_videoram_w(int offset,int data)
 	}
 }
 
-void retofinv_fg_videoram_w(int offset,int data)
+WRITE_HANDLER( retofinv_fg_videoram_w )
 {
 	if (retofinv_fg_videoram[offset] != data)
 		retofinv_fg_videoram[offset] = data;
 }
 
-void retofinv_bg_colorram_w(int offset,int data)
+WRITE_HANDLER( retofinv_bg_colorram_w )
 {
 	if (retofinv_bg_colorram[offset] != data)
 	{
@@ -161,7 +161,7 @@ void retofinv_bg_colorram_w(int offset,int data)
 	}
 }
 
-void retofinv_fg_colorram_w(int offset,int data)
+WRITE_HANDLER( retofinv_fg_colorram_w )
 {
 	if (retofinv_fg_colorram[offset] != data)
 		retofinv_fg_colorram[offset] = data;
@@ -214,7 +214,7 @@ void retofinv_render_sprites(struct osd_bitmap *bitmap)
 							palette,
 							flipx,flipy,
 							sx,sy,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+							&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 			if (size & 4)
 			{
@@ -224,14 +224,14 @@ void retofinv_render_sprites(struct osd_bitmap *bitmap)
 							palette,
 							flipx,flipy,
 							sx,sy+16,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+							&Machine->visible_area,TRANSPARENCY_PEN,0);
 
 				drawgfx(bitmap,Machine->gfx[2],
 							tile+tileofs2,
 							palette,
 							flipx,flipy,
 							sx,sy,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+							&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 			if (size & 8)
 			{
@@ -241,14 +241,14 @@ void retofinv_render_sprites(struct osd_bitmap *bitmap)
 							palette,
 							flipx,flipy,
 							sx-16,sy+16,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+							&Machine->visible_area,TRANSPARENCY_PEN,0);
 
 				drawgfx(bitmap,Machine->gfx[2],
 							tile+tileofs3,
 							palette,
 							flipx,flipy,
 							sx-16,sy,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+							&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 		}
 	}
@@ -296,12 +296,12 @@ void retofinv_draw_background(struct osd_bitmap *bitmap)
 						palette,
 						flipscreen,flipscreen,
 						8*sx+16,8*sy,
-						&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+						&Machine->visible_area,TRANSPARENCY_NONE,0);
 			}
 		}
 	}
 
-	copybitmap(bitmap,bitmap_bg,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,bitmap_bg,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }
 
 
@@ -336,7 +336,7 @@ void retofinv_draw_foreground(struct osd_bitmap *bitmap)
 						  palette,
 						  flipx,flipy,
 						  sx,sy,
-						  &Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+						  &Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
@@ -365,7 +365,7 @@ void retofinv_draw_foreground(struct osd_bitmap *bitmap)
 						  palette,
 						  flipx,flipy,
 						  sx,sy,
-						  &Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						  &Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 
@@ -394,7 +394,7 @@ void retofinv_draw_foreground(struct osd_bitmap *bitmap)
 						  palette,
 						  flipx,flipy,
 						  sx,sy,
-						  &Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+						  &Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 }

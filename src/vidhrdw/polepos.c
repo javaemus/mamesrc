@@ -155,7 +155,7 @@ void polepos_vh_convert_color_prom(UINT8 *palette, UINT16 *colortable, const UIN
 int polepos_vh_start(void)
 {
 	/* allocate view bitmap */
-	view_bitmap = osd_create_bitmap(64*8, 16*8);
+	view_bitmap = bitmap_alloc(64*8, 16*8);
 	if (!view_bitmap)
 		return 1;
 
@@ -163,7 +163,7 @@ int polepos_vh_start(void)
 	view_dirty = malloc(64*16);
 	if (!view_dirty)
 	{
-		osd_free_bitmap(view_bitmap);
+		bitmap_free(view_bitmap);
 		return 1;
 	}
 
@@ -172,7 +172,7 @@ int polepos_vh_start(void)
 
 void polepos_vh_stop(void)
 {
-	osd_free_bitmap(view_bitmap);
+	bitmap_free(view_bitmap);
 	free(view_dirty);
 }
 
@@ -183,24 +183,24 @@ void polepos_vh_stop(void)
 
 ***************************************************************************/
 
-int polepos_sprite_r(int offs)
+READ_HANDLER( polepos_sprite_r )
 {
-	return READ_WORD(&polepos_sprite_memory[offs]);
+	return READ_WORD(&polepos_sprite_memory[offset]);
 }
 
-void polepos_sprite_w(int offs, int data)
+WRITE_HANDLER( polepos_sprite_w )
 {
-	COMBINE_WORD_MEM(&polepos_sprite_memory[offs], data);
+	COMBINE_WORD_MEM(&polepos_sprite_memory[offset], data);
 }
 
-int polepos_z80_sprite_r(int offs)
+READ_HANDLER( polepos_z80_sprite_r )
 {
-	return polepos_sprite_r(offs << 1) & 0xff;
+	return polepos_sprite_r(offset << 1) & 0xff;
 }
 
-void polepos_z80_sprite_w(int offs, int data)
+WRITE_HANDLER( polepos_z80_sprite_w )
 {
-	polepos_sprite_w(offs << 1, data | 0xff000000);
+	polepos_sprite_w(offset << 1, data | 0xff000000);
 }
 
 
@@ -210,27 +210,27 @@ void polepos_z80_sprite_w(int offs, int data)
 
 ***************************************************************************/
 
-int polepos_road_r(int offs)
+READ_HANDLER( polepos_road_r )
 {
-	return READ_WORD(&polepos_road_memory[offs]);
+	return READ_WORD(&polepos_road_memory[offset]);
 }
 
-void polepos_road_w(int offs, int data)
+WRITE_HANDLER( polepos_road_w )
 {
-	COMBINE_WORD_MEM(&polepos_road_memory[offs], data);
+	COMBINE_WORD_MEM(&polepos_road_memory[offset], data);
 }
 
-int polepos_z80_road_r(int offs)
+READ_HANDLER( polepos_z80_road_r )
 {
-	return polepos_road_r(offs << 1) & 0xff;
+	return polepos_road_r(offset << 1) & 0xff;
 }
 
-void polepos_z80_road_w(int offs, int data)
+WRITE_HANDLER( polepos_z80_road_w )
 {
-	polepos_road_w(offs << 1, data | 0xff000000);
+	polepos_road_w(offset << 1, data | 0xff000000);
 }
 
-void polepos_road_vscroll_w(int offs, int data)
+WRITE_HANDLER( polepos_road_vscroll_w )
 {
 	road_vscroll = data;
 }
@@ -242,34 +242,34 @@ void polepos_road_vscroll_w(int offs, int data)
 
 ***************************************************************************/
 
-int polepos_view_r(int offs)
+READ_HANDLER( polepos_view_r )
 {
-	return READ_WORD(&polepos_view_memory[offs]);
+	return READ_WORD(&polepos_view_memory[offset]);
 }
 
-void polepos_view_w(int offs, int data)
+WRITE_HANDLER( polepos_view_w )
 {
-	int oldword = READ_WORD(&polepos_view_memory[offs]);
+	int oldword = READ_WORD(&polepos_view_memory[offset]);
 	int newword = COMBINE_WORD(oldword, data);
 	if (oldword != newword)
 	{
-		WRITE_WORD(&polepos_view_memory[offs], newword);
-		if (offs < 0x800)
-			view_dirty[offs / 2] = 1;
+		WRITE_WORD(&polepos_view_memory[offset], newword);
+		if (offset < 0x800)
+			view_dirty[offset / 2] = 1;
 	}
 }
 
-int polepos_z80_view_r(int offs)
+READ_HANDLER( polepos_z80_view_r )
 {
-	return polepos_view_r(offs << 1) & 0xff;
+	return polepos_view_r(offset << 1) & 0xff;
 }
 
-void polepos_z80_view_w(int offs, int data)
+WRITE_HANDLER( polepos_z80_view_w )
 {
-	polepos_view_w(offs << 1, data | 0xff000000);
+	polepos_view_w(offset << 1, data | 0xff000000);
 }
 
-void polepos_view_hscroll_w(int offs, int data)
+WRITE_HANDLER( polepos_view_hscroll_w )
 {
 	view_hscroll = data;
 }
@@ -281,27 +281,27 @@ void polepos_view_hscroll_w(int offs, int data)
 
 ***************************************************************************/
 
-int polepos_alpha_r(int offs)
+READ_HANDLER( polepos_alpha_r )
 {
-	return READ_WORD(&polepos_alpha_memory[offs]);
+	return READ_WORD(&polepos_alpha_memory[offset]);
 }
 
-void polepos_alpha_w(int offs, int data)
+WRITE_HANDLER( polepos_alpha_w )
 {
-	int oldword = READ_WORD(&polepos_alpha_memory[offs]);
+	int oldword = READ_WORD(&polepos_alpha_memory[offset]);
 	int newword = COMBINE_WORD(oldword, data);
 	if (oldword != newword)
-		WRITE_WORD(&polepos_alpha_memory[offs], newword);
+		WRITE_WORD(&polepos_alpha_memory[offset], newword);
 }
 
-int polepos_z80_alpha_r(int offs)
+READ_HANDLER( polepos_z80_alpha_r )
 {
-	return polepos_alpha_r(offs << 1) & 0xff;
+	return polepos_alpha_r(offset << 1) & 0xff;
 }
 
-void polepos_z80_alpha_w(int offs, int data)
+WRITE_HANDLER( polepos_z80_alpha_w )
 {
-	polepos_alpha_w(offs << 1, data | 0xff000000);
+	polepos_alpha_w(offset << 1, data | 0xff000000);
 }
 
 
@@ -313,7 +313,7 @@ void polepos_z80_alpha_w(int offs, int data)
 
 static void draw_view(struct osd_bitmap *bitmap)
 {
-	struct rectangle clip = Machine->drv->visible_area;
+	struct rectangle clip = Machine->visible_area;
 	int x, y, offs;
 
 	/* look for dirty tiles */
@@ -390,7 +390,7 @@ static void draw_sprites(struct osd_bitmap *bitmap)
 		if (vpos >= 128) color |= 0x40;
 		drawgfxzoom(bitmap, gfx,
 				 code, color, hflip, 0, hpos, vpos,
-				 &Machine->drv->visible_area, TRANSPARENCY_COLOR, 0, hsize << 11, vsize << 11);
+				 &Machine->visible_area, TRANSPARENCY_COLOR, 0, hsize << 11, vsize << 11);
 	}
 }
 
@@ -408,7 +408,7 @@ static void draw_alpha(struct osd_bitmap *bitmap)
 			if (y >= 16) color |= 0x40;
 			drawgfx(bitmap, Machine->gfx[0],
 					 code, color, 0, 0, 8*x, 8*y,
-					 &Machine->drv->visible_area, TRANSPARENCY_COLOR, 0);
+					 &Machine->visible_area, TRANSPARENCY_COLOR, 0);
 		}
 
 	/* Now draw the shift if selected on the fake dipswitch */
@@ -419,20 +419,20 @@ static void draw_alpha(struct osd_bitmap *bitmap)
 			/* L */
 			drawgfx(bitmap, Machine->gfx[0],
 					 0x15, 0, 0, 0, 30*8-1, 29*8,
-					 &Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+					 &Machine->visible_area, TRANSPARENCY_PEN, 0);
 			/* O */
 			drawgfx(bitmap, Machine->gfx[0],
 					 0x18, 0, 0, 0, 31*8-1, 29*8,
-					 &Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+					 &Machine->visible_area, TRANSPARENCY_PEN, 0);
 		} else {
 			/* H */
 			drawgfx(bitmap, Machine->gfx[0],
 					 0x11, 0, 0, 0, 30*8-1, 29*8,
-					 &Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+					 &Machine->visible_area, TRANSPARENCY_PEN, 0);
 			/* I */
 			drawgfx(bitmap, Machine->gfx[0],
 					 0x12, 0, 0, 0, 31*8-1, 29*8,
-					 &Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+					 &Machine->visible_area, TRANSPARENCY_PEN, 0);
 		}
 	}
 }

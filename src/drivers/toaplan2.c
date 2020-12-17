@@ -81,18 +81,18 @@ static INT8 old_p2_paddle_v;
 
 
 /**************** Video stuff ******************/
-int  toaplan2_0_videoram_r(int offset);
-int  toaplan2_1_videoram_r(int offset);
-void toaplan2_0_videoram_w(int offset, int data);
-void toaplan2_1_videoram_w(int offset, int data);
+READ_HANDLER( toaplan2_0_videoram_r );
+READ_HANDLER( toaplan2_1_videoram_r );
+WRITE_HANDLER( toaplan2_0_videoram_w );
+WRITE_HANDLER( toaplan2_1_videoram_w );
 
-void toaplan2_0_voffs_w(int offset, int data);
-void toaplan2_1_voffs_w(int offset, int data);
+WRITE_HANDLER( toaplan2_0_voffs_w );
+WRITE_HANDLER( toaplan2_1_voffs_w );
 
-void toaplan2_0_scroll_reg_select_w(int offset, int data);
-void toaplan2_1_scroll_reg_select_w(int offset, int data);
-void toaplan2_0_scroll_reg_data_w(int offset, int data);
-void toaplan2_1_scroll_reg_data_w(int offset, int data);
+WRITE_HANDLER( toaplan2_0_scroll_reg_select_w );
+WRITE_HANDLER( toaplan2_1_scroll_reg_select_w );
+WRITE_HANDLER( toaplan2_0_scroll_reg_data_w );
+WRITE_HANDLER( toaplan2_1_scroll_reg_data_w );
 
 void toaplan2_0_eof_callback(void);
 void toaplan2_1_eof_callback(void);
@@ -139,45 +139,45 @@ static int toaplan2_interrupt(void)
 	return MC68000_IRQ_4;
 }
 
-static void toaplan2_coin_w(int offset, int data)
+static WRITE_HANDLER( toaplan2_coin_w )
 {
 	switch (data & 0x0f)
 	{
 		case 0x00:	coin_lockout_global_w(0,1); break;	/* Lock all coin slots */
 		case 0x0c:	coin_lockout_global_w(0,0); break;	/* Unlock all coin slots */
 		case 0x0d:	coin_counter_w(0,1); coin_counter_w(0,0);	/* Count slot A */
-					if (errorlog) fprintf(errorlog,"Count coin slot A\n"); break;
+					logerror("Count coin slot A\n"); break;
 		case 0x0e:	coin_counter_w(1,1); coin_counter_w(1,0);	/* Count slot B */
-					if (errorlog) fprintf(errorlog,"Count coin slot B\n"); break;
+					logerror("Count coin slot B\n"); break;
 	/* The following are coin counts after coin-lock active (faulty coin-lock ?) */
 		case 0x01:	coin_counter_w(0,1); coin_counter_w(0,0); coin_lockout_w(0,1); break;
 		case 0x02:	coin_counter_w(1,1); coin_counter_w(1,0); coin_lockout_global_w(0,1); break;
 
-		default:	if (errorlog) fprintf(errorlog,"Writing unknown command (%04x) to coin control\n",data);
+		default:	logerror("Writing unknown command (%04x) to coin control\n",data);
 					break;
 	}
 	if (data > 0xf)
 	{
-		if (errorlog) fprintf(errorlog,"Writing unknown upper bits command (%04x) to coin control\n",data);
+		logerror("Writing unknown upper bits command (%04x) to coin control\n",data);
 	}
 }
 
-static void oki_bankswitch_w(int offset, int data)
+static WRITE_HANDLER( oki_bankswitch_w )
 {
 	OKIM6295_set_bank_base(0, ALL_VOICES, (data & 1) * 0x40000);
 }
 
-static int toaplan2_shared_r(int offset)
+static READ_HANDLER( toaplan2_shared_r )
 {
 	return toaplan2_shared_ram[offset>>1];
 }
 
-static void toaplan2_shared_w(int offset, int data)
+static WRITE_HANDLER( toaplan2_shared_w )
 {
 	toaplan2_shared_ram[offset>>1] = data;
 }
 
-static void toaplan2_hd647180_cpu_w(int offset, int data)
+static WRITE_HANDLER( toaplan2_hd647180_cpu_w )
 {
 	/* Command sent to secondary CPU. Support for HD647180 will be
 	   required when a ROM dump becomes available for this hardware */
@@ -189,11 +189,11 @@ static void toaplan2_hd647180_cpu_w(int offset, int data)
 	else									/* Teki Paki */
 	{
 		mcu_data = data;
-		if (errorlog) fprintf(errorlog,"PC:%08x Writing command (%04x) to secondary CPU shared port\n",cpu_getpreviouspc(),mcu_data);
+		logerror("PC:%08x Writing command (%04x) to secondary CPU shared port\n",cpu_getpreviouspc(),mcu_data);
 	}
 }
 
-static int c2map_port_6_r(int offset)
+static READ_HANDLER( c2map_port_6_r )
 {
 	/* bit 4 high signifies secondary CPU is ready */
 	/* bit 5 is tested low before V-Blank bit ??? */
@@ -208,7 +208,7 @@ static int c2map_port_6_r(int offset)
 	return ( mcu_data | input_port_6_r(0) );
 }
 
-static int video_status_r(int offset)
+static READ_HANDLER( video_status_r )
 {
 	/* video busy if bit 8 is low, or bits 7-0 are high ??? */
 	video_status += 0x100;
@@ -217,7 +217,7 @@ static int video_status_r(int offset)
 }
 
 
-static int ghox_p1_h_analog_r(int offset)
+static READ_HANDLER( ghox_p1_h_analog_r )
 {
 	INT8 value, new_value;
 	new_value = input_port_7_r(0);
@@ -226,7 +226,7 @@ static int ghox_p1_h_analog_r(int offset)
 	old_p1_paddle_h = new_value;
 	return value;
 }
-static int ghox_p1_v_analog_r(int offset)
+static READ_HANDLER( ghox_p1_v_analog_r )
 {
 	INT8 new_value;
 	new_value = input_port_9_r(0);		/* fake vertical movement */
@@ -239,7 +239,7 @@ static int ghox_p1_v_analog_r(int offset)
 	old_p1_paddle_v = new_value;
 	return (input_port_1_r(0) | 1);
 }
-static int ghox_p2_h_analog_r(int offset)
+static READ_HANDLER( ghox_p2_h_analog_r )
 {
 	INT8 value, new_value;
 	new_value = input_port_8_r(0);
@@ -248,7 +248,7 @@ static int ghox_p2_h_analog_r(int offset)
 	old_p2_paddle_h = new_value;
 	return value;
 }
-static int ghox_p2_v_analog_r(int offset)
+static READ_HANDLER( ghox_p2_v_analog_r )
 {
 	INT8 new_value;
 	new_value = input_port_10_r(0);		/* fake vertical movement */
@@ -262,11 +262,11 @@ static int ghox_p2_v_analog_r(int offset)
 	return (input_port_2_r(0) | 1);
 }
 
-static int ghox_mcu_r(int offset)
+static READ_HANDLER( ghox_mcu_r )
 {
 	return 0xff;
 }
-static void ghox_mcu_w(int offset, int data)
+static WRITE_HANDLER( ghox_mcu_w )
 {
 	data &= 0xffff;
 	mcu_data = data;
@@ -278,7 +278,7 @@ static void ghox_mcu_w(int offset, int data)
 	}
 	else
 	{
-		if (errorlog) fprintf(errorlog,"PC:%08x Writing %08x to HD647180 cpu shared ram status port\n",cpu_getpreviouspc(),mcu_data);
+		logerror("PC:%08x Writing %08x to HD647180 cpu shared ram status port\n",cpu_getpreviouspc(),mcu_data);
 	}
 	WRITE_WORD (&toaplan2_shared_ram[0x56],0x4e);	/* Return a RTS instruction */
 	WRITE_WORD (&toaplan2_shared_ram[0x58],0x75);
@@ -305,7 +305,7 @@ static void ghox_mcu_w(int offset, int data)
 
 }
 
-static int ghox_shared_ram_r(int offset)
+static READ_HANDLER( ghox_shared_ram_r )
 {
 	/* Ghox 68K reads data from MCU shared RAM and writes it to main RAM.
 	   It then subroutine jumps to main RAM and executes this code.
@@ -325,13 +325,13 @@ static int ghox_shared_ram_r(int offset)
 
 	return data;
 }
-static void ghox_shared_ram_w(int offset, int data)
+static WRITE_HANDLER( ghox_shared_ram_w )
 {
 	WRITE_WORD (&toaplan2_shared_ram[offset],data);
 }
 
 
-static int kbash_sub_cpu_r(int offset)
+static READ_HANDLER( kbash_sub_cpu_r )
 {
 /*	Knuckle Bash's  68000 reads secondary CPU status via an I/O port.
 	If a value of 2 is read, then secondary CPU is busy.
@@ -342,12 +342,12 @@ static int kbash_sub_cpu_r(int offset)
 	return mcu_data;
 }
 
-static void kbash_sub_cpu_w(int offset, int data)
+static WRITE_HANDLER( kbash_sub_cpu_w )
 {
-	if (errorlog) fprintf(errorlog,"PC:%08x writing %04x to Zx80 secondary CPU status port %02x\n",cpu_getpreviouspc(),mcu_data,offset/2);
+	logerror("PC:%08x writing %04x to Zx80 secondary CPU status port %02x\n",cpu_getpreviouspc(),mcu_data,offset/2);
 }
 
-static int shared_ram_r(int offset)
+static READ_HANDLER( shared_ram_r )
 {
 /*	Other games using a Zx80 based secondary CPU, have shared memory between
 	the 68000 and the Zx80 CPU. The 68000 reads the status of the Zx80
@@ -357,7 +357,7 @@ static int shared_ram_r(int offset)
 	return data;
 }
 
-static void shared_ram_w(int offset, int data)
+static WRITE_HANDLER( shared_ram_w )
 {
 	if (offset == 0x9e8)
 	{
@@ -366,12 +366,12 @@ static void shared_ram_w(int offset, int data)
 	if (offset == 0xff8)
 	{
 		WRITE_WORD (&toaplan2_shared_ram[offset + 2],data);
-		if (errorlog) fprintf(errorlog,"PC:%08x Writing  (%04x) to secondary CPU\n",cpu_getpreviouspc(),data);
+		logerror("PC:%08x Writing  (%04x) to secondary CPU\n",cpu_getpreviouspc(),data);
 		if ((data & 0xffff) == 0x81) data = 0x01;
 	}
 	WRITE_WORD (&toaplan2_shared_ram[offset],data);
 }
-static int Zx80_status_port_r(int offset)
+static READ_HANDLER( Zx80_status_port_r )
 {
 /*** Status port includes Zx80 CPU POST codes. ************
  *** This is actually a part of the 68000/Zx80 Shared RAM */
@@ -385,22 +385,22 @@ static int Zx80_status_port_r(int offset)
 	if (mcu_data == 0xffaa) mcu_data = 0x8000ffaa;		/* fixeight */
 	if (mcu_data == 0xff00) mcu_data = 0xffaa;			/* fixeight */
 
-	if (errorlog) fprintf(errorlog,"PC:%08x reading %08x from Zx80 secondary CPU command/status port\n",cpu_getpreviouspc(),mcu_data);
+	logerror("PC:%08x reading %08x from Zx80 secondary CPU command/status port\n",cpu_getpreviouspc(),mcu_data);
 	data = mcu_data & 0x0000ffff;
 	return data;
 }
-static void Zx80_command_port_w(int offset, int data)
+static WRITE_HANDLER( Zx80_command_port_w )
 {
 	mcu_data = data;
-	if (errorlog) fprintf(errorlog,"PC:%08x Writing command (%04x) to Zx80 secondary CPU command/status port\n",cpu_getpreviouspc(),mcu_data);
+	logerror("PC:%08x Writing command (%04x) to Zx80 secondary CPU command/status port\n",cpu_getpreviouspc(),mcu_data);
 }
 
-int Zx80_sharedram_r(int offset)
+READ_HANDLER( Zx80_sharedram_r )
 {
 	return Zx80_shared_ram[offset / 2];
 }
 
-void Zx80_sharedram_w(int offset,int data)
+WRITE_HANDLER( Zx80_sharedram_w )
 {
 	Zx80_shared_ram[offset / 2] = data;
 }
@@ -2310,6 +2310,22 @@ ROM_START( vfive )
 	ROM_LOAD( "tp027_03.bin", 0x100000, 0x100000, 0xb1fc6362 )
 ROM_END
 
+ROM_START( grindstm )
+	ROM_REGION( 0x080000, REGION_CPU1 )			/* Main 68K code */
+	ROM_LOAD_WIDE( "01.bin", 0x000000, 0x080000, 0x99af8749 )
+
+#if Zx80
+	ROM_REGION( 0x10000, REGION_CPU2 )			/* Sound CPU code */
+	/* Secondary CPU is a Toaplan marked chip, (TS-007-Spy  TOA PLAN) */
+	/* Its a Z?80 of some sort - 94 pin chip. */
+//	ROM_LOAD( "tp027.mcu", 0x8000, 0x8000, 0x00000000 )
+#endif
+
+	ROM_REGION( 0x200000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "tp027_02.bin", 0x000000, 0x100000, 0x877b45e8 )
+	ROM_LOAD( "tp027_03.bin", 0x100000, 0x100000, 0xb1fc6362 )
+ROM_END
+
 ROM_START( batsugun )
 	ROM_REGION( 0x080000, REGION_CPU1 )			/* Main 68K code */
 	ROM_LOAD_WIDE( "tp030_1.bin", 0x000000, 0x080000, 0xe0cd772b )
@@ -2365,7 +2381,8 @@ GAME ( 1991, pipibibs, 0,        pipibibs, pipibibs, pipibibs, ROT0,         "To
 GAMEX( 1991, pipibibi, pipibibs, pipibibs, pipibibs, pipibibs, ROT0,         "bootleg?", "Pipi & Bibis / Whoopee (Japan) [bootleg ?]", GAME_NOT_WORKING )
 GAME ( 1991, whoopee,  pipibibs, whoopee,  whoopee,  pipibibs, ROT0,         "Toaplan", "Whoopee (Japan) / Pipi & Bibis (World)" )
 GAMEX( 1992, fixeight, 0,        fixeight, vfive,    toaplan3, ROT270,       "Toaplan", "FixEight", GAME_NOT_WORKING )
-GAMEX( 1993, vfive,    0,        vfive,    vfive,    toaplan3, ROT270,       "Toaplan", "V-Five", GAME_NO_SOUND )
+GAMEX( 1993, vfive,    0,        vfive,    vfive,    toaplan3, ROT270,       "Toaplan", "V-Five (Japan)", GAME_NO_SOUND )
+GAMEX( 1993, grindstm, vfive,    vfive,    vfive,    toaplan3, ROT270,       "Toaplan (Unite Trading license)", "Grind Stormer (Korea)", GAME_NO_SOUND )
 GAMEX( 1993, batsugun, 0,        batsugun, batsugun, toaplan3, ROT270_16BIT, "Toaplan", "Batsugun", GAME_NO_SOUND )
 GAME ( 1994, snowbro2, 0,        snowbro2, snowbro2, snowbro2, ROT0_16BIT,   "[Toaplan] Hanafram", "Snow Bros. 2 - With New Elves" )
 

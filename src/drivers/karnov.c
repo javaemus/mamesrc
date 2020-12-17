@@ -43,7 +43,7 @@ Chelnov - level number at 0x60189 - enter a value at cartoon intro
 void karnov_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void karnov_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void wndrplnt_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void karnov_foreground_w(int offset, int data);
+WRITE_HANDLER( karnov_foreground_w );
 
 int karnov_vh_start (void);
 void karnov_vh_stop (void);
@@ -74,7 +74,7 @@ static void karnov_i8751_w(int data)
 	if (data==0x401) i8751_return=0x4138; /* ^Whistling wind */
 	if (data==0x408) i8751_return=0x4276; /* ^Heavy Gates */
 
-//	if (errorlog && !i8751_return && data!=0x300) fprintf(errorlog,"CPU %04x - Unknown Write %02x intel\n",cpu_get_pc(),data);
+//	if (!i8751_return && data!=0x300) logerror("CPU %04x - Unknown Write %02x intel\n",cpu_get_pc(),data);
 
 	cpu_cause_interrupt(0,6); /* Signal main cpu task is complete */
 }
@@ -92,7 +92,7 @@ static void wndrplnt_i8751_w(int data)
 	if (data==0x300) i8751_return=0x17; /* Copyright text on title screen */
 //	if (data==0x300) i8751_return=0x1; /* (USA) Copyright text on title screen */
 
-if (errorlog && data!=0x600) fprintf(errorlog,"CPU %04x - Unknown Write %02x intel\n",cpu_get_pc(),data);
+	if (data!=0x600) logerror("CPU %04x - Unknown Write %02x intel\n",cpu_get_pc(),data);
 
 	cpu_cause_interrupt(0,6); /* Signal main cpu task is complete */
 }
@@ -192,14 +192,14 @@ static void chelnov_i8751_w(int data)
 		}
 	}
 
-//	if (errorlog && !i8751_return) fprintf(errorlog,"CPU %04x - Unknown Write %02x intel\n",cpu_get_pc(),data);
+//	if (!i8751_return) logerror("CPU %04x - Unknown Write %02x intel\n",cpu_get_pc(),data);
 
 	cpu_cause_interrupt(0,6); /* Signal main cpu task is complete */
 }
 
 /******************************************************************************/
 
-static void karnov_control_w(int offset, int data)
+static WRITE_HANDLER( karnov_control_w )
 {
 	/* Mnemonics filled in from the schematics, brackets are my comments */
 	switch (offset) {
@@ -230,7 +230,7 @@ static void karnov_control_w(int offset, int data)
 			break;
 
 		case 0xc: /* SECR (Reset i8751) */
-			if (errorlog) fprintf(errorlog,"Reset i8751\n");
+			logerror("Reset i8751\n");
 			i8751_return=0;
 			break;
 
@@ -241,7 +241,7 @@ static void karnov_control_w(int offset, int data)
 
 /******************************************************************************/
 
-static int karnov_control_r(int offset)
+static READ_HANDLER( karnov_control_r )
 {
 	switch (offset) {
 		case 0: /* Player controls */
@@ -259,7 +259,7 @@ static int karnov_control_r(int offset)
 
 /******************************************************************************/
 
-static void videoram_mirror(int offset, int data) { COMBINE_WORD_MEM(&videoram[offset],data);}
+static WRITE_HANDLER( videoram_mirror_w ) { COMBINE_WORD_MEM(&videoram[offset],data);}
 
 static struct MemoryReadAddress karnov_readmem[] =
 {
@@ -277,7 +277,7 @@ static struct MemoryWriteAddress karnov_writemem[] =
 	{ 0x060000, 0x063fff, MWA_BANK1 , &karnov_ram },
 	{ 0x080000, 0x080fff, MWA_BANK2 , &spriteram, &spriteram_size },
 	{ 0x0a0000, 0x0a07ff, MWA_BANK3 , &videoram, &videoram_size },
-	{ 0x0a0800, 0x0a0fff, videoram_mirror }, /* Wndrplnt only */
+	{ 0x0a0800, 0x0a0fff, videoram_mirror_w }, /* Wndrplnt only */
 	{ 0x0a1000, 0x0a1fff, karnov_foreground_w },
 	{ 0x0c0000, 0x0c000f, karnov_control_w },
 	{ -1 }  /* end of table */
@@ -848,22 +848,22 @@ ROM_END
 
 /******************************************************************************/
 
-static int karnov_cycle_r(int offset)
+static READ_HANDLER( karnov_cycle_r )
 {
 	if (cpu_get_pc()==0x8f2 && (READ_WORD(&karnov_ram[0])&0xff00)!=0) {cpu_spinuntil_int(); return 0;} return READ_WORD(&karnov_ram[0]);
 }
 
-static int karnovj_cycle_r(int offset)
+static READ_HANDLER( karnovj_cycle_r )
 {
 	if (cpu_get_pc()==0x8ec && (READ_WORD(&karnov_ram[0])&0xff00)!=0) {cpu_spinuntil_int(); return 0;} return READ_WORD(&karnov_ram[0]);
 }
 
-static int chelnov_cycle_r(int offset)
+static READ_HANDLER( chelnov_cycle_r )
 {
 	if (cpu_get_pc()==0xdfe && (READ_WORD(&karnov_ram[0])&0xff00)!=0) {cpu_spinuntil_int(); return 0;} return READ_WORD(&karnov_ram[0]);
 }
 
-static int chelnovj_cycle_r(int offset)
+static READ_HANDLER( chelnovj_cycle_r )
 {
 	if (cpu_get_pc()==0xe06 && (READ_WORD(&karnov_ram[0])&0xff00)!=0) {cpu_spinuntil_int(); return 0;} return READ_WORD(&karnov_ram[0]);
 }

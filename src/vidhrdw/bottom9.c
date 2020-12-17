@@ -27,7 +27,7 @@ static void tile_callback(int layer,int bank,int *code,int *color)
 
 ***************************************************************************/
 
-static void sprite_callback(int *code,int *color,int *priority)
+static void sprite_callback(int *code,int *color,int *priority,int *shadow)
 {
 	/* bit 4 = priority over zoom (0 = have priority) */
 	/* bit 5 = priority over B (1 = have priority) */
@@ -116,11 +116,11 @@ void bottom9_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	tilemap_render(ALL_TILEMAPS);
 
 	/* note: FIX layer is not used */
-	fillbitmap(bitmap,Machine->pens[layer_colorbase[1]],&Machine->drv->visible_area);
+	fillbitmap(bitmap,Machine->pens[layer_colorbase[1]],&Machine->visible_area);
 //	if (bottom9_video_enable)
 	{
 		K051960_sprites_draw(bitmap,1,1);
-		K051316_zoom_draw_0(bitmap);
+		K051316_zoom_draw_0(bitmap,0);
 		K051960_sprites_draw(bitmap,0,0);
 		K052109_tilemap_draw(bitmap,2,0);
 		/* note that priority 3 is opposite to the basic layer priority! */

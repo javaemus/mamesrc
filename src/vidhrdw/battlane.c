@@ -12,7 +12,7 @@
 
 static struct osd_bitmap *screen_bitmap;
 
-int battlane_bitmap_size;
+size_t battlane_bitmap_size;
 unsigned char *battlane_bitmap;
 static int battlane_video_ctrl;
 
@@ -32,7 +32,7 @@ extern int battlane_cpu_control;
 static struct osd_bitmap *bkgnd_bitmap;  /* scroll bitmap */
 
 
-void battlane_video_ctrl_w(int offset, int data)
+WRITE_HANDLER( battlane_video_ctrl_w )
 {
 	/*
     Video control register
@@ -45,7 +45,7 @@ void battlane_video_ctrl_w(int offset, int data)
 	battlane_video_ctrl=data;
 }
 
-int battlane_video_ctrl_r(int offset)
+READ_HANDLER( battlane_video_ctrl_r )
 {
 	return battlane_video_ctrl;
 }
@@ -68,38 +68,38 @@ void battlane_set_video_flip(int flip)
 
 }
 
-void battlane_scrollx_w(int offset, int data)
+WRITE_HANDLER( battlane_scrollx_w )
 {
     battlane_scrollx=data;
 }
 
-void battlane_scrolly_w(int offset, int data)
+WRITE_HANDLER( battlane_scrolly_w )
 {
     battlane_scrolly=data;
 }
 
-void battlane_tileram_w(int offset, int data)
+WRITE_HANDLER( battlane_tileram_w )
 {
     battlane_tileram[offset]=data;
 }
 
-int battlane_tileram_r(int offset)
+READ_HANDLER( battlane_tileram_r )
 {
     return battlane_tileram[offset];
 }
 
-void battlane_spriteram_w(int offset, int data)
+WRITE_HANDLER( battlane_spriteram_w )
 {
     battlane_spriteram[offset]=data;
 }
 
-int battlane_spriteram_r(int offset)
+READ_HANDLER( battlane_spriteram_r )
 {
     return battlane_spriteram[offset];
 }
 
 
-void battlane_bitmap_w(int offset, int data)
+WRITE_HANDLER( battlane_bitmap_w )
 {
 	int i, orval;
 
@@ -122,7 +122,7 @@ void battlane_bitmap_w(int offset, int data)
 	battlane_bitmap[offset]=data;
 }
 
-int battlane_bitmap_r(int offset)
+READ_HANDLER( battlane_bitmap_r )
 {
 	return battlane_bitmap[offset];
 }
@@ -171,7 +171,7 @@ void battlane_dump_bitmap(void)
 ***************************************************************************/
 int battlane_vh_start(void)
 {
-	screen_bitmap = osd_create_bitmap(0x20*8, 0x20*8);
+	screen_bitmap = bitmap_alloc(0x20*8, 0x20*8);
 	if (!screen_bitmap)
 	{
 		return 1;
@@ -186,7 +186,7 @@ int battlane_vh_start(void)
 	memset(battlane_spriteram, 0, battlane_spriteram_size);
     memset(battlane_tileram,255, battlane_tileram_size);
 
-    bkgnd_bitmap = osd_create_bitmap(0x0200, 0x0200);
+    bkgnd_bitmap = bitmap_alloc(0x0200, 0x0200);
     if (!bkgnd_bitmap)
 	{
 		return 1;
@@ -207,7 +207,7 @@ void battlane_vh_stop(void)
 {
 	if (screen_bitmap)
 	{
-		osd_free_bitmap(screen_bitmap);
+		bitmap_free(screen_bitmap);
 	}
 	if (battlane_bitmap)
 	{
@@ -298,7 +298,7 @@ void battlane_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		int scrlx, scrly;
         scrlx=-scrollx;
         scrly=-scrolly;
-        copyscrollbitmap(bitmap,bkgnd_bitmap,1,&scrly,1,&scrlx,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+        copyscrollbitmap(bitmap,bkgnd_bitmap,1,&scrly,1,&scrlx,&Machine->visible_area,TRANSPARENCY_NONE,0);
     }
     {
     char baf[256];
@@ -353,7 +353,7 @@ void battlane_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
                      0,
                      flipx,flipy,
                      sx, sy,
-					 &Machine->drv->visible_area,
+					 &Machine->visible_area,
                      TRANSPARENCY_PEN, 0);
 
                     drawgfx(bitmap,Machine->gfx[0],
@@ -361,7 +361,7 @@ void battlane_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
                      0,
                      flipx,flipy,
                      sx, sy-dy,
-					 &Machine->drv->visible_area,
+					 &Machine->visible_area,
                      TRANSPARENCY_PEN, 0);
                 }
                 else
@@ -371,7 +371,7 @@ void battlane_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
                      0,
                      flipx,flipy,
                      sx, sy,
-					 &Machine->drv->visible_area,
+					 &Machine->visible_area,
                      TRANSPARENCY_PEN, 0);
                 }
           }

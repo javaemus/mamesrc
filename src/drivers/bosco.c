@@ -70,47 +70,47 @@ CPU #3 NMI (@120Hz)
 #include "vidhrdw/generic.h"
 
 extern unsigned char *bosco_sharedram;
-int  bosco_sharedram_r(int offset);
-void bosco_sharedram_w(int offset,int data);
-int  bosco_dsw_r(int offset);
-void bosco_interrupt_enable_1_w(int offset,int data);
-void bosco_interrupt_enable_2_w(int offset,int data);
-void bosco_interrupt_enable_3_w(int offset,int data);
-void bosco_halt_w(int offset,int data);
-int  bosco_customio_r_1(int offset);
-int  bosco_customio_r_2(int offset);
-void bosco_customio_w_1(int offset,int data);
-void bosco_customio_w_2(int offset,int data);
-int  bosco_customio_data_r_1(int offset);
-int  bosco_customio_data_r_2(int offset);
-void bosco_customio_data_w_1(int offset,int data);
-void bosco_customio_data_w_2(int offset,int data);
+READ_HANDLER( bosco_sharedram_r );
+WRITE_HANDLER( bosco_sharedram_w );
+READ_HANDLER( bosco_dsw_r );
+WRITE_HANDLER( bosco_interrupt_enable_1_w );
+WRITE_HANDLER( bosco_interrupt_enable_2_w );
+WRITE_HANDLER( bosco_interrupt_enable_3_w );
+WRITE_HANDLER( bosco_halt_w );
+READ_HANDLER( bosco_customio_1_r );
+READ_HANDLER( bosco_customio_2_r );
+WRITE_HANDLER( bosco_customio_1_w );
+WRITE_HANDLER( bosco_customio_2_w );
+READ_HANDLER( bosco_customio_data_1_r );
+READ_HANDLER( bosco_customio_data_2_r );
+WRITE_HANDLER( bosco_customio_data_1_w );
+WRITE_HANDLER( bosco_customio_data_2_w );
 int  bosco_interrupt_1(void);
 int  bosco_interrupt_2(void);
 int  bosco_interrupt_3(void);
 void bosco_init_machine(void);
 
-void bosco_cpu_reset_w(int offset, int data);
+WRITE_HANDLER( bosco_cpu_reset_w );
 int  bosco_vh_start(void);
 void bosco_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void bosco_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 
 extern unsigned char *bosco_videoram2,*bosco_colorram2;
 extern unsigned char *bosco_radarx,*bosco_radary,*bosco_radarattr;
-extern int bosco_radarram_size;
+extern size_t bosco_radarram_size;
 extern unsigned char *bosco_staronoff;
 extern unsigned char *bosco_starblink;
-void bosco_videoram2_w(int offset,int data);
-void bosco_colorram2_w(int offset,int data);
-void bosco_flipscreen_w(int offset,int data);
-void bosco_scrollx_w(int offset,int data);
-void bosco_scrolly_w(int offset,int data);
-void bosco_starcontrol_w(int offset,int data);
+WRITE_HANDLER( bosco_videoram2_w );
+WRITE_HANDLER( bosco_colorram2_w );
+WRITE_HANDLER( bosco_flipscreen_w );
+WRITE_HANDLER( bosco_scrollx_w );
+WRITE_HANDLER( bosco_scrolly_w );
+WRITE_HANDLER( bosco_starcontrol_w );
 int  bosco_vh_start(void);
 void bosco_vh_stop(void);
 void bosco_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-void pengo_sound_w(int offset,int data);
+WRITE_HANDLER( pengo_sound_w );
 int  bosco_sh_start(const struct MachineSound *msound);
 void bosco_sh_stop(void);
 extern unsigned char *pengo_soundregs;
@@ -120,8 +120,8 @@ static struct MemoryReadAddress readmem_cpu1[] =
 {
 	{ 0x0000, 0x3fff, MRA_ROM },
 	{ 0x6800, 0x6807, bosco_dsw_r },
-	{ 0x7000, 0x700f, bosco_customio_data_r_1 },
-	{ 0x7100, 0x7100, bosco_customio_r_1 },
+	{ 0x7000, 0x700f, bosco_customio_data_1_r },
+	{ 0x7100, 0x7100, bosco_customio_1_r },
 	{ 0x7800, 0x97ff, bosco_sharedram_r },
 	{ -1 }	/* end of table */
 };
@@ -130,8 +130,8 @@ static struct MemoryReadAddress readmem_cpu2[] =
 {
 	{ 0x0000, 0x1fff, MRA_ROM },
 	{ 0x6800, 0x6807, bosco_dsw_r },
-	{ 0x9000, 0x900f, bosco_customio_data_r_2 },
-	{ 0x9100, 0x9100, bosco_customio_r_2 },
+	{ 0x9000, 0x900f, bosco_customio_data_2_r },
+	{ 0x9100, 0x9100, bosco_customio_2_r },
 	{ 0x7800, 0x97ff, bosco_sharedram_r },
 	{ -1 }	/* end of table */
 };
@@ -152,8 +152,8 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x6822, 0x6822, bosco_interrupt_enable_3_w },
 	{ 0x6823, 0x6823, bosco_halt_w },
 	{ 0x6830, 0x6830, watchdog_reset_w },
-	{ 0x7000, 0x700f, bosco_customio_data_w_1 },
-	{ 0x7100, 0x7100, bosco_customio_w_1 },
+	{ 0x7000, 0x700f, bosco_customio_data_1_w },
+	{ 0x7100, 0x7100, bosco_customio_1_w },
 
 	{ 0x8000, 0x83ff, videoram_w, &videoram, &videoram_size },
 	{ 0x8400, 0x87ff, bosco_videoram2_w, &bosco_videoram2 },
@@ -185,8 +185,8 @@ static struct MemoryWriteAddress writemem_cpu2[] =
 	{ 0x8400, 0x87ff, bosco_videoram2_w },
 	{ 0x8800, 0x8bff, colorram_w },
 	{ 0x8c00, 0x8fff, bosco_colorram2_w },
-	{ 0x9000, 0x900f, bosco_customio_data_w_2 },
-	{ 0x9100, 0x9100, bosco_customio_w_2 },
+	{ 0x9000, 0x900f, bosco_customio_data_2_w },
+	{ 0x9100, 0x9100, bosco_customio_2_w },
 	{ 0x7800, 0x97ff, bosco_sharedram_w },
 
 	{ 0x9810, 0x9810, bosco_scrollx_w },
@@ -607,6 +607,46 @@ ROM_START( boscoo )
 	ROM_LOAD( "5100.5l",      0x2000, 0x1000, 0x17ac9511 )
 ROM_END
 
+ROM_START( boscoo2 )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code for the first CPU  */
+	ROM_LOAD( "bos1_1.bin",   0x0000, 0x1000, 0x0d9920e7 )
+	ROM_LOAD( "bos1_2.bin",   0x1000, 0x1000, 0x2d8f3ebe )
+	ROM_LOAD( "bos1_3.bin",   0x2000, 0x1000, 0xc80ccfa5 )
+	ROM_LOAD( "bos1_4.3k",    0x3000, 0x1000, 0x7ebea2b8 )
+
+	ROM_REGION( 0x10000, REGION_CPU2 )	/* 64k for the second CPU */
+	ROM_LOAD( "bos1_5b.3j",   0x0000, 0x1000, 0x3d6955a8 )
+	ROM_LOAD( "2800.3h",      0x1000, 0x1000, 0x31b8c648 )
+
+	ROM_REGION( 0x10000, REGION_CPU3 )	/* 64k for the third CPU  */
+	ROM_LOAD( "2900.3e",      0x0000, 0x1000, 0xd45a4911 )
+
+	ROM_REGION( 0x1000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "5300.5d",      0x0000, 0x1000, 0xa956d3c5 )
+
+	ROM_REGION( 0x1000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "5200.5e",      0x0000, 0x1000, 0xe869219c )
+
+	ROM_REGION( 0x0100, REGION_GFX3 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "prom.2d",      0x0000, 0x0100, 0x9b69b543 )	/* dots */
+
+	ROM_REGION( 0x0260, REGION_PROMS )
+	ROM_LOAD( "bosco.6b",     0x0000, 0x0020, 0xd2b96fb0 )	/* palette */
+	ROM_LOAD( "bosco.4m",     0x0020, 0x0100, 0x4e15d59c )	/* lookup table */
+	ROM_LOAD( "prom.1d",      0x0120, 0x0100, 0xde2316c6 )	/* ?? */
+	ROM_LOAD( "prom.2r",      0x0220, 0x0020, 0xb88d5ba9 )	/* ?? */
+	ROM_LOAD( "prom.7h",      0x0240, 0x0020, 0x87d61353 )	/* ?? */
+
+	ROM_REGION( 0x0200, REGION_SOUND1 )	/* sound prom */
+	ROM_LOAD( "bosco.spr",    0x0000, 0x0100, 0xee8ca3a8 )
+	ROM_LOAD( "prom.5c",      0x0100, 0x0100, 0x77245b66 )	/* timing - not used */
+
+	ROM_REGION( 0x3000, REGION_SOUND2 )	/* ROMs for digitised speech */
+	ROM_LOAD( "4900.5n",      0x0000, 0x1000, 0x09acc978 )
+	ROM_LOAD( "5000.5m",      0x1000, 0x1000, 0xe571e959 )
+	ROM_LOAD( "5100.5l",      0x2000, 0x1000, 0x17ac9511 )
+ROM_END
+
 ROM_START( boscomd )
 	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code for the first CPU  */
 	ROM_LOAD( "3n",       0x0000, 0x1000, 0x441b501a )
@@ -691,5 +731,6 @@ ROM_END
 
 GAME( 1981, bosco,    0,     bosco, bosco,   0, ROT0, "Namco", "Bosconian (new version)" )
 GAME( 1981, boscoo,   bosco, bosco, bosco,   0, ROT0, "Namco", "Bosconian (old version)" )
+GAME( 1981, boscoo2,  bosco, bosco, bosco,   0, ROT0, "Namco", "Bosconian (older version)" )
 GAME( 1981, boscomd,  bosco, bosco, boscomd, 0, ROT0, "[Namco] (Midway license)", "Bosconian (Midway, new version)" )
 GAME( 1981, boscomdo, bosco, bosco, boscomd, 0, ROT0, "[Namco] (Midway license)", "Bosconian (Midway, old version)" )

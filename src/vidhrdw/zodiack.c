@@ -14,7 +14,7 @@ unsigned char *zodiack_videoram2;
 
 extern unsigned char *galaxian_attributesram;
 extern unsigned char *galaxian_bulletsram;
-extern int galaxian_bulletsram_size;
+extern size_t galaxian_bulletsram_size;
 extern int percuss_hardware;
 
 static int flipscreen;
@@ -73,7 +73,7 @@ void zodiack_vh_convert_color_prom(unsigned char *palette, unsigned short *color
 }
 
 
-void zodiac_flipscreen_w(int offset,int data)
+WRITE_HANDLER( zodiac_flipscreen_w )
 {
 	if (flipscreen != (!data))
 	{
@@ -84,7 +84,7 @@ void zodiac_flipscreen_w(int offset,int data)
 }
 
 
-void zodiac_control_w(int offset,int data)
+WRITE_HANDLER( zodiac_control_w )
 {
 	/* Bit 0-1 - coin counters */
 	coin_counter_w(0, data & 0x02);
@@ -163,7 +163,7 @@ void zodiack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				col,
 				flipscreen, flipscreen,
 				8*sx, 8*sy,
-				&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+				&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -187,7 +187,7 @@ void zodiack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			}
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+		copyscrollbitmap(bitmap,tmpbitmap,0,0,32,scroll,&Machine->visible_area,TRANSPARENCY_COLOR,0);
 	}
 
 
@@ -210,7 +210,7 @@ void zodiack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				0,
 				0,0,
 				x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 
 
@@ -239,6 +239,6 @@ void zodiack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				sx,sy,
 				//flipscreen[0] ? &spritevisibleareaflipx : &spritevisiblearea,TRANSPARENCY_PEN,0);
 				//&spritevisiblearea,TRANSPARENCY_PEN,0);
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

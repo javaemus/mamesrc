@@ -5,7 +5,7 @@
 	Currently implemented:
 		* Zwackery (Chip Squeak Deluxe)
 		* Xenopohobe (Sounds Good)
-		* Spy Hunter 2 (Turbo Chip Squeak)
+		* Spy Hunter 2 (Sounds Good/Turbo Chip Squeak)
 		* Blasted (Sounds Good)
 		* Arch Rivals
 		* Tri-Sports
@@ -53,21 +53,19 @@
 #include "vidhrdw/generic.h"
 
 
-extern UINT16 mcr68_char_code_mask;
-extern UINT16 mcr68_sprite_code_mask;
 extern UINT8 mcr68_sprite_clip;
 extern INT8 mcr68_sprite_xoffset;
 
 static UINT8 *control_word;
 
 
-void mcr68_videoram_w(int offset, int data);
-void mcr68_paletteram_w(int offset, int data);
+WRITE_HANDLER( mcr68_videoram_w );
+WRITE_HANDLER( mcr68_paletteram_w );
 void mcr68_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
 
-void zwackery_videoram_w(int offset, int data);
-void zwackery_paletteram_w(int offset, int data);
-void zwackery_spriteram_w(int offset, int data);
+WRITE_HANDLER( zwackery_videoram_w );
+WRITE_HANDLER( zwackery_paletteram_w );
+WRITE_HANDLER( zwackery_spriteram_w );
 void zwackery_convert_color_prom(unsigned char *palette, unsigned short *colortable, const unsigned char *color_prom);
 void zwackery_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
 
@@ -79,7 +77,7 @@ void zwackery_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh);
  *
  *************************************/
 
-int zwackery_port_2_r(int offset)
+READ_HANDLER( zwackery_port_2_r )
 {
 	int result = input_port_2_r(offset);
 	int wheel = input_port_5_r(offset);
@@ -88,7 +86,7 @@ int zwackery_port_2_r(int offset)
 }
 
 
-static int zwackery_6840_r(int offset)
+static READ_HANDLER( zwackery_6840_r )
 {
 	/* Zwackery does a timer test:                          */
 	/* It loads $1388 into one of the timers clocked by E   */
@@ -110,7 +108,7 @@ static int zwackery_6840_r(int offset)
  *
  *************************************/
 
-static void xenophobe_control_w(int offset, int data)
+static WRITE_HANDLER( xenophobe_control_w )
 {
 	int oldword = READ_WORD(&control_word[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -128,13 +126,12 @@ static void xenophobe_control_w(int offset, int data)
  *
  *************************************/
 
-static void blasted_control_w(int offset, int data)
+static WRITE_HANDLER( blasted_control_w )
 {
 	int oldword = READ_WORD(&control_word[offset]);
 	int newword = COMBINE_WORD(oldword, data);
 	WRITE_WORD(&control_word[offset], newword);
 
-	if (errorlog) fprintf(errorlog, "extcontrol = %04X\n", data);
 /*	soundsgood_reset_w(~newword & 0x0020);*/
 	soundsgood_data_w(offset, (newword >> 8) & 0x1f);
 }
@@ -147,27 +144,33 @@ static void blasted_control_w(int offset, int data)
  *
  *************************************/
 
-static int spyhunt2_port_0_r(int offset)
+static READ_HANDLER( spyhunt2_port_0_r )
 {
 	int result = input_port_0_r(offset);
 	int which = (READ_WORD(control_word) >> 3) & 3;
 	int analog = readinputport(3 + which);
-	return result | (analog << 8);
+	return result | ((soundsgood_status_r(0) & 1) << 5) | (analog << 8);
 }
 
 
-static void spyhunt2_control_w(int offset, int data)
+static READ_HANDLER( spyhunt2_port_1_r )
+{
+	int result = input_port_1_r(offset);
+	return result | ((turbocs_status_r(0) & 1) << 7);
+}
+
+
+static WRITE_HANDLER( spyhunt2_control_w )
 {
 	int oldword = READ_WORD(&control_word[offset]);
 	int newword = COMBINE_WORD(oldword, data);
 	WRITE_WORD(&control_word[offset], newword);
 
-/*	turbocs_reset_w(~newword & 0x0080);*/
+/* 	turbocs_reset_w(~newword & 0x0080);*/
 	turbocs_data_w(offset, (newword >> 8) & 0x001f);
 
-	/* we don't have the Sounds Good ROMs, so just make sure it's halted */
-	timer_suspendcpu(2, 1, SUSPEND_REASON_DISABLE);
 /*	soundsgood_reset_w(~newword & 0x2000);*/
+	soundsgood_data_w(offset, (newword >> 8) & 0x001f);
 }
 
 
@@ -178,7 +181,7 @@ static void spyhunt2_control_w(int offset, int data)
  *
  *************************************/
 
-static int archrivl_port_1_r(int offset)
+static READ_HANDLER( archrivl_port_1_r )
 {
 	int joystick = input_port_3_r(offset);
 	int result = 0;
@@ -208,7 +211,7 @@ static int archrivl_port_1_r(int offset)
 }
 
 
-static void archrivl_control_w(int offset, int data)
+static WRITE_HANDLER( archrivl_control_w )
 {
 	int oldword = READ_WORD(&control_word[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -227,7 +230,7 @@ static void archrivl_control_w(int offset, int data)
  *************************************/
 
 static UINT8 protection_data[5];
-static void pigskin_protection_w(int offset, int data)
+static WRITE_HANDLER( pigskin_protection_w )
 {
 	/* ignore upper-byte only */
 	if (data & 0x00ff0000) return;
@@ -239,11 +242,11 @@ static void pigskin_protection_w(int offset, int data)
 	protection_data[3] = protection_data[4];
 	protection_data[4] = data;
 
-	if (errorlog) fprintf(errorlog, "%06X:protection_w=%02X\n", cpu_getpreviouspc(), data & 0xff);
+	logerror("%06X:protection_w=%02X\n", cpu_getpreviouspc(), data & 0xff);
 }
 
 
-static int pigskin_protection_r(int offset)
+static READ_HANDLER( pigskin_protection_r )
 {
 	/* based on the last 5 bytes return a value */
 	if (protection_data[4] == 0xe3 && protection_data[3] == 0x94)
@@ -256,14 +259,14 @@ static int pigskin_protection_r(int offset)
 		protection_data[1] == 0x25 && protection_data[0] == 0x36)
 		return 0x00;	/* must be < 3 */
 
-	if (errorlog) fprintf(errorlog, "Protection read after unrecognized sequence: %02X %02X %02X %02X %02X\n",
+	logerror("Protection read after unrecognized sequence: %02X %02X %02X %02X %02X\n",
 			protection_data[0], protection_data[1], protection_data[2], protection_data[3], protection_data[4]);
 
 	return 0x00;
 }
 
 
-static int pigskin_port_1_r(int offset)
+static READ_HANDLER( pigskin_port_1_r )
 {
 	int joystick = input_port_3_r(offset);
 	int result = input_port_1_r(offset);
@@ -280,7 +283,7 @@ static int pigskin_port_1_r(int offset)
 }
 
 
-static int pigskin_port_2_r(int offset)
+static READ_HANDLER( pigskin_port_2_r )
 {
 	int joystick = input_port_3_r(offset);
 	int result = input_port_2_r(offset);
@@ -304,7 +307,7 @@ static int pigskin_port_2_r(int offset)
  *
  *************************************/
 
-static int trisport_port_1_r(int offset)
+static READ_HANDLER( trisport_port_1_r )
 {
 	int xaxis = (INT8)input_port_3_r(offset);
 	int yaxis = (INT8)input_port_4_r(offset);
@@ -595,7 +598,7 @@ INPUT_PORTS_START( spyhunt2 )
 	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_TILT )
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0020, IP_ACTIVE_HIGH, IPT_UNKNOWN ) /* SG status */
 	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_SERVICE )
 	PORT_SERVICE( 0x0080, IP_ACTIVE_LOW )
 	PORT_BIT( 0xff00, IP_ACTIVE_HIGH, IPT_UNKNOWN )
@@ -608,7 +611,7 @@ INPUT_PORTS_START( spyhunt2 )
 	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER1 ) /* 1st gear */
 	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON6 | IPF_PLAYER1 ) /* 2nd gear */
 	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON7 | IPF_PLAYER1 ) /* 3rd gear */
-	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_UNUSED )               /* TCS status */
 	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 ) /* Left Trigger */
 	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 ) /* Left Button */
 	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 ) /* Right Trigger */
@@ -890,34 +893,31 @@ INPUT_PORTS_END
  *
  *************************************/
 
-MCR_CHAR_LAYOUT(charlayout, 4096);
-MCR_SPRITE_LAYOUT(spritelayout, 1024);
-
 static struct GfxLayout zwackery_layout =
 {
 	16,16,
-	1024,
+	RGN_FRAC(1,2),
 	8,
 	{ 0, 0, 0, 0, 0, 0, 0, 0 },
 	{  3,  2,  1,  0, 11, 10,  9,  8,
 	  19, 18, 17, 16, 27, 26, 25, 24 },
-	{ 0x0000*8+4, 0x4000*8+4, 0x0000*8+0, 0x4000*8+0, 0x0000*8+36, 0x4000*8+36, 0x0000*8+32, 0x4000*8+32,
-	  0x0000*8+68, 0x4000*8+68, 0x0000*8+64, 0x4000*8+64, 0x0000*8+100, 0x4000*8+100, 0x0000*8+96, 0x4000*8+96 },
+	{ 4, RGN_FRAC(1,2)+4, 0, RGN_FRAC(1,2)+0, 36, RGN_FRAC(1,2)+36, 32, RGN_FRAC(1,2)+32,
+	  68, RGN_FRAC(1,2)+68, 64, RGN_FRAC(1,2)+64, 100, RGN_FRAC(1,2)+100, 96, RGN_FRAC(1,2)+96 },
 	128
 };
 
 static struct GfxDecodeInfo gfxdecodeinfo[] =
 {
-	{ REGION_GFX1, 0, &charlayout,   0, 4 },
-	{ REGION_GFX2, 0, &spritelayout, 0, 4 },
+	{ REGION_GFX1, 0, &mcr_bg_layout,     0, 4 },
+	{ REGION_GFX2, 0, &mcr_sprite_layout, 0, 4 },
 	{ -1 } /* end of array */
 };
 
 static struct GfxDecodeInfo zwackery_gfxdecodeinfo[] =
 {
-	{ REGION_GFX1, 0, &zwackery_layout,      0, 16 },
-	{ REGION_GFX2, 0, &spritelayout,     0x800, 32 },
-	{ REGION_GFX1, 0, &zwackery_layout,      0, 16 },	/* yes, an extra copy */
+	{ REGION_GFX1, 0, &zwackery_layout,       0, 16 },
+	{ REGION_GFX2, 0, &mcr_sprite_layout, 0x800, 32 },
+	{ REGION_GFX1, 0, &zwackery_layout,       0, 16 },	/* yes, an extra copy */
 	{ -1 } /* end of array */
 };
 
@@ -979,7 +979,7 @@ static struct MachineDriver machine_driver_zwackery =
 	4096, 4096,
 	zwackery_convert_color_prom,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY | VIDEO_UPDATE_BEFORE_VBLANK,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY,
 	0,
 	generic_vh_start,
 	generic_vh_stop,
@@ -990,200 +990,52 @@ static struct MachineDriver machine_driver_zwackery =
 	{
 		SOUND_CHIP_SQUEAK_DELUXE
 	},
-
-	mcr_nvram_handler
+	0
 };
 
 
-static struct MachineDriver machine_driver_xenophob =
-{
-	/* basic machine hardware */
-	{
-		{
-			CPU_M68000,
-			7723800,	/* 8 Mhz */
-			mcr68_readmem,mcr68_writemem,0,0,
-			mcr68_interrupt,1
-		},
-		SOUND_CPU_SOUNDS_GOOD
-	},
-	30, DEFAULT_REAL_30HZ_VBLANK_DURATION,
-	1,
-	mcr68_init_machine,
-
-	/* video hardware */
-	32*16, 30*16, { 0, 32*16-1, 0, 30*16-1 },
-	gfxdecodeinfo,
-	8*16, 8*16,
-	0,
-
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY | VIDEO_UPDATE_BEFORE_VBLANK,
-	0,
-	generic_vh_start,
-	generic_vh_stop,
-	mcr68_vh_screenrefresh,
-
-	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		SOUND_SOUNDS_GOOD
-	},
-
-	mcr_nvram_handler
+#define MACHINE_DRIVER_MCR68(NAME, MEMMAP, SOUND) 		\
+static struct MachineDriver machine_driver_##NAME =		\
+{														\
+	/* basic machine hardware */						\
+	{													\
+		{												\
+			CPU_M68000,									\
+			7723800,	/* 8 Mhz */						\
+			MEMMAP##_readmem,MEMMAP##_writemem,0,0,		\
+			mcr68_interrupt,1							\
+		},												\
+		SOUND_CPU_##SOUND								\
+	},													\
+	30, DEFAULT_REAL_30HZ_VBLANK_DURATION,				\
+	1,													\
+	mcr68_init_machine,									\
+														\
+	/* video hardware */								\
+	32*16, 30*16, { 0, 32*16-1, 0, 30*16-1 },			\
+	gfxdecodeinfo,										\
+	8*16, 8*16,											\
+	0,													\
+														\
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY,\
+	0,													\
+	generic_vh_start,									\
+	generic_vh_stop,									\
+	mcr68_vh_screenrefresh,								\
+														\
+	/* sound hardware */								\
+	SOUND_SUPPORTS_STEREO,0,0,0,						\
+	{													\
+		SOUND_##SOUND									\
+	},													\
+	0													\
 };
 
-
-static struct MachineDriver machine_driver_spyhunt2 =
-{
-	/* basic machine hardware */
-	{
-		{
-			CPU_M68000,
-			7723800,	/* 8 Mhz */
-			mcr68_readmem,mcr68_writemem,0,0,
-			mcr68_interrupt,1
-		},
-		SOUND_CPU_TURBO_CHIP_SQUEAK,
-		SOUND_CPU_SOUNDS_GOOD
-	},
-	30, DEFAULT_REAL_30HZ_VBLANK_DURATION,
-	1,
-	mcr68_init_machine,
-
-	/* video hardware */
-	32*16, 30*16, { 0, 32*16-1, 0, 30*16-1 },
-	gfxdecodeinfo,
-	8*16, 8*16,
-	0,
-
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY | VIDEO_UPDATE_BEFORE_VBLANK,
-	0,
-	generic_vh_start,
-	generic_vh_stop,
-	mcr68_vh_screenrefresh,
-
-	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		SOUND_TURBO_CHIP_SQUEAK_PLUS_SOUNDSGOOD
-	},
-
-	mcr_nvram_handler
-};
-
-
-static struct MachineDriver machine_driver_archrivl =
-{
-	/* basic machine hardware */
-	{
-		{
-			CPU_M68000,
-			7723800,	/* 8 Mhz */
-			mcr68_readmem,mcr68_writemem,0,0,
-			mcr68_interrupt,1
-		},
-		SOUND_CPU_WILLIAMS_CVSD
-	},
-	30, DEFAULT_REAL_30HZ_VBLANK_DURATION,
-	1,
-	mcr68_init_machine,
-
-	/* video hardware */
-	32*16, 30*16, { 0, 32*16-1, 0, 30*16-1 },
-	gfxdecodeinfo,
-	8*16, 8*16,
-	0,
-
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY | VIDEO_UPDATE_BEFORE_VBLANK,
-	0,
-	generic_vh_start,
-	generic_vh_stop,
-	mcr68_vh_screenrefresh,
-
-	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		SOUND_WILLIAMS_CVSD
-	},
-
-	mcr_nvram_handler
-};
-
-
-static struct MachineDriver machine_driver_pigskin =
-{
-	/* basic machine hardware */
-	{
-		{
-			CPU_M68000,
-			7723800,	/* 8 Mhz */
-			pigskin_readmem,pigskin_writemem,0,0,
-			mcr68_interrupt,1
-		},
-		SOUND_CPU_WILLIAMS_CVSD
-	},
-	30, DEFAULT_REAL_30HZ_VBLANK_DURATION,
-	1,
-	mcr68_init_machine,
-
-	/* video hardware */
-	32*16, 30*16, { 0, 32*16-1, 0, 30*16-1 },
-	gfxdecodeinfo,
-	8*16, 8*16,
-	0,
-
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY | VIDEO_UPDATE_BEFORE_VBLANK,
-	0,
-	generic_vh_start,
-	generic_vh_stop,
-	mcr68_vh_screenrefresh,
-
-	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		SOUND_WILLIAMS_CVSD
-	},
-
-	mcr_nvram_handler
-};
-
-
-static struct MachineDriver machine_driver_trisport =
-{
-	/* basic machine hardware */
-	{
-		{
-			CPU_M68000,
-			7723800,	/* 8 Mhz */
-			trisport_readmem,trisport_writemem,0,0,
-			mcr68_interrupt,1
-		},
-		SOUND_CPU_WILLIAMS_CVSD
-	},
-	30, DEFAULT_REAL_30HZ_VBLANK_DURATION,
-	1,
-	mcr68_init_machine,
-
-	/* video hardware */
-	32*16, 30*16, { 0, 32*16-1, 0, 30*16-1 },
-	gfxdecodeinfo,
-	8*16, 8*16,
-	0,
-
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY | VIDEO_UPDATE_BEFORE_VBLANK,
-	0,
-	generic_vh_start,
-	generic_vh_stop,
-	mcr68_vh_screenrefresh,
-
-	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		SOUND_WILLIAMS_CVSD
-	},
-
-	mcr_nvram_handler
-};
+MACHINE_DRIVER_MCR68(xenophob, mcr68,    SOUNDS_GOOD)
+MACHINE_DRIVER_MCR68(spyhunt2, mcr68,    TURBO_CHIP_SQUEAK_PLUS_SOUNDS_GOOD)
+MACHINE_DRIVER_MCR68(archrivl, mcr68,    WILLIAMS_CVSD)
+MACHINE_DRIVER_MCR68(pigskin,  pigskin,  WILLIAMS_CVSD)
+MACHINE_DRIVER_MCR68(trisport, trisport, WILLIAMS_CVSD)
 
 
 
@@ -1233,19 +1085,19 @@ ROM_START( zwackery )
 	ROM_LOAD_EVEN( "csd8.bin",  0x04000, 0x2000, 0x13366575 )
 	ROM_LOAD_ODD ( "csd18.bin", 0x04000, 0x2000, 0xbcfe5820 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x8000, REGION_GFX1 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "tileh.bin",    0x00000, 0x4000, 0xa7237eb1 )
 	ROM_LOAD( "tileg.bin",    0x04000, 0x4000, 0x626cc69b )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x20000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "spr6h.bin",    0x00000, 0x4000, 0xa51158dc )
 	ROM_LOAD( "spr7h.bin",    0x04000, 0x4000, 0x941feecf )
-	ROM_LOAD( "spr6j.bin",    0x20000, 0x4000, 0xf3eef316 )
-	ROM_LOAD( "spr7j.bin",    0x24000, 0x4000, 0xa8a34033 )
-	ROM_LOAD( "spr10h.bin",   0x40000, 0x4000, 0xa99daea6 )
-	ROM_LOAD( "spr11h.bin",   0x44000, 0x4000, 0xc1a767fb )
-	ROM_LOAD( "spr10j.bin",   0x60000, 0x4000, 0x4dd04376 )
-	ROM_LOAD( "spr11j.bin",   0x64000, 0x4000, 0xe8c6a880 )
+	ROM_LOAD( "spr6j.bin",    0x08000, 0x4000, 0xf3eef316 )
+	ROM_LOAD( "spr7j.bin",    0x0c000, 0x4000, 0xa8a34033 )
+	ROM_LOAD( "spr10h.bin",   0x10000, 0x4000, 0xa99daea6 )
+	ROM_LOAD( "spr11h.bin",   0x14000, 0x4000, 0xc1a767fb )
+	ROM_LOAD( "spr10j.bin",   0x18000, 0x4000, 0x4dd04376 )
+	ROM_LOAD( "spr11j.bin",   0x1c000, 0x4000, 0xe8c6a880 )
 
 	ROM_REGION( 0x8000, REGION_GFX3 )	/* bg color maps */
 	ROM_LOAD_GFX_EVEN( "tilef.bin",  0x0000, 0x4000, 0xa0dfcd7e )
@@ -1265,18 +1117,44 @@ ROM_START( xenophob )
 	ROM_LOAD_EVEN( "xeno_snd.u8",  0x20000, 0x10000, 0x6e2915c7 )
 	ROM_LOAD_ODD ( "xeno_snd.u18", 0x20000, 0x10000, 0x12492145 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "xeno_bg.11d",  0x00000, 0x08000, 0x3d2cf284 )
-	ROM_LOAD( "xeno_bg.12d",  0x10000, 0x08000, 0xc32288b1 )
+	ROM_LOAD( "xeno_bg.12d",  0x08000, 0x08000, 0xc32288b1 )
 
-	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x40000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "xeno_fg.7j",   0x00000, 0x10000, 0xb12eddb2 )
-	ROM_LOAD( "xeno_fg.8j",   0x20000, 0x10000, 0x20e682f5 )
-	ROM_LOAD( "xeno_fg.9j",   0x40000, 0x10000, 0x82fb3e09 )
-	ROM_LOAD( "xeno_fg.10j",  0x60000, 0x10000, 0x6a7a3516 )
+	ROM_LOAD( "xeno_fg.8j",   0x10000, 0x10000, 0x20e682f5 )
+	ROM_LOAD( "xeno_fg.9j",   0x20000, 0x10000, 0x82fb3e09 )
+	ROM_LOAD( "xeno_fg.10j",  0x30000, 0x10000, 0x6a7a3516 )
 ROM_END
 
 ROM_START( spyhunt2 )
+	ROM_REGION( 0x40000, REGION_CPU1 )
+	ROM_LOAD_EVEN( "sh23c.bin",  0x00000, 0x10000, 0x30b91c90 )
+	ROM_LOAD_ODD ( "sh23b.bin",  0x00000, 0x10000, 0xf64513c6 )
+	ROM_LOAD_EVEN( "sh22c.bin",  0x20000, 0x10000, 0x8ee65009 )
+	ROM_LOAD_ODD ( "sh22b.bin",  0x20000, 0x10000, 0x850c21ad )
+
+	ROM_REGION( 0x10000, REGION_CPU2 )  /* 64k for the Turbo Cheap Squeak */
+	ROM_LOAD( "turbo-cs.u5", 0x08000, 0x4000, 0x4b1d8a66 )
+	ROM_LOAD( "turbo-cs.u4", 0x0c000, 0x4000, 0x3722ce48 )
+
+	ROM_REGION( 0x40000, REGION_CPU3 )  /* Sounds Good board */
+	ROM_LOAD_EVEN( "sh2u7.bin",  0x00000, 0x10000, 0x02362ea4 )
+	ROM_LOAD_ODD ( "sh2u17.bin", 0x00000, 0x10000, 0xe29a2c37 )
+
+	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "sh2bg0.bin",  0x00000, 0x08000, 0xcb3c3d8e )
+	ROM_LOAD( "sh2bg1.bin",  0x08000, 0x08000, 0x029d4af1 )
+
+	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "fg0.7j",   0x00000, 0x20000, 0x55ce12ea )
+	ROM_LOAD( "fg1.8j",   0x20000, 0x20000, 0x692afb67 )
+	ROM_LOAD( "fg2.9j",   0x40000, 0x20000, 0xf1aba383 )
+	ROM_LOAD( "fg3.10j",  0x60000, 0x20000, 0xd3475ff8 )
+ROM_END
+
+ROM_START( spyhnt2a )
 	ROM_REGION( 0x40000, REGION_CPU1 )
 	ROM_LOAD_EVEN( "3c",  0x00000, 0x10000, 0x5b92aadf )
 	ROM_LOAD_ODD ( "3b",  0x00000, 0x10000, 0x6ed0a25f )
@@ -1288,14 +1166,12 @@ ROM_START( spyhunt2 )
 	ROM_LOAD( "turbo-cs.u4", 0x0c000, 0x4000, 0x3722ce48 )
 
 	ROM_REGION( 0x40000, REGION_CPU3 )  /* Sounds Good board */
-	ROM_LOAD_EVEN( "u7",  0x00000, 0x10000, 0x00000000 )
-	ROM_LOAD_ODD ( "u17", 0x00000, 0x10000, 0x00000000 )
-	ROM_LOAD_EVEN( "u8",  0x20000, 0x10000, 0x00000000 )
-	ROM_LOAD_ODD ( "u18", 0x20000, 0x10000, 0x00000000 )
+	ROM_LOAD_EVEN( "sh2u7.bin",  0x00000, 0x10000, 0x02362ea4 )
+	ROM_LOAD_ODD ( "sh2u17.bin", 0x00000, 0x10000, 0xe29a2c37 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "bg0.11d",  0x00000, 0x08000, 0x81efef7a )
-	ROM_LOAD( "bg1.12d",  0x10000, 0x08000, 0x6a902e4d )
+	ROM_LOAD( "bg1.12d",  0x08000, 0x08000, 0x6a902e4d )
 
 	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "fg0.7j",   0x00000, 0x20000, 0x55ce12ea )
@@ -1317,9 +1193,9 @@ ROM_START( blasted )
 	ROM_LOAD_EVEN( "blasted.u8",  0x20000, 0x10000, 0xc53094c0 )
 	ROM_LOAD_ODD ( "blasted.u18", 0x20000, 0x10000, 0x85688160 )
 
-	ROM_REGION( 0x20000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_REGION( 0x10000, REGION_GFX1 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "11d",  0x00000, 0x08000, 0xd8ed5cbc )
-	ROM_LOAD( "12d",  0x10000, 0x08000, 0x60d00c69 )
+	ROM_LOAD( "12d",  0x08000, 0x08000, 0x60d00c69 )
 
 	ROM_REGION( 0x80000, REGION_GFX2 | REGIONFLAG_DISPOSE )
 	ROM_LOAD( "fg0",  0x00000, 0x20000, 0x5034ae8a )
@@ -1430,7 +1306,6 @@ ROM_END
 
 static void init_zwackery(void)
 {
-	MCR_CONFIGURE_NO_HISCORE;
 	MCR_CONFIGURE_SOUND(MCR_CHIP_SQUEAK_DELUXE);
 
 	/* Zwackery doesn't care too much about this value; currently taken from Blasted */
@@ -1442,11 +1317,8 @@ static void init_zwackery(void)
 
 static void init_xenophob(void)
 {
-	MCR_CONFIGURE_NO_HISCORE;
 	MCR_CONFIGURE_SOUND(MCR_SOUNDS_GOOD);
 
-	mcr68_char_code_mask = 0x7ff;
-	mcr68_sprite_code_mask = 0x1ff;
 	mcr68_sprite_clip = 0;
 	mcr68_sprite_xoffset = 0;
 
@@ -1462,13 +1334,8 @@ static void init_xenophob(void)
 
 static void init_spyhunt2(void)
 {
-	int i;
-
-	MCR_CONFIGURE_NO_HISCORE;
 	MCR_CONFIGURE_SOUND(MCR_TURBO_CHIP_SQUEAK | MCR_SOUNDS_GOOD);
 
-	mcr68_char_code_mask = 0x7ff;
-	mcr68_sprite_code_mask = 0x3ff;
 	mcr68_sprite_clip = 0;
 	mcr68_sprite_xoffset = -6;
 
@@ -1478,15 +1345,7 @@ static void init_spyhunt2(void)
 	/* analog port handling is a bit tricky */
 	install_mem_write_handler(0, 0x0c0000, 0x0cffff, spyhunt2_control_w);
 	install_mem_read_handler(0, 0x0d0000, 0x0dffff, spyhunt2_port_0_r);
-
-	/* since we don't have ROMs for the Sounds Good board yet, install an */
-	/* infinite loop in the sound CPU */
-	for (i = 0; i < 0x100; i += 4)
-	{
-		WRITE_WORD(&memory_region(REGION_CPU3)[i + 0x0000], 0x0000);
-		WRITE_WORD(&memory_region(REGION_CPU3)[i + 0x0002], 0x0100);
-	}
-	WRITE_WORD(&memory_region(REGION_CPU3)[0x0100], 0x60fe);
+	install_mem_read_handler(0, 0x0e0000, 0x0effff, spyhunt2_port_1_r);
 
 	rom_decode();
 }
@@ -1494,11 +1353,8 @@ static void init_spyhunt2(void)
 
 static void init_blasted(void)
 {
-	MCR_CONFIGURE_NO_HISCORE;
 	MCR_CONFIGURE_SOUND(MCR_SOUNDS_GOOD);
 
-	mcr68_char_code_mask = 0x7ff;
-	mcr68_sprite_code_mask = 0x3ff;
 	mcr68_sprite_clip = 0;
 	mcr68_sprite_xoffset = 0;
 
@@ -1520,11 +1376,8 @@ static void init_blasted(void)
 
 static void init_archrivl(void)
 {
-	MCR_CONFIGURE_NO_HISCORE;
 	MCR_CONFIGURE_SOUND(MCR_WILLIAMS_SOUND);
 
-	mcr68_char_code_mask = 0xfff;
-	mcr68_sprite_code_mask = 0x3ff;
 	mcr68_sprite_clip = 16;
 	mcr68_sprite_xoffset = 0;
 
@@ -1555,7 +1408,6 @@ static void init_archrivl(void)
 
 static void init_pigskin(void)
 {
-	MCR_CONFIGURE_NO_HISCORE;
 	MCR_CONFIGURE_SOUND(MCR_WILLIAMS_SOUND);
 
 	/* handle control writes */
@@ -1564,8 +1416,6 @@ static void init_pigskin(void)
 	/* Pigskin doesn't care too much about this value; currently taken from Tri-Sports */
 	mcr68_timing_factor = 115.0 / (double)(Machine->drv->cpu[0].cpu_clock / 10);
 
-	mcr68_char_code_mask = 0xfff;
-	mcr68_sprite_code_mask = 0x3ff;
 	mcr68_sprite_clip = 16;
 	mcr68_sprite_xoffset = 0;
 
@@ -1580,7 +1430,6 @@ static void init_pigskin(void)
 
 static void init_trisport(void)
 {
-	MCR_CONFIGURE_NO_HISCORE;
 	MCR_CONFIGURE_SOUND(MCR_WILLIAMS_SOUND);
 
 	/* Tri-Sports checks the timing of VBLANK relative to the 493 interrupt */
@@ -1591,8 +1440,6 @@ static void init_trisport(void)
 	/* handle control writes */
 	install_mem_write_handler(0, 0x1a0000, 0x1affff, archrivl_control_w);
 
-	mcr68_char_code_mask = 0xfff;
-	mcr68_sprite_code_mask = 0x3ff;
 	mcr68_sprite_clip = 0;
 	mcr68_sprite_xoffset = 0;
 
@@ -1607,10 +1454,16 @@ static void init_trisport(void)
 
 
 
+/*************************************
+ *
+ *	Game drivers
+ *
+ *************************************/
 
 GAME( 1984, zwackery, 0,        zwackery, zwackery, zwackery, ROT0,   "Bally Midway", "Zwackery" )
 GAME( 1987, xenophob, 0,        xenophob, xenophob, xenophob, ROT0,   "Bally Midway", "Xenophobe" )
-GAME( 1987, spyhunt2, 0,        spyhunt2, spyhunt2, spyhunt2, ROT0,   "Bally Midway", "Spy Hunter 2" )
+GAME( 1987, spyhunt2, 0,        spyhunt2, spyhunt2, spyhunt2, ROT0,   "Bally Midway", "Spy Hunter 2 (rev 2)" )
+GAME( 1987, spyhnt2a, spyhunt2, spyhunt2, spyhunt2, spyhunt2, ROT0,   "Bally Midway", "Spy Hunter 2 (rev 1)" )
 GAME( 1988, blasted,  0,        xenophob, blasted,  blasted,  ROT0,   "Bally Midway", "Blasted" )
 GAME( 1989, archrivl, 0,        archrivl, archrivl, archrivl, ROT0,   "Bally Midway", "Arch Rivals (rev 4.0)" )
 GAME( 1989, archriv2, archrivl, archrivl, archrivl, archrivl, ROT0,   "Bally Midway", "Arch Rivals (rev 2.0)" )

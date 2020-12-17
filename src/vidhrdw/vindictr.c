@@ -154,7 +154,7 @@ void vindictr_vh_stop(void)
  *
  *************************************/
 
-void vindictr_playfieldram_w(int offset, int data)
+WRITE_HANDLER( vindictr_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -174,7 +174,7 @@ void vindictr_playfieldram_w(int offset, int data)
  *
  *************************************/
 
-void vindictr_paletteram_w(int offset,int data)
+WRITE_HANDLER( vindictr_paletteram_w )
 {
 	static const int ztable[16] =
 		{ 0x0, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11 };
@@ -257,7 +257,7 @@ void vindictr_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 
 	/* draw the playfield */
 	memset(atarigen_pf_visit, 0, 64*64);
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* draw the motion objects */
 	atarigen_mo_process(mo_render_callback, bitmap);
@@ -306,7 +306,7 @@ static const UINT8 *update_palette(void)
 	palette_init_used_colors();
 
 	/* update color usage for the playfield */
-	atarigen_pf_process(pf_color_callback, pf_map, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_color_callback, pf_map, &Machine->visible_area);
 
 	/* update color usage for the mo's */
 	atarigen_mo_process(mo_color_callback, mo_map);

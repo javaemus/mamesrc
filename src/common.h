@@ -23,7 +23,7 @@ struct RomModule
 /* that marks the start of a new memory region. Confused? Well, don't worry, just use */
 /* the macros below. */
 
-#define ROMFLAG_MASK          0xf8000000           /* 5 bits worth of flags in the high nibble */
+#define ROMFLAG_MASK          0xfc000000           /* 6 bits worth of flags in the high nibble */
 
 /* Masks for individual ROMs */
 #define ROMFLAG_ALTERNATE     0x80000000           /* Alternate bytes, either even or odd, or nibbles, low or high */
@@ -31,6 +31,7 @@ struct RomModule
 #define ROMFLAG_SWAP          0x20000000           /* 16-bit ROM with bytes in wrong order */
 #define ROMFLAG_NIBBLE        0x10000000           /* Nibble-wide ROM image */
 #define ROMFLAG_QUAD          0x08000000           /* 32-bit data arranged as 4 interleaved 8-bit roms */
+#define ROMFLAG_OPTIONAL      0x04000000           /* Optional ROM, not needed for basic emulation */
 
 /* start of table */
 #define ROM_START(name) static struct RomModule rom_##name[] = {
@@ -110,6 +111,8 @@ enum {
 /* Data is split between 4 roms, always use this in groups of 4! */
 #define ROM_LOAD_QUAD(name,offset,length,crc) { name, offset, length | ROMFLAG_QUAD, crc },
 
+#define ROM_LOAD_OPTIONAL(name,offset,length,crc) { name, offset, length | ROMFLAG_OPTIONAL, crc },
+
 #ifdef LSB_FIRST
 #define ROM_LOAD_V20_EVEN	ROM_LOAD_EVEN
 #define ROM_RELOAD_V20_EVEN  ROM_RELOAD_EVEN
@@ -161,9 +164,10 @@ void showdisclaimer(void);
 
 /* LBO 042898 - added coin counters */
 #define COIN_COUNTERS	4	/* total # of coin counters */
-void coin_counter_w (int offset, int data);
-void coin_lockout_w (int offset, int data);
-void coin_lockout_global_w (int offset, int data);  /* Locks out all coin inputs */
+WRITE_HANDLER( coin_counter_w );
+WRITE_HANDLER( coin_lockout_w );
+WRITE_HANDLER( coin_lockout_global_w );  /* Locks out all coin inputs */
+
 
 int readroms(void);
 void printromlist(const struct RomModule *romp,const char *name);
@@ -182,6 +186,27 @@ int memory_region_length(int num);
 int new_memory_region(int num, int length);
 void free_memory_region(int num);
 
-void save_screen_snapshot(void);
+extern data_t flip_screen_x, flip_screen_y;
+
+WRITE_HANDLER( flip_screen_w );
+WRITE_HANDLER( flip_screen_x_w );
+WRITE_HANDLER( flip_screen_y_w );
+#define flip_screen flip_screen_x
+
+/* sets a variable and schedules a full screen refresh if it changed */
+void set_vh_global_attribute( data_t *addr, data_t data );
+
+/* next time vh_screenrefresh is called, full_refresh will be true,
+   thus requesting a redraw of the entire screen */
+void schedule_full_refresh(void);
+
+void set_visible_area(int min_x,int max_x,int min_y,int max_y);
+
+struct osd_bitmap *bitmap_alloc(int width,int height);
+struct osd_bitmap *bitmap_alloc_depth(int width,int height,int depth);
+void bitmap_free(struct osd_bitmap *bitmap);
+
+void save_screen_snapshot_as(void *fp,struct osd_bitmap *bitmap);
+void save_screen_snapshot(struct osd_bitmap *bitmap);
 
 #endif

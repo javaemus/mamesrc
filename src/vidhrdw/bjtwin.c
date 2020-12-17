@@ -5,7 +5,7 @@ unsigned char *bjtwin_workram;
 unsigned char *bjtwin_spriteram;
 unsigned char *bjtwin_txvideoram;
 unsigned char *bjtwin_videocontrol;
-int bjtwin_txvideoram_size;
+size_t bjtwin_txvideoram_size;
 
 static unsigned char * dirtybuffer;
 static struct osd_bitmap *tmpbitmap;
@@ -15,11 +15,11 @@ static int flipscreen = 0;
 int bjtwin_vh_start(void)
 {
 	dirtybuffer = malloc(bjtwin_txvideoram_size/2);
-	tmpbitmap = osd_new_bitmap(Machine->drv->screen_width,Machine->drv->screen_height,Machine->scrbitmap->depth);
+	tmpbitmap = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height);
 
 	if (!dirtybuffer || !tmpbitmap)
 	{
-		if (tmpbitmap) osd_free_bitmap(tmpbitmap);
+		if (tmpbitmap) bitmap_free(tmpbitmap);
 		if (dirtybuffer) free(dirtybuffer);
 		return 1;
 	}
@@ -31,7 +31,7 @@ int bjtwin_vh_start(void)
 
 void bjtwin_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap);
 	free(dirtybuffer);
 
 	dirtybuffer = 0;
@@ -39,12 +39,12 @@ void bjtwin_vh_stop(void)
 }
 
 
-int bjtwin_txvideoram_r(int offset)
+READ_HANDLER( bjtwin_txvideoram_r )
 {
 	return READ_WORD(&bjtwin_txvideoram[offset]);
 }
 
-void bjtwin_txvideoram_w(int offset,int data)
+WRITE_HANDLER( bjtwin_txvideoram_w )
 {
 	int oldword = READ_WORD(&bjtwin_txvideoram[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -57,7 +57,7 @@ void bjtwin_txvideoram_w(int offset,int data)
 }
 
 
-void bjtwin_paletteram_w(int offset,int data)
+WRITE_HANDLER( bjtwin_paletteram_w )
 {
 	int r,g,b;
 	int oldword = READ_WORD(&paletteram[offset]);
@@ -78,7 +78,7 @@ void bjtwin_paletteram_w(int offset,int data)
 }
 
 
-void bjtwin_flipscreen_w(int offset,int data)
+WRITE_HANDLER( bjtwin_flipscreen_w )
 {
 	if ((data & 1) != flipscreen)
 	{
@@ -142,7 +142,7 @@ void bjtwin_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 
 	/* copy the character mapped graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	for (offs = 0; offs < 256*16; offs += 16)
 	{
@@ -174,7 +174,7 @@ void bjtwin_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 							READ_WORD(&bjtwin_spriteram[offs+14]),
 							flipscreen, flipscreen,
 							sx & 0x1ff,sy & 0x1ff,
-							&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+							&Machine->visible_area,TRANSPARENCY_PEN,15);
 
 					tilecode++;
 					sx += delta;

@@ -310,25 +310,25 @@ void dday_decode(void)
 }
 
 
-void dday_colorram_w(int offset, int data)
+WRITE_HANDLER( dday_colorram_w )
 {
     colorram[offset & 0x3e0] = data;
 }
 
-int dday_colorram_r(int offset)
+READ_HANDLER( dday_colorram_r )
 {
     return colorram[offset & 0x3e0];
 }
 
-void dday_searchlight_w(int offset, int data)
+WRITE_HANDLER( dday_searchlight_w )
 {
 	searchlight_image = &memory_region(REGION_GFX4)[0x200*(data & 0x07)];
 	searchlight_flipx = (data >> 3) & 0x01;
 }
 
-void dday_control_w(int offset, int data)
+WRITE_HANDLER( dday_control_w )
 {
-	//fprintf(errorlog,"Control = %02X\n", data);
+	//logerror("Control = %02X\n", data);
 
 	/* Bit 0 is coin counter 1 */
 	coin_counter_w(0, data & 0x01);
@@ -421,7 +421,7 @@ void dday_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 							   code_background,
 							   code_background >> 5,
 							   sx,sy,
-							   &Machine->drv->visible_area,TRANSPARENCY_NONE,
+							   &Machine->visible_area,TRANSPARENCY_NONE,
 							   searchlight_bitmap,
 							   layer_bitmap, 1);
 			}
@@ -432,7 +432,7 @@ void dday_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						   code,
 						   code >> 5,
 						   sx,sy,
-						   &Machine->drv->visible_area,TRANSPARENCY_PEN,
+						   &Machine->visible_area,TRANSPARENCY_PEN,
 						   searchlight_bitmap,
 						   0, 0);
 
@@ -446,7 +446,7 @@ void dday_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 							   code_background,
 							   code_background >> 5,
 							   sx,sy,
-							   &Machine->drv->visible_area,TRANSPARENCY_NONE,
+							   &Machine->visible_area,TRANSPARENCY_NONE,
 							   searchlight_bitmap,
 							   layer_bitmap, 0);
 			}
@@ -458,7 +458,7 @@ void dday_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						   code_background,
 						   code_background >> 5,
 						   sx,sy,
-						   &Machine->drv->visible_area,TRANSPARENCY_NONE,
+						   &Machine->visible_area,TRANSPARENCY_NONE,
 						   searchlight_bitmap,
 						   0, 0);
 		}
@@ -473,7 +473,7 @@ void dday_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						   code,
 						   code >> 5,
 						   sx,sy,
-						   &Machine->drv->visible_area,TRANSPARENCY_PEN,
+						   &Machine->visible_area,TRANSPARENCY_PEN,
 						   searchlight_bitmap,
 						   0, 0);
 		}

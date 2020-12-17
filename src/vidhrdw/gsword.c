@@ -7,8 +7,8 @@
 
 #include "driver.h"
 
-unsigned int gs_videoram_size;
-unsigned int gs_spritexy_size;
+size_t gs_videoram_size;
+size_t gs_spritexy_size;
 
 unsigned char *gs_videoram;
 unsigned char *gs_scrolly_ram;
@@ -72,7 +72,7 @@ void gsword_vh_convert_color_prom(unsigned char *palette, unsigned short *colort
 int gsword_vh_start(void)
 {
 	if ((dirtybuffer = malloc(gs_videoram_size)) == 0) return 1;
-	if ((bitmap_bg = osd_create_bitmap(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
+	if ((bitmap_bg = bitmap_alloc(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer);
 		return 1;
@@ -84,10 +84,10 @@ int gsword_vh_start(void)
 void gsword_vh_stop(void)
 {
 	free(dirtybuffer);
-	osd_free_bitmap(bitmap_bg);
+	bitmap_free(bitmap_bg);
 }
 
-void gs_charbank_w(int offset, int data)
+WRITE_HANDLER( gs_charbank_w )
 {
 	if (charbank != data)
 	{
@@ -96,7 +96,7 @@ void gs_charbank_w(int offset, int data)
 	}
 }
 
-void gs_videoctrl_w(int offset, int data)
+WRITE_HANDLER( gs_videoctrl_w )
 {
 	if (data & 0x8f)
 	{
@@ -122,7 +122,7 @@ void gs_videoctrl_w(int offset, int data)
 	/* other bits unused */
 }
 
-void gs_videoram_w(int offset,int data)
+WRITE_HANDLER( gs_videoram_w )
 {
 	if (gs_videoram[offset] != data)
 	{
@@ -207,7 +207,7 @@ void render_sprites(struct osd_bitmap *bitmap)
 					gs_spritetile_ram[offs+1] & 0x3f,
 					flipx,flipy,
 					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_COLOR, 15);
+					&Machine->visible_area,TRANSPARENCY_COLOR, 15);
 		}
 	}
 }
@@ -217,7 +217,7 @@ void gsword_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	int scrollx=0, scrolly=-(*gs_scrolly_ram);
 
 	render_background(bitmap_bg);
-	copyscrollbitmap(bitmap,bitmap_bg,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copyscrollbitmap(bitmap,bitmap_bg,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	render_sprites(bitmap);
 }
 

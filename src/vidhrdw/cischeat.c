@@ -57,6 +57,7 @@ Video Section Summary		[ Cisco Heat ]			[ F1 GP Star ]
 
 ***************************************************************************/
 
+#include "driver.h"
 #include "drivers/megasys1.h"
 #include "vidhrdw/generic.h"
 
@@ -157,7 +158,7 @@ static int read_accelerator(void)
 								[ Cisco Heat ]
 **************************************************************************/
 
-int cischeat_vregs_r(int offset)
+READ_HANDLER( cischeat_vregs_r )
 {
 	switch (offset)
 	{
@@ -187,7 +188,7 @@ int cischeat_vregs_r(int offset)
 **************************************************************************/
 
 
-int f1gpstar_vregs_r(int offset)
+READ_HANDLER( f1gpstar_vregs_r )
 {
 
 	switch (offset)
@@ -217,7 +218,7 @@ int f1gpstar_vregs_r(int offset)
 								[ Cisco Heat ]
 **************************************************************************/
 
-void cischeat_vregs_w(int offset, int data)
+WRITE_HANDLER( cischeat_vregs_w )
 {
 int old_data, new_data;
 
@@ -280,7 +281,7 @@ int old_data, new_data;
 							[ F1 GrandPrix Star ]
 **************************************************************************/
 
-void f1gpstar_vregs_w(int offset, int data)
+WRITE_HANDLER( f1gpstar_vregs_w )
 {
 int old_data, new_data;
 
@@ -386,8 +387,8 @@ void cischeat_mark_road_colors(int road_num)
 	int color_codes_start		=	gfx.color_codes_start;
 	unsigned char *roadram		=	cischeat_roadram[road_num & 1];
 
-	int min_y = Machine->drv->visible_area. min_y;
-	int max_y = Machine->drv->visible_area. max_y;
+	int min_y = Machine->visible_area. min_y;
+	int max_y = Machine->visible_area. max_y;
 
 	for (color = 0 ; color < ROAD_COLOR_CODES ; color++) colmask[color] = 0;
 
@@ -423,7 +424,7 @@ void cischeat_draw_road(struct osd_bitmap *bitmap, int road_num, int priority1, 
 	int curr_code,sx,sy;
 	int min_priority, max_priority;
 
-	struct rectangle rect		=	Machine->drv->visible_area;
+	struct rectangle rect		=	Machine->visible_area;
 	unsigned char *roadram		=	cischeat_roadram[road_num & 1];
 	struct GfxElement *gfx		=	Machine->gfx[(road_num & 1)?4:3];
 
@@ -523,8 +524,8 @@ void f1gpstar_mark_road_colors(int road_num)
 	int color_codes_start		=	gfx.color_codes_start;
 	unsigned char *roadram		=	cischeat_roadram[road_num & 1];
 
-	int min_y = Machine->drv->visible_area.min_y;
-	int max_y = Machine->drv->visible_area.max_y;
+	int min_y = Machine->visible_area.min_y;
+	int max_y = Machine->visible_area.max_y;
 
 	for (color = 0 ; color < ROAD_COLOR_CODES ; color++) colmask[color] = 0;
 
@@ -560,7 +561,7 @@ void f1gpstar_draw_road(struct osd_bitmap *bitmap, int road_num, int priority1, 
 	int xstart;
 	int min_priority, max_priority;
 
-	struct rectangle rect		=	Machine->drv->visible_area;
+	struct rectangle rect		=	Machine->visible_area;
 	unsigned char *roadram		=	cischeat_roadram[road_num & 1];
 	struct GfxElement *gfx		=	Machine->gfx[(road_num & 1)?4:3];
 
@@ -652,10 +653,10 @@ static void cischeat_mark_sprite_colors(void)
 	int total_elements		=	Machine->gfx[5]->total_elements;
 	int color_codes_start	=	Machine->drv->gfxdecodeinfo[5].color_codes_start;
 
-	int xmin = Machine->drv->visible_area.min_x;
-	int xmax = Machine->drv->visible_area.max_x;
-	int ymin = Machine->drv->visible_area.min_y;
-	int ymax = Machine->drv->visible_area.max_y;
+	int xmin = Machine->visible_area.min_x;
+	int xmax = Machine->visible_area.max_x;
+	int ymin = Machine->visible_area.min_y;
+	int ymax = Machine->visible_area.max_y;
 
 	unsigned char		*source	= spriteram;
 	const unsigned char *finish	= source + 0x1000;
@@ -853,7 +854,7 @@ if ( (debugsprites) && ( ((attr & 0x0300)>>8) != (debugsprites-1) ) ) 	{ continu
 							color,
 							flipx,flipy,
 							(sx + x * xdim) / 0x10000, (sy + y * ydim) / 0x10000,
-							&Machine->drv->visible_area,
+							&Machine->visible_area,
 							TRANSPARENCY_PEN,15,
 							xscale, yscale );
 			}
@@ -866,13 +867,13 @@ if ( (debugsprites) && ( ((attr & 0x0300)>>8) != (debugsprites-1) ) ) 	{ continu
 			char buf[40],buf1[40];
 
 			dt[0].text = buf;	dt[1].text = buf1;	dt[2].text = 0;
-			dt[0].color = dt[1].color = DT_COLOR_WHITE;
+			dt[0].color = dt[1].color = UI_COLOR_NORMAL;
 			dt[0].x = sx / 0x10000;	dt[1].x = dt[0].x;
 			dt[0].y = sy / 0x10000;	dt[1].y = dt[0].y + 8;
 
 			sprintf(buf, "A:%04X",attr);
 			sprintf(buf1,"Z:%04X",xzoom);
-			displaytext(dt,0,0);
+			displaytext(Machine->scrbitmap,dt,0,0);
 		}
 #endif
 

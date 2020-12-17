@@ -33,6 +33,9 @@
 #define IBWH	m6509.ind_bank.w.h
 #define IB		m6509.ind_bank.d
 
+#undef CHANGE_PC
+#define CHANGE_PC change_pc20(PCD|PB)
+
 /***************************************************************
  *  RDOP    read an opcode
  ***************************************************************/
@@ -107,18 +110,6 @@
     EAWH = PBWH
 
 /***************************************************************
- *	EA = zero page indirect (65c02 pre indexed w/o X)
- ***************************************************************/
-#undef EA_ZPI
-#define EA_ZPI													\
-	ZPL = RDOPARG();											\
-	ZPWH=PBWH;													\
-	EAL = RDMEM(ZPD);											\
-	ZPL++;														\
-	EAH = RDMEM(ZPD);											\
-    EAWH = PBWH
-
-/***************************************************************
  *  EA = zero page + X indirect (pre indexed)
  ***************************************************************/
 #undef EA_IDX
@@ -137,7 +128,7 @@
 #undef EA_IDY
 #define EA_IDY													\
 	ZPL = RDOPARG();											\
-	ZPWH=PBWH;													\
+	ZPWH = PBWH;												\
 	EAL = RDMEM(ZPD);											\
 	ZPL++;														\
 	EAH = RDMEM(ZPD);											\
@@ -153,7 +144,7 @@
  ***************************************************************/
 #define EA_IDY_6509 											\
 	ZPL = RDOPARG();											\
-	ZPWH=PBWH;													\
+	ZPWH = PBWH;												\
 	EAL = RDMEM(ZPD);											\
 	ZPL++;														\
 	EAH = RDMEM(ZPD);											\
@@ -172,17 +163,7 @@
 	EAL++;	/* booby trap: stay in same page! ;-) */			\
 	EAH = RDMEM(EAD);											\
 	EAL = tmp;
-//    EAWH = PBWH
-
-/***************************************************************
- *	EA = indirect plus x (only used by 65c02 JMP)
- ***************************************************************/
-#undef EA_IAX
-#define EA_IAX                                                  \
-	EA_IND; 													\
-	if (EAL + X > 0xff) /* assumption; probably wrong ? */		\
-		m6509_ICount--; 										\
-    EAW += X
+/*	EAWH = PBWH */
 
 #define RD_IDY_6509	EA_IDY_6509; tmp = RDMEM(EAD)
 #define WR_IDY_6509	EA_IDY_6509; WRMEM(EAD, tmp)
@@ -199,50 +180,13 @@
 		EAW = PCW + (signed char)tmp;							\
 		m6509_ICount -= (PCH == EAH) ? 3 : 4;					\
 		PCD = EAD|PB;											\
-		change_pc20(PCD);										\
+		CHANGE_PC;												\
 	}															\
 	else														\
 	{															\
 		PCW++;													\
 		m6509_ICount -= 2;										\
 	}
-
-/* 6502 ********************************************************
- *	BRK Break
- *	increment PC, push PC hi, PC lo, flags (with B bit set),
- *	set I flag, reset D flag and jump via IRQ vector
- ***************************************************************/
-#undef BRK
-#define BRK 													\
-	PCW++;														\
-	PUSH(PCH);													\
-	PUSH(PCL);													\
-	PUSH(P | F_B);												\
-	P = (P | F_I) & ~F_D;										\
-	PCL = RDMEM(M6509_IRQ_VEC); 								\
-	PCH = RDMEM(M6509_IRQ_VEC+1);								\
-	change_pc20(PCD)
-
-
-/* 6502 ********************************************************
- *	ILL Illegal opcode
- ***************************************************************/
-#undef ILL
-#define ILL 													\
-	if (errorlog)												\
-		fprintf(errorlog, "M6509 illegal opcode %05x: %02x\n",  \
-			((PCW-1)&0xffff)|PB, cpu_readop((PCW-1)&0xffff)|PB)
-
-/* 6502 ********************************************************
- *	JMP Jump to address
- *	set PC to the effective address
- ***************************************************************/
-#undef JMP
-#define JMP 													\
-	if( EAD == PPC && !m6509.pending_irq && !m6509.after_cli )	\
-		if( m6509_ICount > 0 ) m6509_ICount = 0;				\
-	PCD = EAD;													\
-	change_pc20(PCD)
 
 /* 6502 ********************************************************
  *	JSR Jump to subroutine
@@ -257,71 +201,17 @@
 	EAH = RDOPARG();											\
 	EAWH = PBWH;												\
 	PCD = EAD;													\
-	change_pc20(PCD)
-
-/* 6502 ********************************************************
- * RTI	Return from interrupt
- * pull flags, pull PC lo, pull PC hi and increment PC
- *	PCW++;
- ***************************************************************/
-#undef RTI
-#define RTI 													\
-	PULL(P);													\
-	PULL(PCL);													\
-    PULL(PCH);                                                  \
-	P |= F_T;													\
-	if( (m6509.irq_state != CLEAR_LINE) && !(P & F_I) ) 		\
-	{															\
-		LOG((errorlog, "M6509#%d RTI sets after_cli\n",cpu_getactivecpu())); \
-		m6509.after_cli = 1;									\
-	}															\
-    change_pc20(PCD)
-
-/* 6502 ********************************************************
- *	RTS Return from subroutine
- *	pull PC lo, PC hi and increment PC
- ***************************************************************/
-#undef RTS
-#define RTS 													\
-	PULL(PCL);													\
-	PULL(PCH);													\
-	PCW++;														\
-	change_pc20(PCD)
+	CHANGE_PC
 
 /* 6510 ********************************************************
- * SAH	store accumulator and index X and high + 1
- * result = accumulator and index X and memory [PC+1] + 1
+ *	KIL Illegal opcode
+ * processor haltet, no hardware interrupt will help
+ * only reset
  ***************************************************************/
-#undef SAH
-#define SAH 													\
-	tmp = A & X;												\
-	tmp &= (cpu_readop_arg(((PCW + 1) & 0xffff)|PB) + 1)
-
-/* 6510 ********************************************************
- * SSH	store stack high
- * logical and accumulator with index X, transfer result to S
- * logical and result with memory [PC+1] + 1
- ***************************************************************/
-#undef SSH
-#define SSH 													\
-	tmp = S = A & X;											\
-	tmp &= (UINT8)(cpu_readop_arg(((PCW + 1) & 0xffff)|PB) + 1)
-
-/* 6510 ********************************************************
- * SXH	store index X high
- * logical and index X with memory[PC+1] and store the result
- ***************************************************************/
-#undef SXH
-#define SXH 													\
-	tmp = X & (UINT8)(cpu_readop_arg(((PCW + 1) & 0xffff)|PB)
-
-/* 6510 ********************************************************
- * SYH	store index Y and (high + 1)
- * logical and index Y with memory[PC+1] + 1 and store the result
- ***************************************************************/
-#undef SYH
-#define SYH 													\
-	tmp = Y & (UINT8)(cpu_readop_arg(((PCW + 1) & 0xffff)|PB) + 1)
+#undef KIL
+#define KIL 													\
+	PCW--;														\
+	logerror("M6509 KILL opcode %05x: %02x\n", PCD, cpu_readop(PCD))
 
 
 

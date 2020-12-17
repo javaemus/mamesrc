@@ -16,7 +16,7 @@ static int flipscreen;
 
 
 
-void bombjack_background_w(int offset,int data)
+WRITE_HANDLER( bombjack_background_w )
 {
 	if (background_image != data)
 	{
@@ -27,7 +27,7 @@ void bombjack_background_w(int offset,int data)
 
 
 
-void bombjack_flipscreen_w(int offset,int data)
+WRITE_HANDLER( bombjack_flipscreen_w )
 {
 	if (flipscreen != (data & 1))
 	{
@@ -117,7 +117,7 @@ void bombjack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						colorram[offs] & 0x0f,
 						flipscreen,flipscreen,
 						8*sx,8*sy,
-						&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
 			}
 			else
 				drawgfx(tmpbitmap,Machine->gfx[0],
@@ -125,7 +125,7 @@ void bombjack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						colorram[offs] & 0x0f,
 						flipscreen,flipscreen,
 						8*sx,8*sy,
-						&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+						&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 			dirtybuffer[offs] = 0;
@@ -134,7 +134,7 @@ void bombjack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 
 	/* copy the character mapped graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* Draw the sprites. */
@@ -185,6 +185,6 @@ void bombjack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				spriteram[offs+1] & 0x0f,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

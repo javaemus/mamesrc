@@ -71,6 +71,18 @@
  *                  remove routines for 5 non existant opcodes
  * 05.03.00  MJC  - not command decrement A7 by 1 for bytes
  * 10.03.00  MJC  - as did btst,cmpm and nbcd
+ * 22.03.00  MJC  - Divide by zero should not decrement PC by 2 before push
+ *                  Move memory banking into exception routine
+ * 14.04.00 Dave  - BTST missing Opcode
+ *                  ASL.L > 31 shift
+ * 20.04.00  MJC  - TST.B Also missing A7 specific routine
+ *                - Extra Define A7ROUTINE to switch between having seperate
+ *                  routines for +-(A7) address modes.
+ * 24.06.00  MJC  - ADDX/SUBX +-(A7) routines added.
+ *                  TAS should not touch X flag
+ *                  LSL/LSR EA not clearing V flag
+ *                  CHK not all opcodes in jump table
+ *                  Add define to mask status register
  *---------------------------------------------------------------
  * Known Problems / Bugs
  *
@@ -107,8 +119,9 @@
 #define SAVEPPC			/* Save Previous PC */
 #undef  ENCRYPTED		/* Allows OP_ROM <> OP_RAM */
 #define ASMBANK         /* Memory banking algorithm to use */
+#define A7ROUTINE       /* Define to use separate routines for -(a7)/(a7)+ */
 #define ALIGNMENT 4		/* Alignment to use for branches */
-
+#undef  MASKCCR         /* Mask the status register to filter out unused bits */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,16 +133,17 @@
 char 		*codebuf;
 int 		DisOp;
 
-#define cpu_readmem24(addr) 		(0)
-#define cpu_readmem24_word(addr)	(DisOp)
-#define cpu_readmem24_dword(addr) 	(0x123456)	/* Only used for Addresses */
+#define cpu_readmem24bew(addr)		   (0)
+#define cpu_readmem24bew_word(addr)    (DisOp)
+#define cpu_readmem24bew_dword(addr)   (0x123456)  /* Only used for Addresses */
 
 #define MEMORY_H	/* so memory.h will not be included... */
 #include "d68k.c"
+#undef MEMORY_H
 
-#undef cpu_readmem24
-#undef cpu_readmem24_word
-#undef cpu_readmem24_dword
+#undef cpu_readmem24bew
+#undef cpu_readmem24bew_word
+#undef cpu_readmem24bew_dword
 
 #include "cpuintrf.h"
 
@@ -138,7 +152,7 @@ int 		DisOp;
  *
  */
 
-#define VERSION 	"0.18"
+#define VERSION 	"0.20"
 
 #define TRUE -1
 #define FALSE 0
@@ -181,23 +195,23 @@ int 		DisOp;
 #define REG_SFC             "R_SFC"
 #define REG_DFC             "R_DFC"
 
-#define FASTCALL_CPU_READMEM24        "@cpu_readmem24@4"
-#define FASTCALL_CPU_READMEM24_WORD   "@cpu_readmem24_word@4"
-#define FASTCALL_CPU_READMEM24_DWORD  "@cpu_readmem24_dword@4"
-#define FASTCALL_CPU_WRITEMEM24       "@cpu_writemem24@8"
-#define FASTCALL_CPU_WRITEMEM24_WORD  "@cpu_writemem24_word@8"
-#define FASTCALL_CPU_WRITEMEM24_DWORD "@cpu_writemem24_dword@8"
-#define FASTCALL_CPU_SETOPBASE24      "@cpu_setOPbase24@4"
-#define FASTCALL_FIRST_REG            "ecx"
-#define FASTCALL_SECOND_REG           "edx"
+#define FASTCALL_CPU_READMEM24BEW		 "@cpu_readmem24bew@4"
+#define FASTCALL_CPU_READMEM24BEW_WORD	 "@cpu_readmem24bew_word@4"
+#define FASTCALL_CPU_READMEM24BEW_DWORD  "@cpu_readmem24bew_dword@4"
+#define FASTCALL_CPU_WRITEMEM24BEW		 "@cpu_writemem24bew@8"
+#define FASTCALL_CPU_WRITEMEM24BEW_WORD  "@cpu_writemem24bew_word@8"
+#define FASTCALL_CPU_WRITEMEM24BEW_DWORD "@cpu_writemem24bew_dword@8"
+#define FASTCALL_CPU_SETOPBASE24BEW 	 "@cpu_setOPbase24bew@4"
+#define FASTCALL_FIRST_REG				 "ecx"
+#define FASTCALL_SECOND_REG 			 "edx"
 
-#define CPU_READMEM24                 "_cpu_readmem24"
-#define CPU_READMEM24_WORD            "_cpu_readmem24_word"
-#define CPU_READMEM24_DWORD           "_cpu_readmem24_dword"
-#define CPU_WRITEMEM24                "_cpu_writemem24"
-#define CPU_WRITEMEM24_WORD           "_cpu_writemem24_word"
-#define CPU_WRITEMEM24_DWORD          "_cpu_writemem24_dword"
-#define CPU_SETOPBASE24               "_cpu_setOPbase24"
+#define CPU_READMEM24BEW				 "_cpu_readmem24bew"
+#define CPU_READMEM24BEW_WORD			 "_cpu_readmem24bew_word"
+#define CPU_READMEM24BEW_DWORD			 "_cpu_readmem24bew_dword"
+#define CPU_WRITEMEM24BEW				 "_cpu_writemem24bew"
+#define CPU_WRITEMEM24BEW_WORD			 "_cpu_writemem24bew_word"
+#define CPU_WRITEMEM24BEW_DWORD 		 "_cpu_writemem24bew_dword"
+#define CPU_SETOPBASE24BEW				 "_cpu_setOPbase24bew"
 
 /*
  * Global Variables
@@ -249,21 +263,21 @@ static char* regnamesshort[] =
 { "AL","BL","CL","DL" };
 
 #ifdef FASTCALL
-char *name_cpu_readmem24 = FASTCALL_CPU_READMEM24;
-char *name_cpu_readmem24_word = FASTCALL_CPU_READMEM24_WORD;
-char *name_cpu_readmem24_dword = FASTCALL_CPU_READMEM24_DWORD;
-char *name_cpu_writemem24 = FASTCALL_CPU_WRITEMEM24;
-char *name_cpu_writemem24_word = FASTCALL_CPU_WRITEMEM24_WORD;
-char *name_cpu_writemem24_dword = FASTCALL_CPU_WRITEMEM24_DWORD;
-char *name_cpu_setOPbase24 = FASTCALL_CPU_SETOPBASE24;
+char *name_cpu_readmem24bew = FASTCALL_CPU_READMEM24BEW;
+char *name_cpu_readmem24bew_word = FASTCALL_CPU_READMEM24BEW_WORD;
+char *name_cpu_readmem24bew_dword = FASTCALL_CPU_READMEM24BEW_DWORD;
+char *name_cpu_writemem24bew = FASTCALL_CPU_WRITEMEM24BEW;
+char *name_cpu_writemem24bew_word = FASTCALL_CPU_WRITEMEM24BEW_WORD;
+char *name_cpu_writemem24bew_dword = FASTCALL_CPU_WRITEMEM24BEW_DWORD;
+char *name_cpu_setOPbase24bew = FASTCALL_CPU_SETOPBASE24BEW;
 #else
-char *name_cpu_readmem24 = CPU_READMEM24;
-char *name_cpu_readmem24_word = CPU_READMEM24_WORD;
-char *name_cpu_readmem24_dword = CPU_READMEM24_DWORD;
-char *name_cpu_writemem24 = CPU_WRITEMEM24;
-char *name_cpu_writemem24_word = CPU_WRITEMEM24_WORD;
-char *name_cpu_writemem24_dword = CPU_WRITEMEM24_DWORD;
-char *name_cpu_setOPbase24 = CPU_SETOPBASE24;
+char *name_cpu_readmem24bew = CPU_READMEM24BEW;
+char *name_cpu_readmem24bew_word = CPU_READMEM24BEW_WORD;
+char *name_cpu_readmem24bew_dword = CPU_READMEM24BEW_DWORD;
+char *name_cpu_writemem24bew = CPU_WRITEMEM24BEW;
+char *name_cpu_writemem24bew_word = CPU_WRITEMEM24BEW_WORD;
+char *name_cpu_writemem24bew_dword = CPU_WRITEMEM24BEW_DWORD;
+char *name_cpu_setOPbase24bew = CPU_SETOPBASE24BEW;
 #endif
 
 /*********************************/
@@ -468,7 +482,7 @@ void MemoryBanking(int BaseCode)
     fprintf(fp, "\t\t push  esi\n");
 #endif
 
-	fprintf(fp, "\t\t call  %s\n",name_cpu_setOPbase24);
+	fprintf(fp, "\t\t call  %s\n",name_cpu_setOPbase24bew);
 
 #ifndef FASTCALL
     fprintf(fp, "\t\t add   esp,byte 4\n");
@@ -658,9 +672,21 @@ void IncrementEDI(int Size,int Rreg)
 	{
         case 66:
 
+			#ifdef  A7ROUTINE
+
         	/* Always does Byte Increment - A7 uses special routine */
 
             fprintf(fp, "\t\t inc   dword [%s+%s*4]\n",REG_ADD,regnameslong[Rreg]);
+
+            #else
+
+        	/* A7 uses same routines, so inc by 2 if A7 */
+
+            fprintf(fp, "\t\t cmp   %s,7\n",regnamesshort[Rreg]);
+            fprintf(fp, "\t\t cmc\n");
+            fprintf(fp, "\t\t adc   dword [%s+%s*4],byte 1\n",REG_ADD,regnameslong[Rreg]);
+
+            #endif
             break;
 
         case 87:
@@ -681,9 +707,21 @@ void DecrementEDI(int Size,int Rreg)
 	{
         case 66:
 
-        	/* Always does Byte Decrement - A7 uses special routine */
+			#ifdef  A7ROUTINE
+
+        	/* Always does Byte Increment - A7 uses special routine */
 
             fprintf(fp, "\t\t dec   EDI\n");
+
+            #else
+
+        	/* A7 uses same routines, so dec by 2 if A7 */
+
+            fprintf(fp, "\t\t cmp   %s,7\n",regnamesshort[Rreg]);
+            fprintf(fp, "\t\t cmc\n");
+            fprintf(fp, "\t\t sbb   dword edi,byte 1\n");
+
+            #endif
             break;
 
         case 87:
@@ -714,7 +752,7 @@ void Exception(int Number, int BaseCode)
     }
 
     fprintf(fp, "\t\t call  Exception\n\n");
-	MemoryBanking(BaseCode);
+//	MemoryBanking(BaseCode);
 
     if (Number > -1)
        Completed();
@@ -758,7 +796,13 @@ void ReadCCR(char Size, int Wreg)
     fprintf(fp, "\t\t or    eax,%s\t\t\t\t; O\n\n",regnameslong[Wreg]);
 
     if (Size == 'W')
+    {
 	    fprintf(fp, "\t\t mov   ah,byte [%s] \t; T, S & I\n\n",REG_SRH);
+
+		#ifdef MASKCCR
+		    fprintf(fp, "\t\t and   ax,0A71Fh\t; Mask unused bits\n");
+        #endif
+	}
 }
 
 /*
@@ -889,15 +933,15 @@ void Memory_Read(char Size,int AReg,char *Flags,int Mask)
     switch(Size)
     {
     	case 66 :
-			fprintf(fp, "\t\t call  %s\n",name_cpu_readmem24);
+			fprintf(fp, "\t\t call  %s\n",name_cpu_readmem24bew);
             break;
 
         case 87 :
-			fprintf(fp, "\t\t call  %s\n",name_cpu_readmem24_word);
+			fprintf(fp, "\t\t call  %s\n",name_cpu_readmem24bew_word);
             break;
 
         case 76 :
-			fprintf(fp, "\t\t call  %s\n",name_cpu_readmem24_dword);
+			fprintf(fp, "\t\t call  %s\n",name_cpu_readmem24bew_dword);
             break;
     }
 
@@ -1020,15 +1064,15 @@ void Memory_Write(char Size,int AReg,int DReg,char *Flags,int Mask)
     switch(Size)
     {
     	case 66 :
-			fprintf(fp, "\t\t call  %s\n",name_cpu_writemem24);
+			fprintf(fp, "\t\t call  %s\n",name_cpu_writemem24bew);
             break;
 
         case 87 :
-			fprintf(fp, "\t\t call  %s\n",name_cpu_writemem24_word);
+			fprintf(fp, "\t\t call  %s\n",name_cpu_writemem24bew_word);
             break;
 
         case 76 :
-			fprintf(fp, "\t\t call  %s\n",name_cpu_writemem24_dword);
+			fprintf(fp, "\t\t call  %s\n",name_cpu_writemem24bew_dword);
             break;
     }
 
@@ -1994,10 +2038,12 @@ void dump_imm( int type, int leng, int mode, int sreg )
 
 	if ( mode == 7 ) BaseCode |= sreg ;
 
+    #ifdef A7ROUTINE
 	if ( (leng == 0) && (sreg == 7) && (mode > 2) && (mode < 5) )
 	{
 		BaseCode |= sreg ;
 	}
+    #endif
 
     if (type != 4) 	/* Not Valid (for this routine) */
     {
@@ -2176,8 +2222,9 @@ void dump_bit_dynamic( int sreg, int type, int mode, int dreg )
 
     if (type == 0)
     {
-        allow[9] = '9';
-    	allow[10] = 'a';
+        allow[9]  = '9';
+       	allow[10] = 'a';
+		allow[11] = 'b'; // dave fix to nhl
     }
 
 	Opcode = 0x0100 | (sreg << 9) | (type<<6) | (mode<<3) | dreg ;
@@ -2188,10 +2235,12 @@ void dump_bit_dynamic( int sreg, int type, int mode, int dreg )
 
     // A7+, A7-
 
+	#ifdef  A7ROUTINE
 	if ((dreg == 7) && (mode > 2) && (mode < 5))
 	{
 		BaseCode |= dreg;
 	}
+    #endif
 
     Dest = EAtoAMN(Opcode, FALSE);
 
@@ -2610,6 +2659,7 @@ void movecodes(int allowfrom[],int allowto[],int Start,char Size)	/* MJC */
         /* If mode = 3 or 4 and Size = byte and register = A7 */
         /* then make it a separate code                       */
 
+		#ifdef  A7ROUTINE
         if (Size == 'B')
         {
         	if (((Opcode & 0x3F) == 0x1F) || ((Opcode & 0x3F) == 0x27))
@@ -2622,6 +2672,7 @@ void movecodes(int allowfrom[],int allowto[],int Start,char Size)	/* MJC */
             	BaseCode |= 0x0E00;
             }
         }
+        #endif
 
         /* If Source = Data or Address register - combine into same routine */
 
@@ -2765,10 +2816,12 @@ void opcode5(void)
         	/* If mode = 3 or 4 and register = A7 */
 	        /* then make it a separate code       */
 
+			#ifdef  A7ROUTINE
        		if (((Opcode & 0x3F) == 0x1F) || ((Opcode & 0x3F) == 0x27))
            	{
            		BaseCode |= 0x07;
            	}
+            #endif
 
             if (OpcodeArray[BaseCode] == -2)
             {
@@ -2888,6 +2941,7 @@ void opcode5(void)
         	/* If mode = 3 or 4 and Size = byte and register = A7 */
 	        /* then make it a separate code                       */
 
+			#ifdef  A7ROUTINE
         	if ((Opcode & 0xC0) == 0)
 	        {
         		if (((Opcode & 0x3F) == 0x1F) || ((Opcode & 0x3F) == 0x27))
@@ -2895,6 +2949,7 @@ void opcode5(void)
             		BaseCode |= 0x07;
             	}
         	}
+            #endif
 
             if (OpcodeArray[BaseCode] == -2)
             {
@@ -3270,6 +3325,14 @@ void addx_subx(void)
 
 		BaseCode = Opcode & 0xd1c8 ;
 
+        #ifdef A7ROUTINE
+	    if ((rm == 1) && (leng == 0))
+		{
+         	if (regx == 7) BaseCode |= (regx << 9);
+			if (regy == 7) BaseCode |= regy;
+        }
+        #endif
+
 		if ( rm == 0 )
 			mode = 0 ;
 		else
@@ -3446,8 +3509,10 @@ void dumpx( int start, int reg, int type, char * Op, int dir, int leng, int mode
 
 	if ( mode == 7 ) BaseCode |= sreg ;
 
+    #ifdef A7ROUTINE
 	if ( (mode == 3 || mode == 4) && ( leng == 0 ) && (sreg == 7 ) )
 		BaseCode |= sreg ;
+    #endif
 
     /* If Source = Data or Address register - combine into same routine */
 
@@ -3757,10 +3822,12 @@ void not(void)
 
         // A7+, A7-
 
+		#ifdef  A7ROUTINE
 		if ( (leng == 0) && (sreg == 7) && (mode > 2) && (mode < 5) )
 		{
 			BaseCode |= sreg ;
 		}
+        #endif
 
         Dest = EAtoAMN(Opcode, FALSE);
 
@@ -3928,48 +3995,52 @@ void chk(void)
 
 		Dest = EAtoAMN(Opcode, FALSE);
 
-		if ( (OpcodeArray[BaseCode] == -2 ) && ( allow[Dest&0xf] != '-' ))
+		if (allow[Dest&0xf] != '-')
 		{
-			Align();
-			Label = GenerateLabel(BaseCode,0);
-			fprintf(fp, "%s:\n", Label );
-   			fprintf(fp, "\t\t add   esi,byte 2\n\n");
+        	if (OpcodeArray[BaseCode] == -2 )
+			{
+			    Align();
+			    Label = GenerateLabel(BaseCode,0);
+			    fprintf(fp, "%s:\n", Label );
+   			    fprintf(fp, "\t\t add   esi,byte 2\n\n");
 
-            TimingCycles += 10;
+                TimingCycles += 10;
 
-			fprintf(fp, "\t\t mov   ebx,ecx\n");
-			fprintf(fp, "\t\t shr   ebx,byte 9\n");
-			fprintf(fp, "\t\t and   ebx,byte 7\n");
+			    fprintf(fp, "\t\t mov   ebx,ecx\n");
+			    fprintf(fp, "\t\t shr   ebx,byte 9\n");
+			    fprintf(fp, "\t\t and   ebx,byte 7\n");
 
-			fprintf(fp, "\t\t mov   ebx,[%s+EBX*4]\n",REG_DAT);
-			fprintf(fp, "\t\t test  bh,80h\n"); /* is word bx < 0 */
-			fprintf(fp, "\t\t jnz   near OP_%4.4x_Trap_minus\n",BaseCode);
+			    fprintf(fp, "\t\t mov   ebx,[%s+EBX*4]\n",REG_DAT);
+			    fprintf(fp, "\t\t test  bh,80h\n"); /* is word bx < 0 */
+			    fprintf(fp, "\t\t jnz   near OP_%4.4x_Trap_minus\n",BaseCode);
 
-			if (Dest < 7)
- 				fprintf(fp, "\t\t and   ecx,byte 7\n");
+			    if (Dest < 7)
+ 				    fprintf(fp, "\t\t and   ecx,byte 7\n");
 
-			EffectiveAddressRead(Dest,'W',ECX,EAX,"----S-B",FALSE);
+			    EffectiveAddressRead(Dest,'W',ECX,EAX,"----S-B",FALSE);
 
-			fprintf(fp, "\t\t cmp   bx,ax\n");
-			fprintf(fp, "\t\t jg    near OP_%4.4x_Trap_over\n",BaseCode);
-			Completed();
+			    fprintf(fp, "\t\t cmp   bx,ax\n");
+			    fprintf(fp, "\t\t jg    near OP_%4.4x_Trap_over\n",BaseCode);
+			    Completed();
 
-            /* N is set if data less than zero */
+                /* N is set if data less than zero */
 
-			Align();
-			fprintf(fp, "OP_%4.4x_Trap_minus:\n",BaseCode);
-			fprintf(fp, "\t\t or    dl,80h\n"); 		/* N flag = 80H */
-			Exception(6,BaseCode);
+			    Align();
+			    fprintf(fp, "OP_%4.4x_Trap_minus:\n",BaseCode);
+			    fprintf(fp, "\t\t or    dl,80h\n"); 		/* N flag = 80H */
+			    Exception(6,BaseCode);
 
-            /* N is cleared if greated than compared number */
+                /* N is cleared if greated than compared number */
 
-            Align();
-			fprintf(fp, "OP_%4.4x_Trap_over:\n",BaseCode);
-			fprintf(fp, "\t\t and   dl,7Fh\n"); 		/* N flag = 80H */
-			Exception(6,0x10000+BaseCode);
+                Align();
+			    fprintf(fp, "OP_%4.4x_Trap_over:\n",BaseCode);
+			    fprintf(fp, "\t\t and   dl,7Fh\n"); 		/* N flag = 80H */
+			    Exception(6,0x10000+BaseCode);
 
-			OpcodeArray[Opcode] = BaseCode ;
-		}
+		    }
+
+		    OpcodeArray[Opcode] = BaseCode ;
+        }
 	}
 }
 
@@ -4063,10 +4134,12 @@ void nbcd(void)
 
     	// A7+, A7-
 
+		#ifdef  A7ROUTINE
 		if ((sreg == 7) && (mode > 2) && (mode < 5))
 		{
 			BaseCode |= sreg;
 		}
+        #endif
 
 		Dest = EAtoAMN(BaseCode, FALSE);
 
@@ -4145,7 +4218,7 @@ void tas(void)
 
   				EffectiveAddressRead(Dest,'B',ECX,EAX,"--C-SDB",FALSE);
 
-				SetFlags('B',EAX,TRUE,TRUE,TRUE);
+				SetFlags('B',EAX,TRUE,FALSE,TRUE);
 				fprintf(fp, "\t\t or    al,128\n");
 
 	  			EffectiveAddressWrite(Dest,'B',ECX,EAX,"----S-B",FALSE);
@@ -4250,6 +4323,15 @@ void tst(void)
 		{
 			BaseCode |= sreg ;
 		}
+
+        // A7+, A7-
+
+		#ifdef  A7ROUTINE
+		if ( (leng == 0) && (sreg == 7) && (mode > 2) && (mode < 5) )
+		{
+			BaseCode |= sreg ;
+		}
+        #endif
 
         Dest = EAtoAMN(Opcode, FALSE);
 
@@ -5032,11 +5114,13 @@ void cmpm(void)
 		Opcode = 0xb108 | (regx<<9) | (leng<<6) | regy ;
 		BaseCode = Opcode & 0xb1c8 ;
 
+        #ifdef A7ROUTINE
         if(leng==0)
         {
         	if(regx==7) BaseCode |= (regx<<9);
         	if(regy==7) BaseCode |= regy;
         }
+        #endif
 
       	switch (leng)
     	{
@@ -5767,9 +5851,13 @@ void lsl_lsr_ea(void)
 				else
 					fprintf(fp, "\t\t shl   ax,1\n");
 
-				SetFlags('W',EAX,FALSE,TRUE,TRUE);
+				SetFlags('W',EAX,FALSE,TRUE,FALSE);
 
-				EffectiveAddressWrite(Dest&0xf,'W',ECX,EAX,"----S-B",FALSE);
+	            /* Clear Overflow flag */
+
+    	        fprintf(fp, "\t\t xor   dh,dh\n");
+
+				EffectiveAddressWrite(Dest&0xf,'W',ECX,EAX,"---DS-B",TRUE);
 				Completed();
 			}
 
@@ -6091,6 +6179,15 @@ void asl_asr(void)
                 fprintf(fp,"\t\t xor   edx,edx\n");
 
                 fprintf(fp,"%s_OV:\n",Label);
+
+                /* more than 31 shifts and long */
+
+                if((ir==1) && (leng==2))
+                {
+                	fprintf(fp,"\t\t test  cl,0e0h\n");
+                    fprintf(fp,"\t\t jnz   short %s_32\n\n",Label);
+                }
+
                 fprintf(fp,"\t\t mov   eax,edi\t\t; Restore It\n");
 
 				fprintf(fp, "\t\t sal   %s,cl\n",Regname);
@@ -6119,6 +6216,18 @@ void asl_asr(void)
                     fprintf(fp, "\t\t and   ebx,byte 1\n");
                     SetFlags(Size,EAX,TRUE,FALSE,FALSE);
                     fprintf(fp, "\t\t or    edx,ebx\n");
+
+                    if (leng==2)
+                    {
+					    Completed();
+
+                        /* > 31 Shifts */
+
+                        fprintf(fp, "%s_32:\n",Label);
+                        fprintf(fp, "\t\t mov   dl,40h\n");		// Zero flag
+                        fprintf(fp, "\t\t xor   eax,eax\n");
+                	    EffectiveAddressWrite(0,Size,EBX,EAX,"----S-B",TRUE);
+                    }
             	}
 
 				Completed();
@@ -6364,8 +6473,9 @@ void divides(void)
                 /* Correct cycle counter for error */
 
 				fprintf(fp, "\t\t add   dword [%s],byte %d\n",ICOUNT,95 + (type * 17));
-
-				Exception(5,BaseCode);
+		        fprintf(fp, "\t\t mov   al,5\n");
+				Exception(-1,BaseCode);
+		        Completed();
 			}
 
 			OpcodeArray[Opcode] = BaseCode ;
@@ -6574,14 +6684,14 @@ void CodeSegmentBegin(void)
     fprintf(fp, "\t\t GLOBAL _regs\n");
 #endif
 
-    fprintf(fp, "\t\t EXTERN %s\n",name_cpu_readmem24);
-    fprintf(fp, "\t\t EXTERN %s\n",name_cpu_readmem24_word);
-    fprintf(fp, "\t\t EXTERN %s\n\n",name_cpu_readmem24_dword);
+	fprintf(fp, "\t\t EXTERN %s\n",name_cpu_readmem24bew);
+	fprintf(fp, "\t\t EXTERN %s\n",name_cpu_readmem24bew_word);
+	fprintf(fp, "\t\t EXTERN %s\n\n",name_cpu_readmem24bew_dword);
 
-    fprintf(fp, "\t\t EXTERN %s\n",name_cpu_writemem24);
-    fprintf(fp, "\t\t EXTERN %s\n",name_cpu_writemem24_word);
-    fprintf(fp, "\t\t EXTERN %s\n",name_cpu_writemem24_dword);
-	fprintf(fp, "\t\t EXTERN %s\n\n",name_cpu_setOPbase24);
+	fprintf(fp, "\t\t EXTERN %s\n",name_cpu_writemem24bew);
+	fprintf(fp, "\t\t EXTERN %s\n",name_cpu_writemem24bew_word);
+	fprintf(fp, "\t\t EXTERN %s\n",name_cpu_writemem24bew_dword);
+	fprintf(fp, "\t\t EXTERN %s\n\n",name_cpu_setOPbase24bew);
 
     fprintf(fp, "; Vars Mame declares / needs access to\n\n");
 
@@ -6860,6 +6970,10 @@ void CodeSegmentBegin(void)
 
 	fprintf(fp, "\t\t mov   esi,eax\t\t;Set PC\n");
 	fprintf(fp, "\t\t pop   edx\t\t; Restore flags\n");
+
+    /* Sort out any bank changes */
+	MemoryBanking(1);
+
 	fprintf(fp, "\t\t ret\n");
 }
 

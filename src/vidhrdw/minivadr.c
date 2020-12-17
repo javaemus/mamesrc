@@ -34,7 +34,7 @@ void minivadr_init_palette(unsigned char *game_palette, unsigned short *game_col
 	Draw Pixel.
 
 *******************************************************************/
-void minivadr_videoram_w(int offset,int data)
+WRITE_HANDLER( minivadr_videoram_w )
 {
 	int i;
 	int x, y;
@@ -46,10 +46,10 @@ void minivadr_videoram_w(int offset,int data)
 	x = (offset % 32) * 8;
 	y = (offset / 32);
 
-	if (x >= Machine->drv->visible_area.min_x &&
-			x <= Machine->drv->visible_area.max_x &&
-			y >= Machine->drv->visible_area.min_y &&
-			y <= Machine->drv->visible_area.max_y)
+	if (x >= Machine->visible_area.min_x &&
+			x <= Machine->visible_area.max_x &&
+			y >= Machine->visible_area.min_y &&
+			y <= Machine->visible_area.max_y)
 	{
 		for (i = 0; i < 8; i++)
 		{

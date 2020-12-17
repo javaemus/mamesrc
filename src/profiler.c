@@ -8,7 +8,7 @@ static int use_profiler;
 
 struct profile_data
 {
-	unsigned int count[MEMORY][PROFILER_TOTAL];
+	UINT64 count[MEMORY][PROFILER_TOTAL];
 	unsigned int cpu_context_switches[MEMORY];
 };
 
@@ -51,7 +51,7 @@ void profiler_mark(int type)
 	{
 		if (FILO_length >= 10)
 		{
-if (errorlog) fprintf(errorlog,"Profiler error: FILO buffer overflow\n");
+logerror("Profiler error: FILO buffer overflow\n");
 			return;
 		}
 
@@ -68,7 +68,7 @@ if (errorlog) fprintf(errorlog,"Profiler error: FILO buffer overflow\n");
 	{
 		if (FILO_length <= 0)
 		{
-if (errorlog) fprintf(errorlog,"Profiler error: FILO buffer underflow\n");
+logerror("Profiler error: FILO buffer underflow\n");
 			return;
 		}
 
@@ -82,37 +82,42 @@ if (errorlog) fprintf(errorlog,"Profiler error: FILO buffer underflow\n");
 	}
 }
 
-void profiler_show(void)
+void profiler_show(struct osd_bitmap *bitmap)
 {
 	int i,j;
-	unsigned int total,normalize;
-	unsigned int computed;
+	UINT64 total,normalize;
+	UINT64 computed;
 	int line;
 	char buf[30];
 	static char *names[PROFILER_TOTAL] =
 	{
-		"CPU 1",
-		"CPU 2",
-		"CPU 3",
-		"CPU 4",
-		"CPU 5",
-		"CPU 6",
-		"CPU 7",
-		"CPU 8",
-		"Video",
-		"Blit ",
-		"Sound",
-		"Mixer",
-		"Cllbk",
-		"Hiscr",
-		"Input",
-		"Extra",
-		"User1",
-		"User2",
-		"User3",
-		"User4",
-		"Prflr",
-		"Idle ",
+		"CPU 1  ",
+		"CPU 2  ",
+		"CPU 3  ",
+		"CPU 4  ",
+		"CPU 5  ",
+		"CPU 6  ",
+		"CPU 7  ",
+		"CPU 8  ",
+		"Video  ",
+		"drawgfx",
+		"copybmp",
+		"tmupdat",
+		"tmrendr",
+		"tmdraw ",
+		"Blit   ",
+		"Sound  ",
+		"Mixer  ",
+		"Callbck",
+		"Hiscore",
+		"Input  ",
+		"Extra  ",
+		"User1  ",
+		"User2  ",
+		"User3  ",
+		"User4  ",
+		"Profilr",
+		"Idle   ",
 	};
 
 
@@ -150,20 +155,21 @@ void profiler_show(void)
 		if (computed)
 		{
 			if (i < PROFILER_PROFILER)
-				sprintf(buf,"%s%3d%%%3d%%",names[i],(computed + total/200) / (total/100),(computed + normalize/200) / (normalize/100));
+				sprintf(buf,"%s%3d%%%3d%%",names[i],
+						(int)((computed * 100 + total/2) / total),
+						(int)((computed * 100 + normalize/2) / normalize));
 			else
-				sprintf(buf,"%s%3d%%",names[i],(computed + total/200) / (total/100));
-			ui_text(buf,0,(line++)*Machine->uifontheight);
+				sprintf(buf,"%s%3d%%",names[i],
+						(int)((computed * 100 + total/2) / total));
+			ui_text(bitmap,buf,0,(line++)*Machine->uifontheight);
 		}
 	}
 
-	computed = 0;
-	{
-		for (j = 0;j < MEMORY;j++)
-			computed += profile.cpu_context_switches[j];
-	}
-	sprintf(buf,"CPU switches%4d",computed / MEMORY);
-	ui_text(buf,0,(line++)*Machine->uifontheight);
+	i = 0;
+	for (j = 0;j < MEMORY;j++)
+		i += profile.cpu_context_switches[j];
+	sprintf(buf,"CPU switches%4d",i / MEMORY);
+	ui_text(bitmap,buf,0,(line++)*Machine->uifontheight);
 
 	/* reset the counters */
 	memory = (memory + 1) % MEMORY;

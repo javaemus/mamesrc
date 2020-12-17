@@ -47,7 +47,7 @@ enum
 };
 
 
-void invinco_sh_port2_w( int offset, int data )
+WRITE_HANDLER( invinco_sh_port2_w )
 {
 	static int port2State = 0;
 	int bitsChanged;
@@ -92,6 +92,6 @@ void invinco_sh_port2_w( int offset, int data )
 	}
 
 #if 0
-	if (errorlog) fprintf(errorlog,"Went LO: %02X  %04X\n", bitsGoneLow, cpu_get_pc());
+	logerror("Went LO: %02X  %04X\n", bitsGoneLow, cpu_get_pc());
 #endif
 }

@@ -1,13 +1,8 @@
 /**************************************************************************
 
-  Last Duel (USA set 1)           - Capcom, 1988
-  Last Duel (USA set 2)           - Capcom, 1988
-  Last Duel (Bootleg set)         - Capcom, 1988
-  LED Storm (USA set)             - Capcom, 1988
-  Mad Gear (World? set)           - Capcom, 1989
-
-  Mad Gear (Japan set) has rom code MDJ and is not dumped yet, presumably
-  other versions of Last Duel exist too.
+  Last Duel 			          - Capcom, 1988
+  LED Storm 			          - Capcom, 1988
+  Mad Gear                        - Capcom, 1989
 
   Emulation by Bryan McPhail, mish@tendril.co.uk
 
@@ -19,30 +14,29 @@ microcontroller.
 #include "driver.h"
 #include "vidhrdw/generic.h"
 
-int lastduel_vram_r(int offset);
-void lastduel_vram_w(int offset,int value);
-void lastduel_flip_w(int offset,int value);
-int lastduel_scroll2_r(int offset);
-int lastduel_scroll1_r(int offset);
-void lastduel_scroll1_w(int offset,int value);
-void lastduel_scroll2_w(int offset,int value);
-void madgear_scroll1_w(int offset,int value);
-void madgear_scroll2_w(int offset,int value);
+READ_HANDLER( lastduel_vram_r );
+WRITE_HANDLER( lastduel_vram_w );
+WRITE_HANDLER( lastduel_flip_w );
+READ_HANDLER( lastduel_scroll2_r );
+READ_HANDLER( lastduel_scroll1_r );
+WRITE_HANDLER( lastduel_scroll1_w );
+WRITE_HANDLER( lastduel_scroll2_w );
+WRITE_HANDLER( madgear_scroll1_w );
+WRITE_HANDLER( madgear_scroll2_w );
 int lastduel_vh_start(void);
 int madgear_vh_start(void);
 void lastduel_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void ledstorm_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void lastduel_eof_callback(void);
-void lastduel_scroll_w( int offset, int data );
+WRITE_HANDLER( lastduel_scroll_w );
 
 extern unsigned char *lastduel_vram,*lastduel_scroll2,*lastduel_scroll1;
 static unsigned char *lastduel_ram;
 
 /******************************************************************************/
 
-static int lastduel_inputs_r(int offset)
+static READ_HANDLER( lastduel_inputs_r )
 {
-
   switch (offset) {
   	case 0: /* Player 1 & Player 2 controls */
     	return(readinputport(0)<<8)+readinputport(1);
@@ -56,12 +50,10 @@ static int lastduel_inputs_r(int offset)
     case 6: /* Dips, flip */
       return readinputport(5);
   }
-
-  if (errorlog) fprintf(errorlog,"Unknown read\n" );
   return 0xffff;
 }
 
-static int madgear_inputs_r(int offset)
+static READ_HANDLER( madgear_inputs_r )
 {
 	switch (offset) {
     case 0: /* DIP switch A, DIP switch B */
@@ -76,12 +68,10 @@ static int madgear_inputs_r(int offset)
     case 6: /* Start + coins */
     	return readinputport(2)<<8;
 	}
-
-	if (errorlog) fprintf(errorlog,"Unknown read\n" );
 	return 0xffff;
 }
 
-static void lastduel_sound_w( int offset, int data )
+static WRITE_HANDLER( lastduel_sound_w )
 {
 	soundlatch_w(offset,data & 0xff);
 }
@@ -168,7 +158,7 @@ static struct MemoryWriteAddress sound_writemem[] =
 	{ -1 }	/* end of table */
 };
 
-static void mg_bankswitch_w(int offset, int data)
+static WRITE_HANDLER( mg_bankswitch_w )
 {
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU2);
@@ -337,16 +327,16 @@ static void irqhandler(int irq)
 static struct OKIM6295interface okim6295_interface =
 {
 	1,              	/* 1 chip */
-	{ 8000 },           /* 8000Hz frequency */
+	{ 7759 },           /* 7759Hz frequency */
 	{ REGION_SOUND1 },	/* memory region 3 */
-	{ 90 }
+	{ 98 }
 };
 
 static struct YM2203interface ym2203_interface =
 {
 	2,			/* 2 chips */
 	3579545, /* Accurate */
-	{ YM2203_VOL(30,30), YM2203_VOL(30,30) },
+	{ YM2203_VOL(40,40), YM2203_VOL(40,40) },
 	{ 0 },
 	{ 0 },
 	{ 0 },

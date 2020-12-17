@@ -33,7 +33,7 @@ static int slapstic_last75xx = 0;
 // BANK0 gets selected, there are 3.
 
 
-int atetris_slapstic_r(int offset)
+READ_HANDLER( atetris_slapstic_r )
 {
     if (slapstic_nextbank != -1)
     {
@@ -65,7 +65,7 @@ int atetris_slapstic_r(int offset)
                 {
                     slapstic_nextbank = BANK0;
 #ifdef LOG_SLAPSTICK
-                    if (errorlog) fprintf(errorlog, "Selecting Bank 0 at %04X\n", cpu_get_pc());
+                    logerror("Selecting Bank 0 at %04X\n", cpu_get_pc());
 #endif
                 }
                 break;
@@ -76,14 +76,14 @@ int atetris_slapstic_r(int offset)
                 {
                     slapstic_nextbank = BANK1;
 #ifdef LOG_SLAPSTICK
-                    if (errorlog) fprintf(errorlog, "Selecting Bank 1 at %04X\n", cpu_get_pc());
+                    logerror("Selecting Bank 1 at %04X\n", cpu_get_pc());
 #endif
                 }
                 else
                 {
                     slapstic_nextbank = BANK0;
 #ifdef LOG_SLAPSTICK
-                    if (errorlog) fprintf(errorlog, "Selecting Bank 0 at %04X\n", cpu_get_pc());
+                    logerror("Selecting Bank 0 at %04X\n", cpu_get_pc());
 #endif
                 }
                 break;
@@ -93,14 +93,14 @@ int atetris_slapstic_r(int offset)
                 {
                     slapstic_nextbank = BANK1;
 #ifdef LOG_SLAPSTICK
-                    if (errorlog) fprintf(errorlog, "Selecting Bank 1 at %04X\n", cpu_get_pc());
+                    logerror("Selecting Bank 1 at %04X\n", cpu_get_pc());
 #endif
                 }
                 else
                 {
                     slapstic_nextbank = BANK0;
 #ifdef LOG_SLAPSTICK
-                    if (errorlog) fprintf(errorlog, "Selecting Bank 0 at %04X\n", cpu_get_pc());
+                    logerror("Selecting Bank 0 at %04X\n", cpu_get_pc());
 #endif
                 }
                 break;
@@ -111,14 +111,14 @@ int atetris_slapstic_r(int offset)
                 {
                     slapstic_nextbank = BANK1;
 #ifdef LOG_SLAPSTICK
-                    if (errorlog) fprintf(errorlog, "Selecting Bank 1 at %04X\n", cpu_get_pc());
+                    logerror("Selecting Bank 1 at %04X\n", cpu_get_pc());
 #endif
                 }
                 else
                 {
                     slapstic_nextbank = BANK0;
 #ifdef LOG_SLAPSTICK
-                    if (errorlog) fprintf(errorlog, "Selecting Bank 0 at %04X\n", cpu_get_pc());
+                    logerror("Selecting Bank 0 at %04X\n", cpu_get_pc());
 #endif
                 }
                 break;
@@ -182,8 +182,8 @@ void atetris_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				color,
 				0,0,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+				&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }

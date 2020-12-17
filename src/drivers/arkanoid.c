@@ -12,6 +12,9 @@
 			    inserted, NOT patched, so I don't think it's a bootleg
 				The 68705 code for this one was not available; I made it up from
 				the World version changing the level data pointer table.
+    arkatour    Tournament version
+				The 68705 code for this one was not available; I made it up from
+				the World version changing the level data pointer table.
 	arknoidj	Japanese version with level selector.
 				The 68705 code for this one was not available; I made it up from
 				the World version changing the level data pointer table.
@@ -36,23 +39,23 @@
 
 void arkanoid_init_machine(void);
 
-void arkanoid_d008_w(int offset,int data);
+WRITE_HANDLER( arkanoid_d008_w );
 void arkanoid_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void arkanoid_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-int arkanoid_Z80_mcu_r (int value);
-void arkanoid_Z80_mcu_w (int offset, int value);
+READ_HANDLER( arkanoid_Z80_mcu_r );
+WRITE_HANDLER( arkanoid_Z80_mcu_w );
 
-int arkanoid_68705_portA_r(int offset);
-void arkanoid_68705_portA_w(int offset,int data);
-void arkanoid_68705_ddrA_w(int offset,int data);
+READ_HANDLER( arkanoid_68705_portA_r );
+WRITE_HANDLER( arkanoid_68705_portA_w );
+WRITE_HANDLER( arkanoid_68705_ddrA_w );
 
-int arkanoid_68705_portC_r(int offset);
-void arkanoid_68705_portC_w(int offset,int data);
-void arkanoid_68705_ddrC_w(int offset,int data);
+READ_HANDLER( arkanoid_68705_portC_r );
+WRITE_HANDLER( arkanoid_68705_portC_w );
+WRITE_HANDLER( arkanoid_68705_ddrC_w );
 
-int arkanoid_68705_input_0_r (int offset);
-int arkanoid_input_2_r (int offset);
+READ_HANDLER( arkanoid_68705_input_0_r );
+READ_HANDLER( arkanoid_input_2_r );
 
 
 static struct MemoryReadAddress readmem[] =
@@ -140,12 +143,12 @@ INPUT_PORTS_START( arkanoid )
 	PORT_START	/* IN0 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_TILT )
 	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_COIN1 )
 	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_COIN2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* input from the 68705, some bootlegs need it to be 1 */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* input from the 68705 */
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SPECIAL )	/* input from the 68705, some bootlegs need it to be 1 */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* input from the 68705 */
 
 	PORT_START	/* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON1 )
@@ -171,8 +174,8 @@ INPUT_PORTS_START( arkanoid )
 	PORT_DIPSETTING(    0x08, "Easy" )
 	PORT_DIPSETTING(    0x00, "Hard" )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Bonus_Life ) )
-	PORT_DIPSETTING(    0x10, "20000 60000" )
-	PORT_DIPSETTING(    0x00, "20000" )
+	PORT_DIPSETTING(    0x10, "20K 60K and every 60K" )
+	PORT_DIPSETTING(    0x00, "20000 only" )
 	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Lives ) )
 	PORT_DIPSETTING(    0x20, "3" )
 	PORT_DIPSETTING(    0x00, "5" )
@@ -191,12 +194,12 @@ INPUT_PORTS_START( arknoidj )
 	PORT_START	/* IN0 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_TILT )
 	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_COIN1 )
 	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_COIN2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* input from the 68705, some bootlegs need it to be 1 */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* input from the 68705 */
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SPECIAL )	/* input from the 68705, some bootlegs need it to be 1 */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* input from the 68705 */
 
 	PORT_START	/* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON1 )
@@ -222,8 +225,8 @@ INPUT_PORTS_START( arknoidj )
 	PORT_DIPSETTING(    0x08, "Easy" )
 	PORT_DIPSETTING(    0x00, "Hard" )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Bonus_Life ) )
-	PORT_DIPSETTING(    0x10, "20000 60000" )
-	PORT_DIPSETTING(    0x00, "20000?" )
+	PORT_DIPSETTING(    0x10, "20K 60K and every 60K" )
+	PORT_DIPSETTING(    0x00, "20000 only" )
 	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Lives ) )
 	PORT_DIPSETTING(    0x20, "3" )
 	PORT_DIPSETTING(    0x00, "5" )
@@ -235,6 +238,54 @@ INPUT_PORTS_START( arknoidj )
 	PORT_DIPSETTING(    0x80, DEF_STR( Cocktail ) )
 INPUT_PORTS_END
 
+/* Is the same as arkanoij, but the Coinage and Bonus_Life dips are different */
+INPUT_PORTS_START( arkatayt )
+	PORT_START	/* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_TILT )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_COIN1 )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_COIN2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SPECIAL )	/* input from the 68705, some bootlegs need it to be 1 */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* input from the 68705 */
+
+	PORT_START	/* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0xf8, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START      /* IN2 - spinner (multiplexed for player 1 and 2) */
+	PORT_ANALOG( 0xff, 0x00, IPT_DIAL, 30, 15, 0, 0)
+
+	PORT_START      /* IN3 - spinner Player 2  */
+	PORT_ANALOG( 0xff, 0x00, IPT_DIAL | IPF_COCKTAIL, 30, 15, 0, 0)
+
+	PORT_START	/* DSW1 */
+	PORT_DIPNAME( 0x01, 0x00, "Allow Continue" )
+	PORT_DIPSETTING(    0x01, DEF_STR( No ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
+	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Flip_Screen ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_SERVICE( 0x04, IP_ACTIVE_LOW )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Difficulty ) )
+	PORT_DIPSETTING(    0x08, "Easy" )
+	PORT_DIPSETTING(    0x00, "Hard" )
+	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x10, "60K 100K and every 60K" )
+	PORT_DIPSETTING(    0x00, "60000 only" )
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x20, "3" )
+	PORT_DIPSETTING(    0x00, "5" )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( 2C_1C ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( 1C_1C ) )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Cocktail ) )
+INPUT_PORTS_END
 
 
 static struct GfxLayout charlayout =
@@ -398,6 +449,25 @@ ROM_START( arknoidu )
 	ROM_LOAD( "09.bpr",       0x0400, 0x0200, 0xa7c6c277 )	/* blue component */
 ROM_END
 
+ROM_START( arkatour )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "t_ark1.bin",   0x0000, 0x8000, 0xe3b8faf5 )
+	ROM_LOAD( "t_ark2.bin",   0x8000, 0x8000, 0x326aca4d )
+
+	ROM_REGION( 0x0800, REGION_CPU2 )	/* 8k for the microcontroller */
+	ROM_LOAD( "arkatour.uc",  0x0000, 0x0800, BADCRC( 0xd3249559 ) )
+
+	ROM_REGION( 0x18000, REGION_GFX1 | REGIONFLAG_DISPOSE )
+	ROM_LOAD( "t_ark3.bin",   0x00000, 0x8000, 0x5ddea3cf )
+	ROM_LOAD( "t_ark4.bin",   0x08000, 0x8000, 0x5fcf2e85 )
+	ROM_LOAD( "t_ark5.bin",   0x10000, 0x8000, 0x7b76b192 )
+
+	ROM_REGION( 0x0600, REGION_PROMS )
+	ROM_LOAD( "07.bpr",       0x0000, 0x0200, 0x0af8b289 )	/* red component */
+	ROM_LOAD( "08.bpr",       0x0200, 0x0200, 0xabb002fb )	/* green component */
+	ROM_LOAD( "09.bpr",       0x0400, 0x0200, 0xa7c6c277 )	/* blue component */
+ROM_END
+
 ROM_START( arknoidj )
 	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
 	ROM_LOAD( "a75-21.rom",   0x0000, 0x8000, 0xbf0455fc )
@@ -523,7 +593,8 @@ GAME( 1986, arknoidu, arkanoid, arkanoid, arkanoid, 0, ROT90, "Taito America Cor
 GAME( 1986, arknoidj, arkanoid, arkanoid, arknoidj, 0, ROT90, "Taito Corporation", "Arkanoid (Japan)" )
 GAMEX(1986, arkbl2,   arkanoid, arkanoid, arknoidj, 0, ROT90, "bootleg", "Arkanoid (Japanese bootleg Set 2)", GAME_NOT_WORKING )
 GAMEX(1986, arkbl3,   arkanoid, bootleg,  arknoidj, 0, ROT90, "bootleg", "Arkanoid (Japanese bootleg Set 3)", GAME_NOT_WORKING )
-GAME( 1986, arkatayt, arkanoid, bootleg,  arknoidj, 0, ROT90, "bootleg", "Arkanoid (Tayto bootleg, Japanese)" )
+GAME( 1986, arkatayt, arkanoid, bootleg,  arkatayt, 0, ROT90, "bootleg", "Arkanoid (Tayto bootleg, Japanese)" )
 GAMEX(1986, arkblock, arkanoid, bootleg,  arknoidj, 0, ROT90, "bootleg", "Block (bootleg, Japanese)", GAME_NOT_WORKING )
 GAME( 1986, arkbloc2, arkanoid, bootleg,  arknoidj, 0, ROT90, "bootleg", "Block (Game Corporation bootleg)" )
 GAME( 1986, arkangc,  arkanoid, bootleg,  arknoidj, 0, ROT90, "bootleg", "Arkanoid (Game Corporation bootleg)" )
+GAME( 1987, arkatour, arkanoid, arkanoid, arkanoid, 0, ROT90, "Taito America Corporation (Romstar license)", "Tournament Arkanoid (US)" )

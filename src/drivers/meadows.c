@@ -109,10 +109,9 @@
 /*************************************************************/
 int deadeye_vh_start(void);
 int gypsyjug_vh_start(void);
-void meadows_vh_stop(void);
 void meadows_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void meadows_videoram_w(int offset, int data);
-void meadows_sprite_w(int offset, int data);
+WRITE_HANDLER( meadows_videoram_w );
+WRITE_HANDLER( meadows_sprite_w );
 
 int meadows_sh_start(const struct MachineSound *msound);
 void meadows_sh_stop(void);
@@ -154,7 +153,7 @@ static int cycles_at_vsync = 0;
 /* Hardware read/write from the main CPU                     */
 /*                                                           */
 /*************************************************************/
-int meadows_hardware_r(int offset)
+READ_HANDLER( meadows_hardware_r )
 {
 	switch( offset ) {
         case 0: /* buttons */
@@ -169,20 +168,20 @@ int meadows_hardware_r(int offset)
     return 0;
 }
 
-void meadows_hardware_w(int offset, int data)
+WRITE_HANDLER( meadows_hardware_w )
 {
 	switch( offset ) {
 		case 0:
 			if (meadows_0c00 == data)
 				break;
-			if (errorlog) fprintf(errorlog, "meadows_hardware_w %d $%02x\n", offset, data);
+			logerror("meadows_hardware_w %d $%02x\n", offset, data);
 			meadows_0c00 = data;
             break;
 		case 1:
-			if (errorlog) fprintf(errorlog, "meadows_hardware_w %d $%02x\n", offset, data);
+			logerror("meadows_hardware_w %d $%02x\n", offset, data);
             break;
         case 2:
-			if (errorlog) fprintf(errorlog, "meadows_hardware_w %d $%02x\n", offset, data);
+			logerror("meadows_hardware_w %d $%02x\n", offset, data);
             break;
 		case 3:
 //			S2650_Clear_Pending_Interrupts();
@@ -221,7 +220,7 @@ static	int coin1_state = 0;
 /* Hardware read/write for the sound CPU                     */
 /*                                                           */
 /*************************************************************/
-static void sound_hardware_w(int offset, int data)
+static WRITE_HANDLER( sound_hardware_w )
 {
 	switch( offset & 3 ) {
 		case 0: /* DAC */
@@ -230,28 +229,28 @@ static void sound_hardware_w(int offset, int data)
 		case 1: /* counter clk 5 MHz / 256 */
 			if (data == meadows_0c01)
 				break;
-			if (errorlog) fprintf(errorlog, "sound_w ctr1 preset $%x amp %d\n", data & 15, data >> 4);
+			logerror("sound_w ctr1 preset $%x amp %d\n", data & 15, data >> 4);
 			meadows_0c01 = data;
 			meadows_sh_update();
 			break;
 		case 2: /* counter clk 5 MHz / 32 (/ 2 or / 4) */
 			if (data == meadows_0c02)
                 break;
-			if (errorlog) fprintf(errorlog, "sound_w ctr2 preset $%02x\n", data);
+			logerror("sound_w ctr2 preset $%02x\n", data);
 			meadows_0c02 = data;
 			meadows_sh_update();
             break;
 		case 3: /* sound enable */
 			if (data == meadows_0c03)
                 break;
-			if (errorlog) fprintf(errorlog, "sound_w enable ctr2/2:%d ctr2:%d dac:%d ctr1:%d\n", data&1, (data>>1)&1, (data>>2)&1, (data>>3)&1);
+			logerror("sound_w enable ctr2/2:%d ctr2:%d dac:%d ctr1:%d\n", data&1, (data>>1)&1, (data>>2)&1, (data>>3)&1);
 			meadows_0c03 = data;
 			meadows_sh_update();
             break;
 	}
 }
 
-static int sound_hardware_r(int offset)
+static READ_HANDLER( sound_hardware_r )
 {
 	int data = 0;
 
@@ -263,7 +262,7 @@ static int sound_hardware_r(int offset)
 				static int last_data = 0;
 				if (data != last_data) {
 					last_data = data;
-					if (errorlog) fprintf(errorlog, "sound_r %d $%02x\n", offset, data);
+					logerror("sound_r %d $%02x\n", offset, data);
 				}
 			}
 #endif
@@ -415,7 +414,7 @@ static unsigned char palette[] =
 	0xff,0xff,0xff, /* WHITE */
 };
 
-#define ARTWORK_COLORS 254
+#define ARTWORK_COLORS (2 + 32768)
 
 static unsigned short colortable[ARTWORK_COLORS] =
 {
@@ -476,7 +475,7 @@ static struct MachineDriver machine_driver_deadeye =
 	VIDEO_TYPE_RASTER | VIDEO_SUPPORTS_DIRTY | VIDEO_MODIFIES_PALETTE,
     0,
 	deadeye_vh_start,
-	meadows_vh_stop,
+	generic_vh_stop,
 	meadows_vh_screenrefresh,
 
 	/* sound hardware */
@@ -525,7 +524,7 @@ static struct MachineDriver machine_driver_gypsyjug =
 	VIDEO_TYPE_RASTER | VIDEO_SUPPORTS_DIRTY | VIDEO_MODIFIES_PALETTE,
     0,
 	gypsyjug_vh_start,
-	meadows_vh_stop,
+	generic_vh_stop,
 	meadows_vh_screenrefresh,
 
 	/* sound hardware */

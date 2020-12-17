@@ -85,18 +85,13 @@ C004      76489 #4 trigger
 #include "vidhrdw/generic.h"
 
 
-/* In Machine */
-extern int tp84_beam_r(int offset);
-void tp84_catchloop_w(int offset,int data); /* JB 970829 */
-void tp84_init_machine(void); /* JB 970829 */
-
 extern unsigned char *tp84_videoram2;
 extern unsigned char *tp84_colorram2;
 extern unsigned char *tp84_scrollx;
 extern unsigned char *tp84_scrolly;
-void tp84_videoram2_w(int offset,int data);
-void tp84_colorram2_w(int offset,int data);
-void tp84_col0_w(int offset,int data);
+WRITE_HANDLER( tp84_videoram2_w );
+WRITE_HANDLER( tp84_colorram2_w );
+WRITE_HANDLER( tp84_col0_w );
 void tp84_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int tp84_vh_start(void);
 void tp84_vh_stop(void);
@@ -105,18 +100,49 @@ void tp84_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 static unsigned char *sharedram;
 
-static int sharedram_r(int offset)
+static READ_HANDLER( sharedram_r )
 {
 	return sharedram[offset];
 }
 
-static void sharedram_w(int offset,int data)
+static WRITE_HANDLER( sharedram_w )
 {
 	sharedram[offset] = data;
 }
 
 
-int tp84_sh_timer_r(int offset)
+/* JB 970829 - just give it what it wants
+	F104: LDX   $6400
+	F107: LDU   $6402
+	F10A: LDA   $640B
+	F10D: BEQ   $F13B
+	F13B: LDX   $6404
+	F13E: LDU   $6406
+	F141: LDA   $640C
+	F144: BEQ   $F171
+	F171: LDA   $2000	; read beam
+	F174: ADDA  #$20
+	F176: BCC   $F104
+*/
+static READ_HANDLER( tp84_beam_r )
+{
+//	return cpu_getscanline();
+	return 255; /* always return beam position 255 */ /* JB 970829 */
+}
+
+/* JB 970829 - catch a busy loop for CPU 1
+	E0ED: LDA   #$01
+	E0EF: STA   $4000
+	E0F2: BRA   $E0ED
+*/
+static WRITE_HANDLER( tp84_catchloop_w )
+{
+	if( cpu_get_pc()==0xe0f2 ) cpu_spinuntil_int();
+}
+
+
+
+static READ_HANDLER( tp84_sh_timer_r )
 {
 	/* main xtal 14.318MHz, divided by 4 to get the CPU clock, further */
 	/* divided by 2048 to get this timer */
@@ -125,7 +151,7 @@ int tp84_sh_timer_r(int offset)
 	return (cpu_gettotalcycles() / (2048/2)) & 0x0f;
 }
 
-void tp84_filter_w(int offset,int data)
+static WRITE_HANDLER( tp84_filter_w )
 {
 	int C;
 
@@ -152,7 +178,7 @@ void tp84_filter_w(int offset,int data)
 	set_RC_filter(2,1000,2200,1000,C);
 }
 
-void tp84_sh_irqtrigger_w(int offset,int data)
+static WRITE_HANDLER( tp84_sh_irqtrigger_w )
 {
 	cpu_cause_interrupt(2,0xff);
 }

@@ -46,7 +46,7 @@ void hexa_vh_convert_color_prom(unsigned char *palette, unsigned short *colortab
 
 
 
-void hexa_d008_w(int offset,int data)
+WRITE_HANDLER( hexa_d008_w )
 {
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);
@@ -118,9 +118,9 @@ void hexa_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					(videoram[offs] & 0xf8) >> 3,
 					flipx,flipy,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 }

@@ -99,7 +99,7 @@ void bosco_vh_interrupt(void);
 
 static void *nmi_timer_1, *nmi_timer_2;
 
-void bosco_halt_w(int offset,int data);
+WRITE_HANDLER( bosco_halt_w );
 
 void bosco_init_machine(void)
 {
@@ -113,21 +113,21 @@ void bosco_init_machine(void)
 }
 
 
-int bosco_sharedram_r(int offset)
+READ_HANDLER( bosco_sharedram_r )
 {
 	return bosco_sharedram[offset];
 }
 
 
 
-void bosco_sharedram_w(int offset,int data)
+WRITE_HANDLER( bosco_sharedram_w )
 {
 	bosco_sharedram[offset] = data;
 }
 
 
 
-int bosco_dsw_r(int offset)
+READ_HANDLER( bosco_dsw_r )
 {
 	int bit0,bit1;
 
@@ -150,11 +150,11 @@ static unsigned char customio_1[16];
 static int mode;
 
 
-void bosco_customio_data_w_1 (int offset,int data)
+WRITE_HANDLER( bosco_customio_data_1_w )
 {
 	customio_1[offset] = data;
 
-if (errorlog) fprintf(errorlog,"%04x: custom IO 1 offset %02x data %02x\n",cpu_get_pc(),offset,data);
+logerror("%04x: custom IO 1 offset %02x data %02x\n",cpu_get_pc(),offset,data);
 
 	switch (customio_command_1)
 	{
@@ -263,8 +263,7 @@ if (errorlog) fprintf(errorlog,"%04x: custom IO 1 offset %02x data %02x\n",cpu_g
 						Score += 140;
 						break;
 					default:
-						if (errorlog)
-							fprintf(errorlog,"unknown score: %02x\n",customio_1[0]);
+						logerror("unknown score: %02x\n",customio_1[0]);
 					break;
 				}
 			}
@@ -292,7 +291,7 @@ if (errorlog) fprintf(errorlog,"%04x: custom IO 1 offset %02x data %02x\n",cpu_g
 }
 
 
-int bosco_customio_data_r_1 (int offset)
+READ_HANDLER( bosco_customio_data_1_r )
 {
 	switch (customio_command_1)
 	{
@@ -426,7 +425,7 @@ int bosco_customio_data_r_1 (int offset)
 }
 
 
-int bosco_customio_r_1 (int offset)
+READ_HANDLER( bosco_customio_1_r )
 {
 	return customio_command_1;
 }
@@ -436,9 +435,10 @@ void bosco_nmi_generate_1 (int param)
 	cpu_cause_interrupt (0, Z80_NMI_INT );
 }
 
-void bosco_customio_w_1 (int offset,int data)
+WRITE_HANDLER( bosco_customio_1_w )
 {
-if (errorlog && data != 0x10) fprintf(errorlog,"%04x: custom IO 1 command %02x\n",cpu_get_pc(),data);
+	if (data != 0x10)
+		logerror("%04x: custom IO 1 command %02x\n",cpu_get_pc(),data);
 
 	customio_command_1 = data;
 
@@ -490,11 +490,11 @@ if (errorlog && data != 0x10) fprintf(errorlog,"%04x: custom IO 1 command %02x\n
 static int customio_command_2;
 static unsigned char customio_2[16];
 
-void bosco_customio_data_w_2 (int offset,int data)
+WRITE_HANDLER( bosco_customio_data_2_w )
 {
 	customio_2[offset] = data;
 
-if (errorlog) fprintf(errorlog,"%04x: custom IO 2 offset %02x data %02x\n",cpu_get_pc(),offset,data);
+logerror("%04x: custom IO 2 offset %02x data %02x\n",cpu_get_pc(),offset,data);
 	switch (customio_command_2)
 	{
 		case 0x82:
@@ -524,7 +524,7 @@ if (errorlog) fprintf(errorlog,"%04x: custom IO 2 offset %02x data %02x\n",cpu_g
 }
 
 
-int bosco_customio_data_r_2 (int offset)
+READ_HANDLER( bosco_customio_data_2_r )
 {
 	switch (customio_command_2)
 	{
@@ -540,7 +540,7 @@ int bosco_customio_data_r_2 (int offset)
 }
 
 
-int bosco_customio_r_2 (int offset)
+READ_HANDLER( bosco_customio_2_r )
 {
 	return customio_command_2;
 }
@@ -550,9 +550,10 @@ void bosco_nmi_generate_2 (int param)
 	cpu_cause_interrupt (1, Z80_NMI_INT);
 }
 
-void bosco_customio_w_2 (int offset,int data)
+WRITE_HANDLER( bosco_customio_2_w )
 {
-if (errorlog && data != 0x10) fprintf(errorlog,"%04x: custom IO 2 command %02x\n",cpu_get_pc(),data);
+	if (data != 0x10)
+		logerror("%04x: custom IO 2 command %02x\n",cpu_get_pc(),data);
 
 	customio_command_2 = data;
 
@@ -572,7 +573,7 @@ if (errorlog && data != 0x10) fprintf(errorlog,"%04x: custom IO 2 command %02x\n
 
 
 
-void bosco_halt_w(int offset,int data)
+WRITE_HANDLER( bosco_halt_w )
 {
 	if (data & 1)
 	{
@@ -588,7 +589,7 @@ void bosco_halt_w(int offset,int data)
 
 
 
-void bosco_interrupt_enable_1_w(int offset,int data)
+WRITE_HANDLER( bosco_interrupt_enable_1_w )
 {
 	interrupt_enable_1 = (data&1);
 }
@@ -605,7 +606,7 @@ int bosco_interrupt_1(void)
 
 
 
-void bosco_interrupt_enable_2_w(int offset,int data)
+WRITE_HANDLER( bosco_interrupt_enable_2_w )
 {
 	interrupt_enable_2 = data & 1;
 }
@@ -620,7 +621,7 @@ int bosco_interrupt_2(void)
 
 
 
-void bosco_interrupt_enable_3_w(int offset,int data)
+WRITE_HANDLER( bosco_interrupt_enable_3_w )
 {
 	interrupt_enable_3 = !(data & 1);
 }

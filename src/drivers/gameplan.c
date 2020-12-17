@@ -14,25 +14,19 @@ TO-DO: - Fix the input ports/dip switches of Kaos?
 #include "vidhrdw/generic.h"
 
 int gameplan_vh_start(void);
-int gameplan_video_r(int offset);
-void gameplan_video_w(int offset, int data);
-int gameplan_sound_r(int offset);
-void gameplan_sound_w(int offset, int data);
-int gameplan_via5_r(int offset);
-void gameplan_via5_w(int offset, int data);
-void gameplan_select_port(int offset, int data);
-int gameplan_read_port(int offset);
+READ_HANDLER( gameplan_video_r );
+WRITE_HANDLER( gameplan_video_w );
+READ_HANDLER( gameplan_sound_r );
+WRITE_HANDLER( gameplan_sound_w );
+READ_HANDLER( gameplan_via5_r );
+WRITE_HANDLER( gameplan_via5_w );
 
 static int gameplan_current_port;
 
-void gameplan_select_port(int offset, int data)
+static WRITE_HANDLER( gameplan_port_select_w )
 {
 #ifdef VERY_VERBOSE
-	if (errorlog)
-	{
-		fprintf(errorlog, "VIA 2: PC %04x: %x -> reg%X\n",
-				cpu_get_pc(), data, offset);
-	}
+	logerror("VIA 2: PC %04x: %x -> reg%X\n",cpu_get_pc(), data, offset);
 #endif /* VERY_VERBOSE */
 
 	switch (offset)
@@ -49,56 +43,47 @@ void gameplan_select_port(int offset, int data)
 
 				default:
 #ifdef VERBOSE
-					if (errorlog)
-						fprintf(errorlog, "  VIA 2: strange port request byte: %02x\n", data);
+					logerror("  VIA 2: strange port request byte: %02x\n", data);
 #endif
 					return;
 			}
 
 #ifdef VERBOSE
-			if (errorlog) fprintf(errorlog, "  VIA 2: selected port %d\n", gameplan_current_port);
+			logerror("  VIA 2: selected port %d\n", gameplan_current_port);
 #endif
 			break;
 
 		case 0x02:
 #ifdef VERBOSE
-			if (errorlog) fprintf(errorlog, "  VIA 2: wrote %02x to Data Direction Register B\n", data);
+			logerror("  VIA 2: wrote %02x to Data Direction Register B\n", data);
 #endif
 			break;
 
 		case 0x03:
 #ifdef VERBOSE
-			if (errorlog) fprintf(errorlog, "  VIA 2: wrote %02x to Data Direction Register A\n", data);
+			logerror("  VIA 2: wrote %02x to Data Direction Register A\n", data);
 #endif
 			break;
 
 		case 0x0c:
-			if (errorlog)
+			if (data == 0xec || data == 0xcc)
 			{
-				if (data == 0xec || data == 0xcc)
-				{
 #ifdef VERBOSE
-					fprintf(errorlog,
-							"  VIA 2: initialised Peripheral Control Register to 0x%02x for VIA 2\n",
-							data);
+				logerror("  VIA 2: initialised Peripheral Control Register to 0x%02x for VIA 2\n",data);
 #endif
-				}
-				else
-					fprintf(errorlog,
-							"  VIA 2: unusual Peripheral Control Register value 0x%02x for VIA 2\n",
-							data);
 			}
+			else
+				logerror("  VIA 2: unusual Peripheral Control Register value 0x%02x for VIA 2\n",data);
 			break;
 
 		default:
-			if (errorlog)
-				fprintf(errorlog, "  VIA 2: unexpected register written to in VIA 2: %02x -> %02x\n",
+			logerror("  VIA 2: unexpected register written to in VIA 2: %02x -> %02x\n",
 						data, offset);
 			break;
 	}
 }
 
-int gameplan_read_port(int offset)
+static READ_HANDLER( gameplan_port_r )
 {
 	return readinputport(gameplan_current_port);
 }
@@ -111,7 +96,7 @@ static struct MemoryReadAddress readmem[] =
 								  * (write by code at e1df and e1e9,
 								  * 32d is read by e258)*/
     { 0x2000, 0x200f, gameplan_video_r },
-    { 0x2801, 0x2801, gameplan_read_port },
+    { 0x2801, 0x2801, gameplan_port_r },
 	{ 0x3000, 0x300f, gameplan_sound_r },
     { 0x9000, 0xffff, MRA_ROM },
 
@@ -122,7 +107,7 @@ static struct MemoryWriteAddress writemem[] =
 {
     { 0x0000, 0x03ff, MWA_RAM },
     { 0x2000, 0x200f, gameplan_video_w },		/* VIA 1 */
-    { 0x2800, 0x280f, gameplan_select_port },	/* VIA 2 */
+    { 0x2800, 0x280f, gameplan_port_select_w },	/* VIA 2 */
     { 0x3000, 0x300f, gameplan_sound_w },       /* VIA 3 */
     { 0x9000, 0xffff, MWA_ROM },
 
@@ -230,11 +215,11 @@ INPUT_PORTS_START( kaos )
 	PORT_DIPSETTING(   0x02, "1 Coin/13 Credits" )
 	PORT_DIPSETTING(   0x01, "1 Coin/14 Credits" )
 
-	PORT_DIPNAME(0x10, 0x10, "Unknown" ) /* -> 039A */
+	PORT_DIPNAME(0x10, 0x10, DEF_STR( Unknown ) ) /* -> 039A */
 	PORT_DIPSETTING(   0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(   0x00, DEF_STR( On ) )
 
-	PORT_DIPNAME(0x60, 0x20, "Unknown" ) /* -> 039C */
+	PORT_DIPNAME(0x60, 0x20, DEF_STR( Unknown ) ) /* -> 039C */
 	PORT_DIPSETTING(   0x60, "1" )
 	PORT_DIPSETTING(   0x40, "2" )
 	PORT_DIPSETTING(   0x20, "3" )
@@ -250,25 +235,25 @@ INPUT_PORTS_START( kaos )
 	PORT_DIPSETTING(   0x01, "3" )
 	PORT_DIPSETTING(   0x00, "4" )
 
-	PORT_DIPNAME(0x02, 0x00, "Unknown" )
+	PORT_DIPNAME(0x02, 0x00, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(   0x02, DEF_STR( Off ) )
 	PORT_DIPSETTING(   0x00, DEF_STR( On ) )
 
-	PORT_DIPNAME(0x0c, 0x00, "Unknown" )
+	PORT_DIPNAME(0x0c, 0x00, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(   0x0c, "1" )
 	PORT_DIPSETTING(   0x08, "2" )
 	PORT_DIPSETTING(   0x04, "3" )
 	PORT_DIPSETTING(   0x00, "4" )
 
-	PORT_DIPNAME(0x10, 0x00, "Unknown" )
+	PORT_DIPNAME(0x10, 0x00, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(   0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(   0x00, DEF_STR( On ) )
 
-	PORT_DIPNAME(0x20, 0x00, "Unknown" )
+	PORT_DIPNAME(0x20, 0x00, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(   0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(   0x00, DEF_STR( On ) )
 
-	PORT_DIPNAME(0x40, 0x00, "Unknown" )
+	PORT_DIPNAME(0x40, 0x00, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(   0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(   0x00, DEF_STR( On ) )
 

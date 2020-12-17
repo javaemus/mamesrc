@@ -71,20 +71,43 @@ extern unsigned char *vastar_fgvideoram,*vastar_fgcolorram1,*vastar_fgcolorram2;
 extern unsigned char *vastar_bg2videoram,*vastar_bg2colorram1,*vastar_bg2colorram2;
 extern unsigned char *vastar_bg1scroll,*vastar_bg2scroll;
 
-void vastar_bg1colorram2_w(int offset,int data);
-void vastar_bg2videoram_w(int offset,int data);
-void vastar_bg2colorram1_w(int offset,int data);
-void vastar_bg2colorram2_w(int offset,int data);
+WRITE_HANDLER( vastar_bg1colorram2_w );
+WRITE_HANDLER( vastar_bg2videoram_w );
+WRITE_HANDLER( vastar_bg2colorram1_w );
+WRITE_HANDLER( vastar_bg2colorram2_w );
 void vastar_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int vastar_vh_start(void);
 void vastar_vh_stop(void);
 void vastar_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-extern unsigned char *vastar_sharedram;
-void vastar_init_machine(void);
-void vastar_hold_cpu2_w(int offset,int data);
-int vastar_sharedram_r(int offset);
-void vastar_sharedram_w(int offset, int data);
+
+static unsigned char *vastar_sharedram;
+
+
+void vastar_init_machine(void)
+{
+	/* we must start with the second CPU halted */
+	cpu_set_reset_line(1,ASSERT_LINE);
+}
+
+WRITE_HANDLER( vastar_hold_cpu2_w )
+{
+	/* I'm not sure that this works exactly like this */
+	if (data & 1)
+		cpu_set_reset_line(1,CLEAR_LINE);
+	else
+		cpu_set_reset_line(1,ASSERT_LINE);
+}
+
+READ_HANDLER( vastar_sharedram_r )
+{
+	return vastar_sharedram[offset];
+}
+
+WRITE_HANDLER( vastar_sharedram_w )
+{
+	vastar_sharedram[offset] = data;
+}
 
 
 

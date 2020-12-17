@@ -71,18 +71,18 @@ CPU #3 NMI (@120Hz)
 
 
 extern unsigned char *galaga_sharedram;
-int galaga_hiscore_print_r(int offset);
-int galaga_sharedram_r(int offset);
-void galaga_sharedram_w(int offset,int data);
-int galaga_dsw_r(int offset);
-void galaga_interrupt_enable_1_w(int offset,int data);
-void galaga_interrupt_enable_2_w(int offset,int data);
-void galaga_interrupt_enable_3_w(int offset,int data);
-int galaga_customio_r(int offset);
-int galaga_customio_data_r(int offset);
-void galaga_customio_w(int offset,int data);
-void galaga_customio_data_w(int offset,int data);
-void galaga_halt_w(int offset,int data);
+READ_HANDLER( galaga_hiscore_print_r );
+READ_HANDLER( galaga_sharedram_r );
+WRITE_HANDLER( galaga_sharedram_w );
+READ_HANDLER( galaga_dsw_r );
+WRITE_HANDLER( galaga_interrupt_enable_1_w );
+WRITE_HANDLER( galaga_interrupt_enable_2_w );
+WRITE_HANDLER( galaga_interrupt_enable_3_w );
+READ_HANDLER( galaga_customio_r );
+READ_HANDLER( galaga_customio_data_r );
+WRITE_HANDLER( galaga_customio_w );
+WRITE_HANDLER( galaga_customio_data_w );
+WRITE_HANDLER( galaga_halt_w );
 int galaga_interrupt_1(void);
 int galaga_interrupt_2(void);
 int galaga_interrupt_3(void);
@@ -90,12 +90,11 @@ void galaga_init_machine(void);
 
 
 extern unsigned char *galaga_starcontrol;
-void galaga_flipscreen_w(int offset,int data);
 int galaga_vh_start(void);
 void galaga_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void galaga_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 
-void pengo_sound_w(int offset,int data);
+WRITE_HANDLER( pengo_sound_w );
 extern unsigned char *pengo_soundregs;
 
 
@@ -136,7 +135,7 @@ static struct MemoryWriteAddress writemem_cpu1[] =
 	{ 0x6820, 0x6820, galaga_interrupt_enable_1_w },
 	{ 0x6822, 0x6822, galaga_interrupt_enable_3_w },
 	{ 0x6823, 0x6823, galaga_halt_w },
-	{ 0xa007, 0xa007, galaga_flipscreen_w },
+	{ 0xa007, 0xa007, flip_screen_w },
 	{ 0x0000, 0x3fff, MWA_ROM },
 	{ 0x8b80, 0x8bff, MWA_RAM, &spriteram, &spriteram_size },       /* these three are here just to initialize */
 	{ 0x9380, 0x93ff, MWA_RAM, &spriteram_2 },      /* the pointers. The actual writes are */

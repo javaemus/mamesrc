@@ -68,6 +68,7 @@ static int analog_previous_x[OSD_MAX_JOY_ANALOG], analog_previous_y[OSD_MAX_JOY_
 
 ***************************************************************************/
 
+/* this must match the enum in inptport.h */
 char ipdn_defaultstrings[][MAX_DEFSTR_LEN] =
 {
 	"Off",
@@ -122,7 +123,7 @@ char ipdn_defaultstrings[][MAX_DEFSTR_LEN] =
 	"Flip Screen",
 	"Service Mode",
 	"Unused",
-	"Unknown"	/* must be the last one, mame.c relies on that */
+	"Unknown"
 };
 
 struct ipd inputport_defaults[] =
@@ -167,7 +168,11 @@ struct ipd inputport_defaults[] =
 	{ IPT_SERVICE2, "Service 2",     SEQ_DEF_1(KEYCODE_0) },
 	{ IPT_SERVICE3, "Service 3",     SEQ_DEF_1(KEYCODE_MINUS) },
 	{ IPT_SERVICE4, "Service 4",     SEQ_DEF_1(KEYCODE_EQUALS) },
+#ifndef MESS
 	{ IPT_TILT,   "Tilt",            SEQ_DEF_1(KEYCODE_T) },
+#else
+	{ IPT_TILT,   "Tilt",            SEQ_DEF_0 },
+#endif
 
 	{ IPT_JOYSTICK_UP         | IPF_PLAYER1, "P1 Up",          SEQ_DEF_3(KEYCODE_UP, CODE_OR, JOYCODE_1_UP)    },
 	{ IPT_JOYSTICK_DOWN       | IPF_PLAYER1, "P1 Down",        SEQ_DEF_3(KEYCODE_DOWN, CODE_OR, JOYCODE_1_DOWN)  },
@@ -182,6 +187,7 @@ struct ipd inputport_defaults[] =
 	{ IPT_BUTTON7             | IPF_PLAYER1, "P1 Button 7",    SEQ_DEF_1(KEYCODE_C) },
 	{ IPT_BUTTON8             | IPF_PLAYER1, "P1 Button 8",    SEQ_DEF_1(KEYCODE_V) },
 	{ IPT_BUTTON9             | IPF_PLAYER1, "P1 Button 9",    SEQ_DEF_1(KEYCODE_B) },
+	{ IPT_BUTTON10            | IPF_PLAYER1, "P1 Button 10",   SEQ_DEF_1(KEYCODE_N) },
 	{ IPT_JOYSTICKRIGHT_UP    | IPF_PLAYER1, "P1 Right/Up",    SEQ_DEF_3(KEYCODE_I, CODE_OR, JOYCODE_1_BUTTON2) },
 	{ IPT_JOYSTICKRIGHT_DOWN  | IPF_PLAYER1, "P1 Right/Down",  SEQ_DEF_3(KEYCODE_K, CODE_OR, JOYCODE_1_BUTTON3) },
 	{ IPT_JOYSTICKRIGHT_LEFT  | IPF_PLAYER1, "P1 Right/Left",  SEQ_DEF_3(KEYCODE_J, CODE_OR, JOYCODE_1_BUTTON1) },
@@ -204,6 +210,7 @@ struct ipd inputport_defaults[] =
 	{ IPT_BUTTON7             | IPF_PLAYER2, "P2 Button 7",    SEQ_DEF_0 },
 	{ IPT_BUTTON8             | IPF_PLAYER2, "P2 Button 8",    SEQ_DEF_0 },
 	{ IPT_BUTTON9             | IPF_PLAYER2, "P2 Button 9",    SEQ_DEF_0 },
+	{ IPT_BUTTON10            | IPF_PLAYER2, "P2 Button 10",   SEQ_DEF_0 },
 	{ IPT_JOYSTICKRIGHT_UP    | IPF_PLAYER2, "P2 Right/Up",    SEQ_DEF_0 },
 	{ IPT_JOYSTICKRIGHT_DOWN  | IPF_PLAYER2, "P2 Right/Down",  SEQ_DEF_0 },
 	{ IPT_JOYSTICKRIGHT_LEFT  | IPF_PLAYER2, "P2 Right/Left",  SEQ_DEF_0 },
@@ -695,7 +702,7 @@ getout:
 	/* make sure the InputPort definition is correct */
 //	if (in->type != IPT_PORT)
 //	{
-//		if (errorlog) fprintf(errorlog,"Error in InputPort definition: expecting PORT_START\n");
+//		logerror("Error in InputPort definition: expecting PORT_START\n");
 //		return;
 //	}
 //	else in++;
@@ -830,7 +837,7 @@ void save_input_port_settings(void)
 	/* make sure the InputPort definition is correct */
 	if (in->type != IPT_PORT)
 	{
-		if (errorlog) fprintf(errorlog,"Error in InputPort definition: expecting PORT_START\n");
+		logerror("Error in InputPort definition: expecting PORT_START\n");
 		return;
 	}
 	else in++;
@@ -1111,8 +1118,7 @@ void update_analog_port(int port)
 		default:
 			/* Use some defaults to prevent crash */
 			axis = X_AXIS; is_stick = 0; check_bounds = 0;
-			if (errorlog)
-				fprintf (errorlog,"Oops, polling non analog device in update_analog_port()????\n");
+			logerror("Oops, polling non analog device in update_analog_port()????\n");
 	}
 
 
@@ -1319,7 +1325,7 @@ profiler_mark(PROFILER_INPUT);
 	/* make sure the InputPort definition is correct */
 	if (in->type != IPT_PORT)
 	{
-		if (errorlog) fprintf(errorlog,"Error in InputPort definition: expecting PORT_START\n");
+		logerror("Error in InputPort definition: expecting PORT_START\n");
 		return;
 	}
 	else in++;
@@ -1426,8 +1432,8 @@ profiler_mark(PROFILER_INPUT);
 				{
 					input_vblank[port] ^= in->mask;
 					input_port_value[port] ^= in->mask;
-if (errorlog && Machine->drv->vblank_duration == 0)
-	fprintf(errorlog,"Warning: you are using IPT_VBLANK with vblank_duration = 0. You need to increase vblank_duration for IPT_VBLANK to work.\n");
+if (Machine->drv->vblank_duration == 0)
+	logerror("Warning: you are using IPT_VBLANK with vblank_duration = 0. You need to increase vblank_duration for IPT_VBLANK to work.\n");
 				}
 				/* If it's an analog control, handle it appropriately */
 				else if (((in->type & ~IPF_MASK) > IPT_ANALOG_START)
@@ -1464,8 +1470,8 @@ if (errorlog && Machine->drv->vblank_duration == 0)
 
 						if (in->type & IPF_IMPULSE)
 						{
-if (errorlog && IP_GET_IMPULSE(in) == 0)
-	fprintf(errorlog,"error in input port definition: IPF_IMPULSE with length = 0\n");
+if (IP_GET_IMPULSE(in) == 0)
+	logerror("error in input port definition: IPF_IMPULSE with length = 0\n");
 							if (waspressed[ib] == 0)
 								impulsecount[ib] = IP_GET_IMPULSE(in);
 								/* the input bit will be toggled later */
@@ -1652,22 +1658,27 @@ int readinputport(int port)
 	return input_port_value[port];
 }
 
-int input_port_0_r(int offset) { return readinputport(0); }
-int input_port_1_r(int offset) { return readinputport(1); }
-int input_port_2_r(int offset) { return readinputport(2); }
-int input_port_3_r(int offset) { return readinputport(3); }
-int input_port_4_r(int offset) { return readinputport(4); }
-int input_port_5_r(int offset) { return readinputport(5); }
-int input_port_6_r(int offset) { return readinputport(6); }
-int input_port_7_r(int offset) { return readinputport(7); }
-int input_port_8_r(int offset) { return readinputport(8); }
-int input_port_9_r(int offset) { return readinputport(9); }
-int input_port_10_r(int offset) { return readinputport(10); }
-int input_port_11_r(int offset) { return readinputport(11); }
-int input_port_12_r(int offset) { return readinputport(12); }
-int input_port_13_r(int offset) { return readinputport(13); }
-int input_port_14_r(int offset) { return readinputport(14); }
-int input_port_15_r(int offset) { return readinputport(15); }
+READ_HANDLER( input_port_0_r ) { return readinputport(0); }
+READ_HANDLER( input_port_1_r ) { return readinputport(1); }
+READ_HANDLER( input_port_2_r ) { return readinputport(2); }
+READ_HANDLER( input_port_3_r ) { return readinputport(3); }
+READ_HANDLER( input_port_4_r ) { return readinputport(4); }
+READ_HANDLER( input_port_5_r ) { return readinputport(5); }
+READ_HANDLER( input_port_6_r ) { return readinputport(6); }
+READ_HANDLER( input_port_7_r ) { return readinputport(7); }
+READ_HANDLER( input_port_8_r ) { return readinputport(8); }
+READ_HANDLER( input_port_9_r ) { return readinputport(9); }
+READ_HANDLER( input_port_10_r ) { return readinputport(10); }
+READ_HANDLER( input_port_11_r ) { return readinputport(11); }
+READ_HANDLER( input_port_12_r ) { return readinputport(12); }
+READ_HANDLER( input_port_13_r ) { return readinputport(13); }
+READ_HANDLER( input_port_14_r ) { return readinputport(14); }
+READ_HANDLER( input_port_15_r ) { return readinputport(15); }
+READ_HANDLER( input_port_16_r ) { return readinputport(16); }
+READ_HANDLER( input_port_17_r ) { return readinputport(17); }
+READ_HANDLER( input_port_18_r ) { return readinputport(18); }
+READ_HANDLER( input_port_19_r ) { return readinputport(19); }
+
 
 #ifdef MAME_NET
 void set_default_player_controls(int player)

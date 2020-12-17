@@ -60,8 +60,8 @@ unsigned char *toaplan1_buffered_videoram2;
 unsigned char *toaplan1_colorram1;
 unsigned char *toaplan1_colorram2;
 
-int colorram1_size;
-int colorram2_size;
+size_t colorram1_size;
+size_t colorram2_size;
 
 unsigned int scrollregs[8];
 unsigned int vblank;
@@ -106,7 +106,7 @@ int rallybik_vh_start(void)
 		return 1;
 	}
 
-	if (errorlog) fprintf (errorlog, "colorram_size: %08x\n", colorram1_size + colorram2_size);
+	logerror("colorram_size: %08x\n", colorram1_size + colorram2_size);
 	if ((paletteram = calloc(colorram1_size + colorram2_size, 1)) == 0)
 	{
 		free(toaplan1_videoram3);
@@ -165,7 +165,7 @@ void rallybik_vh_stop(void)
 	for (i=16; i>=0; i--)
 	{
 		free(tile_list[i]);
-		if (errorlog) fprintf (errorlog, "max_list_size[%d]=%08x\n",i,max_list_size[i]);
+		logerror("max_list_size[%d]=%08x\n",i,max_list_size[i]);
 	}
 
 	for (i=3; i>=0; i--)
@@ -177,20 +177,9 @@ void rallybik_vh_stop(void)
 
 int toaplan1_vh_start(void)
 {
-	tmpbitmap1 = osd_new_bitmap(
-					Machine->drv->screen_width,
-					Machine->drv->screen_height,
-					Machine->scrbitmap->depth);
-
-	tmpbitmap2 = osd_new_bitmap(
-					Machine->drv->screen_width,
-					Machine->drv->screen_height,
-					Machine->scrbitmap->depth);
-
-	tmpbitmap3 = osd_new_bitmap(
-					Machine->drv->screen_width,
-					Machine->drv->screen_height,
-					Machine->scrbitmap->depth);
+	tmpbitmap1 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height);
+	tmpbitmap2 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height);
+	tmpbitmap3 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height);
 
 
 	if ((toaplan1_videoram1 = calloc(VIDEORAM1_SIZE, 1)) == 0)
@@ -228,64 +217,64 @@ void toaplan1_vh_stop(void)
 	free(toaplan1_videoram2);
 	free(toaplan1_buffered_videoram1);
 	free(toaplan1_videoram1);
-	osd_free_bitmap(tmpbitmap3);
-	osd_free_bitmap(tmpbitmap2);
-	osd_free_bitmap(tmpbitmap1);
+	bitmap_free(tmpbitmap3);
+	bitmap_free(tmpbitmap2);
+	bitmap_free(tmpbitmap1);
 }
 
 
 
 
-int toaplan1_vblank_r(int offset)
+READ_HANDLER( toaplan1_vblank_r )
 {
 	return vblank ^= 1;
 }
 
-void toaplan1_flipscreen_w(int offset, int data)
+WRITE_HANDLER( toaplan1_flipscreen_w )
 {
 	toaplan1_flipscreen = data; /* 8000 flip, 0000 dont */
 }
 
-int video_ofs_r(int offset)
+READ_HANDLER( video_ofs_r )
 {
 	return video_ofs ;
 }
 
-void video_ofs_w(int offset, int data)
+WRITE_HANDLER( video_ofs_w )
 {
 	video_ofs = data ;
 }
 
 /* tile palette */
-int toaplan1_colorram1_r(int offset)
+READ_HANDLER( toaplan1_colorram1_r )
 {
 	return READ_WORD (&toaplan1_colorram1[offset]);
 }
 
-void toaplan1_colorram1_w(int offset, int data)
+WRITE_HANDLER( toaplan1_colorram1_w )
 {
 	WRITE_WORD (&toaplan1_colorram1[offset], data);
 	paletteram_xBBBBBGGGGGRRRRR_word_w(offset,data);
 }
 
 /* sprite palette */
-int toaplan1_colorram2_r(int offset)
+READ_HANDLER( toaplan1_colorram2_r )
 {
 	return READ_WORD (&toaplan1_colorram2[offset]);
 }
 
-void toaplan1_colorram2_w(int offset, int data)
+WRITE_HANDLER( toaplan1_colorram2_w )
 {
 	WRITE_WORD (&toaplan1_colorram2[offset], data);
 	paletteram_xBBBBBGGGGGRRRRR_word_w(offset+colorram1_size,data);
 }
 
-int toaplan1_videoram1_r(int offset)
+READ_HANDLER( toaplan1_videoram1_r )
 {
 	return READ_WORD (&toaplan1_videoram1[2*(video_ofs & (VIDEORAM1_SIZE-1))]);
 }
 
-void toaplan1_videoram1_w(int offset, int data)
+WRITE_HANDLER( toaplan1_videoram1_w )
 {
 	int oldword = READ_WORD (&toaplan1_videoram1[2*video_ofs & (VIDEORAM1_SIZE-1)]);
 	int newword = COMBINE_WORD (oldword, data);
@@ -293,7 +282,7 @@ void toaplan1_videoram1_w(int offset, int data)
 #ifdef DEBUG
 	if (2*video_ofs >= VIDEORAM1_SIZE)
 	{
-		if (errorlog) fprintf (errorlog, "videoram1_w, %08x\n", 2*video_ofs);
+		logerror("videoram1_w, %08x\n", 2*video_ofs);
 		return;
 	}
 #endif
@@ -302,12 +291,12 @@ void toaplan1_videoram1_w(int offset, int data)
 	video_ofs++;
 }
 
-int toaplan1_videoram2_r(int offset)
+READ_HANDLER( toaplan1_videoram2_r )
 {
 	return READ_WORD (&toaplan1_videoram2[2*video_ofs & (VIDEORAM2_SIZE-1)]);
 }
 
-void toaplan1_videoram2_w(int offset, int data)
+WRITE_HANDLER( toaplan1_videoram2_w )
 {
 	int oldword = READ_WORD (&toaplan1_videoram2[2*video_ofs & (VIDEORAM2_SIZE-1)]);
 	int newword = COMBINE_WORD (oldword, data);
@@ -315,7 +304,7 @@ void toaplan1_videoram2_w(int offset, int data)
 #ifdef DEBUG
 	if (2*video_ofs >= VIDEORAM2_SIZE)
 	{
-		if (errorlog) fprintf (errorlog, "videoram2_w, %08x\n", 2*video_ofs);
+		logerror("videoram2_w, %08x\n", 2*video_ofs);
 		return;
 	}
 #endif
@@ -324,17 +313,17 @@ void toaplan1_videoram2_w(int offset, int data)
 	video_ofs++;
 }
 
-int video_ofs3_r(int offset)
+READ_HANDLER( video_ofs3_r )
 {
 	return video_ofs3;
 }
 
-void video_ofs3_w(int offset, int data)
+WRITE_HANDLER( video_ofs3_w )
 {
 	video_ofs3 = data ;
 }
 
-int rallybik_videoram3_r(int offset)
+READ_HANDLER( rallybik_videoram3_r )
 {
 	int rb_tmp_vid;
 
@@ -348,12 +337,12 @@ int rallybik_videoram3_r(int offset)
 	return rb_tmp_vid;
 }
 
-int toaplan1_videoram3_r(int offset)
+READ_HANDLER( toaplan1_videoram3_r )
 {
 	return READ_WORD (&toaplan1_videoram3[(video_ofs3 & (VIDEORAM3_SIZE-1))*4 + offset]);
 }
 
-void toaplan1_videoram3_w(int offset, int data)
+WRITE_HANDLER( toaplan1_videoram3_w )
 {
 	int oldword = READ_WORD (&toaplan1_videoram3[(video_ofs3 & (VIDEORAM3_SIZE-1))*4 + offset]);
 	int newword = COMBINE_WORD (oldword, data);
@@ -361,7 +350,7 @@ void toaplan1_videoram3_w(int offset, int data)
 #ifdef DEBUG
 	if ((video_ofs3 & (VIDEORAM3_SIZE-1))*4 + offset >= VIDEORAM3_SIZE*4)
 	{
-		if (errorlog) fprintf (errorlog, "videoram3_w, %08x\n", 2*video_ofs3);
+		logerror("videoram3_w, %08x\n", 2*video_ofs3);
 		return;
 	}
 #endif
@@ -370,17 +359,17 @@ void toaplan1_videoram3_w(int offset, int data)
 	if ( offset == 2 ) video_ofs3++;
 }
 
-int scrollregs_r(int offset)
+READ_HANDLER( scrollregs_r )
 {
 	return scrollregs[offset>>1];
 }
 
-void scrollregs_w(int offset, int data)
+WRITE_HANDLER( scrollregs_w )
 {
 	scrollregs[offset>>1] = data ;
 }
 
-void offsetregs_w(int offset, int data)
+WRITE_HANDLER( offsetregs_w )
 {
 	if ( offset == 0 )
 		tiles_offsetx = data ;
@@ -388,7 +377,7 @@ void offsetregs_w(int offset, int data)
 		tiles_offsety = data ;
 }
 
-void layers_offset_w(int offset, int data)
+WRITE_HANDLER( layers_offset_w )
 {
 	switch (offset)
 	{
@@ -419,10 +408,10 @@ void layers_offset_w(int offset, int data)
 			break ;
 	}
 
-	if (errorlog) fprintf (errorlog, "layers_offset[0]:%08x\n",layers_offset[0]);
-	if (errorlog) fprintf (errorlog, "layers_offset[1]:%08x\n",layers_offset[1]);
-	if (errorlog) fprintf (errorlog, "layers_offset[2]:%08x\n",layers_offset[2]);
-	if (errorlog) fprintf (errorlog, "layers_offset[3]:%08x\n",layers_offset[3]);
+	logerror("layers_offset[0]:%08x\n",layers_offset[0]);
+	logerror("layers_offset[1]:%08x\n",layers_offset[1]);
+	logerror("layers_offset[2]:%08x\n",layers_offset[2]);
+	logerror("layers_offset[3]:%08x\n",layers_offset[3]);
 
 }
 
@@ -675,7 +664,7 @@ static void toaplan1_find_sprites (void)
 			int tattr,tchar;
 			tchar = READ_WORD (&s_info[0]) & 0xffff;
 			tattr = READ_WORD (&s_info[2]);
-			if (errorlog) fprintf (errorlog, "%08x: %04x %04x\n", sprite, tattr, tchar);
+			logerror("%08x: %04x %04x\n", sprite, tattr, tchar);
 			s_info += 8 ;
 		}
 	}
@@ -936,7 +925,7 @@ static void toaplan1_render (struct osd_bitmap *bitmap)
 	tile_struct *tinfo2;
 	struct rectangle sp_rect;
 
-	fillbitmap (bitmap, palette_transparent_pen, &Machine->drv->visible_area);
+	fillbitmap (bitmap, palette_transparent_pen, &Machine->visible_area);
 
 #ifdef BGDBG
 
@@ -974,7 +963,7 @@ if( toaplan_dbg_priority != 0 ){
 				(tinfo->color&0x3f),
 				0,0,						/* flipx,flipy */
 				tinfo->xpos,tinfo->ypos,
-				&Machine->drv->visible_area,pen,0);
+				&Machine->visible_area,pen,0);
 			tinfo++ ;
 		}
 	}
@@ -1022,7 +1011,7 @@ if( toaplan_dbg_priority != 0 ){
 				(tinfo->color&0x3f),
 				flip,flip,							/* flipx,flipy */
 				tinfo->xpos,tinfo->ypos,
-				&Machine->drv->visible_area,pen,0);
+				&Machine->visible_area,pen,0);
 			tinfo++ ;
 		}
 		priority++;
@@ -1051,7 +1040,7 @@ if( toaplan_dbg_priority != 0 ){
 			(tinfo2->color&0x3f), 			/* bit 7 not for colour */
 			flipx,flipy,					/* flipx,flipy */
 			tinfo2->xpos,tinfo2->ypos,
-			&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+			&Machine->visible_area,TRANSPARENCY_PEN,0);
 
 		priority = tinfo2->priority;
 		{
@@ -1157,7 +1146,7 @@ static void rallybik_render (struct osd_bitmap *bitmap)
 	int priority,pen;
 	tile_struct *tinfo;
 
-	fillbitmap (bitmap, palette_transparent_pen, &Machine->drv->visible_area);
+	fillbitmap (bitmap, palette_transparent_pen, &Machine->visible_area);
 
 	for ( priority = 0 ; priority < 16 ; priority++ )	/* draw priority layers in order */
 	{
@@ -1178,7 +1167,7 @@ static void rallybik_render (struct osd_bitmap *bitmap)
 				(tinfo->color&0x3f), 			/* bit 7 not for colour */
 				(tinfo->color & 0x0100),(tinfo->color & 0x0200),	/* flipx,flipy */
 				tinfo->xpos,tinfo->ypos,
-				&Machine->drv->visible_area,pen,0);
+				&Machine->visible_area,pen,0);
 			tinfo++ ;
 		}
 	}

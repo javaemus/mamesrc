@@ -16,8 +16,6 @@
 #define LOW_BYTE(x) (READ_WORD(x) & 0xff)
 
 
-UINT16 mcr68_char_code_mask;
-UINT16 mcr68_sprite_code_mask;
 UINT8 mcr68_sprite_clip;
 INT8 mcr68_sprite_xoffset;
 
@@ -41,7 +39,7 @@ static void zwackery_debug();
  *
  *************************************/
 
-void mcr68_paletteram_w(int offset, int data)
+WRITE_HANDLER( mcr68_paletteram_w )
 {
 	int oldword = READ_WORD(&paletteram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -69,7 +67,7 @@ void mcr68_paletteram_w(int offset, int data)
  *
  *************************************/
 
-void mcr68_videoram_w(int offset,int data)
+WRITE_HANDLER( mcr68_videoram_w )
 {
 	int oldword = READ_WORD(&videoram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -107,14 +105,12 @@ static void mcr68_update_background(struct osd_bitmap *bitmap, int overrender)
 			int color = (attr & 0x30) >> 4;
 			int code = LOW_BYTE(&videoram[offs]) + 256 * (attr & 0x03) + 1024 * ((attr >> 6) & 0x03);
 
-			code &= mcr68_char_code_mask;
-
 			if (!overrender)
 				drawgfx(bitmap, Machine->gfx[0], code, color ^ 3, attr & 0x04, attr & 0x08,
-						16 * mx, 16 * my, &Machine->drv->visible_area, TRANSPARENCY_NONE, 0);
-			else if (mcr68_char_code_mask < 0xfff && (attr & 0x80))
+						16 * mx, 16 * my, &Machine->visible_area, TRANSPARENCY_NONE, 0);
+			else if (Machine->gfx[0]->total_elements < 0x1000 && (attr & 0x80))
 				drawgfx(bitmap, Machine->gfx[0], code, color ^ 3, attr & 0x04, attr & 0x08,
-						16 * mx, 16 * my, &Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+						16 * mx, 16 * my, &Machine->visible_area, TRANSPARENCY_PEN, 0);
 			else
 				continue;
 
@@ -134,7 +130,7 @@ static void mcr68_update_background(struct osd_bitmap *bitmap, int overrender)
 
 static void mcr68_update_sprites(struct osd_bitmap *bitmap, int priority)
 {
-	struct rectangle sprite_clip = Machine->drv->visible_area;
+	struct rectangle sprite_clip = Machine->visible_area;
 	int offs;
 
 	/* adjust for clipping */
@@ -148,7 +144,6 @@ static void mcr68_update_sprites(struct osd_bitmap *bitmap, int priority)
 
 		flags = LOW_BYTE(&spriteram[offs + 2]);
 		code = LOW_BYTE(&spriteram[offs + 4]) + 256 * ((flags >> 3) & 0x01) + 512 * ((flags >> 6) & 0x03);
-		code &= mcr68_sprite_code_mask;
 
 		/* skip if zero */
 		if (code == 0)
@@ -224,7 +219,7 @@ void mcr68_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 	mcr68_update_background(tmpbitmap, 0);
 
 	/* copy it to the destination */
-	copybitmap(bitmap, tmpbitmap, 0, 0, 0, 0, &Machine->drv->visible_area, TRANSPARENCY_NONE, 0);
+	copybitmap(bitmap, tmpbitmap, 0, 0, 0, 0, &Machine->visible_area, TRANSPARENCY_NONE, 0);
 
 	/* draw the low-priority sprites */
 	mcr68_update_sprites(bitmap, 0);
@@ -282,7 +277,7 @@ void mcr68_debug(void)
  *
  *************************************/
 
-void zwackery_paletteram_w(int offset, int data)
+WRITE_HANDLER( zwackery_paletteram_w )
 {
 	int oldword = READ_WORD(&paletteram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -310,7 +305,7 @@ void zwackery_paletteram_w(int offset, int data)
  *
  *************************************/
 
-void zwackery_videoram_w(int offset,int data)
+WRITE_HANDLER( zwackery_videoram_w )
 {
 	int oldword = READ_WORD(&videoram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -330,7 +325,7 @@ void zwackery_videoram_w(int offset,int data)
  *
  *************************************/
 
-void zwackery_spriteram_w(int offset, int data)
+WRITE_HANDLER( zwackery_spriteram_w )
 {
 	/* yech -- Zwackery relies on the upper 8 bits of a spriteram read being $ff! */
 	/* to make this happen we always write $ff in the upper 8 bits */
@@ -447,14 +442,14 @@ static void zwackery_update_background(struct osd_bitmap *bitmap, int overrender
 			/* standard case: draw with no transparency */
 			if (!overrender)
 				drawgfx(bitmap, Machine->gfx[0], code, color, data & 0x0800, data & 0x1000,
-						16 * mx, 16 * my, &Machine->drv->visible_area, TRANSPARENCY_NONE, 0);
+						16 * mx, 16 * my, &Machine->visible_area, TRANSPARENCY_NONE, 0);
 
 			/* overrender case: for non-zero colors, draw with transparency pen 0 */
 			/* we use gfx[2] here, which was generated above to have all low-priority */
 			/* colors set to pen 0 */
 			else if (color != 0)
 				drawgfx(bitmap, Machine->gfx[2], code, color, data & 0x0800, data & 0x1000,
-						16 * mx, 16 * my, &Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+						16 * mx, 16 * my, &Machine->visible_area, TRANSPARENCY_PEN, 0);
 
 #if DEBUG_VIDEO
 if (show_bg_colors)
@@ -563,7 +558,7 @@ static void zwackery_update_sprites(struct osd_bitmap *bitmap, int priority)
 
 		/* draw the sprite */
 		drawgfx(bitmap, Machine->gfx[1], code, color, flipx, flipy, x, y,
-				&Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+				&Machine->visible_area, TRANSPARENCY_PEN, 0);
 
 #if DEBUG_VIDEO
 if (show_colors)
@@ -631,7 +626,7 @@ void zwackery_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 	zwackery_update_background(tmpbitmap, 0);
 
 	/* copy it to the destination */
-	copybitmap(bitmap, tmpbitmap, 0, 0, 0, 0, &Machine->drv->visible_area, TRANSPARENCY_NONE, 0);
+	copybitmap(bitmap, tmpbitmap, 0, 0, 0, 0, &Machine->visible_area, TRANSPARENCY_NONE, 0);
 
 	/* draw the low-priority sprites */
 	zwackery_update_sprites(bitmap, 0);

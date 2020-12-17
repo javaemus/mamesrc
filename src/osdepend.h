@@ -30,7 +30,7 @@ void osd_exit(void);
 struct osd_bitmap
 {
 	int width,height;       /* width and height of the bitmap */
-	int depth;		/* bits per pixel - ASG 980209 */
+	int depth;		/* bits per pixel */
 	void *_private; /* don't touch! - reserved for osdepend use */
 	unsigned char **line; /* pointers to the start of each line */
 };
@@ -38,49 +38,65 @@ struct osd_bitmap
 /* VERY IMPORTANT: the function must allocate also a "safety area" 16 pixels wide all */
 /* around the bitmap. This is required because, for performance reasons, some graphic */
 /* routines don't clip at boundaries of the bitmap. */
-struct osd_bitmap *osd_new_bitmap(int width,int height,int depth);	/* ASG 980209 */
-#define osd_create_bitmap(w,h) osd_new_bitmap((w),(h),Machine->scrbitmap->depth)		/* ASG 980209 */
+struct osd_bitmap *osd_alloc_bitmap(int width,int height,int depth);
 void osd_clearbitmap(struct osd_bitmap *bitmap);
 void osd_free_bitmap(struct osd_bitmap *bitmap);
-/* Create a display screen, or window, large enough to accomodate a bitmap */
-/* of the given dimensions. Attributes are the ones defined in driver.h. */
-/* Return a osd_bitmap pointer or 0 in case of error. */
-struct osd_bitmap *osd_create_display(int width,int height,int depth,int attributes);
-int osd_set_display(int width,int height,int attributes);
-void osd_close_display(void);
 
 /*
-osd_allocate_colors() is called after osd_create_display(), to create and initialize
-the palette.
-palette is an array of 'totalcolors' R,G,B triplets. The function returns
-in *pens the pen values corresponding to the requested colors.
-When modifiable is not 0, the palette will be modified later via calls to
-osd_modify_pen(). Otherwise, the code can assume that the palette will not change,
-and activate special optimizations (e.g. direct copy for a 16-bit display).
-The function must also initialize Machine->uifont->colortable[] to get proper
-white-on-black and black-on-white text.
-Return 0 for success.
+  Create a display screen, or window, of the given dimensions (or larger). It is
+  acceptable to create a smaller display if necessary, in that case the user must
+  have a way to move the visibility window around.
+  Attributes are the ones defined in driver.h, they can be used to perform
+  optimizations, e.g. dirty rectangle handling if the game supports it, or faster
+  blitting routines with fixed palette if the game doesn't change the palette at
+  run time. The VIDEO_PIXEL_ASPECT_RATIO flags should be honored to produce a
+  display of correct proportions.
+  Orientation is the screen orientation (as defined in driver.h) which will be done
+  by the core. This can be used to select thinner screen modes for vertical games
+  (ORIENTATION_SWAP_XY set), or even to ask the user to rotate the monitor if it's
+  a pivot model. Note that the OS dependant code must NOT perform any rotation,
+  this is done entirely in the core.
+  Returns 0 on success.
+*/
+int osd_create_display(int width,int height,int depth,int fps,int attributes,int orientation);
+int osd_set_display(int width,int height,int depth,int attributes,int orientation);
+void osd_close_display(void);
+
+void osd_set_visible_area(int min_x,int max_x,int min_y,int max_y);
+
+/*
+  osd_allocate_colors() is called after osd_create_display(), to create and initialize
+  the palette.
+  palette is an array of 'totalcolors' R,G,B triplets. The function returns
+  in *pens the pen values corresponding to the requested colors.
+  When modifiable is not 0, the palette will be modified later via calls to
+  osd_modify_pen(). Otherwise, the code can assume that the palette will not change,
+  and activate special optimizations (e.g. direct copy for a 16-bit display).
+  The function must also initialize Machine->uifont->colortable[] to get proper
+  white-on-black and black-on-white text.
+  Return 0 for success.
 */
 int osd_allocate_colors(unsigned int totalcolors,const unsigned char *palette,unsigned short *pens,int modifiable);
 void osd_modify_pen(int pen,unsigned char red, unsigned char green, unsigned char blue);
 void osd_get_pen(int pen,unsigned char *red, unsigned char *green, unsigned char *blue);
 void osd_mark_dirty(int xmin, int ymin, int xmax, int ymax, int ui);    /* ASG 971011 */
+
 /*
-osd_skip_this_frame() must return 0 if the current frame will be displayed. This
-can be used by drivers to skip cpu intensive processing for skipped frames, so the
-function must return a consistent result throughout the current frame. The function
-MUST NOT check timers and dynamically determine whether to display the frame: such
-calculations must be done in osd_update_video_and_audio(), and they must affect the
-FOLLOWING frames, not the current one. At the end of osd_update_video_and_audio(),
-the code must already now exactly whether the next frame will be skipped or not.
+  osd_skip_this_frame() must return 0 if the current frame will be displayed. This
+  can be used by drivers to skip cpu intensive processing for skipped frames, so the
+  function must return a consistent result throughout the current frame. The function
+  MUST NOT check timers and dynamically determine whether to display the frame: such
+  calculations must be done in osd_update_video_and_audio(), and they must affect the
+  FOLLOWING frames, not the current one. At the end of osd_update_video_and_audio(),
+  the code must already know exactly whether the next frame will be skipped or not.
 */
 int osd_skip_this_frame(void);
-void osd_update_video_and_audio(void);
+void osd_update_video_and_audio(struct osd_bitmap *bitmap);
 void osd_set_gamma(float _gamma);
 float osd_get_gamma(void);
 void osd_set_brightness(int brightness);
 int osd_get_brightness(void);
-void osd_save_snapshot(void);
+void osd_save_snapshot(struct osd_bitmap *bitmap);
 
 
 /******************************************************************************
@@ -99,8 +115,8 @@ void osd_save_snapshot(void);
   When the stream is stereo, left and right samples are alternated in the
   stream.
 
-  osd_start_audio_stream() and osd_stop_audio_stream() must return the number of
-  samples (or couples of samples, when using stereo) required for next frame.
+  osd_start_audio_stream() and osd_update_audio_stream() must return the number
+  of samples (or couples of samples, when using stereo) required for next frame.
   This will be around Machine->sample_rate / Machine->drv->frames_per_second,
   the code may adjust it by SMALL AMOUNTS to keep timing accurate and to maintain
   audio and video in sync when using vsync. Note that sound generation,
@@ -151,6 +167,17 @@ int osd_is_key_pressed(int keycode);
   function you can just return OSD_KEY_NONE.
 */
 int osd_wait_keypress(void);
+
+/*
+  Return the Unicode value of the most recently pressed key. This
+  function is used only by text-entry routines in the user interface and should
+  not be used by drivers. The value returned is in the range of the first 256
+  bytes of Unicode, e.g. ISO-8859-1. A return value of 0 indicates no key down.
+
+  Set flush to 1 to clear the buffer before entering text. This will avoid
+  having prior UI and game keys leak into the text entry.
+*/
+int osd_readkey_unicode(int flush);
 
 /* Code returned by the function osd_wait_keypress() if no key available */
 #define OSD_KEY_NONE 0xffffffff
@@ -220,10 +247,11 @@ void osd_customize_inputport_defaults(struct ipd *defaults);
 ******************************************************************************/
 
 /* inp header */
-typedef struct {
-    char name[9];      /* 8 bytes for game->name + NULL */
-    char version[3];   /* byte[0] = 0, byte[1] = version byte[2] = beta_version */
-    char reserved[20]; /* for future use, possible store game options? */
+typedef struct
+{
+	char name[9];      /* 8 bytes for game->name + NULL */
+	char version[3];   /* byte[0] = 0, byte[1] = version byte[2] = beta_version */
+	char reserved[20]; /* for future use, possible store game options? */
 } INP_HEADER;
 
 
@@ -234,17 +262,21 @@ enum
 	OSD_FILETYPE_SAMPLE,
 	OSD_FILETYPE_NVRAM,
 	OSD_FILETYPE_HIGHSCORE,
+	OSD_FILETYPE_HIGHSCORE_DB, /* LBO 040400 */
 	OSD_FILETYPE_CONFIG,
 	OSD_FILETYPE_INPUTLOG,
 	OSD_FILETYPE_STATE,
 	OSD_FILETYPE_ARTWORK,
 	OSD_FILETYPE_MEMCARD,
-	OSD_FILETYPE_SCREENSHOT
+	OSD_FILETYPE_SCREENSHOT,
+	OSD_FILETYPE_HISTORY,  /* LBO 040400 */
+	OSD_FILETYPE_CHEAT,  /* LBO 040400 */
+	OSD_FILETYPE_LANGUAGE, /* LBO 042400 */
 #ifdef MESS
-	,
 	OSD_FILETYPE_IMAGE_R,
-	OSD_FILETYPE_IMAGE_RW
+	OSD_FILETYPE_IMAGE_RW,
 #endif
+	OSD_FILETYPE_end /* dummy last entry */
 };
 
 /* gamename holds the driver name, filename is only used for ROMs and    */
@@ -274,7 +306,13 @@ void osd_fclose(void *file);
 int osd_fchecksum(const char *gamename, const char *filename, unsigned int *length, unsigned int *sum);
 int osd_fsize(void *file);
 unsigned int osd_fcrc(void *file);
-
+/* LBO 040400 - start */
+int osd_fgetc(void *file);
+int osd_ungetc(int c, void *file);
+char *osd_fgets(char *s, int n, void *file);
+int osd_feof(void *file);
+int osd_ftell(void *file);
+/* LBO 040400 - end */
 
 /******************************************************************************
 
@@ -311,5 +349,17 @@ int osd_net_remove_player(int player);
 int osd_net_game_init(void);
 int osd_net_game_exit(void);
 #endif /* MAME_NET */
+
+#ifdef MESS
+int osd_num_devices(void);
+const char *osd_get_device_name(int i);
+void osd_change_device(const char *vol);
+void *osd_dir_open(const char *mdirname, const char *filemask);
+int osd_dir_get_entry(void *dir, char *name, int namelength, int *is_dir);
+void osd_dir_close(void *dir);
+#endif
+
+
+void CLIB_DECL logerror(const char *text,...);
 
 #endif

@@ -22,12 +22,12 @@ int  funkyjet_vh_start(void);
 void funkyjet_vh_stop(void);
 void funkyjet_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
-void funkyjet_pf2_data_w(int offset,int data);
-void funkyjet_pf1_data_w(int offset,int data);
-int funkyjet_pf1_data_r(int offset);
-int funkyjet_pf2_data_r(int offset);
+WRITE_HANDLER( funkyjet_pf2_data_w );
+WRITE_HANDLER( funkyjet_pf1_data_w );
+READ_HANDLER( funkyjet_pf1_data_r );
+READ_HANDLER( funkyjet_pf2_data_r );
 
-void funkyjet_control_0_w(int offset,int data);
+WRITE_HANDLER( funkyjet_control_0_w );
 
 extern unsigned char *funkyjet_pf2_data,*funkyjet_pf1_data,*funkyjet_pf1_row;
 static unsigned char *funkyjet_ram;
@@ -36,12 +36,12 @@ static unsigned char *funkyjet_ram;
 
 static int loopback[0x800];
 
-static void funkyjet_protection_w(int offset,int data)
+static WRITE_HANDLER( funkyjet_protection_w )
 {
 	WRITE_WORD(&loopback[offset],data);
 
-	if (errorlog && offset!=0x502 && offset!=0x700 && offset!=0x70e && offset!=0x78e)
-		fprintf(errorlog,"CPU #0 PC %06x: warning - write unmapped control address %06x %04x\n",cpu_get_pc(),offset,data);
+	if (offset!=0x502 && offset!=0x700 && offset!=0x70e && offset!=0x78e)
+		logerror("CPU #0 PC %06x: warning - write unmapped control address %06x %04x\n",cpu_get_pc(),offset,data);
 
 	if (offset==0x10a) {
 		soundlatch_w(0,data&0xff);
@@ -57,7 +57,7 @@ static void funkyjet_protection_w(int offset,int data)
 	*/
 }
 
-static int funkyjet_protection_r(int offset)
+static READ_HANDLER( funkyjet_protection_r )
 {
  	switch (offset)
 	{
@@ -80,7 +80,7 @@ static int funkyjet_protection_r(int offset)
 
 	}
 
-	if (errorlog && offset!=0x778) fprintf(errorlog,"CPU #0 PC %06x: warning - read unmapped control address %06x\n",cpu_get_pc(),offset);
+	if (offset!=0x778) logerror("CPU #0 PC %06x: warning - read unmapped control address %06x\n",cpu_get_pc(),offset);
 
 /*
 
@@ -134,7 +134,7 @@ static struct MemoryWriteAddress funkyjet_writemem[] =
 
 /******************************************************************************/
 
-static void YM2151_w(int offset, int data)
+static WRITE_HANDLER( YM2151_w )
 {
 	switch (offset) {
 	case 0:

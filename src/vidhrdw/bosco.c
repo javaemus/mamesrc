@@ -34,7 +34,7 @@ static int total_stars;
 
 unsigned char *bosco_videoram2,*bosco_colorram2;
 unsigned char *bosco_radarx,*bosco_radary,*bosco_radarattr;
-int bosco_radarram_size;
+size_t bosco_radarram_size;
 											/* to speed up video refresh */
 static unsigned char *dirtybuffer2;	/* keep track of modified portions of the screen */
 											/* to speed up video refresh */
@@ -136,7 +136,7 @@ int bosco_vh_start(void)
 		return 1;
 	memset(dirtybuffer2,1,videoram_size);
 
-	if ((tmpbitmap1 = osd_create_bitmap(32*8,32*8)) == 0)
+	if ((tmpbitmap1 = bitmap_alloc(32*8,32*8)) == 0)
 	{
 		free(dirtybuffer2);
 		generic_vh_stop();
@@ -161,8 +161,8 @@ int bosco_vh_start(void)
 
 			if (bit1 ^ bit2) generator |= 1;
 
-			if (x >= Machine->drv->visible_area.min_x &&
-					x <= Machine->drv->visible_area.max_x &&
+			if (x >= Machine->visible_area.min_x &&
+					x <= Machine->visible_area.max_x &&
 					((~generator >> 16) & 1) &&
 					(generator & 0xff) == 0xff)
 			{
@@ -198,14 +198,14 @@ int bosco_vh_start(void)
 ***************************************************************************/
 void bosco_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap1);
+	bitmap_free(tmpbitmap1);
 	free(dirtybuffer2);
 	generic_vh_stop();
 }
 
 
 
-void bosco_videoram2_w(int offset,int data)
+WRITE_HANDLER( bosco_videoram2_w )
 {
 	if (bosco_videoram2[offset] != data)
 	{
@@ -217,7 +217,7 @@ void bosco_videoram2_w(int offset,int data)
 
 
 
-void bosco_colorram2_w(int offset,int data)
+WRITE_HANDLER( bosco_colorram2_w )
 {
 	if (bosco_colorram2[offset] != data)
 	{
@@ -228,7 +228,7 @@ void bosco_colorram2_w(int offset,int data)
 }
 
 
-void bosco_flipscreen_w(int offset,int data)
+WRITE_HANDLER( bosco_flipscreen_w )
 {
 	if (flipscreen != (~data & 1))
 	{
@@ -238,17 +238,17 @@ void bosco_flipscreen_w(int offset,int data)
 	}
 }
 
-void bosco_scrollx_w(int offset,int data)
+WRITE_HANDLER( bosco_scrollx_w )
 {
 	bosco_scrollx = data;
 }
 
-void bosco_scrolly_w(int offset,int data)
+WRITE_HANDLER( bosco_scrolly_w )
 {
 	bosco_scrolly = data;
 }
 
-void bosco_starcontrol_w(int offset,int data)
+WRITE_HANDLER( bosco_starcontrol_w )
 {
 	bosco_starcontrol = data;
 }
@@ -346,7 +346,7 @@ void bosco_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			scrolly = -(bosco_scrolly + 16);
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap1,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -392,7 +392,7 @@ if (flipscreen) sx += 32;
 				0,
 				flipscreen,flipscreen,
 				x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,3);
+				&Machine->visible_area,TRANSPARENCY_PEN,3);
 	}
 
 

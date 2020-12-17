@@ -1,6 +1,8 @@
 #ifndef MACHINE_H
 #define MACHINE_H
 
+#include "osdepend.h"
+#include "drawgfx.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -10,7 +12,6 @@
 #endif
 
 extern char build_version[];
-extern FILE *errorlog;
 
 #define MAX_GFX_ELEMENTS 32
 #define MAX_MEMORY_REGIONS 32
@@ -22,6 +23,7 @@ struct RunningMachine
 	int memory_region_type[MAX_MEMORY_REGIONS];
 	struct GfxElement *gfx[MAX_GFX_ELEMENTS];	/* graphic sets (chars, sprites) */
 	struct osd_bitmap *scrbitmap;	/* bitmap to draw into */
+	struct rectangle visible_area;
 	unsigned short *pens;	/* remapped palette pen numbers. When you write */
 							/* directly to a bitmap, never use absolute values, */
 							/* use this array to get the pen number. For example, */
@@ -67,9 +69,10 @@ struct ImageFile {
 /* The host platform should fill these fields with the preferences specified in the GUI */
 /* or on the commandline. */
 struct GameOptions {
-	FILE *errorlog;
 	void *record;
 	void *playback;
+	void *language_file; /* LBO 042400 */
+
 	int mame_debug;
 	int cheat;
 	int gui_host;
@@ -79,6 +82,8 @@ struct GameOptions {
 	int use_emulated_ym3812;
 
 	int color_depth;	/* 8 or 16, any other value means auto */
+	int vector_width;	/* requested width for vector games; 0 means default (640) */
+	int vector_height;	/* requested height for vector games; 0 means default (480) */
 	int norotate;
 	int ror;
 	int rol;
@@ -101,6 +106,8 @@ extern struct RunningMachine *Machine;
 
 int run_game (int game);
 int updatescreen(void);
+void draw_screen(int bitmap_dirty);
+void update_video_and_audio(void);
 /* osd_fopen() must use this to know if high score files can be used */
 int mame_highscore_enabled(void);
 

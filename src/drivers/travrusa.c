@@ -17,16 +17,16 @@ Loosely based on the our previous 10 Yard Fight driver.
 #include "sndhrdw/irem.h"
 
 extern unsigned char *spriteram;
-extern int spriteram_size;
+extern size_t spriteram_size;
 
 extern unsigned char *travrusa_videoram;
 
 void travrusa_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 int travrusa_vh_start(void);
-void travrusa_videoram_w(int offset,int data);
-void travrusa_scroll_x_low_w(int offset,int data);
-void travrusa_scroll_x_high_w(int offset,int data);
-void travrusa_flipscreen_w(int offset,int data);
+WRITE_HANDLER( travrusa_videoram_w );
+WRITE_HANDLER( travrusa_scroll_x_low_w );
+WRITE_HANDLER( travrusa_scroll_x_high_w );
+WRITE_HANDLER( travrusa_flipscreen_w );
 void travrusa_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 
@@ -225,7 +225,7 @@ INPUT_PORTS_START( motorace )
 	PORT_BITX   ( 0x10, 0x10, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Stop Mode", IP_KEY_NONE, IP_JOY_NONE )
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, "Unknown" )
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_BITX(    0x40, 0x40, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )

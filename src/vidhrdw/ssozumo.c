@@ -11,7 +11,7 @@ Driver by Takahiro Nogi (nogi@kt.rim.or.jp) 1999/10/04
 #include "vidhrdw/generic.h"
 
 unsigned char *ssozumo_videoram2, *ssozumo_colorram2;
-int ssozumo_videoram2_size;
+size_t ssozumo_videoram2_size;
 unsigned char *ssozumo_scroll;
 
 #define TOTAL_COLORS(gfxn)	(Machine->gfx[gfxn]->total_colors * Machine->gfx[gfxn]->color_granularity)
@@ -47,7 +47,7 @@ void ssozumo_vh_convert_color_prom(unsigned char *palette, unsigned short *color
 }
 
 
-void ssozumo_paletteram_w(int offset, int data)
+WRITE_HANDLER( ssozumo_paletteram_w )
 {
 	int	bit0, bit1, bit2, bit3, val;
 	int	r, g, b;
@@ -89,7 +89,7 @@ int ssozumo_vh_start(void)
 	}
 	memset(dirtybuffer, 1, videoram_size);
 
-	if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width, 2 * Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width, 2 * Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer);
 		return 1;
@@ -102,7 +102,7 @@ int ssozumo_vh_start(void)
 void ssozumo_vh_stop(void)
 {
 	free(dirtybuffer);
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap);
 }
 
 
@@ -137,7 +137,7 @@ void ssozumo_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 
 	/* Draw the front layer */
 	scrolly = -*ssozumo_scroll;
-	copyscrollbitmap(bitmap, tmpbitmap, 0, 0, 1, &scrolly, &Machine->drv->visible_area, TRANSPARENCY_NONE, 0);
+	copyscrollbitmap(bitmap, tmpbitmap, 0, 0, 1, &scrolly, &Machine->visible_area, TRANSPARENCY_NONE, 0);
 
 	for (offs = (ssozumo_videoram2_size - 1) ; offs >= 0 ; offs--)
 	{
@@ -149,7 +149,7 @@ void ssozumo_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 				(ssozumo_colorram2[offs] & 0x30) >> 4,
 				0, 0,
 				(8 * sx), (8 * sy),
-				&Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+				&Machine->visible_area, TRANSPARENCY_PEN, 0);
 	}
 
 	/* Draw the sprites layer */
@@ -162,7 +162,7 @@ void ssozumo_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 					(spriteram[offs] & 0x08) >> 3,
 					spriteram[offs] & 0x04,spriteram[offs] & 0x02,
 					239 - spriteram[offs+3], (240 - spriteram[offs+2]) & 0xff,
-					&Machine->drv->visible_area, TRANSPARENCY_PEN, 0);
+					&Machine->visible_area, TRANSPARENCY_PEN, 0);
 		}
 	}
 }

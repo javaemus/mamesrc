@@ -66,15 +66,11 @@ static void TimerHandler(int n,int c,int count,double stepTime)
 
 #endif
 
-#if (HAS_YM2151_ALT)
-
 /* update request from fm.c */
 void YM2151UpdateRequest(int chip)
 {
 	stream_update(stream[chip],0);
 }
-
-#endif
 
 static int my_YM2151_sh_start(const struct MachineSound *msound,int mode)
 {
@@ -162,7 +158,7 @@ int YM2151_sh_start(const struct MachineSound *msound)
 }
 #endif
 #if (HAS_YM2151_ALT)
-int YM2151_ALT_sh_start(const struct MachineSound *msound)
+int YM2151_sh_start(const struct MachineSound *msound)
 {
 	return my_YM2151_sh_start(msound,1);
 }
@@ -208,7 +204,7 @@ void YM2151_sh_reset(void)
 
 static int lastreg0,lastreg1,lastreg2;
 
-int YM2151_status_port_0_r(int offset)
+READ_HANDLER( YM2151_status_port_0_r )
 {
 	switch(FMMode)
 	{
@@ -224,7 +220,7 @@ int YM2151_status_port_0_r(int offset)
 	return 0;
 }
 
-int YM2151_status_port_1_r(int offset)
+READ_HANDLER( YM2151_status_port_1_r )
 {
 	switch(FMMode)
 	{
@@ -240,7 +236,7 @@ int YM2151_status_port_1_r(int offset)
 	return 0;
 }
 
-int YM2151_status_port_2_r(int offset)
+READ_HANDLER( YM2151_status_port_2_r )
 {
 	switch(FMMode)
 	{
@@ -256,20 +252,20 @@ int YM2151_status_port_2_r(int offset)
 	return 0;
 }
 
-void YM2151_register_port_0_w(int offset,int data)
+WRITE_HANDLER( YM2151_register_port_0_w )
 {
 	lastreg0 = data;
 }
-void YM2151_register_port_1_w(int offset,int data)
+WRITE_HANDLER( YM2151_register_port_1_w )
 {
 	lastreg1 = data;
 }
-void YM2151_register_port_2_w(int offset,int data)
+WRITE_HANDLER( YM2151_register_port_2_w )
 {
 	lastreg2 = data;
 }
 
-void YM2151_data_port_0_w(int offset,int data)
+WRITE_HANDLER( YM2151_data_port_0_w )
 {
 	switch(FMMode)
 	{
@@ -288,7 +284,7 @@ void YM2151_data_port_0_w(int offset,int data)
 	}
 }
 
-void YM2151_data_port_1_w(int offset,int data)
+WRITE_HANDLER( YM2151_data_port_1_w )
 {
 	switch(FMMode)
 	{
@@ -307,7 +303,7 @@ void YM2151_data_port_1_w(int offset,int data)
 	}
 }
 
-void YM2151_data_port_2_w(int offset,int data)
+WRITE_HANDLER( YM2151_data_port_2_w )
 {
 	switch(FMMode)
 	{

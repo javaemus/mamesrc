@@ -24,10 +24,10 @@
 unsigned char *blktiger_backgroundram;
 static unsigned char blktiger_video_control;
 unsigned char *blktiger_screen_layout;
-int blktiger_backgroundram_size;
-void blktiger_scrollx_w(int offset,int data);
-void blktiger_scrolly_w(int offset,int data);
-void blktiger_scrollbank_w(int offset,int data);
+size_t blktiger_backgroundram_size;
+WRITE_HANDLER( blktiger_scrollx_w );
+WRITE_HANDLER( blktiger_scrolly_w );
+WRITE_HANDLER( blktiger_scrollbank_w );
 
 static int blktiger_scroll_bank;
 static const int scroll_page_count=4;
@@ -69,7 +69,7 @@ int blktiger_vh_start(void)
 
 
 	/* the background area is 8 x 4 */
-	if ((tmpbitmap2 = osd_create_bitmap(8 * Machine->drv->screen_width,
+	if ((tmpbitmap2 = bitmap_alloc(8 * Machine->drv->screen_width,
 			scroll_page_count * Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer2);
@@ -78,11 +78,11 @@ int blktiger_vh_start(void)
 	}
 
 	/* the alternative background area is 4 x 8 */
-	if ((tmpbitmap3 = osd_create_bitmap(4 * Machine->drv->screen_width,
+	if ((tmpbitmap3 = bitmap_alloc(4 * Machine->drv->screen_width,
 			2 * scroll_page_count * Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer2);
-		osd_free_bitmap(tmpbitmap2);
+		bitmap_free(tmpbitmap2);
 		generic_vh_stop();
 		return 1;
 	}
@@ -100,7 +100,7 @@ int blktiger_vh_start(void)
 ***************************************************************************/
 void blktiger_vh_stop(void)
 {
-	osd_free_bitmap(tmpbitmap2);
+	bitmap_free(tmpbitmap2);
 	free(dirtybuffer2);
 	free(scroll_ram);
 	generic_vh_stop();
@@ -108,7 +108,7 @@ void blktiger_vh_stop(void)
 
 
 
-void blktiger_background_w(int offset,int data)
+WRITE_HANDLER( blktiger_background_w )
 {
 	offset += blktiger_scroll_bank;
 
@@ -122,31 +122,31 @@ void blktiger_background_w(int offset,int data)
 }
 
 
-void blktiger_scrollbank_w(int offset, int data)
+WRITE_HANDLER( blktiger_scrollbank_w )
 {
 	blktiger_scroll_bank = (data & 0x03) * blktiger_backgroundram_size;
 }
 
 
-int blktiger_background_r(int offset)
+READ_HANDLER( blktiger_background_r )
 {
 	offset += blktiger_scroll_bank;
 	return scroll_ram[offset];
 }
 
 
-void blktiger_scrolly_w(int offset,int data)
+WRITE_HANDLER( blktiger_scrolly_w )
 {
 	blktiger_scrolly[offset]=data;
 }
 
-void blktiger_scrollx_w(int offset,int data)
+WRITE_HANDLER( blktiger_scrollx_w )
 {
 	blktiger_scrollx[offset]=data;
 }
 
 
-void blktiger_video_control_w(int offset,int data)
+WRITE_HANDLER( blktiger_video_control_w )
 {
 	/* bits 0 and 1 are coin counters */
 	coin_counter_w(0,data & 1);
@@ -161,7 +161,7 @@ void blktiger_video_control_w(int offset,int data)
 	chon = ~data & 0x80;
 }
 
-void blktiger_video_enable_w(int offset,int data)
+WRITE_HANDLER( blktiger_video_enable_w )
 {
 	/* not sure which is which, but I think that bit 1 and 2 enable background and sprites */
 	/* bit 1 enables bg ? */
@@ -171,7 +171,7 @@ void blktiger_video_enable_w(int offset,int data)
 	objon = ~data & 0x04;
 }
 
-void blktiger_screen_layout_w(int offset,int data)
+WRITE_HANDLER( blktiger_screen_layout_w )
 {
 	screen_layout = data;
 }
@@ -233,10 +233,10 @@ for (offs = spriteram_size - 4;offs >= 0;offs -= 4)
 	sx = spriteram[offs + 3] - ((spriteram[offs + 1] & 0x10) << 4);
 
 	/* only count visible sprites */
-	if (sx+15 >= Machine->drv->visible_area.min_x &&
-			sx <= Machine->drv->visible_area.max_x &&
-			sy+15 >= Machine->drv->visible_area.min_y &&
-			sy <= Machine->drv->visible_area.max_y)
+	if (sx+15 >= Machine->visible_area.min_x &&
+			sx <= Machine->visible_area.max_x &&
+			sy+15 >= Machine->visible_area.min_y &&
+			sy <= Machine->visible_area.max_y)
 	{
 		colour = spriteram[offs+1] & 0x07;
 		code=scroll_ram[offs];
@@ -323,7 +323,7 @@ if (palette_recalc())
 			{
 				scrollx = -(blktiger_scrollx[0] + 256 * blktiger_scrollx[1]);
 				scrolly = -(blktiger_scrolly[0] + 256 * blktiger_scrolly[1]);
-				copyscrollbitmap(bitmap,tmpbitmap2,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+				copyscrollbitmap(bitmap,tmpbitmap2,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 			}
 		}
 		else
@@ -368,11 +368,11 @@ if (palette_recalc())
 			{
 			scrollx = -(blktiger_scrollx[0] + 256 * blktiger_scrollx[1]);
 			scrolly = -(blktiger_scrolly[0] + 256 * blktiger_scrolly[1]);
-			copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+			copyscrollbitmap(bitmap,tmpbitmap3,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 			}
 		}
 	}
-	else fillbitmap(bitmap,palette_transparent_pen,&Machine->drv->visible_area);
+	else fillbitmap(bitmap,palette_transparent_pen,&Machine->visible_area);
 
 
 	if (objon)
@@ -407,7 +407,7 @@ if (palette_recalc())
 					colour,
 					spriteram[offs+1]&0x08,0,
 					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+					&Machine->visible_area,TRANSPARENCY_PEN,15);
 		}
 	}
 
@@ -424,7 +424,7 @@ if (palette_recalc())
 					colorram[offs] & 0x1f,
 					0,0,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,3);
+					&Machine->visible_area,TRANSPARENCY_PEN,3);
 		}
 	}
 }

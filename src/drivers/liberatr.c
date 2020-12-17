@@ -130,15 +130,9 @@ covering up the offending pixels.
 extern UINT8 *liberatr_base_ram;
 extern UINT8 *liberatr_planet_frame;
 extern UINT8 *liberatr_planet_select;
-extern UINT8 *liberatr_ctrld;
 extern UINT8 *liberatr_x;
 extern UINT8 *liberatr_y;
 
-
-/* in machine */
-int  liberatr_input_port_0_r(int offset) ;
-void liberatr_led_w(int offset, int data);
-void liberatr_coin_counter_w(int offset, int data);
 
 /* in vidhrdw */
 extern unsigned char *liberatr_bitmapram;
@@ -146,10 +140,52 @@ extern unsigned char *liberatr_bitmapram;
 int  liberatr_vh_start(void);
 void liberatr_vh_stop(void);
 void liberatr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
-void liberatr_colorram_w(int offset, int data) ;
-void liberatr_bitmap_w(int offset, int data);
-int liberatr_bitmap_xy_r(int offset);
-void liberatr_bitmap_xy_w(int offset, int data);
+WRITE_HANDLER( liberatr_colorram_w ) ;
+WRITE_HANDLER( liberatr_bitmap_w );
+READ_HANDLER( liberatr_bitmap_xy_r );
+WRITE_HANDLER( liberatr_bitmap_xy_w );
+
+
+
+static UINT8 *liberatr_ctrld;
+
+
+static WRITE_HANDLER( liberatr_led_w )
+{
+	osd_led_w(offset, (data >> 4) & 0x01);
+}
+
+
+static WRITE_HANDLER( liberatr_coin_counter_w )
+{
+	coin_counter_w(offset ^ 0x01, data);
+}
+
+
+static READ_HANDLER( liberatr_input_port_0_r )
+{
+	int	res ;
+	int xdelta, ydelta;
+
+
+	/* CTRLD selects whether we're reading the stick or the coins,
+	   see memory map */
+
+	if(*liberatr_ctrld)
+	{
+		/* 	mouse support */
+		xdelta = input_port_4_r(0);
+		ydelta = input_port_5_r(0);
+		res = ( ((ydelta << 4) & 0xf0)  |  (xdelta & 0x0f) );
+	}
+	else
+	{
+		res = input_port_0_r(offset);
+	}
+
+	return res;
+}
+
 
 
 static struct MemoryReadAddress liberatr_readmem[] =
@@ -188,7 +224,7 @@ static struct MemoryWriteAddress liberatr_writemem[] =
 	{ 0x6000, 0x600f, MWA_RAM, &liberatr_base_ram },
 	{ 0x6200, 0x621f, liberatr_colorram_w },
 	{ 0x6400, 0x6400, MWA_NOP },
-	{ 0x6600, 0x6600, atari_vg_earom_ctrl },
+	{ 0x6600, 0x6600, atari_vg_earom_ctrl_w },
 	{ 0x6800, 0x6800, MWA_RAM, &liberatr_planet_frame },
 	{ 0x6a00, 0x6a00, watchdog_reset_w },
 	{ 0x6c00, 0x6c01, liberatr_led_w },
@@ -213,7 +249,7 @@ static struct MemoryWriteAddress liberat2_writemem[] =
 	{ 0x4000, 0x400f, MWA_RAM, &liberatr_base_ram },
 	{ 0x4200, 0x421f, liberatr_colorram_w },
 	{ 0x4400, 0x4400, MWA_NOP },
-	{ 0x4600, 0x4600, atari_vg_earom_ctrl },
+	{ 0x4600, 0x4600, atari_vg_earom_ctrl_w },
 	{ 0x4800, 0x4800, MWA_RAM, &liberatr_planet_frame },
 	{ 0x4a00, 0x4a00, watchdog_reset_w },
 	{ 0x4c00, 0x4c01, liberatr_led_w },

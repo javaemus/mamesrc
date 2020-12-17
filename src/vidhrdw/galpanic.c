@@ -4,7 +4,7 @@
 
 
 unsigned char *galpanic_bgvideoram,*galpanic_fgvideoram;
-int galpanic_fgvideoram_size;
+size_t galpanic_fgvideoram_size;
 
 
 
@@ -31,12 +31,12 @@ void galpanic_init_palette(unsigned char *palette, unsigned short *colortable,co
 
 
 
-int galpanic_bgvideoram_r(int offset)
+READ_HANDLER( galpanic_bgvideoram_r )
 {
 	return READ_WORD(&galpanic_bgvideoram[offset]);
 }
 
-void galpanic_bgvideoram_w(int offset,int data)
+WRITE_HANDLER( galpanic_bgvideoram_w )
 {
 	int sx,sy,color;
 
@@ -51,22 +51,22 @@ void galpanic_bgvideoram_w(int offset,int data)
 	plot_pixel(tmpbitmap, sx, sy, Machine->pens[1024 + (color >> 1)]);
 }
 
-int galpanic_fgvideoram_r(int offset)
+READ_HANDLER( galpanic_fgvideoram_r )
 {
 	return READ_WORD(&galpanic_fgvideoram[offset]);
 }
 
-void galpanic_fgvideoram_w(int offset,int data)
+WRITE_HANDLER( galpanic_fgvideoram_w )
 {
 	COMBINE_WORD_MEM(&galpanic_fgvideoram[offset],data);
 }
 
-int galpanic_paletteram_r(int offset)
+READ_HANDLER( galpanic_paletteram_r )
 {
 	return READ_WORD(&paletteram[offset]);
 }
 
-void galpanic_paletteram_w(int offset,int data)
+WRITE_HANDLER( galpanic_paletteram_w )
 {
 	int r,g,b;
 	int oldword = READ_WORD(&paletteram[offset]);
@@ -87,12 +87,12 @@ void galpanic_paletteram_w(int offset,int data)
 	palette_change_color(offset / 2,r,g,b);
 }
 
-int galpanic_spriteram_r(int offset)
+READ_HANDLER( galpanic_spriteram_r )
 {
 	return READ_WORD(&spriteram[offset]);
 }
 
-void galpanic_spriteram_w(int offset,int data)
+WRITE_HANDLER( galpanic_spriteram_w )
 {
 	COMBINE_WORD_MEM(&spriteram[offset],data);
 }
@@ -117,7 +117,7 @@ void galpanic_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	/* copy the temporary bitmap to the screen */
 	/* it's raw RGB, so it doesn't have to be recalculated even if palette_recalc() */
 	/* returns true */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	for (offs = 0;offs < galpanic_fgvideoram_size;offs+=2)
 	{
@@ -166,6 +166,6 @@ void galpanic_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				color,
 				flipx,flipy,
 				sx,sy - 16,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+				&Machine->visible_area,TRANSPARENCY_PEN,0);
 	}
 }

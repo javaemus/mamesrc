@@ -381,7 +381,9 @@ int frontend_help (int argc, char **argv)
 		if (!stricmp(argv[i],"-wrongfps")) list = LIST_WRONGFPS;
 		if (!stricmp(argv[i],"-noclones")) listclones = 0;
 		#ifdef MESS
-				if (!stricmp(argv[i],"-listextensions")) list = LIST_MESSINFO;
+				if (!stricmp(argv[i],"-listdevices"))  list = LIST_MESSINFO;
+				if (!stricmp(argv[i],"-listtext")) list = LIST_MESSINFO;
+				if (!stricmp(argv[i],"-createdir")) list = LIST_MESSINFO;
 		#endif
 
 
@@ -436,11 +438,13 @@ int frontend_help (int argc, char **argv)
 			{
 				/* list all mess info options here */
 				if (
-					!stricmp(argv[i],"-listextensions")
+					!stricmp(argv[i],"-listdevices") |
+					!stricmp(argv[i],"-listtext")    |
+					!stricmp(argv[i],"-createdir")
 				   )
 			 	{
 					/* send the gamename and arg to mess.c */
-					list_mess_info(gamename, argv[i]);
+					list_mess_info(gamename, argv[i], listclones);
 				}
 			}
 			return 0;
@@ -736,7 +740,9 @@ int frontend_help (int argc, char **argv)
 		case LIST_GAMELISTFOOTER: /* GAMELIST.TXT */
 			printf("+----------------------------------+-------+-------+-------+-------+----------+\n\n");
 			printf("(1) There are variants of the game (usually bootlegs) that work correctly\n");
+#if (HAS_SAMPLES)
 			printf("(2) Needs samples provided separately\n");
+#endif
 			return 0;
 			break;
 
@@ -771,7 +777,7 @@ int frontend_help (int argc, char **argv)
 
 					printf("| %-33.33s",name_ref);
 
-					if (drivers[i]->flags & GAME_NOT_WORKING)
+					if (drivers[i]->flags & (GAME_NOT_WORKING | GAME_UNEMULATED_PROTECTION))
 					{
 						const struct GameDriver *maindrv;
 						int foundworking;
@@ -786,7 +792,7 @@ int frontend_help (int argc, char **argv)
 						{
 							if (drivers[j] == maindrv || drivers[j]->clone_of == maindrv)
 							{
-								if ((drivers[j]->flags & GAME_NOT_WORKING) == 0)
+								if ((drivers[j]->flags & (GAME_NOT_WORKING | GAME_UNEMULATED_PROTECTION)) == 0)
 								{
 									foundworking = 1;
 									break;
@@ -812,6 +818,7 @@ int frontend_help (int argc, char **argv)
 
 					{
 						const char **samplenames = 0;
+#if (HAS_SAMPLES)
 						for (j = 0;drivers[i]->drv->sound[j].sound_type && j < MAX_SOUND; j++)
 						{
 							if (drivers[i]->drv->sound[j].sound_type == SOUND_SAMPLES)
@@ -820,6 +827,7 @@ int frontend_help (int argc, char **argv)
 								break;
 							}
 						}
+#endif
 						if (drivers[i]->flags & GAME_NO_SOUND)
 							printf("|   No  ");
 						else if (drivers[i]->flags & GAME_IMPERFECT_SOUND)
@@ -907,8 +915,8 @@ int frontend_help (int argc, char **argv)
 				if ((drivers[i]->drv->video_attributes & VIDEO_TYPE_VECTOR) == 0 &&
 						(drivers[i]->clone_of == 0
 								|| (drivers[i]->clone_of->flags & NOT_A_DRIVER)) &&
-						drivers[i]->drv->visible_area.max_x - drivers[i]->drv->visible_area.min_x + 1 <=
-						drivers[i]->drv->visible_area.max_y - drivers[i]->drv->visible_area.min_y + 1)
+						drivers[i]->drv->default_visible_area.max_x - drivers[i]->drv->default_visible_area.min_x + 1 <=
+						drivers[i]->drv->default_visible_area.max_y - drivers[i]->drv->default_visible_area.min_y + 1)
 				{
 					if (strcmp(drivers[i]->name,"crater") &&
 						strcmp(drivers[i]->name,"mpatrol") &&
@@ -961,8 +969,8 @@ int frontend_help (int argc, char **argv)
 						strcmp(drivers[i]->name,"tomahawk") &&
 						1)
 						printf("%s %dx%d\n",drivers[i]->name,
-								drivers[i]->drv->visible_area.max_x - drivers[i]->drv->visible_area.min_x + 1,
-								drivers[i]->drv->visible_area.max_y - drivers[i]->drv->visible_area.min_y + 1);
+								drivers[i]->drv->default_visible_area.max_x - drivers[i]->drv->default_visible_area.min_x + 1,
+								drivers[i]->drv->default_visible_area.max_y - drivers[i]->drv->default_visible_area.min_y + 1);
 				}
 				i++;
 			}
@@ -976,12 +984,12 @@ int frontend_help (int argc, char **argv)
 						(drivers[i]->clone_of == 0
 								|| (drivers[i]->clone_of->flags & NOT_A_DRIVER)) &&
 						drivers[i]->drv->frames_per_second > 57 &&
-						drivers[i]->drv->visible_area.max_y - drivers[i]->drv->visible_area.min_y + 1 > 244 &&
-						drivers[i]->drv->visible_area.max_y - drivers[i]->drv->visible_area.min_y + 1 <= 256)
+						drivers[i]->drv->default_visible_area.max_y - drivers[i]->drv->default_visible_area.min_y + 1 > 244 &&
+						drivers[i]->drv->default_visible_area.max_y - drivers[i]->drv->default_visible_area.min_y + 1 <= 256)
 				{
 					printf("%s %dx%d %fHz\n",drivers[i]->name,
-							drivers[i]->drv->visible_area.max_x - drivers[i]->drv->visible_area.min_x + 1,
-							drivers[i]->drv->visible_area.max_y - drivers[i]->drv->visible_area.min_y + 1,
+							drivers[i]->drv->default_visible_area.max_x - drivers[i]->drv->default_visible_area.min_x + 1,
+							drivers[i]->drv->default_visible_area.max_y - drivers[i]->drv->default_visible_area.min_y + 1,
 							drivers[i]->drv->frames_per_second);
 				}
 				i++;

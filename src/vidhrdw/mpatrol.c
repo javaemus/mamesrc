@@ -209,7 +209,7 @@ int mpatrol_vh_start(void)
 	for (i = 0;i < 3;i++)
 	{
 		/* temp bitmap for the three background images */
-		if ((bgbitmap[i] = osd_create_bitmap(256,BGHEIGHT)) == 0)
+		if ((bgbitmap[i] = bitmap_alloc(256,BGHEIGHT)) == 0)
 		{
 			generic_vh_stop();
 			return 1;
@@ -243,57 +243,57 @@ int mpatrol_vh_start(void)
 ***************************************************************************/
 void mpatrol_vh_stop(void)
 {
-	osd_free_bitmap(bgbitmap[0]);
-	osd_free_bitmap(bgbitmap[1]);
-	osd_free_bitmap(bgbitmap[2]);
+	bitmap_free(bgbitmap[0]);
+	bitmap_free(bgbitmap[1]);
+	bitmap_free(bgbitmap[2]);
 	generic_vh_stop();
 }
 
 
 
-void mpatrol_scroll_w(int offset,int data)
+WRITE_HANDLER( mpatrol_scroll_w )
 {
 	scrollreg[offset] = data;
 }
 
 
 
-void mpatrol_bg1xpos_w(int offset,int data)
+WRITE_HANDLER( mpatrol_bg1xpos_w )
 {
 	bg1xpos = data;
 }
 
 
 
-void mpatrol_bg1ypos_w(int offset,int data)
+WRITE_HANDLER( mpatrol_bg1ypos_w )
 {
 	bg1ypos = data;
 }
 
 
 
-void mpatrol_bg2xpos_w(int offset,int data)
+WRITE_HANDLER( mpatrol_bg2xpos_w )
 {
 	bg2xpos = data;
 }
 
 
 
-void mpatrol_bg2ypos_w(int offset,int data)
+WRITE_HANDLER( mpatrol_bg2ypos_w )
 {
 	bg2ypos = data;
 }
 
 
 
-void mpatrol_bgcontrol_w(int offset,int data)
+WRITE_HANDLER( mpatrol_bgcontrol_w )
 {
 	bgcontrol = data;
 }
 
 
 
-void mpatrol_flipscreen_w(int offset,int data)
+WRITE_HANDLER( mpatrol_flipscreen_w )
 {
 	/* screen flip is handled both by software and hardware */
 	data ^= ~readinputport(4) & 1;
@@ -309,7 +309,7 @@ void mpatrol_flipscreen_w(int offset,int data)
 }
 
 
-int mpatrol_input_port_3_r(int offset)
+READ_HANDLER( mpatrol_input_port_3_r )
 {
 	int ret = input_port_3_r(0);
 
@@ -332,8 +332,8 @@ int mpatrol_input_port_3_r(int offset)
 
 static void get_clip(struct rectangle *clip, int min_y, int max_y)
 {
-	clip->min_x = Machine->drv->visible_area.min_x;
-	clip->max_x = Machine->drv->visible_area.max_x;
+	clip->min_x = Machine->visible_area.min_x;
+	clip->max_x = Machine->visible_area.max_x;
 
 	if (flipscreen)
 	{
@@ -420,10 +420,10 @@ void mpatrol_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		fillbitmap(bitmap,Machine->pens[0],&clip);
 
 		draw_background(bitmap, bg2xpos, bg2ypos, bg1ypos + BGHEIGHT - 1, 0, TRANSPARENCY_NONE);
-		draw_background(bitmap, bg1xpos, bg1ypos, Machine->drv->visible_area.max_y,
+		draw_background(bitmap, bg1xpos, bg1ypos, Machine->visible_area.max_y,
 		                (bgcontrol == 0x04) ? 1 : 2, TRANSPARENCY_COLOR);
 	}
-	else fillbitmap(bitmap,Machine->pens[0],&Machine->drv->visible_area);
+	else fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 
 	/* copy the temporary bitmap to the screen */
@@ -432,8 +432,8 @@ void mpatrol_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		struct rectangle clip;
 
 
-		clip.min_x = Machine->drv->visible_area.min_x;
-		clip.max_x = Machine->drv->visible_area.max_x;
+		clip.min_x = Machine->visible_area.min_x;
+		clip.max_x = Machine->visible_area.max_x;
 
 		if (flipscreen)
 		{
@@ -489,7 +489,7 @@ void mpatrol_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				spriteram_2[offs + 1] & 0x3f,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_COLOR,128+32);
+				&Machine->visible_area,TRANSPARENCY_COLOR,128+32);
 	}
 	for (offs = spriteram_size - 4;offs >= 0;offs -= 4)
 	{
@@ -512,6 +512,6 @@ void mpatrol_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				spriteram[offs + 1] & 0x3f,
 				flipx,flipy,
 				sx,sy,
-				&Machine->drv->visible_area,TRANSPARENCY_COLOR,128+32);
+				&Machine->visible_area,TRANSPARENCY_COLOR,128+32);
 	}
 }

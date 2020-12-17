@@ -28,6 +28,7 @@ Z80:(0)  Main CPU
 8000-ffff Level and scenery ROMS. This is banked with the following
 8000-8fff Sprite RAM
 a000-adff Pallette RAM
+ae00-afff Spare unused, but tested Pallette RAM
 c000-c7ff Sound RAM - shared with C000-C7FF in Z80(1) RAM
 
 in:
@@ -102,14 +103,14 @@ out:
 Z80:(1)  Sound CPU
 0000-7fff Main ROM
 8000-807f RAM ???
-c000-cfff Sound RAM - C000-C7FF shared with C000-C7FF in Z80(0) ram
+c000-cfff Sound RAM , $C000-C7FF shared with $C000-C7FF in Z80(0) ram
 
 
 
 TMS320C10 DSP: Harvard type architecture. RAM and ROM on seperate data buses.
 0000-07ff ROM 16-bit opcoodes (word access only)
-0000-0090 Internal RAM (words).	Moved to 8000-8120 for MAME compatibility.
-								View this memory in the debugger at 4000h
+0000-0090 Internal RAM (words).	Moved to $8000-8120 for MAME compatibility.
+								View this memory in the debugger at $4000h
 in:
 01		data read from addressed Z80:(0) address space (Main RAM/Sprite RAM)
 
@@ -125,35 +126,41 @@ out:
 #include "vidhrdw/generic.h"
 #include "vidhrdw/crtc6845.h"
 
+#define NEW_MEM_MAP_SYSTEM 1	/** Kill the old system once this is proven **/
 
 /******************** Machine stuff **********************/
 void wardner_reset(void);
-void wardner_mainram_w(int offset, int data);
-int  wardner_mainram_r(int offset);
-int  twincobr_dsp_in(int offset);
-void twincobr_dsp_out(int fnction,int data);
-void twincobr_7800c_w(int offset,int data);
-void fshark_coin_dsp_w(int offset,int data);
+WRITE_HANDLER( wardner_mainram_w );
+READ_HANDLER( wardner_mainram_r );
+READ_HANDLER( twincobr_dsp_r );
+WRITE_HANDLER( twincobr_dsp_w );
+WRITE_HANDLER( twincobr_7800c_w );
+WRITE_HANDLER( fshark_coin_dsp_w );
 
 static int wardner_membank = 0;
 extern int twincobr_intenable;
+
+#if NEW_MEM_MAP_SYSTEM
+unsigned char *wardner_sharedram;
+unsigned char *wardner_spare_pal_ram;
+#endif
 
 extern unsigned char *wardner_mainram;
 
 
 /******************** Video stuff **********************/
-int  twincobr_crtc_r(int offset);
-void twincobr_crtc_w(int offset,int data);
+READ_HANDLER( twincobr_crtc_r );
+WRITE_HANDLER( twincobr_crtc_w );
 
-void wardner_videoram_w(int offset, int data);
-int  wardner_videoram_r(int offset);
-void wardner_bglayer_w(int offset, int data);
-void wardner_fglayer_w(int offset, int data);
-void wardner_txlayer_w(int offset, int data);
-void wardner_bgscroll_w(int offset, int data);
-void wardner_fgscroll_w(int offset, int data);
-void wardner_txscroll_w(int offset, int data);
-void twincobr_exscroll_w(int offset,int data);
+WRITE_HANDLER( wardner_videoram_w );
+READ_HANDLER( wardner_videoram_r );
+WRITE_HANDLER( wardner_bglayer_w );
+WRITE_HANDLER( wardner_fglayer_w );
+WRITE_HANDLER( wardner_txlayer_w );
+WRITE_HANDLER( wardner_bgscroll_w );
+WRITE_HANDLER( wardner_fgscroll_w );
+WRITE_HANDLER( wardner_txscroll_w );
+WRITE_HANDLER( twincobr_exscroll_w );
 
 int  twincobr_vh_start(void);
 void twincobr_vh_stop(void);
@@ -178,30 +185,83 @@ static int wardner_interrupt(void)
 }
 
 
-static void CRTC_add_w(int offset,int data)
+static WRITE_HANDLER( CRTC_add_w )
 {
 	crtc6845_address_w(offset, data);
 }
 
-static void CRTC_data_w(int offset, int data)
+static WRITE_HANDLER( CRTC_data_w )
 {
 	crtc6845_register_w(0, data);
 	twincobr_display_on = 1;
 }
 
-static int wardner_sprite_r(int offset)
+static READ_HANDLER( wardner_sprite_r )
 {
 	return spriteram[offset];
 }
 
-static void wardner_sprite_w(int offset, int data)
+static WRITE_HANDLER( wardner_sprite_w )
 {
 	spriteram[offset] = data;
 }
 
-
-static void wardner_ramrom_banksw(int offset,int data)
+#if NEW_MEM_MAP_SYSTEM
+static READ_HANDLER( wardner_sharedram_r )
 {
+	return wardner_sharedram[offset];
+}
+
+static WRITE_HANDLER( wardner_sharedram_w )
+{
+	wardner_sharedram[offset] = data;
+}
+
+static READ_HANDLER( wardner_spare_pal_ram_r )
+{
+	return wardner_spare_pal_ram[offset];
+}
+
+static WRITE_HANDLER( wardner_spare_pal_ram_w )
+{
+	wardner_spare_pal_ram[offset] = data;
+}
+
+static READ_HANDLER( wardner_ram_rom_r )
+{
+	int wardner_data = 0;
+
+	if (wardner_membank == 0)
+	{
+		int wardner_bank = offset + 0x8000;
+		offset &= 0xfff;
+
+		switch (wardner_bank & 0xe000)
+		{
+			case 0x8000: wardner_data = wardner_sprite_r(offset); break;
+			case 0xa000: if (offset < 0xe00) { wardner_data = paletteram_r(offset); }
+						 else { wardner_data = wardner_spare_pal_ram_r(offset & 0x1ff); } break;
+			case 0xc000: if (offset < 0x800) wardner_data = wardner_sharedram_r(offset & 0x7ff); break;
+			default:	 break;
+		}
+	}
+	else
+	{
+		unsigned char *wardner_rom = memory_region(REGION_CPU1);
+		int wardner_rombank = 0x8000 * (wardner_membank + 1);
+
+		wardner_data = wardner_rom[wardner_rombank + offset];
+	}
+	return wardner_data;
+}
+#endif
+
+static WRITE_HANDLER( wardner_ramrom_banks_w )
+{
+#if NEW_MEM_MAP_SYSTEM
+	wardner_membank = data;
+#else
+
 	if (wardner_membank != data) {
 		int bankaddress = 0;
 
@@ -231,6 +291,7 @@ static void wardner_ramrom_banksw(int offset,int data)
 			install_mem_read_handler (0, 0xc000, 0xc7ff, MRA_BANK3);
 		}
 	}
+#endif
 }
 
 
@@ -238,6 +299,9 @@ static struct MemoryReadAddress readmem[] =
 {
 	{ 0x0000, 0x6fff, MRA_ROM },			/* Main CPU ROM code */
 	{ 0x7000, 0x7fff, wardner_mainram_r },	/* Main RAM */
+#if NEW_MEM_MAP_SYSTEM
+	{ 0x8000, 0xffff, wardner_ram_rom_r },	/* Overlapped RAM/Banked ROM - See below */
+#else
 	{ 0x8000, 0x8fff, wardner_sprite_r },	/* Sprite RAM data */
 	{ 0x9000, 0x9fff, MRA_ROM },			/* Banked ROM */
 	{ 0xa000, 0xadff, paletteram_r },		/* Palette RAM */
@@ -245,6 +309,7 @@ static struct MemoryReadAddress readmem[] =
 	{ 0xb000, 0xbfff, MRA_ROM },			/* Banked ROM */
 	{ 0xc000, 0xc7ff, MRA_BANK3 },			/* Shared RAM with Sound CPU RAM */
 	{ 0xc800, 0xffff, MRA_ROM },			/* Banked ROM */
+#endif
 	{ -1 }  /* end of table */
 };
 
@@ -255,9 +320,14 @@ static struct MemoryWriteAddress writemem[] =
 	{ 0x8000, 0x8fff, wardner_sprite_w, &spriteram, &spriteram_size },
 	{ 0x9000, 0x9fff, MWA_ROM },
 	{ 0xa000, 0xadff, paletteram_xBBBBBGGGGGRRRRR_w, &paletteram },
+#if NEW_MEM_MAP_SYSTEM
+	{ 0xae00, 0xafff, wardner_spare_pal_ram_w, &wardner_spare_pal_ram },
+	{ 0xc000, 0xc7ff, wardner_sharedram_w, &wardner_sharedram },
+#else
 	{ 0xae00, 0xafff, MWA_BANK2 },
-	{ 0xb000, 0xbfff, MWA_ROM },
 	{ 0xc000, 0xc7ff, MWA_BANK3 },
+#endif
+	{ 0xb000, 0xbfff, MWA_ROM },
 	{ 0xc800, 0xffff, MWA_ROM },
 	{ -1 }	/* end of table */
 };
@@ -266,7 +336,11 @@ static struct MemoryReadAddress sound_readmem[] =
 {
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x807f, MRA_BANK4 },
+#if NEW_MEM_MAP_SYSTEM
+	{ 0xc000, 0xc7ff, wardner_sharedram_r },
+#else
 	{ 0xc000, 0xc7ff, MRA_BANK3 },
+#endif
 	{ 0xc800, 0xcfff, MRA_BANK5 },
 	{ -1 }
 };
@@ -275,7 +349,11 @@ static struct MemoryWriteAddress sound_writemem[] =
 {
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x8000, 0x807f, MWA_BANK4 },
+#if NEW_MEM_MAP_SYSTEM
+	{ 0xc000, 0xc7ff, wardner_sharedram_w },
+#else
 	{ 0xc000, 0xc7ff, MWA_BANK3 },
+#endif
 	{ 0xc800, 0xcfff, MWA_BANK5 },
 	{ -1 }
 };
@@ -321,7 +399,7 @@ static struct IOWritePort writeport[] =
 	{ 0x60, 0x65, wardner_videoram_w },		/* data for video layer RAM */
 	{ 0x5a, 0x5a, fshark_coin_dsp_w },		/* Machine system control */
 	{ 0x5c, 0x5c, twincobr_7800c_w },		/* Machine system control */
-	{ 0x70, 0x70, wardner_ramrom_banksw },	/* ROM bank select */
+	{ 0x70, 0x70, wardner_ramrom_banks_w },	/* ROM bank select */
 	{ -1 }
 };
 
@@ -340,12 +418,12 @@ static struct IOWritePort sound_writeport[] =
 
 static struct IOReadPort DSP_readport[] =
 {
-	{ 0x01, 0x01, twincobr_dsp_in },
+	{ 0x01, 0x01, twincobr_dsp_r },
 	{ -1 }
 };
 static struct IOWritePort DSP_writeport[] =
 {
-	{ 0x00,  0x03, twincobr_dsp_out },
+	{ 0x00,  0x03, twincobr_dsp_w },
 	{ -1 }
 };
 

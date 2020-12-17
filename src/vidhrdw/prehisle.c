@@ -128,7 +128,7 @@ palette_change_color(pal_base + 16 * color +15 ,0,0,0);
 
 	scrollx=-(READ_WORD(&vid_control[6])&0xf);
 	scrolly=-READ_WORD(&vid_control[4]);
-	copyscrollbitmap(bitmap,pf1_bitmap,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copyscrollbitmap(bitmap,pf1_bitmap,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 	/* Calculate tilebase for background, 64 bytes per column */
 	tile_base=((READ_WORD(&vid_control[2])&0xff0)>>4)*64;
@@ -161,7 +161,7 @@ palette_change_color(pal_base + 16 * color +15 ,0,0,0);
 
 	scrollx=-(READ_WORD(&vid_control[2])&0xf);
 	scrolly=-READ_WORD(&vid_control[0]);
-	copyscrollbitmap(bitmap,pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->drv->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
+	copyscrollbitmap(bitmap,pf2_bitmap,1,&scrollx,1,&scrolly,&Machine->visible_area,TRANSPARENCY_PEN,palette_transparent_pen);
 
 	/* Sprites */
 	for (offs = 0;offs <0x800 ;offs += 8) {
@@ -186,7 +186,7 @@ palette_change_color(pal_base + 16 * color +15 ,0,0,0);
 		drawgfx(bitmap,Machine->gfx[3],
 				sprite,
 				colour,fx,fy,x,y,
-				&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+				&Machine->visible_area,TRANSPARENCY_PEN,15);
 	}
 
 	/* Text layer */
@@ -208,7 +208,7 @@ palette_change_color(pal_base + 16 * color +15 ,0,0,0);
 					color,
 					0,0,
 					8*mx,8*my,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,15);
+					&Machine->visible_area,TRANSPARENCY_PEN,15);
     }
 }
 
@@ -216,18 +216,18 @@ palette_change_color(pal_base + 16 * color +15 ,0,0,0);
 
 int prehisle_vh_start (void)
 {
-	pf1_bitmap=osd_create_bitmap(256+16,512);
-	pf2_bitmap=osd_create_bitmap(256+16,512);
+	pf1_bitmap=bitmap_alloc(256+16,512);
+	pf2_bitmap=bitmap_alloc(256+16,512);
 	return 0;
 }
 
 void prehisle_vh_stop (void)
 {
-	osd_free_bitmap(pf1_bitmap);
-	osd_free_bitmap(pf2_bitmap);
+	bitmap_free(pf1_bitmap);
+	bitmap_free(pf2_bitmap);
 }
 
-void prehisle_video_w(int offset,int data)
+WRITE_HANDLER( prehisle_video_w )
 {
 	int oldword = READ_WORD(&prehisle_video[offset]);
 	int newword = COMBINE_WORD(oldword,data);
@@ -239,14 +239,14 @@ void prehisle_video_w(int offset,int data)
 	}
 }
 
-int prehisle_video_r(int offset)
+READ_HANDLER( prehisle_video_r )
 {
 	return READ_WORD(&prehisle_video[offset]);
 }
 
 static int controls_invert;
 
-int prehisle_control_r(int offset)
+READ_HANDLER( prehisle_control_r )
 {
 	switch (offset) {
 		case 0x10: /* Player 2 */
@@ -265,12 +265,12 @@ int prehisle_control_r(int offset)
 			return readinputport(4);
 
 		default:
-			if (errorlog) fprintf(errorlog,"%06x: read unknown control %02x\n",cpu_get_pc(),offset);
+			logerror("%06x: read unknown control %02x\n",cpu_get_pc(),offset);
 			return 0;
 	}
 }
 
-void prehisle_control_w(int offset,int data)
+WRITE_HANDLER( prehisle_control_w )
 {
 	switch (offset) {
 		case 0:
@@ -304,7 +304,7 @@ void prehisle_control_w(int offset,int data)
 			break;
 
 		default:
-			if (errorlog) fprintf(errorlog,"%06x: write unknown control %02x\n",cpu_get_pc(),offset);
+			logerror("%06x: write unknown control %02x\n",cpu_get_pc(),offset);
 			break;
 	}
 }

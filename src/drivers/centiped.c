@@ -146,35 +146,78 @@ Known issues:
 #include "machine/atari_vg.h"
 
 
-int centiped_IN0_r(int offset);
-int centiped_IN2_r(int offset);	/* JB 971220 */
-
-void centiped_paletteram_w (int offset, int data);
-void centiped_vh_flipscreen_w (int offset,int data);
+WRITE_HANDLER( centiped_paletteram_w );
 void centiped_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 void centiped_init_machine(void);	/* in vidhrdw */
 int centiped_interrupt(void);	/* in vidhrdw */
 
 
+/*
+ * This wrapper routine is necessary because Centipede requires a direction bit
+ * to be set or cleared. The direction bit is held until the mouse is moved
+ * again.
+ *
+ * There is a 4-bit counter, and two inputs from the trackball: DIR and CLOCK.
+ * CLOCK makes the counter move in the direction of DIR. Since DIR is latched
+ * only when a CLOCK arrives, the DIR bit in the input port doesn't change
+ * until the trackball actually moves.
+ *
+ * There is also a CLR input to the counter which could be used by the game to
+ * clear the counter, but Centipede doesn't use it (though it would be a good
+ * idea to support it anyway).
+ *
+ * The counter is read 240 times per second. There is no provision whatsoever
+ * to prevent the counter from wrapping around between reads.
+ */
+static READ_HANDLER( centiped_IN0_r )
+{
+	static int oldpos,sign;
+	int newpos;
 
-static void centiped_led_w(int offset,int data)
+	newpos = readinputport(6);
+	if (newpos != oldpos)
+	{
+		sign = (newpos - oldpos) & 0x80;
+		oldpos = newpos;
+	}
+
+	return ((readinputport(0) & 0x70) | (oldpos & 0x0f) | sign );
+}
+
+static READ_HANDLER( centiped_IN2_r )
+{
+	static int oldpos,sign;
+	int newpos;
+
+	newpos = readinputport(2);
+	if (newpos != oldpos)
+	{
+		sign = (newpos - oldpos) & 0x80;
+		oldpos = newpos;
+	}
+
+	return ((oldpos & 0x0f) | sign );
+}
+
+
+static WRITE_HANDLER( centiped_led_w )
 {
 	osd_led_w(offset,~data >> 7);
 }
 
-static int centipdb_rand_r(int offset)
+static READ_HANDLER( centipdb_rand_r )
 {
 	return rand() % 0xff;
 }
 
-static void centipdb_AY8910_w(int offset, int data)
+static WRITE_HANDLER( centipdb_AY8910_w )
 {
 	AY8910_control_port_0_w(0, offset);
 	AY8910_write_port_0_w(0, data);
 }
 
-static int centipdb_AY8910_r(int offset)
+static READ_HANDLER( centipdb_AY8910_r )
 {
 	AY8910_control_port_0_w(0, offset);
 	return AY8910_read_port_0_r(0);
@@ -242,11 +285,11 @@ static struct MemoryWriteAddress centiped_writemem[] =
 	{ 0x1000, 0x100f, pokey1_w },
 	{ 0x1400, 0x140f, centiped_paletteram_w, &paletteram },
 	{ 0x1600, 0x163f, atari_vg_earom_w },
-	{ 0x1680, 0x1680, atari_vg_earom_ctrl },
+	{ 0x1680, 0x1680, atari_vg_earom_ctrl_w },
 	{ 0x1800, 0x1800, MWA_NOP },	/* IRQ acknowldege */
 	{ 0x1c00, 0x1c02, coin_counter_w },
 	{ 0x1c03, 0x1c04, centiped_led_w },
-	{ 0x1c07, 0x1c07, centiped_vh_flipscreen_w },
+	{ 0x1c07, 0x1c07, flip_screen_w },
 	{ 0x2000, 0x2000, watchdog_reset_w },
 	{ 0x2000, 0x3fff, MWA_ROM },
 	{ -1 }	/* end of table */
@@ -261,11 +304,11 @@ static struct MemoryWriteAddress centipdb_writemem[] =
 	{ 0x1000, 0x100f, centipdb_AY8910_w },
 	{ 0x1400, 0x140f, centiped_paletteram_w, &paletteram },
 	{ 0x1600, 0x163f, atari_vg_earom_w },
-	{ 0x1680, 0x1680, atari_vg_earom_ctrl },
+	{ 0x1680, 0x1680, atari_vg_earom_ctrl_w },
 	{ 0x1800, 0x1800, MWA_NOP },	/* IRQ acknowldege */
 	{ 0x1c00, 0x1c02, coin_counter_w },
 	{ 0x1c03, 0x1c04, centiped_led_w },
-	{ 0x1c07, 0x1c07, centiped_vh_flipscreen_w },
+	{ 0x1c07, 0x1c07, flip_screen_w },
 	{ 0x2000, 0x2000, watchdog_reset_w },
 	{ 0x2000, 0x3fff, MWA_ROM },
 	{ -1 }	/* end of table */
@@ -280,11 +323,11 @@ static struct MemoryWriteAddress centipb2_writemem[] =
 	{ 0x1001, 0x1001, AY8910_control_port_0_w },
 	{ 0x1400, 0x140f, centiped_paletteram_w, &paletteram },
 	{ 0x1600, 0x163f, atari_vg_earom_w },
-	{ 0x1680, 0x1680, atari_vg_earom_ctrl },
+	{ 0x1680, 0x1680, atari_vg_earom_ctrl_w },
 	{ 0x1800, 0x1800, MWA_NOP },	/* IRQ acknowldege */
 	{ 0x1c00, 0x1c02, coin_counter_w },
 	{ 0x1c03, 0x1c04, centiped_led_w },
-	{ 0x1c07, 0x1c07, centiped_vh_flipscreen_w },
+	{ 0x1c07, 0x1c07, flip_screen_w },
 	{ 0x2000, 0x2000, watchdog_reset_w },
 	{ 0x2000, 0x3fff, MWA_ROM },
 	{ 0x6000, 0x67ff, MWA_ROM },

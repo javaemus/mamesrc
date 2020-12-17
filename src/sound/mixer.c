@@ -280,8 +280,7 @@ int mixer_allocate_channels(int channels, const int *default_mixing_levels)
 	/* make sure we didn't overrun the number of available channels */
 	if (first_free_channel + channels > MIXER_MAX_CHANNELS)
 	{
-		if (errorlog)
-			fprintf(errorlog, "Too many mixer channels (requested %d, available %d)\n", first_free_channel + channels, MIXER_MAX_CHANNELS);
+		logerror("Too many mixer channels (requested %d, available %d)\n", first_free_channel + channels, MIXER_MAX_CHANNELS);
 		exit(1);
 	}
 
@@ -557,8 +556,8 @@ int mixer_samples_this_frame(void)
 #define EXTRA_SAMPLES 1    // safety margin for sampling rate conversion
 int mixer_need_samples_this_frame(int channel,int freq)
 {
-	return (samples_this_frame - mixer_channel[channel].samples_available + EXTRA_SAMPLES)
-			* freq / Machine->sample_rate;
+	return (samples_this_frame - mixer_channel[channel].samples_available)
+			* freq / Machine->sample_rate + EXTRA_SAMPLES;
 }
 
 

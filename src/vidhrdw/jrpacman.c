@@ -52,21 +52,25 @@ void jrpacman_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 		bit2 = (color_prom[i] >> 2) & 0x01;
 		palette[3*i] = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
 		bit0 = (color_prom[i] >> 3) & 0x01;
-		bit1 = (color_prom[i+32] >> 0) & 0x01;
-		bit2 = (color_prom[i+32] >> 1) & 0x01;
+		bit1 = (color_prom[i+256] >> 0) & 0x01;
+		bit2 = (color_prom[i+256] >> 1) & 0x01;
 		palette[3*i + 1] = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
 		bit0 = 0;
-		bit1 = (color_prom[i+32] >> 2) & 0x01;
-		bit2 = (color_prom[i+32] >> 3) & 0x01;
+		bit1 = (color_prom[i+256] >> 2) & 0x01;
+		bit2 = (color_prom[i+256] >> 3) & 0x01;
 		palette[3*i + 2] = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
 	}
 
+	color_prom += 2*256;
+
 	for (i = 0;i < 64*4;i++)
-		colortable[i] = color_prom[i + 64];
-	for (i = 64*4;i < 64*4+64*4;i++)
 	{
-		if (color_prom[i - 64*4 + 64]) colortable[i] = color_prom[i - 64*4 + 64] + 0x10;
-		else colortable[i] = 0;
+		/* chars */
+		colortable[i] = color_prom[i];
+
+		/* sprites */
+		if (color_prom[i]) colortable[i + 64*4] = color_prom[i] + 0x10;
+		else colortable[i + 64*4] = 0;
 	}
 }
 
@@ -84,7 +88,7 @@ int jrpacman_vh_start(void)
 	memset(dirtybuffer,1,videoram_size);
 
 	/* Jr. Pac Man has a virtual screen twice as large as the visible screen */
-	if ((tmpbitmap = osd_create_bitmap(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap = bitmap_alloc(Machine->drv->screen_width,2*Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer);
 		return 1;
@@ -103,12 +107,12 @@ int jrpacman_vh_start(void)
 void jrpacman_vh_stop(void)
 {
 	free(dirtybuffer);
-	osd_free_bitmap(tmpbitmap);
+	bitmap_free(tmpbitmap);
 }
 
 
 
-void jrpacman_videoram_w(int offset,int data)
+WRITE_HANDLER( jrpacman_videoram_w )
 {
 	if (videoram[offset] != data)
 	{
@@ -133,7 +137,7 @@ void jrpacman_videoram_w(int offset,int data)
 
 
 
-void jrpacman_palettebank_w(int offset,int data)
+WRITE_HANDLER( jrpacman_palettebank_w )
 {
 	if (*jrpacman_palettebank != data)
 	{
@@ -144,7 +148,7 @@ void jrpacman_palettebank_w(int offset,int data)
 
 
 
-void jrpacman_colortablebank_w(int offset,int data)
+WRITE_HANDLER( jrpacman_colortablebank_w )
 {
 	if (*jrpacman_colortablebank != data)
 	{
@@ -155,7 +159,7 @@ void jrpacman_colortablebank_w(int offset,int data)
 
 
 
-void jrpacman_charbank_w(int offset,int data)
+WRITE_HANDLER( jrpacman_charbank_w )
 {
 	if (*jrpacman_charbank != data)
 	{
@@ -165,7 +169,7 @@ void jrpacman_charbank_w(int offset,int data)
 }
 
 
-void jrpacman_flipscreen_w(int offset,int data)
+WRITE_HANDLER( jrpacman_flipscreen_w )
 {
 	if (flipscreen != (data & 1))
 	{
@@ -287,7 +291,7 @@ void jrpacman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 				scrolly[i] = 224 - scrolly[i];
 		}
 
-		copyscrollbitmap(bitmap,tmpbitmap,0,0,36,scrolly,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap,0,0,36,scrolly,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 
@@ -301,7 +305,7 @@ void jrpacman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						+ 0x40 * (*jrpacman_palettebank & 1),
 				spriteram[offs] & 1,spriteram[offs] & 2,
 				272 - spriteram_2[offs + 1],spriteram_2[offs]-31,
-				&Machine->drv->visible_area,
+				&Machine->visible_area,
 				(*jrpacman_bgpriority & 1) ? TRANSPARENCY_THROUGH : TRANSPARENCY_COLOR,
 				(*jrpacman_bgpriority & 1) ? Machine->pens[0]     : 0);
 	}
@@ -314,7 +318,7 @@ void jrpacman_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						+ 0x40 * (*jrpacman_palettebank & 1),
 				spriteram[offs] & 1,spriteram[offs] & 2,
 				272 - spriteram_2[offs + 1],spriteram_2[offs]-30,
-				&Machine->drv->visible_area,
+				&Machine->visible_area,
 				(*jrpacman_bgpriority & 1) ? TRANSPARENCY_THROUGH : TRANSPARENCY_COLOR,
 				(*jrpacman_bgpriority & 1) ? Machine->pens[0]     : 0);
 	}

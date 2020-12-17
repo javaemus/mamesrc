@@ -19,77 +19,6 @@
  *
  *****************************************************************************/
 
-/*
-mos metal oxid semiconductor
-bought by cbm
-
-licence to produce chips
- rockwell
-
-6500 / 6501
-mask programable microcontroller
-32 io ports (2 interruptable)
-timer
-64 byte ram
-8 kbyte rom
-
-6502 (used in many designs)
-
-6508
-8 io pins (p0 bis p7)
-
-6509
-4 io pins (p0 bis p3)
-1megabyte memory management???
-
-6510/8500 (used in some designs)
-6 io pins (p0 bis p5)
-
-7501/8501 (c16, c116, c232, c264, plus4, c364)
-7 io pins (no p5)
-no nmi
-
-8502 (c128)
-7 io pins (no p7)
-
-the above series is opcode compatible (including illegal opcodes)
-
-65c02 (used in some designs)
-no illegal opcodes from the above series
-so not full compatible to 6502 series
-additional commands
-
-n2a03 (some arcades)
-(nintendo variant without decimal mode?)
-m65c02 compatible (except decimal mode)?
-
-65sc02 (where used?)
-65c02 compatible
-additional commands
-
-gte65816 (nintendo snes)
-65802 upgrade cpu (c64 and c128 upgrade cpu)
-16 bit wide registers
-65c02? compatible mode
-additional commands
-
-huc6280 (nec pcengine)
-65sc02 compatible?
-8 memory registers
-(highest 3 bits select memory register, these build a22..a13)
-(so 2 Megabyte address room!)
-additional commands?
-
-65ce02 (c65 prototype)
-(cpu core to be used in asics)
-65sc02 compatible
-z register
-(65c02 zeropage indexed addressing is now (zeropage),z)
-b bank register, highbyte of all zerozape addressing
-register for stack high byte
-additional command (some from the 65816)
-*/
-
 #ifndef _M65CE02_H
 #define _M65CE02_H
 
@@ -100,7 +29,7 @@ additional command (some from the 65816)
 enum {
 	M65CE02_PC=1, M65CE02_S, M65CE02_P, M65CE02_A, M65CE02_X, M65CE02_Y,
 	M65CE02_Z, M65CE02_B, M65CE02_EA, M65CE02_ZP,
-	M65CE02_NMI_STATE, M65CE02_IRQ_STATE, M65CE02_SUBTYPE
+	M65CE02_NMI_STATE, M65CE02_IRQ_STATE
 };
 
 #define M65CE02_INT_NONE	M6502_INT_NONE
@@ -133,7 +62,7 @@ extern const char *m65ce02_info(void *context, int regnum);
 extern unsigned m65ce02_dasm(char *buffer, unsigned pc);
 
 #ifdef MAME_DEBUG
-extern unsigned Dasm65ce02( char *dst, unsigned pc );
+extern unsigned int Dasm65ce02( char *dst, unsigned pc );
 #endif
 
 #endif /* _M65CE02_H */

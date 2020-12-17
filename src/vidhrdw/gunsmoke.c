@@ -95,12 +95,12 @@ void gunsmoke_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 
 int gunsmoke_vh_start(void)
 {
-	if ((bgbitmap = osd_create_bitmap(9*32,9*32)) == 0)
+	if ((bgbitmap = bitmap_alloc(9*32,9*32)) == 0)
 		return 1;
 
 	if (generic_vh_start() == 1)
 	{
-		osd_free_bitmap(bgbitmap);
+		bitmap_free(bgbitmap);
 		return 1;
 	}
 
@@ -112,12 +112,12 @@ int gunsmoke_vh_start(void)
 
 void gunsmoke_vh_stop(void)
 {
-	osd_free_bitmap(bgbitmap);
+	bitmap_free(bgbitmap);
 }
 
 
 
-void gunsmoke_c804_w(int offset,int data)
+WRITE_HANDLER( gunsmoke_c804_w )
 {
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);
@@ -144,7 +144,7 @@ void gunsmoke_c804_w(int offset,int data)
 
 
 
-void gunsmoke_d806_w(int offset,int data)
+WRITE_HANDLER( gunsmoke_d806_w )
 {
 	/* bits 0-2 select the sprite 3 bank */
 	sprite3bank = data & 0x07;
@@ -225,10 +225,10 @@ void gunsmoke_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		copyscrollbitmap(bitmap,bgbitmap,
 			1,&xscroll,
 			1,&yscroll,
-			&Machine->drv->visible_area,
+			&Machine->visible_area,
 			TRANSPARENCY_NONE,0);
 	}
-	else fillbitmap(bitmap,Machine->pens[0],&Machine->drv->visible_area);
+	else fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
 
 
@@ -260,7 +260,7 @@ void gunsmoke_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					spriteram[offs + 1] & 0x0f,
 					flipx,flipy,
 					sx,sy,
-					&Machine->drv->visible_area,TRANSPARENCY_PEN,0);
+					&Machine->visible_area,TRANSPARENCY_PEN,0);
 		}
 	}
 
@@ -283,7 +283,7 @@ void gunsmoke_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					colorram[offs] & 0x1f,
 					!flipscreen,!flipscreen,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_COLOR,79);
+					&Machine->visible_area,TRANSPARENCY_COLOR,79);
 		}
 	}
 }

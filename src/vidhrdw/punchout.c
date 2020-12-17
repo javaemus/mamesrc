@@ -19,11 +19,11 @@
 #define ARMWREST_BIGSPRITE_HEIGHT 128
 
 unsigned char *punchout_videoram2;
-int punchout_videoram2_size;
+size_t punchout_videoram2_size;
 unsigned char *punchout_bigsprite1ram;
-int punchout_bigsprite1ram_size;
+size_t punchout_bigsprite1ram_size;
 unsigned char *punchout_bigsprite2ram;
-int punchout_bigsprite2ram_size;
+size_t punchout_bigsprite2ram_size;
 unsigned char *punchout_scroll;
 unsigned char *punchout_bigsprite1;
 unsigned char *punchout_bigsprite2;
@@ -240,7 +240,7 @@ int punchout_vh_start(void)
 	}
 	memset(dirtybuffer2,1,punchout_videoram2_size);
 
-	if ((tmpbitmap = osd_create_bitmap(512,480)) == 0)
+	if ((tmpbitmap = bitmap_alloc(512,480)) == 0)
 	{
 		free(dirtybuffer);
 		free(dirtybuffer2);
@@ -249,16 +249,16 @@ int punchout_vh_start(void)
 
 	if ((bs1dirtybuffer = malloc(punchout_bigsprite1ram_size)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
+		bitmap_free(tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		return 1;
 	}
 	memset(bs1dirtybuffer,1,punchout_bigsprite1ram_size);
 
-	if ((bs1tmpbitmap = osd_create_bitmap(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
+	if ((bs1tmpbitmap = bitmap_alloc(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
+		bitmap_free(tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		free(bs1dirtybuffer);
@@ -267,8 +267,8 @@ int punchout_vh_start(void)
 
 	if ((bs2dirtybuffer = malloc(punchout_bigsprite2ram_size)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
-		osd_free_bitmap(bs1tmpbitmap);
+		bitmap_free(tmpbitmap);
+		bitmap_free(bs1tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		free(bs1dirtybuffer);
@@ -276,10 +276,10 @@ int punchout_vh_start(void)
 	}
 	memset(bs2dirtybuffer,1,punchout_bigsprite2ram_size);
 
-	if ((bs2tmpbitmap = osd_create_bitmap(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
+	if ((bs2tmpbitmap = bitmap_alloc(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
-		osd_free_bitmap(bs1tmpbitmap);
+		bitmap_free(tmpbitmap);
+		bitmap_free(bs1tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		free(bs1dirtybuffer);
@@ -303,7 +303,7 @@ int armwrest_vh_start(void)
 	}
 	memset(dirtybuffer2,1,punchout_videoram2_size);
 
-	if ((tmpbitmap = osd_create_bitmap(512,480)) == 0)
+	if ((tmpbitmap = bitmap_alloc(512,480)) == 0)
 	{
 		free(dirtybuffer);
 		free(dirtybuffer2);
@@ -312,16 +312,16 @@ int armwrest_vh_start(void)
 
 	if ((bs1dirtybuffer = malloc(punchout_bigsprite1ram_size)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
+		bitmap_free(tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		return 1;
 	}
 	memset(bs1dirtybuffer,1,punchout_bigsprite1ram_size);
 
-	if ((bs1tmpbitmap = osd_create_bitmap(ARMWREST_BIGSPRITE_WIDTH,ARMWREST_BIGSPRITE_HEIGHT)) == 0)
+	if ((bs1tmpbitmap = bitmap_alloc(ARMWREST_BIGSPRITE_WIDTH,ARMWREST_BIGSPRITE_HEIGHT)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
+		bitmap_free(tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		free(bs1dirtybuffer);
@@ -330,8 +330,8 @@ int armwrest_vh_start(void)
 
 	if ((bs2dirtybuffer = malloc(punchout_bigsprite2ram_size)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
-		osd_free_bitmap(bs1tmpbitmap);
+		bitmap_free(tmpbitmap);
+		bitmap_free(bs1tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		free(bs1dirtybuffer);
@@ -339,10 +339,10 @@ int armwrest_vh_start(void)
 	}
 	memset(bs2dirtybuffer,1,punchout_bigsprite2ram_size);
 
-	if ((bs2tmpbitmap = osd_create_bitmap(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
+	if ((bs2tmpbitmap = bitmap_alloc(BIGSPRITE_WIDTH,BIGSPRITE_HEIGHT)) == 0)
 	{
-		osd_free_bitmap(tmpbitmap);
-		osd_free_bitmap(bs1tmpbitmap);
+		bitmap_free(tmpbitmap);
+		bitmap_free(bs1tmpbitmap);
 		free(dirtybuffer);
 		free(dirtybuffer2);
 		free(bs1dirtybuffer);
@@ -366,14 +366,14 @@ void punchout_vh_stop(void)
 	free(dirtybuffer2);
 	free(bs1dirtybuffer);
 	free(bs2dirtybuffer);
-	osd_free_bitmap(tmpbitmap);
-	osd_free_bitmap(bs1tmpbitmap);
-	osd_free_bitmap(bs2tmpbitmap);
+	bitmap_free(tmpbitmap);
+	bitmap_free(bs1tmpbitmap);
+	bitmap_free(bs2tmpbitmap);
 }
 
 
 
-void punchout_videoram2_w(int offset,int data)
+WRITE_HANDLER( punchout_videoram2_w )
 {
 	if (punchout_videoram2[offset] != data)
 	{
@@ -383,7 +383,7 @@ void punchout_videoram2_w(int offset,int data)
 	}
 }
 
-void punchout_bigsprite1ram_w(int offset,int data)
+WRITE_HANDLER( punchout_bigsprite1ram_w )
 {
 	if (punchout_bigsprite1ram[offset] != data)
 	{
@@ -393,7 +393,7 @@ void punchout_bigsprite1ram_w(int offset,int data)
 	}
 }
 
-void punchout_bigsprite2ram_w(int offset,int data)
+WRITE_HANDLER( punchout_bigsprite2ram_w )
 {
 	if (punchout_bigsprite2ram[offset] != data)
 	{
@@ -405,7 +405,7 @@ void punchout_bigsprite2ram_w(int offset,int data)
 
 
 
-void punchout_palettebank_w(int offset,int data)
+WRITE_HANDLER( punchout_palettebank_w )
 {
 	*punchout_palettebank = data;
 
@@ -540,51 +540,55 @@ void punchout_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 		for (offs = 0;offs < BOTTOM_MONITOR_ROWS;offs++)
 			scroll[TOP_MONITOR_ROWS + offs] = -(58 + punchout_scroll[2*offs] + 256 * (punchout_scroll[2*offs + 1] & 0x01));
 
-		copyscrollbitmap(bitmap,tmpbitmap,TOP_MONITOR_ROWS + BOTTOM_MONITOR_ROWS,scroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+		copyscrollbitmap(bitmap,tmpbitmap,TOP_MONITOR_ROWS + BOTTOM_MONITOR_ROWS,scroll,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 	}
 
 	/* copy the two big sprites */
 	{
-		int sx,sy,zoom,height;
-
+		int zoom;
 
 		zoom = punchout_bigsprite1[0] + 256 * (punchout_bigsprite1[1] & 0x0f);
 		if (zoom)
 		{
-			sx = 1024 - (punchout_bigsprite1[2] + 256 * (punchout_bigsprite1[3] & 0x0f)) / 4;
-			if (sx > 1024-127) sx -= 1024;
-			sx = sx * (0x1000 / 4) / zoom;	/* adjust x position basing on zoom */
-			sx -= 57;	/* adjustment to match the screen shots */
+			int sx,sy;
+			UINT32 startx,starty;
+			int incxx,incyy;
 
-			sy = -punchout_bigsprite1[4] + 256 * (punchout_bigsprite1[5] & 1);
-			sy = sy * (0x1000 / 4) / zoom;	/* adjust y position basing on zoom */
+			sx = 4096 - (punchout_bigsprite1[2] + 256 * (punchout_bigsprite1[3] & 0x0f));
+			if (sx > 4096-4*127) sx -= 4096;
 
-			/* when the sprite is reduced, it fits more than */
-			/* once in the screen, so if the first draw is */
-			/* offscreen the second can be visible */
-			height = 256 * (0x1000 / 4) / zoom;	/* height of the zoomed sprite */
-			if (sy <= -height+16) sy += 2*height;	/* if offscreen, try moving it lower */
+			sy = -(punchout_bigsprite1[4] + 256 * (punchout_bigsprite1[5] & 1));
+			if (sy <= -256 + zoom/0x40) sy += 512;
 
-			sy += 3;	/* adjustment to match the screen shots */
-				/* have to be at least 3, using 2 creates a blank line at the bottom */
-				/* of the screen when you win the championship and jump around with */
-				/* the belt */
+			incxx = zoom << 6;
+			incyy = zoom << 6;
+
+			startx = -sx * 0x4000;
+			starty = -sy * 0x10000;
+			startx += 3740 * zoom;	/* adjustment to match the screen shots */
+			starty -= 178 * zoom;	/* and make the hall of fame picture nice */
+
+			if (punchout_bigsprite1[6] & 1)	/* flip x */
+			{
+				startx = (bs1tmpbitmap->width << 16) - startx - 1;
+				incxx = -incxx;
+			}
 
 			if (punchout_bigsprite1[7] & 1)	/* display in top monitor */
 			{
-				copybitmapzoom(bitmap,bs1tmpbitmap,
-						punchout_bigsprite1[6] & 1,0,
-						sx,sy - 8*(32-TOP_MONITOR_ROWS),
-						&topvisiblearea,TRANSPARENCY_COLOR,1024,
-						0x10000 * 0x1000 / 4 / zoom,0x10000 * 0x1000 / 4 / zoom);
+				copyrozbitmap(bitmap,bs1tmpbitmap,
+					startx,starty + 0x200*(32-TOP_MONITOR_ROWS) * zoom,
+					incxx,0,0,incyy,	/* zoom, no rotation */
+					0,	/* no wraparound */
+					&topvisiblearea,TRANSPARENCY_COLOR,1024,0);
 			}
 			if (punchout_bigsprite1[7] & 2)	/* display in bottom monitor */
 			{
-				copybitmapzoom(bitmap,bs1tmpbitmap,
-						punchout_bigsprite1[6] & 1,0,
-						sx,sy + 8*TOP_MONITOR_ROWS,
-						&bottomvisiblearea,TRANSPARENCY_COLOR,1024,
-						0x10000 * 0x1000 / 4 / zoom,0x10000 * 0x1000 / 4 / zoom);
+				copyrozbitmap(bitmap,bs1tmpbitmap,
+					startx,starty - 0x200*TOP_MONITOR_ROWS * zoom,
+					incxx,0,0,incyy,	/* zoom, no rotation */
+					0,	/* no wraparound */
+					&bottomvisiblearea,TRANSPARENCY_COLOR,1024,0);
 			}
 		}
 	}
@@ -703,51 +707,55 @@ void armwrest_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 
 	/* copy the character mapped graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 
 	/* copy the two big sprites */
 	{
-		int sx,sy,zoom,height;
-
+		int zoom;
 
 		zoom = punchout_bigsprite1[0] + 256 * (punchout_bigsprite1[1] & 0x0f);
 		if (zoom)
 		{
-			sx = 1024 - (punchout_bigsprite1[2] + 256 * (punchout_bigsprite1[3] & 0x0f)) / 4;
-			if (sx > 1024-127) sx -= 1024;
-			sx = sx * (0x1000 / 4) / zoom;	/* adjust x position basing on zoom */
-			sx -= 57;	/* adjustment to match the screen shots */
+			int sx,sy;
+			UINT32 startx,starty;
+			int incxx,incyy;
 
-			sy = -punchout_bigsprite1[4] + 256 * (punchout_bigsprite1[5] & 1);
-			sy = sy * (0x1000 / 4) / zoom;	/* adjust y position basing on zoom */
+			sx = 4096 - (punchout_bigsprite1[2] + 256 * (punchout_bigsprite1[3] & 0x0f));
+			if (sx > 4096-4*127) sx -= 4096;
 
-			/* when the sprite is reduced, it fits more than */
-			/* once in the screen, so if the first draw is */
-			/* offscreen the second can be visible */
-			height = 256 * (0x1000 / 4) / zoom;	/* height of the zoomed sprite */
-			if (sy <= -height+16) sy += 2*height;	/* if offscreen, try moving it lower */
+			sy = -(punchout_bigsprite1[4] + 256 * (punchout_bigsprite1[5] & 1));
+			if (sy <= -256 + zoom/0x40) sy += 512;
 
-			sy += 3;	/* adjustment to match the screen shots */
-				/* have to be at least 3, using 2 creates a blank line at the bottom */
-				/* of the screen when you win the championship and jump around with */
-				/* the belt */
+			incxx = zoom << 6;
+			incyy = zoom << 6;
+
+			startx = -sx * 0x4000;
+			starty = -sy * 0x10000;
+			startx += 3740 * zoom;	/* adjustment to match the screen shots */
+			starty -= 178 * zoom;	/* and make the hall of fame picture nice */
+
+			if (punchout_bigsprite1[6] & 1)	/* flip x */
+			{
+				startx = (bs1tmpbitmap->width << 16) - startx - 1;
+				incxx = -incxx;
+			}
 
 			if (punchout_bigsprite1[7] & 1)	/* display in top monitor */
 			{
-				copybitmapzoom(bitmap,bs1tmpbitmap,
-						punchout_bigsprite1[6] & 1,0,
-						sx,sy - 8*(32-TOP_MONITOR_ROWS),
-						&topvisiblearea,TRANSPARENCY_COLOR,1024,
-						0x10000 * 0x1000 / 4 / zoom,0x10000 * 0x1000 / 4 / zoom);
+				copyrozbitmap(bitmap,bs1tmpbitmap,
+					startx,starty + 0x200*(32-TOP_MONITOR_ROWS) * zoom,
+					incxx,0,0,incyy,	/* zoom, no rotation */
+					0,	/* no wraparound */
+					&topvisiblearea,TRANSPARENCY_COLOR,1024,0);
 			}
 			if (punchout_bigsprite1[7] & 2)	/* display in bottom monitor */
 			{
-				copybitmapzoom(bitmap,bs1tmpbitmap,
-						punchout_bigsprite1[6] & 1,0,
-						sx,sy + 8*TOP_MONITOR_ROWS,
-						&bottomvisiblearea,TRANSPARENCY_COLOR,1024,
-						0x10000 * 0x1000 / 4 / zoom,0x10000 * 0x1000 / 4 / zoom);
+				copyrozbitmap(bitmap,bs1tmpbitmap,
+					startx,starty - 0x200*TOP_MONITOR_ROWS * zoom,
+					incxx,0,0,incyy,	/* zoom, no rotation */
+					0,	/* no wraparound */
+					&bottomvisiblearea,TRANSPARENCY_COLOR,1024,0);
 			}
 		}
 	}

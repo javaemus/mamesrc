@@ -1,52 +1,9 @@
 /***************************************************************************
 
-  vidhrdw/gauntlet.c
+	Atari Gauntlet hardware
 
-  Functions to emulate the video hardware of the machine.
+****************************************************************************/
 
-****************************************************************************
-
-	Playfield encoding
-	------------------
-		1 16-bit word is used
-
-		Word 1:
-			Bit  15    = horizontal flip
-			Bits 12-14 = palette
-			Bits  0-11 = image index
-
-
-	Motion Object encoding
-	----------------------
-		4 16-bit words are used
-
-		Word 1:
-			Bits  0-14 = image index
-
-		Word 2:
-			Bits  7-15 = X position
-			Bits  0-3  = palette
-
-		Word 3:
-			Bits  7-14 = Y position
-			Bit   6    = horizontal flip
-			Bits  3-5  = width in tiles
-			Bits  0-2  = height in tiles
-
-		Word 4:
-			Bits  0-9  = link to the next image to display
-
-
-	Alpha layer encoding
-	--------------------
-		1 16-bit word is used
-
-		Word 1:
-			Bit  15    = transparent/opaque
-			Bits 10-13 = palette
-			Bits  0-9  = image index
-
-***************************************************************************/
 
 #include "driver.h"
 #include "machine/atarigen.h"
@@ -66,7 +23,7 @@
  *
  *************************************/
 
-int vindctr2_screen_refresh;
+UINT8 vindctr2_screen_refresh;
 
 
 
@@ -169,7 +126,7 @@ void gauntlet_vh_stop(void)
  *
  *************************************/
 
-void gauntlet_hscroll_w(int offset, int data)
+WRITE_HANDLER( gauntlet_hscroll_w )
 {
 	/* update memory */
 	int oldword = READ_WORD(&atarigen_hscroll[offset]);
@@ -189,7 +146,7 @@ void gauntlet_hscroll_w(int offset, int data)
  *
  *************************************/
 
-void gauntlet_vscroll_w(int offset, int data)
+WRITE_HANDLER( gauntlet_vscroll_w )
 {
 	/* update memory */
 	int oldword = READ_WORD(&atarigen_vscroll[offset]);
@@ -210,7 +167,7 @@ void gauntlet_vscroll_w(int offset, int data)
  *
  *************************************/
 
-void gauntlet_playfieldram_w(int offset, int data)
+WRITE_HANDLER( gauntlet_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -250,7 +207,7 @@ void gauntlet_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	/* draw the playfield */
 	memset(atarigen_pf_visit, 0, 64*64);
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* draw the motion objects */
 	atarigen_mo_process(mo_render_callback, bitmap);
@@ -299,7 +256,7 @@ static const UINT8 *update_palette(void)
 	palette_init_used_colors();
 
 	/* update color usage for the playfield */
-	atarigen_pf_process(pf_color_callback, pf_map, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_color_callback, pf_map, &Machine->visible_area);
 
 	/* update color usage for the mo's */
 	atarigen_mo_process(mo_color_callback, mo_map);

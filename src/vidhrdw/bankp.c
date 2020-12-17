@@ -108,7 +108,7 @@ int bankp_vh_start(void)
 	}
 	memset(dirtybuffer2,1,videoram_size);
 
-	if ((tmpbitmap2 = osd_create_bitmap(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
+	if ((tmpbitmap2 = bitmap_alloc(Machine->drv->screen_width,Machine->drv->screen_height)) == 0)
 	{
 		free(dirtybuffer2);
 		generic_vh_stop();
@@ -120,7 +120,7 @@ int bankp_vh_start(void)
 
 
 
-void bankp_scroll_w(int offset,int data)
+WRITE_HANDLER( bankp_scroll_w )
 {
 	scroll_x = data;
 }
@@ -135,13 +135,13 @@ void bankp_scroll_w(int offset,int data)
 void bankp_vh_stop(void)
 {
 	free(dirtybuffer2);
-	osd_free_bitmap(tmpbitmap2);
+	bitmap_free(tmpbitmap2);
 	generic_vh_stop();
 }
 
 
 
-void bankp_videoram2_w(int offset,int data)
+WRITE_HANDLER( bankp_videoram2_w )
 {
 	if (bankp_videoram2[offset] != data)
 	{
@@ -153,7 +153,7 @@ void bankp_videoram2_w(int offset,int data)
 
 
 
-void bankp_colorram2_w(int offset,int data)
+WRITE_HANDLER( bankp_colorram2_w )
 {
 	if (bankp_colorram2[offset] != data)
 	{
@@ -165,7 +165,7 @@ void bankp_colorram2_w(int offset,int data)
 
 
 
-void bankp_out_w(int offset,int data)
+WRITE_HANDLER( bankp_out_w )
 {
 	/* bits 0-1 are playfield priority */
 	/* TODO: understand how this works, currently the only thing I do is */
@@ -254,7 +254,7 @@ void bankp_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					bankp_colorram2[offs] >> 4,
 					flipx,flipscreen,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 
@@ -270,13 +270,13 @@ void bankp_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 		if (priority == 2)
 		{
-			copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
-			copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+			copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
+			copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->visible_area,TRANSPARENCY_COLOR,0);
 		}
 		else
 		{
-			copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
-			copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+			copybitmap(bitmap,tmpbitmap2,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
+			copyscrollbitmap(bitmap,tmpbitmap,1,&scroll,0,0,&Machine->visible_area,TRANSPARENCY_COLOR,0);
 		}
 	}
 }

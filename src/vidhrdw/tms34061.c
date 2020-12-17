@@ -77,7 +77,7 @@ void TMS34061_stop(void)
 }
 
 
-INLINE void TMS34061_register_w(int offset, int data)
+INLINE WRITE_HANDLER( TMS34061_register_w )
 {
 	int status = 0;		// Unsupported
 
@@ -111,11 +111,9 @@ INLINE void TMS34061_register_w(int offset, int data)
 		break;
 	}
 
-	if (!status && errorlog)
-	{
-		fprintf(errorlog, "Unsupported TMS34061 write. Reg #%02X=%04X - PC: %04X\n",
+	if (!status)
+		logerror("Unsupported TMS34061 write. Reg #%02X=%04X - PC: %04X\n",
 				reg, regs[reg], cpu_get_pc());
-	}
 }
 
 static void TMS34061_intcallback(int param)
@@ -132,7 +130,7 @@ static void TMS34061_intcallback(int param)
 }
 
 
-INLINE int TMS34061_register_r(int offset)
+INLINE READ_HANDLER( TMS34061_register_r )
 {
 	int ret;
 
@@ -168,11 +166,9 @@ INLINE int TMS34061_register_r(int offset)
 		break;
 	}
 
-	if (!status && errorlog)
-	{
-		fprintf(errorlog, "Unsupported TMS34061 read.  Reg #%02X      - PC: %04X\n",
+	if (!status)
+		logerror("Unsupported TMS34061 read.  Reg #%02X      - PC: %04X\n",
 				reg, cpu_get_pc());
-	}
 
 	return ret;
 }
@@ -203,7 +199,7 @@ INLINE void adjust_xyaddress(int offset, int x, int y)
 	regs[REG_XYADDRESS] = ((y & 0xff) << 8) | (x & 0xff);
 }
 
-INLINE void TMS34061_xypixel_w(int offset, int data)
+INLINE WRITE_HANDLER( TMS34061_xypixel_w )
 {
 	// Currently only implements when the X-Y addresses are 8 bits each
 	// Case #7 on Page 4-18 in User's Guide
@@ -217,7 +213,7 @@ INLINE void TMS34061_xypixel_w(int offset, int data)
 }
 
 
-INLINE int TMS34061_xypixel_r(int offset)
+INLINE READ_HANDLER( TMS34061_xypixel_r )
 {
 	// Currently only implements when the X-Y addresses are 8 bits each
 	// Case #7 on Page 4-18 in User's Guide
@@ -233,7 +229,7 @@ INLINE int TMS34061_xypixel_r(int offset)
 }
 
 
-void TMS34061_w(int offset, int data)
+WRITE_HANDLER( TMS34061_w )
 {
 	int col = intf->getcoladdress(offset);
 	int row = intf->getrowaddress(offset);
@@ -257,15 +253,12 @@ void TMS34061_w(int offset, int data)
 		break;
 
 	default:
-		if (errorlog)
-		{
-			fprintf(errorlog, "Unsupported TMS34061 function %d - PC: %04X\n",
-					func, cpu_get_pc());
-		}
+		logerror("Unsupported TMS34061 function %d - PC: %04X\n",
+				func, cpu_get_pc());
 	}
 }
 
-int TMS34061_r(int offset)
+READ_HANDLER( TMS34061_r )
 {
 	int ret = 0;
 
@@ -291,11 +284,8 @@ int TMS34061_r(int offset)
 		break;
 
 	default:
-		if (errorlog)
-		{
-			fprintf(errorlog, "Unsupported TMS34061 function %d - PC: %04X\n",
-					func, cpu_get_pc());
-		}
+		logerror("Unsupported TMS34061 function %d - PC: %04X\n",
+				func, cpu_get_pc());
 	}
 
 	return ret;

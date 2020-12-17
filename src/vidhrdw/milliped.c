@@ -34,7 +34,7 @@ static struct rectangle spritevisiblearea =
   bit 0 blue
 
 ***************************************************************************/
-void milliped_paletteram_w(int offset,int data)
+WRITE_HANDLER( milliped_paletteram_w )
 {
 	int bit0,bit1,bit2;
 	int r,g,b;
@@ -109,7 +109,7 @@ void milliped_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					bank + color,
 					0,0,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+					&Machine->visible_area,TRANSPARENCY_NONE,0);
 		}
 	}
 

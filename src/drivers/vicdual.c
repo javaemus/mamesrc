@@ -82,41 +82,41 @@ static unsigned char *vicdual_ram;
 
 extern unsigned char *vicdual_characterram;
 void vicdual_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-void vicdual_characterram_w(int offset,int data);
-int vicdual_characterram_r(int offset);
-void vicdual_palette_bank_w(int offset, int data);
+WRITE_HANDLER( vicdual_characterram_w );
+READ_HANDLER( vicdual_characterram_r );
+WRITE_HANDLER( vicdual_palette_bank_w );
 void vicdual_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 
 /* Carnival sound handlers */
 extern const char *carnival_sample_names[];
-void carnival_sh_port1_w(int offset, int data);
-void carnival_sh_port2_w(int offset, int data);
-int carnival_music_port_t1_r( int offset );
-void carnival_music_port_1_w( int offset, int data );
-void carnival_music_port_2_w( int offset, int data );
+WRITE_HANDLER( carnival_sh_port1_w );
+WRITE_HANDLER( carnival_sh_port2_w );
+READ_HANDLER( carnival_music_port_t1_r );
+WRITE_HANDLER( carnival_music_port_1_w );
+WRITE_HANDLER( carnival_music_port_2_w );
 
 /* Depth Charge sound handlers */
 extern const char *depthch_sample_names[];
-void depthch_sh_port1_w(int offset, int data);
+WRITE_HANDLER( depthch_sh_port1_w );
 
 /* Invinco sound handlers */
 extern const char *invinco_sample_names[];
-void invinco_sh_port2_w(int offset, int data);
+WRITE_HANDLER( invinco_sh_port2_w );
 
 /* Pulsar sound handlers */
 extern const char *pulsar_sample_names[];
-void pulsar_sh_port1_w(int offset, int data);
-void pulsar_sh_port2_w(int offset, int data);
+WRITE_HANDLER( pulsar_sh_port1_w );
+WRITE_HANDLER( pulsar_sh_port2_w );
 
 
 static int protection_data;
 
-static void samurai_protection_w(int offset,int data)
+static WRITE_HANDLER( samurai_protection_w )
 {
 	protection_data = data;
 }
 
-static int samurai_input_r(int offset)
+static READ_HANDLER( samurai_input_r )
 {
 	int answer = 0;
 
@@ -127,18 +127,18 @@ static int samurai_input_r(int offset)
 }
 
 
-static void vicdual_ram_w(int offset, int data)
+static WRITE_HANDLER( vicdual_ram_w )
 {
 	vicdual_ram[offset] = data;
 }
 
-static int vicdual_ram_r(int offset)
+static READ_HANDLER( vicdual_ram_r )
 {
 	return vicdual_ram[offset];
 }
 
 
-static int depthch_input_port_1_r(int offset)
+static READ_HANDLER( depthch_input_port_1_r )
 {
 	/* bit 0 is 64V according to the schematics */
 	return (input_port_1_r(0) & 0xfe) | ((cpu_getscanline() >> 6) & 0x01);
@@ -1086,7 +1086,7 @@ static struct MachineDriver machine_driver_##NAME =	\
 MACHINEDRIVER( 2ports, vicdual, 2ports )
 MACHINEDRIVER( 3ports, vicdual, 3ports )
 MACHINEDRIVER( 4ports, vicdual, 4ports )
-MACHINEDRIVER( safari,          safari,  safari )
+MACHINEDRIVER( safari, safari,  safari )
 
 
 static struct AY8910interface carnival_ay8910_interface =
@@ -1212,6 +1212,21 @@ ROM_START( sspaceat )
 	ROM_LOAD( "160.u22",      0x1400, 0x0400, 0xe61d482f )
 	ROM_LOAD( "161.u21",      0x1800, 0x0400, 0xeb5e0993 )
 	ROM_LOAD( "162.u20",      0x1c00, 0x0400, 0x5f84d550 )
+
+	ROM_REGION( 0x0020, REGION_PROMS )
+	ROM_LOAD( "316-0138.u44", 0x0000, 0x0020, 0x67104ea9 )
+ROM_END
+
+ROM_START( sspacat2 )
+	ROM_REGION( 0x10000, REGION_CPU1 )	/* 64k for code */
+	ROM_LOAD( "81.u48",       0x0000, 0x0400, 0x3e4b29f6 )
+	ROM_LOAD( "58.u47",       0x0400, 0x0400, 0x176adb80 )
+	ROM_LOAD( "59.u46",       0x0800, 0x0400, 0xb2400d05 )
+	ROM_LOAD( "150.u45",      0x0c00, 0x0400, 0xcf9bfa65 )
+	ROM_LOAD( "151.u44",      0x1000, 0x0400, 0x064530f1 )
+	ROM_LOAD( "152.u43",      0x1400, 0x0400, 0xc65c30fe )
+	ROM_LOAD( "153.u42",      0x1800, 0x0400, 0xea70c7f6 )
+	ROM_LOAD( "156a.u41",     0x1c00, 0x0400, 0x9029d2ce )
 
 	ROM_REGION( 0x0020, REGION_PROMS )
 	ROM_LOAD( "316-0138.u44", 0x0000, 0x0020, 0x67104ea9 )
@@ -1529,7 +1544,7 @@ ROM_START( pulsar )
 	ROM_LOAD( "798.u8",       0x2000, 0x0400, 0x1d34912d )
 	ROM_LOAD( "799.u7",       0x2400, 0x0400, 0xf5695e4c )
 	ROM_LOAD( "800.u6",       0x2800, 0x0400, 0xbf91ad92 )
-	ROM_LOAD( "801.u5",       0x2C00, 0x0400, 0x1e9721dc )
+	ROM_LOAD( "801.u5",       0x2c00, 0x0400, 0x1e9721dc )
 	ROM_LOAD( "802.u4",       0x3000, 0x0400, 0xd32d2192 )
 	ROM_LOAD( "803.u3",       0x3400, 0x0400, 0x3ede44d5 )
 	ROM_LOAD( "804.u2",       0x3800, 0x0400, 0x62847b01 )
@@ -1667,8 +1682,9 @@ static void init_pulsar(void)
 GAME( 1977, depthch,  0,        2ports,   depthch,  depthch,   ROT0,   "Gremlin", "Depthcharge" )
 GAMEX(1977, safari,   0,        safari,   safari,   nosamples, ROT0,   "Gremlin", "Safari", GAME_NO_SOUND )
 GAMEX(1978, frogs,    0,        2ports,   frogs,    nosamples, ROT0,   "Gremlin", "Frogs", GAME_NO_SOUND )
-GAMEX(1979, sspaceat, 0,        3ports,   sspaceat, nosamples, ROT270, "Sega", "Space Attack (Upright)", GAME_NO_SOUND )
-GAMEX(1979, sspacatc, sspaceat, 3ports,   sspaceat, nosamples, ROT270, "Sega", "Space Attack (Cocktail)", GAME_NO_SOUND )
+GAMEX(1979, sspaceat, 0,        3ports,   sspaceat, nosamples, ROT270, "Sega", "Space Attack (upright)", GAME_NO_SOUND )
+GAMEX(1979, sspacat2, sspaceat, 3ports,   sspaceat, nosamples, ROT270, "Sega", "Space Attack (upright, older)", GAME_NO_SOUND )
+GAMEX(1979, sspacatc, sspaceat, 3ports,   sspaceat, nosamples, ROT270, "Sega", "Space Attack (cocktail)", GAME_NO_SOUND )
 GAMEX(1979, headon,   0,        2ports,   headon,   nosamples, ROT0,   "Gremlin", "Head On (2 players)", GAME_NO_SOUND )
 GAMEX(1979, headonb,  headon,   2ports,   headon,   nosamples, ROT0,   "Gremlin", "Head On (1 player)", GAME_NO_SOUND )
 GAMEX(1979, headon2,  0,        3ports,   headon2,  nosamples, ROT0,   "Sega", "Head On 2", GAME_NO_SOUND )
@@ -1677,10 +1693,10 @@ GAMEX(1980, samurai,  0,        4ports,   samurai,  samurai,   ROT270, "Sega", "
 GAME( 1979, invinco,  0,        3ports,   invinco,  invinco,   ROT270, "Sega", "Invinco" )
 GAME( 1979, invds,    0,        4ports,   invds,    invds,     ROT270, "Sega", "Invinco / Deep Scan" )
 GAMEX(1980, tranqgun, 0,        4ports,   tranqgun, nosamples, ROT270, "Sega", "Tranquilizer Gun", GAME_NO_SOUND )
-GAMEX(1980, spacetrk, 0,        4ports,   spacetrk, nosamples, ROT270, "Sega", "Space Trek (Upright)", GAME_NO_SOUND )
-GAMEX(1980, sptrekct, spacetrk, 4ports,   sptrekct, nosamples, ROT270, "Sega", "Space Trek (Cocktail)", GAME_NO_SOUND )
-GAME( 1980, carnival, 0,        carnival, carnival, carnival,  ROT270, "Sega", "Carnival (Upright)" )
-GAME( 1980, carnvckt, carnival, carnival, carnvckt, carnival,  ROT270, "Sega", "Carnival (Cocktail)" )
+GAMEX(1980, spacetrk, 0,        4ports,   spacetrk, nosamples, ROT270, "Sega", "Space Trek (upright)", GAME_NO_SOUND )
+GAMEX(1980, sptrekct, spacetrk, 4ports,   sptrekct, nosamples, ROT270, "Sega", "Space Trek (cocktail)", GAME_NO_SOUND )
+GAME( 1980, carnival, 0,        carnival, carnival, carnival,  ROT270, "Sega", "Carnival (upright)" )
+GAME( 1980, carnvckt, carnival, carnival, carnvckt, carnival,  ROT270, "Sega", "Carnival (cocktail)" )
 GAMEX(1980, digger,   0,        3ports,   digger,   nosamples, ROT270, "Sega", "Digger", GAME_NO_SOUND )
 GAME( 1981, pulsar,   0,        4ports,   pulsar,   pulsar,    ROT270, "Sega", "Pulsar" )
 GAMEX(1979, heiankyo, 0,        4ports,   heiankyo, nosamples, ROT270, "Denki Onkyo", "Heiankyo Alien", GAME_NO_SOUND )

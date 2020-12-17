@@ -43,7 +43,7 @@ static unsigned char color_lookup[] = {
 
 static int backcolor;
 
-void redalert_c040_w(int offset, int data)
+WRITE_HANDLER( redalert_c040_w )
 {
 	/* Only seems to load D0-D3 into a flip-flop. */
 	/* D0/D1 seem to head off to unconnected circuits */
@@ -51,7 +51,7 @@ void redalert_c040_w(int offset, int data)
 	/* D3 connects to a "YI" line */
 }
 
-void redalert_backcolor_w(int offset, int data)
+WRITE_HANDLER( redalert_backcolor_w )
 {
 	/* Only seems to load D0-D2 into a flip-flop. */
 	/* Outputs feed into RAM which seems to feed to RGB lines. */
@@ -63,7 +63,7 @@ void redalert_backcolor_w(int offset, int data)
 redalert_backram_w
 ***************************************************************************/
 
-void redalert_backram_w(int offset,int data)
+WRITE_HANDLER( redalert_backram_w )
 {
 	int charnum;
 
@@ -84,7 +84,7 @@ void redalert_backram_w(int offset,int data)
 redalert_spriteram1_w
 ***************************************************************************/
 
-void redalert_spriteram1_w(int offset,int data)
+WRITE_HANDLER( redalert_spriteram1_w )
 {
 	if (redalert_spriteram1[offset] != data)
 	{
@@ -98,7 +98,7 @@ void redalert_spriteram1_w(int offset,int data)
 redalert_spriteram2_w
 ***************************************************************************/
 
-void redalert_spriteram2_w(int offset,int data)
+WRITE_HANDLER( redalert_spriteram2_w )
 {
 	if (redalert_spriteram2[offset] != data)
 	{
@@ -112,7 +112,7 @@ void redalert_spriteram2_w(int offset,int data)
 redalert_characterram_w
 ***************************************************************************/
 
-void redalert_characterram_w(int offset,int data)
+WRITE_HANDLER( redalert_characterram_w )
 {
 	if (redalert_characterram[offset] != data)
 	{
@@ -188,7 +188,7 @@ void redalert_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						color,
 						0,0,
 						8*sx,8*sy,
-						&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+						&Machine->visible_area,TRANSPARENCY_NONE,0);
 			}
 
 			/* Second layer - background */
@@ -198,7 +198,7 @@ void redalert_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 					color,
 					0,0,
 					8*sx,8*sy,
-					&Machine->drv->visible_area,stat_transparent,0);
+					&Machine->visible_area,stat_transparent,0);
 
 			/* Third layer - alphanumerics & sprites */
 			if (charcode < 0x80)
@@ -209,7 +209,7 @@ void redalert_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						color,
 						0,0,
 						8*sx,8*sy,
-						&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+						&Machine->visible_area,TRANSPARENCY_COLOR,0);
 			}
 			else if (charcode < 0xC0)
 			{
@@ -219,7 +219,7 @@ void redalert_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 						color,
 						0,0,
 						8*sx,8*sy,
-						&Machine->drv->visible_area,TRANSPARENCY_COLOR,0);
+						&Machine->visible_area,TRANSPARENCY_COLOR,0);
 			}
 
 		}
@@ -238,7 +238,7 @@ void redalert_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 
 	/* copy the character mapped graphics */
-	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->drv->visible_area,TRANSPARENCY_NONE,0);
+	copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
 }
 

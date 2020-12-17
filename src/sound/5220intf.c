@@ -97,7 +97,7 @@ void tms5220_sh_update(void)
 
 ***********************************************************************************************/
 
-void tms5220_data_w(int offset, int data)
+WRITE_HANDLER( tms5220_data_w )
 {
     /* bring up to date first */
     stream_update(stream, 0);
@@ -112,10 +112,10 @@ void tms5220_data_w(int offset, int data)
 
 ***********************************************************************************************/
 
-int tms5220_status_r(int offset)
+READ_HANDLER( tms5220_status_r )
 {
     /* bring up to date first */
-    stream_update(stream, 0);
+    stream_update(stream, -1);
     return tms5220_status_read();
 }
 
@@ -130,7 +130,7 @@ int tms5220_status_r(int offset)
 int tms5220_ready_r(void)
 {
     /* bring up to date first */
-    stream_update(stream, 0);
+    stream_update(stream, -1);
     return tms5220_ready_read();
 }
 
@@ -145,7 +145,7 @@ int tms5220_ready_r(void)
 int tms5220_int_r(void)
 {
     /* bring up to date first */
-    stream_update(stream, 0);
+    stream_update(stream, -1);
     return tms5220_int_read();
 }
 
@@ -179,7 +179,10 @@ static void tms5220_update(int ch, INT16 *buffer, int length)
 		if (source_pos >= FRAC_ONE)
 			source_pos -= FRAC_ONE;
 		else
+		{
+			tms5220_process(sample_data, 0);
 			return;
+		}
 	}
 
 	/* compute how many new samples we need */

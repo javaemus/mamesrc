@@ -1,51 +1,9 @@
 /***************************************************************************
 
-  vidhrdw/atarisy1.c
+	Atari System 1 hardware
 
-  Functions to emulate the video hardware of the machine.
+****************************************************************************/
 
-****************************************************************************
-
-	Playfield encoding
-	------------------
-		1 16-bit word is used
-
-		Word 1:
-			Bit  15    = horizontal flip
-			Bits  0-14 = image index
-
-
-	Motion Object encoding
-	----------------------
-		4 16-bit words are used
-
-		Word 1:
-			Bit  15    = horizontal flip
-			Bits  5-13 = Y position
-			Bits  0-3  = height in tiles
-
-		Word 2:
-			Bits  0-15 = image index
-
-		Word 3:
-			Bit  15    = special playfield priority
-			Bits  5-13 = X position
-			Bits  0-3  = width in tiles
-
-		Word 4:
-			Bits  0-5  = link to the next image to display
-
-
-	Alpha layer encoding
-	--------------------
-		1 16-bit word is used
-
-		Word 1:
-			Bit  13    = transparent/opaque
-			Bits 10-12 = palette
-			Bits  0-9  = image index
-
-***************************************************************************/
 
 #include "driver.h"
 #include "machine/atarigen.h"
@@ -306,7 +264,7 @@ void atarisys1_vh_stop(void)
  *
  *************************************/
 
-void atarisys1_bankselect_w(int offset, int data)
+WRITE_HANDLER( atarisys1_bankselect_w )
 {
 	int oldword = READ_WORD(&atarisys1_bankselect[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -342,7 +300,7 @@ void atarisys1_bankselect_w(int offset, int data)
  *
  *************************************/
 
-void atarisys1_hscroll_w(int offset, int data)
+WRITE_HANDLER( atarisys1_hscroll_w )
 {
 	int oldword = READ_WORD(&atarigen_hscroll[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -361,7 +319,7 @@ void atarisys1_hscroll_w(int offset, int data)
  *
  *************************************/
 
-void atarisys1_vscroll_w(int offset, int data)
+WRITE_HANDLER( atarisys1_vscroll_w )
 {
 	int scanline = cpu_getscanline() + 1;
 
@@ -384,7 +342,7 @@ void atarisys1_vscroll_w(int offset, int data)
  *
  *************************************/
 
-void atarisys1_playfieldram_w(int offset, int data)
+WRITE_HANDLER( atarisys1_playfieldram_w )
 {
 	int oldword = READ_WORD(&atarigen_playfieldram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -404,7 +362,7 @@ void atarisys1_playfieldram_w(int offset, int data)
  *
  *************************************/
 
-void atarisys1_spriteram_w(int offset, int data)
+WRITE_HANDLER( atarisys1_spriteram_w )
 {
 	int oldword = READ_WORD(&atarigen_spriteram[offset]);
 	int newword = COMBINE_WORD(oldword, data);
@@ -420,7 +378,7 @@ void atarisys1_spriteram_w(int offset, int data)
 			/* if the timer is in the active bank, update the display list */
 			if ((offset >> 9) == ((READ_WORD(&atarisys1_bankselect[0]) >> 3) & 7))
 			{
-				if (errorlog) fprintf(errorlog, "Caught timer mod!\n");
+				logerror("Caught timer mod!\n");
 				atarisys1_scanline_update(cpu_getscanline());
 			}
 		}
@@ -467,7 +425,7 @@ void atarisys1_int3_callback(int param)
  *
  *************************************/
 
-int atarisys1_int3state_r(int offset)
+READ_HANDLER( atarisys1_int3state_r )
 {
 	return atarigen_scanline_int_state ? 0x0080 : 0x0000;
 }
@@ -558,7 +516,7 @@ void atarisys1_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	/* render the playfield */
 	memset(atarigen_pf_visit, 0, 64*64);
-	atarigen_pf_process(pf_render_callback, bitmap, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_render_callback, bitmap, &Machine->visible_area);
 
 	/* render the motion objects */
 	priority_pens = READ_WORD(&atarisys1_prioritycolor[0]) & 0xff;
@@ -611,7 +569,7 @@ static const UINT8 *update_palette(void)
 	memset(&palette_used_colors[0x300], PALETTE_COLOR_USED, 16);
 
 	/* update color usage for the playfield */
-	atarigen_pf_process(pf_color_callback, pfmo_map, &Machine->drv->visible_area);
+	atarigen_pf_process(pf_color_callback, pfmo_map, &Machine->visible_area);
 
 	/* update color usage for the mo's */
 	atarigen_mo_process(mo_color_callback, pfmo_map);
