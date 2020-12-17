@@ -258,7 +258,7 @@ int prng(int offset)
    printf("prng\n");
 #endif
    PRN=(int)((PRN+0x2364)^2); /* This is a total bodge for now, but it works!*/
-   return PRN;
+   return (PRN & 0xff);	/* ASG 971002 -- limit to a byte; the 6809 code cares */
    }
 /********************************************************/
 void prngclr(int offset, int data)
@@ -303,7 +303,7 @@ void mw2(int offset, int data)
 /*   Divider handlers                                  */
 /*******************************************************/
 
-static int RESULT;
+static int RESULT;	/* ASG 971002 */
 static int DIVISOR, DIVIDEND;
 
 /********************************************************/
@@ -321,6 +321,7 @@ int rel(int offset)
 
 void swmathbx(int offset, int data)
    {
+   data &= 0xff;	/* ASG 971002 -- make sure we only get bytes here */
    switch(offset)
       {
       case 0:
@@ -345,6 +346,12 @@ void swmathbx(int offset, int data)
 
       case 5: /* dvsrl */
         DIVISOR = ((DIVISOR & 0xff00) | (data));
+
+     /* ASG 971002 -- calculate here as well, or else we're dependent on the byte order of a write */
+	  if(DIVISOR!=0)
+		  RESULT = (int)(((long)DIVIDEND<<14)/(long)DIVISOR);
+	  else
+		  RESULT = (int)-1;
         break;
 
       case 6: /* dvddh */
