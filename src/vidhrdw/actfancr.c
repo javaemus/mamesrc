@@ -6,8 +6,10 @@
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
+#include "state.h"
 
-static int actfancr_control_1[0x20],actfancr_control_2[0x20];
+
+static UINT8 actfancr_control_1[0x20],actfancr_control_2[0x20];
 unsigned char *actfancr_pf1_data,*actfancr_pf2_data,*actfancr_pf1_rowscroll_data;
 static struct tilemap *pf1_tilemap,*pf1_alt_tilemap;
 static int flipscreen;
@@ -32,7 +34,11 @@ static void get_tile_info(int tile_index)
 	color=tile >> 12;
 	tile=tile&0xfff;
 
-	SET_TILE_INFO(2,tile,color)
+	SET_TILE_INFO(
+			2,
+			tile,
+			color,
+			0)
 }
 
 static UINT32 triothep_scan(UINT32 col,UINT32 row,UINT32 num_cols,UINT32 num_rows)
@@ -49,10 +55,20 @@ static void get_trio_tile_info(int tile_index)
 	color=tile >> 12;
 	tile=tile&0xfff;
 
-	SET_TILE_INFO(2,tile,color)
+	SET_TILE_INFO(
+			2,
+			tile,
+			color,
+			0)
 }
 
 /******************************************************************************/
+
+static void register_savestate(void)
+{
+	state_save_register_UINT8("video", 0, "control_1", actfancr_control_1, 0x20);
+	state_save_register_UINT8("video", 0, "control_2", actfancr_control_2, 0x20);
+}
 
 int actfancr_vh_start (void)
 {
@@ -61,6 +77,8 @@ int actfancr_vh_start (void)
 
 	if (!pf1_tilemap || !pf1_alt_tilemap)
 		return 1;
+
+	register_savestate();
 
 	return 0;
 }
@@ -73,6 +91,9 @@ int triothep_vh_start (void)
 		return 1;
 
 	pf1_alt_tilemap=NULL;
+
+	register_savestate();
+
 	return 0;
 }
 

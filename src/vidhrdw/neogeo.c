@@ -303,7 +303,7 @@ static const UINT8 *neogeo_palette(const struct rectangle *clip)
 	char fullmode=0;
 	int ddax=0,dday=0,rzx=15,yskip=0;
 
-	if (Machine->scrbitmap->depth == 16)
+	if (Machine->scrbitmap->depth == 16 || !palette_used_colors)
 	{
 		return palette_recalc();
 	}
@@ -518,17 +518,6 @@ READ16_HANDLER( neogeo_vidram16_modulo_r )
 }
 
 
-/* Two routines to enable videoram to be read in debugger */
-READ16_HANDLER( mish_vid16_r )
-{
-	return neogeo_vidram16[offset];
-}
-
-WRITE16_HANDLER( mish_vid16_w )
-{
-	COMBINE_DATA(&neogeo_vidram16[offset]);
-}
-
 WRITE16_HANDLER( neo_board_fix_16_w )
 {
 	fix_bank = 1;
@@ -593,7 +582,7 @@ void NeoMVSDrawGfx(unsigned char **line,const struct GfxElement *gfx, /* AJP */
 	}
 
 	{
-		const unsigned short *paldata;	/* ASG 980209 */
+		const UINT32 *paldata;	/* ASG 980209 */
 		paldata = &gfx->colortable[gfx->color_granularity * color];
 		if (flipx)	/* X flip */
 		{
@@ -778,7 +767,7 @@ void NeoMVSDrawGfx16(unsigned char **line,const struct GfxElement *gfx, /* AJP *
 	}
 
 	{
-		const unsigned short *paldata;	/* ASG 980209 */
+		const UINT32 *paldata;	/* ASG 980209 */
 		paldata = &gfx->colortable[gfx->color_granularity * color];
 		if (flipx)	/* X flip */
 		{
@@ -931,11 +920,8 @@ static void screenrefresh(struct osd_bitmap *bitmap,const struct rectangle *clip
 	char buf[80];
 
 	/* debug setting, tile view mode connected to '8' */
-	if (keyboard_pressed(KEYCODE_8))
-	{
-		while (keyboard_pressed(KEYCODE_8)) ;
+	if (keyboard_pressed_memory(KEYCODE_8))
 		dotiles ^= 1;
-	}
 
 	/* tile view - 0x80, connected to '9' */
 	if (keyboard_pressed(KEYCODE_9) && !keyboard_pressed(KEYCODE_LSHIFT))
@@ -961,16 +947,12 @@ static void screenrefresh(struct osd_bitmap *bitmap,const struct rectangle *clip
 	}
 	#endif
 
-	if (clip->max_y - clip->min_y > 8 ||	/* kludge to speed up raster effects */
-			clip->min_y == Machine->visible_area.min_y)
-	{
-		/* Palette swap occured after last frame but before this one */
-		if (palette_swap_pending) swap_palettes();
+	/* Palette swap occured after last frame but before this one */
+	if (palette_swap_pending) swap_palettes();
 
-		/* Do compressed palette stuff */
-		neogeo_palette(clip);
-		/* no need to check the return code since we redraw everything each frame */
-	}
+	/* Do compressed palette stuff */
+	neogeo_palette(clip);
+	/* no need to check the return code since we redraw everything each frame */
 
 	fillbitmap(bitmap,Machine->pens[4095],clip);
 
@@ -1110,7 +1092,7 @@ if (!dotiles) { 					/* debug */
 
 			if (sy+15 >= clip->min_y && sy <= clip->max_y)
 			{
-				if (Machine->scrbitmap->depth == 16)
+				if (Machine->scrbitmap->depth != 8)
 					NeoMVSDrawGfx16(line,
 						gfx,
 						tileno,
@@ -1265,6 +1247,7 @@ void neogeo_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 }
 
 static int next_update_first_line;
+extern int neogeo_raster_enable;
 
 void neogeo_vh_raster_partial_refresh(struct osd_bitmap *bitmap,int current_line)
 {
@@ -1286,16 +1269,23 @@ void neogeo_vh_raster_partial_refresh(struct osd_bitmap *bitmap,int current_line
 	{
 //logerror("refresh %d-%d\n",clip.min_y,clip.max_y);
 		screenrefresh(bitmap,&clip);
+
+		if (neogeo_raster_enable == 2)
+		{
+			int x;
+			for (x = clip.min_x;x <= clip.max_x;x++)
+			{
+				if (x & 8)
+					plot_pixel(bitmap,x,clip.max_y,Machine->uifont->colortable[1]);
+			}
+		}
 	}
 
 	next_update_first_line = current_line + 1;
+
 }
 
 void neogeo_vh_raster_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	/* Palette swap occured after last frame but before this one */
-	if (palette_swap_pending) swap_palettes();
-	palette_recalc();
-	/* no need to check the return code since we redraw everything each frame */
 }
 

@@ -250,6 +250,10 @@ static void mips_exception( int exception )
 	}
 }
 
+void mips_init( void )
+{
+}
+
 void mips_reset( void *param )
 {
 	mips_set_cp0r( CP0_SR, ( mipscpu.cp0r[ CP0_SR ] & ~( SR_TS | SR_SWC | SR_KUC | SR_IEC ) ) | SR_BEV );
@@ -1902,7 +1906,7 @@ const char *mips_info( void *context, int regnum )
 	static int which = 0;
 	mips_cpu_context *r = context;
 
-	which = ++which % 64;
+	which = (which+1) % 64;
 	buffer[ which ][ 0 ] = '\0';
 	if( !context )
 	{

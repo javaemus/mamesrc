@@ -13,6 +13,31 @@ enum
 	M68K_A0, M68K_A1, M68K_A2, M68K_A3, M68K_A4, M68K_A5, M68K_A6, M68K_A7
 };
 
+extern int m68k_ICount;
+
+/* Redirect memory calls */
+
+struct m68k_memory_interface
+{
+	offs_t		opcode_xor;						// Address Calculation
+	data8_t		(*read8)(offs_t);				// Normal read 8 bit
+	data16_t	(*read16)(offs_t);				// Normal read 16 bit
+	data32_t	(*read32)(offs_t);				// Normal read 32 bit
+	void		(*write8)(offs_t, data8_t);		// Write 8 bit
+	void		(*write16)(offs_t, data16_t);	// Write 16 bit
+	void		(*write32)(offs_t, data32_t);	// Write 32 bit
+	void		(*changepc)(offs_t);			// Change PC routine
+
+    // For Encrypted Stuff
+
+	data8_t		(*read8pc)(offs_t);				// PC Relative read 8 bit
+	data16_t	(*read16pc)(offs_t);			// PC Relative read 16 bit
+	data32_t	(*read32pc)(offs_t);			// PC Relative read 32 bit
+
+	data16_t	(*read16d)(offs_t);				// Direct read 16 bit
+	data32_t	(*read32d)(offs_t);				// Direct read 32 bit
+};
+
 /* The MAME API for MC68000 */
 
 #define MC68000_INT_NONE 0
@@ -27,6 +52,8 @@ enum
 #define MC68000_INT_ACK_AUTOVECTOR    -1
 #define MC68000_INT_ACK_SPURIOUS      -2
 
+#define m68000_ICount                   m68k_ICount
+extern void m68000_init(void);
 extern void m68000_reset(void *param);
 extern void m68000_exit(void);
 extern int	m68000_execute(int cycles);
@@ -43,6 +70,7 @@ extern void m68000_set_irq_line(int irqline, int state);
 extern void m68000_set_irq_callback(int (*callback)(int irqline));
 extern const char *m68000_info(void *context, int regnum);
 extern unsigned m68000_dasm(char *buffer, unsigned pc);
+extern void m68000_memory_interface_set(int Entry,void * memory_routine);
 
 /****************************************************************************
  * M68010 section
@@ -59,7 +87,8 @@ extern unsigned m68000_dasm(char *buffer, unsigned pc);
 #define MC68010_INT_ACK_AUTOVECTOR		MC68000_INT_ACK_AUTOVECTOR
 #define MC68010_INT_ACK_SPURIOUS		MC68000_INT_ACK_SPURIOUS
 
-#define m68010_ICount                   m68000_ICount
+#define m68010_ICount                   m68k_ICount
+extern void m68010_init(void);
 extern void m68010_reset(void *param);
 extern void m68010_exit(void);
 extern int	m68010_execute(int cycles);
@@ -93,7 +122,8 @@ extern unsigned m68010_dasm(char *buffer, unsigned pc);
 #define MC68EC020_INT_ACK_AUTOVECTOR	MC68000_INT_ACK_AUTOVECTOR
 #define MC68EC020_INT_ACK_SPURIOUS		MC68000_INT_ACK_SPURIOUS
 
-#define m68ec020_ICount                   m68000_ICount
+#define m68ec020_ICount                 m68k_ICount
+extern void m68ec020_init(void);
 extern void m68ec020_reset(void *param);
 extern void m68ec020_exit(void);
 extern int	m68ec020_execute(int cycles);
@@ -127,7 +157,8 @@ extern unsigned m68ec020_dasm(char *buffer, unsigned pc);
 #define MC68020_INT_ACK_AUTOVECTOR		MC68000_INT_ACK_AUTOVECTOR
 #define MC68020_INT_ACK_SPURIOUS		MC68000_INT_ACK_SPURIOUS
 
-#define m68020_ICount                   m68000_ICount
+#define m68020_ICount                   m68k_ICount
+extern void m68020_init(void);
 extern void m68020_reset(void *param);
 extern void m68020_exit(void);
 extern int	m68020_execute(int cycles);
@@ -146,15 +177,7 @@ const char *m68020_info(void *context, int regnum);
 extern unsigned m68020_dasm(char *buffer, unsigned pc);
 #endif
 
-
-#ifndef A68KEM
-
-/* Handling for C core */
+// C Core header
 #include "m68kmame.h"
-
-#endif /* A68KEM */
-
-extern int m68000_ICount;
-
 
 #endif /* M68000__HEADER */

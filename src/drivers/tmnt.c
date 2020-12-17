@@ -9,6 +9,7 @@ driver by Nicola Salmoria
 
 TODO:
 
+- 053936 support in glfgreat and premsocr.
 - detatwin: sprites are left on screen during attract mode
 - sprite priorities in ssriders (protection)
 - sprite colors / zoomed placement in tmnt2 (protection)
@@ -38,6 +39,7 @@ WRITE16_HANDLER( lgtnfght_0a0018_w );
 WRITE16_HANDLER( detatwin_700300_w );
 WRITE16_HANDLER( glfgreat_122000_w );
 WRITE16_HANDLER( ssriders_1c0300_w );
+WRITE16_HANDLER( prmrsocr_122000_w );
 WRITE16_HANDLER( tmnt_priority_w );
 int mia_vh_start(void);
 int tmnt_vh_start(void);
@@ -51,6 +53,8 @@ int glfgreat_vh_start(void);
 void glfgreat_vh_stop(void);
 int thndrx2_vh_start(void);
 void thndrx2_vh_stop(void);
+int prmrsocr_vh_start(void);
+void prmrsocr_vh_stop(void);
 void mia_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void tmnt_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 void punkshot_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
@@ -65,7 +69,7 @@ static READ16_HANDLER( K052109_word_noA12_r )
 	/* some games have the A12 line not connected, so the chip spans */
 	/* twice the memory range, with mirroring */
 	offset = ((offset & 0x3000) >> 1) | (offset & 0x07ff);
-	return K052109_word_r(offset);
+	return K052109_word_r(offset,mem_mask);
 }
 
 static WRITE16_HANDLER( K052109_word_noA12_w )
@@ -75,6 +79,25 @@ static WRITE16_HANDLER( K052109_word_noA12_w )
 	offset = ((offset & 0x3000) >> 1) | (offset & 0x07ff);
 	K052109_word_w(offset,data,mem_mask);
 }
+
+WRITE16_HANDLER( punkshot_K052109_word_w )
+{
+	/* it seems that a word write is supposed to affect only the MSB. The */
+	/* "ROUND 1" text in punkshtj goes lost otherwise. */
+	if (ACCESSING_MSB)
+		K052109_w(offset,(data >> 8) & 0xff);
+	else if (ACCESSING_LSB)
+		K052109_w(offset + 0x2000,data & 0xff);
+}
+
+static WRITE16_HANDLER( punkshot_K052109_word_noA12_w )
+{
+	/* some games have the A12 line not connected, so the chip spans */
+	/* twice the memory range, with mirroring */
+	offset = ((offset & 0x3000) >> 1) | (offset & 0x07ff);
+	punkshot_K052109_word_w(offset,data,mem_mask);
+}
+
 
 /* the interface with the 053245 is weird. The chip can address only 0x800 bytes */
 /* of RAM, but they put 0x4000 there. The CPU can access them all. Address lines */
@@ -86,7 +109,7 @@ static READ16_HANDLER( K053245_scattered_word_r )
 	else
 	{
 		offset = ((offset & 0x000e) >> 1) | ((offset & 0x1fc0) >> 3);
-		return K053245_word_r(offset);
+		return K053245_word_r(offset,mem_mask);
 	}
 }
 
@@ -148,7 +171,7 @@ static READ16_HANDLER( punkshot_sound_r )
 {
 	/* If the sound CPU is running, read the status, otherwise
 	   just make it pass the test */
-	if (Machine->sample_rate != 0) 	return K053260_r(2 + offset);
+	if (Machine->sample_rate != 0) 	return K053260_0_r(2 + offset);
 	else return 0x80;
 }
 
@@ -156,7 +179,7 @@ static READ16_HANDLER( detatwin_sound_r )
 {
 	/* If the sound CPU is running, read the status, otherwise
 	   just make it pass the test */
-	if (Machine->sample_rate != 0) 	return K053260_r(2 + offset);
+	if (Machine->sample_rate != 0) 	return K053260_0_r(2 + offset);
 	else return offset ? 0xfe : 0x00;
 }
 
@@ -164,24 +187,61 @@ static READ16_HANDLER( glfgreat_sound_r )
 {
 	/* If the sound CPU is running, read the status, otherwise
 	   just make it pass the test */
-	if (Machine->sample_rate != 0) 	return K053260_r(2 + offset) << 8;
+	if (Machine->sample_rate != 0) 	return K053260_0_r(2 + offset) << 8;
 	else return 0;
 }
 
 static WRITE16_HANDLER( glfgreat_sound_w )
 {
 	if (ACCESSING_MSB)
-		K053260_w(offset, (data >> 8) & 0xff);
+		K053260_0_w(offset, (data >> 8) & 0xff);
 
 	if (offset)
 		cpu_cause_interrupt(1,0xff);
 }
 
+static READ16_HANDLER( prmrsocr_sound_r )
+{
+	return soundlatch3_r(0);
+}
+
+static WRITE16_HANDLER( prmrsocr_sound_cmd_w )
+{
+	if (ACCESSING_LSB)
+	{
+		data &= 0xff;
+		if (offset == 0) soundlatch_w(0,data);
+		else soundlatch2_w(0,data);
+
+		/* If the sound CPU is not running, make the tests pass anyway */
+		if (offset == 0 && !Machine->sample_rate)
+		{
+			if (data == 0xfe)	/* ROM & RAM test */
+				soundlatch3_w(0,0x0f);
+			if (data == 0xfc)	/* sample ROM test */
+				soundlatch3_w(0,0x10);
+		}
+	}
+}
+
+static WRITE16_HANDLER( prmrsocr_sound_irq_w )
+{
+	cpu_cause_interrupt(1,0xff);
+}
+
+static WRITE_HANDLER( prmrsocr_s_bankswitch_w )
+{
+	data8_t *rom = memory_region(REGION_CPU2) + 0x10000;
+
+	cpu_setbank(1,rom + (data & 7) * 0x4000);
+}
+
+
 static READ16_HANDLER( tmnt2_sound_r )
 {
 	/* If the sound CPU is running, read the status, otherwise
 	   just make it pass the test */
-	if (Machine->sample_rate != 0) 	return K053260_r(2 + offset);
+	if (Machine->sample_rate != 0) 	return K053260_0_r(2 + offset);
 	else return offset ? 0x00 : 0x80;
 }
 
@@ -256,6 +316,7 @@ static int tmnt_decode_sample(const struct MachineSound *msound)
 
 	return 0;
 }
+
 
 static int sound_nmi_enabled;
 
@@ -357,7 +418,7 @@ static READ16_HANDLER( detatwin_coin_r )
 
 	/* bit 3 is service button */
 	/* bit 6 is ??? VBLANK? OBJMPX? */
-	res = input_port_2_word_r(0);
+	res = input_port_2_word_r(0,0);
 	if (init_eeprom_count)
 	{
 		init_eeprom_count--;
@@ -373,7 +434,7 @@ static READ16_HANDLER( detatwin_eeprom_r )
 
 	/* bit 0 is EEPROM data */
 	/* bit 1 is EEPROM ready */
-	res = EEPROM_read_bit() | input_port_3_word_r(0);
+	res = EEPROM_read_bit() | input_port_3_word_r(0,0);
 	return res;
 }
 
@@ -386,7 +447,7 @@ static READ16_HANDLER( ssriders_eeprom_r )
 	/* bit 1 is EEPROM ready */
 	/* bit 2 is VBLANK (???) */
 	/* bit 7 is service button */
-	res = EEPROM_read_bit() | input_port_3_word_r(0);
+	res = EEPROM_read_bit() | input_port_3_word_r(0,0);
 	if (init_eeprom_count)
 	{
 		init_eeprom_count--;
@@ -398,7 +459,8 @@ static READ16_HANDLER( ssriders_eeprom_r )
 
 static WRITE16_HANDLER( ssriders_eeprom_w )
 {
-	if (ACCESSING_LSB) {
+	if (ACCESSING_LSB)
+	{
 		/* bit 0 is data */
 		/* bit 1 is cs (active low) */
 		/* bit 2 is clock (active high) */
@@ -407,7 +469,7 @@ static WRITE16_HANDLER( ssriders_eeprom_w )
 		EEPROM_set_clock_line((data & 0x04) ? ASSERT_LINE : CLEAR_LINE);
 
 		/* bit 5 selects sprite ROM for testing in TMNT2 */
-		K053244_bankselect((data & 0x20) >> 5);
+		K053244_bankselect(((data & 0x20) >> 5) << 2);
 	}
 }
 
@@ -445,7 +507,7 @@ static READ16_HANDLER( thndrx2_in0_r )
 {
 	int res;
 
-	res = input_port_0_word_r(0);
+	res = input_port_0_word_r(0,0);
 	if (init_eeprom_count)
 	{
 		init_eeprom_count--;
@@ -463,7 +525,7 @@ static READ16_HANDLER( thndrx2_eeprom_r )
 	/* bit 1 is EEPROM ready */
 	/* bit 3 is VBLANK (???) */
 	/* bit 7 is service button */
-	res = (EEPROM_read_bit() << 8) | input_port_1_word_r(0);
+	res = (EEPROM_read_bit() << 8) | input_port_1_word_r(0,0);
 	toggle ^= 0x0800;
 	return (res ^ toggle);
 }
@@ -488,6 +550,46 @@ static WRITE16_HANDLER( thndrx2_eeprom_w )
 
 		/* bit 6 = enable char ROM reading through the video RAM */
 		K052109_set_RMRD_line((data & 0x40) ? ASSERT_LINE : CLEAR_LINE);
+	}
+}
+
+
+static READ16_HANDLER( prmrsocr_IN0_r )
+{
+	/* bit 9 is service button */
+	int res;
+
+	res = input_port_0_word_r(0,0);
+	if (init_eeprom_count)
+	{
+		init_eeprom_count--;
+		res &= 0xfdff;
+	}
+	return res;
+}
+
+static READ16_HANDLER( prmrsocr_eeprom_r )
+{
+	/* bit 8 is EEPROM data */
+	/* bit 9 is EEPROM ready */
+	return (EEPROM_read_bit() << 8) | input_port_1_word_r(0,0);
+}
+
+static WRITE16_HANDLER( prmrsocr_eeprom_w )
+{
+	if (ACCESSING_LSB)
+	{
+		prmrsocr_122000_w(offset,data,mem_mask);
+	}
+
+	if (ACCESSING_MSB)
+	{
+		/* bit 8 is data */
+		/* bit 9 is cs (active low) */
+		/* bit 10 is clock (active high) */
+		EEPROM_write_bit(data & 0x0100);
+		EEPROM_set_cs_line((data & 0x0200) ? CLEAR_LINE : ASSERT_LINE);
+		EEPROM_set_clock_line((data & 0x0400) ? ASSERT_LINE : CLEAR_LINE);
 	}
 }
 
@@ -577,10 +679,10 @@ static MEMORY_WRITE16_START( punkshot_writemem )
 	{ 0x080000, 0x083fff, MWA16_RAM },	/* main RAM */
 	{ 0x090000, 0x090fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
 	{ 0x0a0020, 0x0a0021, punkshot_0a0020_w },
-	{ 0x0a0040, 0x0a0041, K053260_lsb_w },
+	{ 0x0a0040, 0x0a0041, K053260_0_lsb_w },
 	{ 0x0a0060, 0x0a007f, K053251_lsb_w },
 	{ 0x0a0080, 0x0a0081, watchdog_reset16_w },
-	{ 0x100000, 0x107fff, K052109_word_noA12_w },
+	{ 0x100000, 0x107fff, punkshot_K052109_word_noA12_w },
 	{ 0x110000, 0x110007, K051937_word_w },
 	{ 0x110400, 0x1107ff, K051960_word_w },
 MEMORY_END
@@ -606,7 +708,7 @@ static MEMORY_WRITE16_START( lgtnfght_writemem )
 	{ 0x080000, 0x080fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
 	{ 0x090000, 0x093fff, MWA16_RAM },	/* main RAM */
 	{ 0x0a0018, 0x0a0019, lgtnfght_0a0018_w },
-	{ 0x0a0020, 0x0a0021, K053260_lsb_w },
+	{ 0x0a0020, 0x0a0021, K053260_0_lsb_w },
 	{ 0x0a0028, 0x0a0029, watchdog_reset16_w },
 	{ 0x0b0000, 0x0b3fff, K053245_scattered_word_w, &spriteram16 },
 	{ 0x0c0000, 0x0c001f, K053244_word_noA1_w },
@@ -647,7 +749,7 @@ static MEMORY_WRITE16_START( detatwin_writemem )
 	{ 0x700200, 0x700201, ssriders_eeprom_w },
 	{ 0x700400, 0x700401, watchdog_reset16_w },
 	{ 0x700300, 0x700301, detatwin_700300_w },
-	{ 0x780600, 0x780601, K053260_lsb_w },
+	{ 0x780600, 0x780601, K053260_0_lsb_w },
 	{ 0x780604, 0x780605, ssriders_soundkludge_w },
 	{ 0x780700, 0x78071f, K053251_lsb_w },
 MEMORY_END
@@ -679,10 +781,10 @@ static MEMORY_WRITE16_START( glfgreat_writemem )
 	{ 0x100000, 0x103fff, MWA16_RAM },	/* main RAM */
 	{ 0x104000, 0x107fff, K053245_scattered_word_w, &spriteram16 },
 	{ 0x108000, 0x108fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
-	{ 0x10c000, 0x10cfff, MWA16_RAM },	/* 053936? */
+	{ 0x10c000, 0x10cfff, MWA16_RAM },	/* 053936 3D rotation control? */
 	{ 0x110000, 0x11001f, K053244_word_noA1_w },	/* duplicate! */
 	{ 0x114000, 0x11401f, K053244_lsb_w },		/* duplicate! */
-	{ 0x118000, 0x11801f, MWA16_NOP },	/* 053936 control? */
+	{ 0x118000, 0x11801f, MWA16_NOP },	/* 053936 control */
 	{ 0x11c000, 0x11c01f, K053251_msb_w },
 	{ 0x122000, 0x122001, glfgreat_122000_w },
 	{ 0x124000, 0x124001, watchdog_reset16_w },
@@ -692,7 +794,7 @@ MEMORY_END
 
 
 static MEMORY_READ16_START( tmnt2_readmem )
-	{ 0x000000, 0x07ffff, MRA16_ROM },
+	{ 0x000000, 0x0fffff, MRA16_ROM },
 	{ 0x104000, 0x107fff, MRA16_RAM },	/* main RAM */
 	{ 0x140000, 0x140fff, MRA16_RAM },
 	{ 0x180000, 0x183fff, K053245_scattered_word_r },
@@ -743,9 +845,9 @@ WRITE16_HANDLER( tmnt2_1c0800_w )
 		/* It fixes the enemies, though, they are not all purple when you throw them around. */
 		/* Also, the bosses don't blink when they are about to die - don't know */
 		/* if this is correct or not. */
-//		if (READ_WORD( &sunset_104000[CellVar + 0x2a] ) & 0x001f)
+//		if (sunset_104000[CellVar + 0x15] & 0x001f)
 //			cpu_writemem24bew_word(dst+0x18,(cpu_readmem24bew_word(dst+0x18) & 0xffe0) |
-//					(READ_WORD( &sunset_104000[CellVar + 0x2a] ) & 0x001f));
+//					(sunset_104000[CellVar + 0x15] & 0x001f));
 
 		x = src[2];
 		if (sunset_104000[CellVar + 0x00] & 0x4000)
@@ -799,7 +901,7 @@ logerror("copy command %04x sprite %08x data %08x: %04x%04x %04x%04x  modifiers 
 }
 
 static MEMORY_WRITE16_START( tmnt2_writemem )
-	{ 0x000000, 0x07ffff, MWA16_ROM },
+	{ 0x000000, 0x0fffff, MWA16_ROM },
 	{ 0x104000, 0x107fff, MWA16_RAM, &sunset_104000 },	/* main RAM */
 	{ 0x140000, 0x140fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
 	{ 0x180000, 0x183fff, K053245_scattered_word_w, &spriteram16 },
@@ -809,7 +911,7 @@ static MEMORY_WRITE16_START( tmnt2_writemem )
 	{ 0x1c0500, 0x1c057f, MWA16_RAM },	/* unknown: TMNT2 only (1J) */
 	{ 0x1c0800, 0x1c081f, tmnt2_1c0800_w, &tmnt2_1c0800 },	/* protection device */
 	{ 0x5a0000, 0x5a001f, K053244_word_noA1_w },
-	{ 0x5c0600, 0x5c0601, K053260_lsb_w },
+	{ 0x5c0600, 0x5c0601, K053260_0_lsb_w },
 	{ 0x5c0604, 0x5c0605, ssriders_soundkludge_w },
 	{ 0x5c0700, 0x5c071f, K053251_lsb_w },
 	{ 0x600000, 0x603fff, K052109_word_w },
@@ -846,7 +948,7 @@ static MEMORY_WRITE16_START( ssriders_writemem )
 	{ 0x1c0500, 0x1c057f, MWA16_RAM },	/* TMNT2 only (1J) unknown */
 //	{ 0x1c0800, 0x1c081f,  },	/* protection device */
 	{ 0x5a0000, 0x5a001f, K053244_word_noA1_w },
-	{ 0x5c0600, 0x5c0601, K053260_lsb_w },
+	{ 0x5c0600, 0x5c0601, K053260_0_lsb_w },
 	{ 0x5c0604, 0x5c0605, ssriders_soundkludge_w },
 	{ 0x5c0700, 0x5c071f, K053251_lsb_w },
 	{ 0x600000, 0x603fff, K052109_word_w },
@@ -871,13 +973,44 @@ static MEMORY_WRITE16_START( thndrx2_writemem )
 	{ 0x100000, 0x103fff, MWA16_RAM },	/* main RAM */
 	{ 0x200000, 0x200fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
 	{ 0x300000, 0x30001f, K053251_lsb_w },
-	{ 0x400000, 0x400001, K053260_lsb_w },
+	{ 0x400000, 0x400001, K053260_0_lsb_w },
 	{ 0x500000, 0x50003f, K054000_lsb_w },
 	{ 0x500100, 0x500101, thndrx2_eeprom_w },
 	{ 0x500300, 0x500301, MWA16_NOP },	/* watchdog reset? irq enable? */
 	{ 0x600000, 0x607fff, K052109_word_noA12_w },
 	{ 0x700000, 0x700007, K051937_word_w },
 	{ 0x700400, 0x7007ff, K051960_word_w },
+MEMORY_END
+
+
+static MEMORY_READ16_START( prmrsocr_readmem )
+	{ 0x000000, 0x07ffff, MRA16_ROM },
+	{ 0x100000, 0x103fff, MRA16_RAM },	/* main RAM */
+	{ 0x104000, 0x107fff, K053245_scattered_word_r },
+	{ 0x108000, 0x108fff, MRA16_RAM },
+	{ 0x10c000, 0x10cfff, MRA16_RAM },	/* 053936? */
+	{ 0x114000, 0x11401f, K053244_lsb_r },
+	{ 0x120000, 0x120001, prmrsocr_IN0_r },
+	{ 0x120002, 0x120003, prmrsocr_eeprom_r },
+	{ 0x121014, 0x121015, prmrsocr_sound_r },
+	{ 0x200000, 0x207fff, K052109_word_noA12_r },
+MEMORY_END
+
+static MEMORY_WRITE16_START( prmrsocr_writemem )
+	{ 0x000000, 0x07ffff, MWA16_ROM },
+	{ 0x100000, 0x103fff, MWA16_RAM },	/* main RAM */
+	{ 0x104000, 0x107fff, K053245_scattered_word_w, &spriteram16 },
+	{ 0x108000, 0x108fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
+	{ 0x10c000, 0x10cfff, MWA16_RAM },	/* 053936 3D rotation control? */
+	{ 0x110000, 0x11001f, K053244_word_noA1_w },	/* duplicate! */
+	{ 0x114000, 0x11401f, K053244_lsb_w },		/* duplicate! */
+	{ 0x118000, 0x11801f, MWA16_NOP },	/* 053936 control */
+	{ 0x11c000, 0x11c01f, K053251_msb_w },
+	{ 0x122000, 0x122001, prmrsocr_eeprom_w },	/* EEPROM + video control */
+	{ 0x12100c, 0x12100f, prmrsocr_sound_cmd_w },
+	{ 0x123000, 0x123001, prmrsocr_sound_irq_w },
+	{ 0x200000, 0x207fff, K052109_word_noA12_w },
+	{ 0x280000, 0x280001, watchdog_reset16_w },
 MEMORY_END
 
 
@@ -923,7 +1056,7 @@ static MEMORY_READ_START( punkshot_s_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf801, 0xf801, YM2151_status_port_0_r },
-	{ 0xfc00, 0xfc2f, K053260_r },
+	{ 0xfc00, 0xfc2f, K053260_0_r },
 MEMORY_END
 
 static MEMORY_WRITE_START( punkshot_s_writemem )
@@ -932,14 +1065,14 @@ static MEMORY_WRITE_START( punkshot_s_writemem )
 	{ 0xf800, 0xf800, YM2151_register_port_0_w },
 	{ 0xf801, 0xf801, YM2151_data_port_0_w },
 	{ 0xfa00, 0xfa00, sound_arm_nmi_w },
-	{ 0xfc00, 0xfc2f, K053260_w },
+	{ 0xfc00, 0xfc2f, K053260_0_w },
 MEMORY_END
 
 static MEMORY_READ_START( lgtnfght_s_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8000, 0x87ff, MRA_RAM },
 	{ 0xa001, 0xa001, YM2151_status_port_0_r },
-	{ 0xc000, 0xc02f, K053260_r },
+	{ 0xc000, 0xc02f, K053260_0_r },
 MEMORY_END
 
 static MEMORY_WRITE_START( lgtnfght_s_writemem )
@@ -947,19 +1080,19 @@ static MEMORY_WRITE_START( lgtnfght_s_writemem )
 	{ 0x8000, 0x87ff, MWA_RAM },
 	{ 0xa000, 0xa000, YM2151_register_port_0_w },
 	{ 0xa001, 0xa001, YM2151_data_port_0_w },
-	{ 0xc000, 0xc02f, K053260_w },
+	{ 0xc000, 0xc02f, K053260_0_w },
 MEMORY_END
 
 static MEMORY_READ_START( glfgreat_s_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
-	{ 0xf800, 0xf82f, K053260_r },
+	{ 0xf800, 0xf82f, K053260_0_r },
 MEMORY_END
 
 static MEMORY_WRITE_START( glfgreat_s_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0xf000, 0xf7ff, MWA_RAM },
-	{ 0xf800, 0xf82f, K053260_w },
+	{ 0xf800, 0xf82f, K053260_0_w },
 	{ 0xfa00, 0xfa00, sound_arm_nmi_w },
 MEMORY_END
 
@@ -967,7 +1100,7 @@ static MEMORY_READ_START( ssriders_s_readmem )
 	{ 0x0000, 0xefff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf801, 0xf801, YM2151_status_port_0_r },
-	{ 0xfa00, 0xfa2f, K053260_r },
+	{ 0xfa00, 0xfa2f, K053260_0_r },
 MEMORY_END
 
 static MEMORY_WRITE_START( ssriders_s_writemem )
@@ -975,7 +1108,7 @@ static MEMORY_WRITE_START( ssriders_s_writemem )
 	{ 0xf000, 0xf7ff, MWA_RAM },
 	{ 0xf800, 0xf800, YM2151_register_port_0_w },
 	{ 0xf801, 0xf801, YM2151_data_port_0_w },
-	{ 0xfa00, 0xfa2f, K053260_w },
+	{ 0xfa00, 0xfa2f, K053260_0_w },
 	{ 0xfc00, 0xfc00, sound_arm_nmi_w },
 MEMORY_END
 
@@ -983,7 +1116,7 @@ static MEMORY_READ_START( thndrx2_s_readmem )
 	{ 0x0000, 0xefff, MRA_ROM },
 	{ 0xf000, 0xf7ff, MRA_RAM },
 	{ 0xf801, 0xf801, YM2151_status_port_0_r },
-	{ 0xfc00, 0xfc2f, K053260_r },
+	{ 0xfc00, 0xfc2f, K053260_0_r },
 MEMORY_END
 
 static MEMORY_WRITE_START( thndrx2_s_writemem )
@@ -993,7 +1126,35 @@ static MEMORY_WRITE_START( thndrx2_s_writemem )
 	{ 0xf801, 0xf801, YM2151_data_port_0_w },
 	{ 0xf811, 0xf811, YM2151_data_port_0_w },	/* mirror */
 	{ 0xfa00, 0xfa00, sound_arm_nmi_w },
-	{ 0xfc00, 0xfc2f, K053260_w },
+	{ 0xfc00, 0xfc2f, K053260_0_w },
+MEMORY_END
+
+static READ_HANDLER( K054539_0_ctrl_r )
+{
+	return K054539_0_r(0x200+offset);
+}
+static WRITE_HANDLER( K054539_0_ctrl_w )
+{
+	K054539_0_w(0x200+offset,data);
+}
+
+static MEMORY_READ_START( prmrsocr_s_readmem )
+	{ 0x0000, 0x7fff, MRA_ROM },
+	{ 0x8000, 0xbfff, MRA_BANK1 },
+	{ 0xc000, 0xdfff, MRA_RAM },
+	{ 0xe000, 0xe0ff, K054539_0_r },
+	{ 0xe100, 0xe12f, K054539_0_ctrl_r },
+	{ 0xf002, 0xf002, soundlatch_r },
+	{ 0xf003, 0xf003, soundlatch2_r },
+MEMORY_END
+
+static MEMORY_WRITE_START( prmrsocr_s_writemem )
+	{ 0x0000, 0xbfff, MWA_ROM },
+	{ 0xc000, 0xdfff, MWA_RAM },
+	{ 0xe000, 0xe0ff, K054539_0_w },
+	{ 0xe100, 0xe12f, K054539_0_ctrl_w },
+	{ 0xf000, 0xf000, soundlatch3_w },
+	{ 0xf800, 0xf800, prmrsocr_s_bankswitch_w },
 MEMORY_END
 
 
@@ -1681,8 +1842,8 @@ INPUT_PORTS_START( detatwin )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START	/* EEPROM */
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* EEPROM data */
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* EEPROM status? - always 1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* EEPROM data */
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_SPECIAL )	/* EEPROM status? - always 1 */
 	PORT_BIT( 0xfc, IP_ACTIVE_LOW, IPT_UNKNOWN )
 INPUT_PORTS_END
 
@@ -1840,10 +2001,10 @@ INPUT_PORTS_START( ssridr4p )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE4 )
 
 	PORT_START	/* EEPROM and service */
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* EEPROM data */
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* EEPROM status? - always 1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* EEPROM data */
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_SPECIAL )	/* EEPROM status? - always 1 */
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: OBJMPX */
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: NVBLK */
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_VBLANK )	/* ?? TMNT2: NVBLK */
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: IPL0 */
 	PORT_BIT( 0x60, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* unused? */
 	PORT_BITX(0x80, IP_ACTIVE_LOW, IPT_SERVICE, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
@@ -1901,10 +2062,10 @@ INPUT_PORTS_START( ssriders )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START	/* EEPROM and service */
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* EEPROM data */
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* EEPROM status? - always 1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* EEPROM data */
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_SPECIAL )	/* EEPROM status? - always 1 */
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: OBJMPX */
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: NVBLK */
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_VBLANK )	/* ?? TMNT2: NVBLK */
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: IPL0 */
 	PORT_BIT( 0x60, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* unused? */
 	PORT_BITX(0x80, IP_ACTIVE_LOW, IPT_SERVICE, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
@@ -1942,10 +2103,10 @@ INPUT_PORTS_START( tmnt2a )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE4 )
 
 	PORT_START	/* EEPROM and service */
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* EEPROM data */
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* EEPROM status? - always 1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* EEPROM data */
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_SPECIAL )	/* EEPROM status? - always 1 */
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: OBJMPX */
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: NVBLK */
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_VBLANK )	/* ?? TMNT2: NVBLK */
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: IPL0 */
 	PORT_BIT( 0x60, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* unused? */
 	PORT_BITX(0x80, IP_ACTIVE_LOW, IPT_SERVICE, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
@@ -1969,6 +2130,47 @@ INPUT_PORTS_START( tmnt2a )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER4 )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START4 )
+INPUT_PORTS_END
+
+INPUT_PORTS_START( qgakumon )
+	PORT_START	/* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON4 | IPF_PLAYER1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START1 )
+
+	PORT_START	/* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON4 | IPF_PLAYER2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START2 )
+
+	PORT_START	/* COIN */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START	/* EEPROM and service */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* EEPROM data */
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_SPECIAL )	/* EEPROM status? - always 1 */
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: OBJMPX */
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_VBLANK )	/* ?? TMNT2: NVBLK (needs to be ACTIVE_HIGH to avoid problems) */
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* ?? TMNT2: IPL0 */
+	PORT_BIT( 0x60, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* unused? */
+	PORT_BITX(0x80, IP_ACTIVE_LOW, IPT_SERVICE, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
 INPUT_PORTS_END
 
 INPUT_PORTS_START( thndrx2 )
@@ -1999,10 +2201,56 @@ INPUT_PORTS_START( thndrx2 )
 	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
 	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x0100, IP_ACTIVE_HIGH, IPT_UNKNOWN )	/* EEPROM data */
-	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* EEPROM status? - always 1 */
+	PORT_BIT( 0x0100, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* EEPROM data */
+	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_SPECIAL )	/* EEPROM status? - always 1 */
 	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_UNKNOWN )	/* VBLK?? */
+	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_UNKNOWN )
+INPUT_PORTS_END
+
+INPUT_PORTS_START( prmrsocr )
+	PORT_START
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BITX(0x0200, IP_ACTIVE_LOW, IPT_SERVICE, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
+	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_DIPNAME( 0x1000, 0x0000, "Sound" )
+	PORT_DIPSETTING(      0x1000, "Mono" )
+	PORT_DIPSETTING(      0x0000, "Stereo" )
+	PORT_DIPNAME( 0x2000, 0x2000, DEF_STR( Unused ) )
+	PORT_DIPSETTING(      0x2000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x4000, 0x4000, DEF_STR( Unused ) )
+	PORT_DIPSETTING(      0x4000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+	PORT_DIPNAME( 0x8000, 0x8000, DEF_STR( Unused ) )
+	PORT_DIPSETTING(      0x8000, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+
+	PORT_START
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x0100, IP_ACTIVE_HIGH, IPT_SPECIAL )	/* EEPROM data */
+	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_SPECIAL )	/* EEPROM status? - always 1 */
+	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -2058,26 +2306,29 @@ static struct CustomSound_interface custom_interface =
 
 static struct K053260_interface k053260_interface_nmi =
 {
-	3579545,
-	REGION_SOUND1, /* memory region */
-	{ MIXER(70,MIXER_PAN_LEFT), MIXER(70,MIXER_PAN_RIGHT) },
-//	sound_nmi_callback,
+	1,
+	{ 3579545 },
+	{ REGION_SOUND1 }, /* memory region */
+	{ { MIXER(70,MIXER_PAN_LEFT), MIXER(70,MIXER_PAN_RIGHT) } },
+//	{ sound_nmi_callback },
 };
 
 static struct K053260_interface k053260_interface =
 {
-	3579545,
-	REGION_SOUND1, /* memory region */
-	{ MIXER(70,MIXER_PAN_LEFT), MIXER(70,MIXER_PAN_RIGHT) },
-	0
+	1,
+	{ 3579545 },
+	{ REGION_SOUND1 }, /* memory region */
+	{ { MIXER(70,MIXER_PAN_LEFT), MIXER(70,MIXER_PAN_RIGHT) } },
+	{ 0 }
 };
 
 static struct K053260_interface glfgreat_k053260_interface =
 {
-	3579545,
-	REGION_SOUND1, /* memory region */
-	{ MIXER(100,MIXER_PAN_LEFT), MIXER(100,MIXER_PAN_RIGHT) },
-//	sound_nmi_callback,
+	1,
+	{ 3579545 },
+	{ REGION_SOUND1 }, /* memory region */
+	{ { MIXER(100,MIXER_PAN_LEFT), MIXER(100,MIXER_PAN_RIGHT) } },
+//	{ sound_nmi_callback },
 };
 
 
@@ -2333,6 +2584,24 @@ static const struct MachineDriver machine_driver_detatwin =
 	nvram_handler
 };
 
+
+
+static struct GfxLayout zoomlayout =
+{
+	8,8,
+	RGN_FRAC(1,1),
+	8,
+	{ STEP8(0,1) },
+	{ STEP8(0,8) },
+	{ STEP8(0,8*8) },
+	8*8*8
+};
+static struct GfxDecodeInfo glfgreat_gfxdecodeinfo[] =
+{
+	{ REGION_GFX3, 0, &zoomlayout, 0x400, 1 },
+	{ -1 }
+};
+
 static const struct MachineDriver machine_driver_glfgreat =
 {
 	/* basic machine hardware */
@@ -2357,7 +2626,7 @@ static const struct MachineDriver machine_driver_glfgreat =
 
 	/* video hardware */
 	64*8, 32*8, { 14*8, (64-14)*8-1, 2*8, 30*8-1 },
-	0,	/* gfx decoded by konamiic.c */
+	glfgreat_gfxdecodeinfo,	/* gfx decoded by konamiic.c */
 	2048, 2048,
 	0,
 
@@ -2389,7 +2658,11 @@ static const struct MachineDriver machine_driver_tmnt2 =
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			2*3579545,	/* makes the ROM test sync */
+			8000000,	/* 8 MHz; clock is correct, but there's 1 cycle wait for ROM/RAM */
+						/* access. Access speed of ROM/RAM used on the machine is 150ns, */
+						/* without the wait, they cannot run on 8MHz.                    */
+						/* We are not emulating the wait state, so the ROM test ends at  */
+						/* 02 instead of 00. */
 			ssriders_s_readmem,ssriders_s_writemem,0,0,
 			ignore_interrupt,0	/* IRQs are triggered by the main CPU */
 								/* NMIs are generated by the 053260 */
@@ -2400,7 +2673,7 @@ static const struct MachineDriver machine_driver_tmnt2 =
 	0,
 
 	/* video hardware */
-	64*8, 32*8, { 14*8, (64-14)*8-1, 2*8, 30*8-1 },
+	64*8, 32*8, { 13*8, (64-13)*8-1, 2*8, 30*8-1 },
 	0,	/* gfx decoded by konamiic.c */
 	2048, 2048,
 	0,
@@ -2528,6 +2801,68 @@ static const struct MachineDriver machine_driver_thndrx2 =
 };
 
 
+static void sound_nmi(void)
+{
+	cpu_set_nmi_line(1, PULSE_LINE);
+}
+
+static struct K054539interface k054539_interface =
+{
+	1,			/* 1 chip */
+	48000,
+	{ REGION_SOUND1 },
+	{ { 100, 100 } },
+	{ 0 },
+	{ sound_nmi }
+};
+
+static const struct MachineDriver machine_driver_prmrsocr =
+{
+	/* basic machine hardware */
+	{
+		{
+			CPU_M68000,
+			12000000,	/* ? */
+			prmrsocr_readmem,prmrsocr_writemem,0,0,
+			lgtnfght_interrupt,1
+		},
+		{
+			CPU_Z80 | CPU_AUDIO_CPU,
+			8000000,	/* ? */
+			prmrsocr_s_readmem,prmrsocr_s_writemem,0,0,
+			ignore_interrupt,0	/* IRQs are triggered by the main CPU */
+								/* NMIs are generated by the 054539 */
+		}
+	},
+	60, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
+	1,	/* 1 CPU slice per frame - interleaving is forced when a sound command is written */
+	0,
+
+	/* video hardware */
+	64*8, 32*8, { 14*8, (64-14)*8-1, 2*8, 30*8-1 },
+	glfgreat_gfxdecodeinfo,	/* gfx decoded by konamiic.c */
+	2048, 2048,
+	0,
+
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	0,
+	prmrsocr_vh_start,
+	prmrsocr_vh_stop,
+	glfgreat_vh_screenrefresh,
+
+	/* sound hardware */
+	SOUND_SUPPORTS_STEREO,0,0,0,
+	{
+		{
+			SOUND_K054539,
+			&k054539_interface
+		}
+	},
+
+	thndrx2_nvram_handler
+};
+
+
 
 /***************************************************************************
 
@@ -2587,6 +2922,40 @@ ROM_END
 
 ROM_START( tmnt )
 	ROM_REGION( 0x60000, REGION_CPU1, 0 )	/* 2*128k and 2*64k for 68000 code */
+	ROM_LOAD16_BYTE( "963-x23",      0x00000, 0x20000, 0xa9549004 )
+	ROM_LOAD16_BYTE( "963-x24",      0x00001, 0x20000, 0xe5cc9067 )
+	ROM_LOAD16_BYTE( "963-x21",      0x40000, 0x10000, 0x5789cf92 )
+	ROM_LOAD16_BYTE( "963-x22",      0x40001, 0x10000, 0x0a74e277 )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
+	ROM_LOAD( "963-e20",      0x00000, 0x08000, 0x1692a6d6 )
+
+	ROM_REGION( 0x100000, REGION_GFX1, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "963-a28",      0x000000, 0x80000, 0xdb4769a8 )        /* 8x8 tiles */
+	ROM_LOAD( "963-a29",      0x080000, 0x80000, 0x8069cd2e )        /* 8x8 tiles */
+
+	ROM_REGION( 0x200000, REGION_GFX2, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "963-a17",      0x000000, 0x80000, 0xb5239a44 )        /* sprites */
+	ROM_LOAD( "963-a18",      0x080000, 0x80000, 0xdd51adef )        /* sprites */
+	ROM_LOAD( "963-a15",      0x100000, 0x80000, 0x1f324eed )        /* sprites */
+	ROM_LOAD( "963-a16",      0x180000, 0x80000, 0xd4bd9984 )        /* sprites */
+
+	ROM_REGION( 0x0200, REGION_PROMS, 0 )
+	ROM_LOAD( "963-a30",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
+	ROM_LOAD( "963-a31",      0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
+
+	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 128k for the samples */
+	ROM_LOAD( "963-a26",      0x00000, 0x20000, 0xe2ac3063 ) /* samples for 007232 */
+
+	ROM_REGION( 0x20000, REGION_SOUND2, 0 )	/* 128k for the samples */
+	ROM_LOAD( "963-a27",      0x00000, 0x20000, 0x2dfd674b ) /* samples for UPD7759C */
+
+	ROM_REGION( 0x80000, REGION_SOUND3, 0 )	/* 512k for the title music sample */
+	ROM_LOAD( "963-a25",      0x00000, 0x80000, 0xfca078c7 )
+ROM_END
+
+ROM_START( tmntu )
+	ROM_REGION( 0x60000, REGION_CPU1, 0 )	/* 2*128k and 2*64k for 68000 code */
 	ROM_LOAD16_BYTE( "963-r23",      0x00000, 0x20000, 0xa7f61195 )
 	ROM_LOAD16_BYTE( "963-r24",      0x00001, 0x20000, 0x661e056a )
 	ROM_LOAD16_BYTE( "963-r21",      0x40000, 0x10000, 0xde047bb6 )
@@ -2606,8 +2975,8 @@ ROM_START( tmnt )
 	ROM_LOAD( "963-a16",      0x180000, 0x80000, 0xd4bd9984 )        /* sprites */
 
 	ROM_REGION( 0x0200, REGION_PROMS, 0 )
-	ROM_LOAD( "tmnt.g7",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
-	ROM_LOAD( "tmnt.g19",     0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
+	ROM_LOAD( "963-a30",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
+	ROM_LOAD( "963-a31",      0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
 
 	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 128k for the samples */
 	ROM_LOAD( "963-a26",      0x00000, 0x20000, 0xe2ac3063 ) /* samples for 007232 */
@@ -2640,8 +3009,8 @@ ROM_START( tmht )
 	ROM_LOAD( "963-a16",      0x180000, 0x80000, 0xd4bd9984 )        /* sprites */
 
 	ROM_REGION( 0x0200, REGION_PROMS, 0 )
-	ROM_LOAD( "tmnt.g7",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
-	ROM_LOAD( "tmnt.g19",     0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
+	ROM_LOAD( "963-a30",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
+	ROM_LOAD( "963-a31",      0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
 
 	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 128k for the samples */
 	ROM_LOAD( "963-a26",      0x00000, 0x20000, 0xe2ac3063 ) /* samples for 007232 */
@@ -2655,10 +3024,10 @@ ROM_END
 
 ROM_START( tmntj )
 	ROM_REGION( 0x60000, REGION_CPU1, 0 )	/* 2*128k and 2*64k for 68000 code */
-	ROM_LOAD16_BYTE( "963-x23",      0x00000, 0x20000, 0xa9549004 )
-	ROM_LOAD16_BYTE( "963-x24",      0x00001, 0x20000, 0xe5cc9067 )
-	ROM_LOAD16_BYTE( "963-x21",      0x40000, 0x10000, 0x5789cf92 )
-	ROM_LOAD16_BYTE( "963-x22",      0x40001, 0x10000, 0x0a74e277 )
+	ROM_LOAD16_BYTE( "963_223.j17",  0x00000, 0x20000, 0x0d34a5ff )
+	ROM_LOAD16_BYTE( "963_224.k17",  0x00001, 0x20000, 0x2fd453f2 )
+	ROM_LOAD16_BYTE( "963_221.j15",  0x40000, 0x10000, 0xfa8e25fd )
+	ROM_LOAD16_BYTE( "963_222.k15",  0x40001, 0x10000, 0xca437a4f )
 
 	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "963-e20",      0x00000, 0x08000, 0x1692a6d6 )
@@ -2674,8 +3043,8 @@ ROM_START( tmntj )
 	ROM_LOAD( "963-a16",      0x180000, 0x80000, 0xd4bd9984 )        /* sprites */
 
 	ROM_REGION( 0x0200, REGION_PROMS, 0 )
-	ROM_LOAD( "tmnt.g7",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
-	ROM_LOAD( "tmnt.g19",     0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
+	ROM_LOAD( "963-a30",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
+	ROM_LOAD( "963-a31",      0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
 
 	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 128k for the samples */
 	ROM_LOAD( "963-a26",      0x00000, 0x20000, 0xe2ac3063 ) /* samples for 007232 */
@@ -2708,8 +3077,8 @@ ROM_START( tmht2p )
 	ROM_LOAD( "963-a16",      0x180000, 0x80000, 0xd4bd9984 )        /* sprites */
 
 	ROM_REGION( 0x0200, REGION_PROMS, 0 )
-	ROM_LOAD( "tmnt.g7",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
-	ROM_LOAD( "tmnt.g19",     0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
+	ROM_LOAD( "963-a30",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
+	ROM_LOAD( "963-a31",      0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
 
 	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 128k for the samples */
 	ROM_LOAD( "963-a26",      0x00000, 0x20000, 0xe2ac3063 ) /* samples for 007232 */
@@ -2742,8 +3111,8 @@ ROM_START( tmnt2pj )
 	ROM_LOAD( "963-a16",      0x180000, 0x80000, 0xd4bd9984 )        /* sprites */
 
 	ROM_REGION( 0x0200, REGION_PROMS, 0 )
-	ROM_LOAD( "tmnt.g7",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
-	ROM_LOAD( "tmnt.g19",     0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
+	ROM_LOAD( "963-a30",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
+	ROM_LOAD( "963-a31",      0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
 
 	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 128k for the samples */
 	ROM_LOAD( "963-a26",      0x00000, 0x20000, 0xe2ac3063 ) /* samples for 007232 */
@@ -2776,8 +3145,8 @@ ROM_START( tmnt2po )
 	ROM_LOAD( "963-a16",      0x180000, 0x80000, 0xd4bd9984 )        /* sprites */
 
 	ROM_REGION( 0x0200, REGION_PROMS, 0 )
-	ROM_LOAD( "tmnt.g7",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
-	ROM_LOAD( "tmnt.g19",     0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
+	ROM_LOAD( "963-a30",      0x0000, 0x0100, 0xabd82680 )	/* sprite address decoder */
+	ROM_LOAD( "963-a31",      0x0100, 0x0100, 0xf8004a1c )	/* priority encoder (not used) */
 
 	ROM_REGION( 0x20000, REGION_SOUND1, 0 )	/* 128k for the samples */
 	ROM_LOAD( "963-a26",      0x00000, 0x20000, 0xe2ac3063 ) /* samples for 007232 */
@@ -2815,6 +3184,28 @@ ROM_START( punksht2 )
 	ROM_REGION( 0x40000, REGION_CPU1, 0 )	/* 4*64k for 68000 code */
 	ROM_LOAD16_BYTE( "907m02.i7",    0x00000, 0x20000, 0x59e14575 )
 	ROM_LOAD16_BYTE( "907m03.i10",   0x00001, 0x20000, 0xadb14b1e )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
+	ROM_LOAD( "907f01.e8",    0x0000, 0x8000, 0xf040c484 )
+
+	ROM_REGION( 0x80000, REGION_GFX1, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "907d06.e23",   0x000000, 0x40000, 0xf5cc38f4 )
+	ROM_LOAD( "907d05.e22",   0x040000, 0x40000, 0xe25774c1 )
+
+	ROM_REGION( 0x200000, REGION_GFX2, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "907d07l.k2",   0x000000, 0x80000, 0xfeeb345a )
+	ROM_LOAD( "907d07h.k2",   0x080000, 0x80000, 0x0bff4383 )
+	ROM_LOAD( "907d08l.k7",   0x100000, 0x80000, 0x05f3d196 )
+	ROM_LOAD( "907d08h.k7",   0x180000, 0x80000, 0xeaf18c22 )
+
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* samples for the 053260 */
+	ROM_LOAD( "907d04.d3",    0x0000, 0x80000, 0x090feb5e )
+ROM_END
+
+ROM_START( punkshtj )
+	ROM_REGION( 0x40000, REGION_CPU1, 0 )	/* 4*64k for 68000 code */
+	ROM_LOAD16_BYTE( "907z02.i7",    0x00000, 0x20000, 0x7a3a5c89 )
+	ROM_LOAD16_BYTE( "907z03.i10",   0x00001, 0x20000, 0x22a3d9d6 )
 
 	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* 64k for the audio CPU */
 	ROM_LOAD( "907f01.e8",    0x0000, 0x8000, 0xf040c484 )
@@ -2933,13 +3324,15 @@ ROM_START( glfgreat )
 	ROM_LOAD( "061d11.3k",    0x000000, 0x100000, 0xc45b66a3 )	/* sprites */
 	ROM_LOAD( "061d12.8k",    0x100000, 0x100000, 0xd305ecd1 )
 
-	ROM_REGION( 0x300000, REGION_GFX3, 0 )	/* unknown (data for the 053936?) */
-	ROM_LOAD( "061b05.15d",   0x000000, 0x020000, 0x2456fb11 )	/* gfx */
+	ROM_REGION( 0x180000, REGION_GFX3, 0 )	/* 053936 tiles */
+	ROM_LOAD( "061b08.14g",   0x000000, 0x080000, 0x6ab739c3 )
+	ROM_LOAD( "061b09.15g",   0x080000, 0x080000, 0x42c7a603 )
+	ROM_LOAD( "061b10.17g",   0x100000, 0x080000, 0x10f89ce7 )
+
+	ROM_REGION( 0x120000, REGION_USER1, 0 )	/* unknown (further data for the 053936?) */
+	ROM_LOAD( "061b07.18d",   0x000000, 0x080000, 0x517887e2 )
 	ROM_LOAD( "061b06.16d",   0x080000, 0x080000, 0x41ada2ad )
-	ROM_LOAD( "061b07.18d",   0x100000, 0x080000, 0x517887e2 )
-	ROM_LOAD( "061b08.14g",   0x180000, 0x080000, 0x6ab739c3 )
-	ROM_LOAD( "061b09.15g",   0x200000, 0x080000, 0x42c7a603 )
-	ROM_LOAD( "061b10.17g",   0x280000, 0x080000, 0x10f89ce7 )
+	ROM_LOAD( "061b05.15d",   0x100000, 0x020000, 0x2456fb11 )
 
 	ROM_REGION( 0x100000, REGION_SOUND1, 0 )	/* samples for the 053260 */
 	ROM_LOAD( "061e04.1d",    0x0000, 0x100000, 0x7921d8df )
@@ -2961,13 +3354,15 @@ ROM_START( glfgretj )
 	ROM_LOAD( "061d11.3k",    0x000000, 0x100000, 0xc45b66a3 )	/* sprites */
 	ROM_LOAD( "061d12.8k",    0x100000, 0x100000, 0xd305ecd1 )
 
-	ROM_REGION( 0x300000, REGION_GFX3, 0 )	/* unknown (data for the 053936?) */
-	ROM_LOAD( "061b05.15d",   0x000000, 0x020000, 0x2456fb11 )	/* gfx */
+	ROM_REGION( 0x180000, REGION_GFX3, 0 )	/* 053936 tiles */
+	ROM_LOAD( "061b08.14g",   0x000000, 0x080000, 0x6ab739c3 )
+	ROM_LOAD( "061b09.15g",   0x080000, 0x080000, 0x42c7a603 )
+	ROM_LOAD( "061b10.17g",   0x100000, 0x080000, 0x10f89ce7 )
+
+	ROM_REGION( 0x120000, REGION_USER1, 0 )	/* unknown (further data for the 053936?) */
+	ROM_LOAD( "061b07.18d",   0x000000, 0x080000, 0x517887e2 )
 	ROM_LOAD( "061b06.16d",   0x080000, 0x080000, 0x41ada2ad )
-	ROM_LOAD( "061b07.18d",   0x100000, 0x080000, 0x517887e2 )
-	ROM_LOAD( "061b08.14g",   0x180000, 0x080000, 0x6ab739c3 )
-	ROM_LOAD( "061b09.15g",   0x200000, 0x080000, 0x42c7a603 )
-	ROM_LOAD( "061b10.17g",   0x280000, 0x080000, 0x10f89ce7 )
+	ROM_LOAD( "061b05.15d",   0x100000, 0x020000, 0x2456fb11 )
 
 	ROM_REGION( 0x100000, REGION_SOUND1, 0 )	/* samples for the 053260 */
 	ROM_LOAD( "061e04.1d",    0x0000, 0x100000, 0x7921d8df )
@@ -3049,6 +3444,28 @@ ROM_START( tmnt2a )
 
 	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 053260 */
 	ROM_LOAD( "063b06",       0x0000, 0x200000, 0x1e510aa5 )
+ROM_END
+
+ROM_START( qgakumon )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "248jaa02.8e",  0x000000, 0x40000, 0xfab79410 )
+	ROM_LOAD16_BYTE( "248jaa03.8g",  0x000001, 0x40000, 0x8d888ef3 )
+	ROM_LOAD16_BYTE( "248jaa04.10e", 0x080000, 0x40000, 0x56cb16cb )
+	ROM_LOAD16_BYTE( "248jaa05.10g", 0x080001, 0x40000, 0x27614fcd )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 ) /* 64k for the audio CPU */
+	ROM_LOAD( "248a01.2f",          0x0000, 0x10000, 0xa8a41cc6 )
+
+    ROM_REGION( 0x100000, REGION_GFX1, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "248a12.16k",          0x000000, 0x080000, 0x62870987 )	/* tiles */
+	ROM_LOAD( "248a11.12k",          0x080000, 0x080000, 0xfad2dbfd )
+
+	ROM_REGION( 0x400000, REGION_GFX2, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "248a09.7l",          0x000000, 0x100000, 0xa176e205 )	/* sprites */
+	ROM_LOAD( "248a07.3l",          0x200000, 0x100000, 0x9595589f )
+
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 053260 */
+	ROM_LOAD( "248a06.1d",       0x0000, 0x200000, 0x0fba1def )
 ROM_END
 
 ROM_START( ssriders )
@@ -3245,6 +3662,34 @@ ROM_START( thndrx2 )
 
 	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* samples for the 053260 */
 	ROM_LOAD( "073-b04.2d",   0x0000, 0x80000, 0x05287a0b )
+ROM_END
+
+ROM_START( prmrsocr )
+	ROM_REGION( 0x80000, REGION_CPU1, 0 )
+	ROM_LOAD16_BYTE( "101jab08.1h", 0x000000, 0x40000, 0xc22b528c )
+	ROM_LOAD16_BYTE( "101jab07.4h", 0x000001, 0x40000, 0x06e7acaf )
+
+	ROM_REGION( 0x30000, REGION_CPU2, 0 ) /* 64k for the audio CPU */
+	ROM_LOAD( "101_c05.5e",   0x00000, 0x20000, 0x02c3679f )
+	ROM_RELOAD(               0x10000, 0x20000 )
+
+    ROM_REGION( 0x080000, REGION_GFX1, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "101a12.12l",   0x000000, 0x040000, 0x33530d7f )	/* tiles */
+	ROM_LOAD( "101a11.12k",   0x040000, 0x040000, 0x7f773271 )
+
+	ROM_REGION( 0x400000, REGION_GFX2, 0 )	/* graphics (addressable by the main CPU) */
+	ROM_LOAD( "101a09.3l",    0x000000, 0x200000, 0xb6a1b424 )	/* sprites */
+	ROM_LOAD( "101a10.8l",    0x200000, 0x200000, 0xbbd58adc )
+
+	ROM_REGION( 0x080000, REGION_GFX3, 0 )	/* 053936 tiles */
+	ROM_LOAD( "101a03.18f",   0x000000, 0x080000, 0x59a1a91c )
+
+	ROM_REGION( 0x040000, REGION_USER1, 0 )	/* unknown (further data for the 053936?) */
+	ROM_LOAD( "101a01.18d",   0x000000, 0x020000, 0x716f910f )
+	ROM_LOAD( "101a02.16d",   0x020000, 0x020000, 0x222869c7 )
+
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054539 */
+	ROM_LOAD( "101a06.1d",    0x0000, 0x200000, 0x4f48e043 )
 ROM_END
 
 
@@ -3494,15 +3939,17 @@ static void init_glfgreat(void)
 GAME( 1989, mia,      0,        mia,      mia,      mia,      ROT0,  "Konami", "Missing in Action (version T)" )
 GAME( 1989, mia2,     mia,      mia,      mia,      mia,      ROT0,  "Konami", "Missing in Action (version S)" )
 
-GAME( 1989, tmnt,     0,        tmnt,     tmnt,     tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (4 Players US)" )
-GAME( 1989, tmht,     tmnt,     tmnt,     tmnt,     tmnt,     ROT0,  "Konami", "Teenage Mutant Hero Turtles (4 Players UK)" )
-GAME( 1989, tmntj,    tmnt,     tmnt,     tmnt,     tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (4 Players Japan)" )
-GAME( 1989, tmht2p,   tmnt,     tmnt,     tmnt2p,   tmnt,     ROT0,  "Konami", "Teenage Mutant Hero Turtles (2 Players UK)" )
-GAME( 1990, tmnt2pj,  tmnt,     tmnt,     tmnt2p,   tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (2 Players Japan)" )
-GAME( 1989, tmnt2po,  tmnt,     tmnt,     tmnt2p,   tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (2 Players Oceania)" )
+GAME( 1989, tmnt,     0,        tmnt,     tmnt,     tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (World 4 Players)" )
+GAME( 1989, tmntu,    tmnt,     tmnt,     tmnt,     tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (US 4 Players)" )
+GAME( 1989, tmht,     tmnt,     tmnt,     tmnt,     tmnt,     ROT0,  "Konami", "Teenage Mutant Hero Turtles (UK 4 Players)" )
+GAME( 1989, tmntj,    tmnt,     tmnt,     tmnt,     tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (Japan 4 Players)" )
+GAME( 1989, tmht2p,   tmnt,     tmnt,     tmnt2p,   tmnt,     ROT0,  "Konami", "Teenage Mutant Hero Turtles (UK 2 Players)" )
+GAME( 1990, tmnt2pj,  tmnt,     tmnt,     tmnt2p,   tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (Japan 2 Players)" )
+GAME( 1989, tmnt2po,  tmnt,     tmnt,     tmnt2p,   tmnt,     ROT0,  "Konami", "Teenage Mutant Ninja Turtles (Oceania 2 Players)" )
 
-GAME( 1990, punkshot, 0,        punkshot, punkshot, gfx,      ROT0,  "Konami", "Punk Shot (4 Players)" )
-GAME( 1990, punksht2, punkshot, punkshot, punksht2, gfx,      ROT0,  "Konami", "Punk Shot (2 Players)" )
+GAME( 1990, punkshot, 0,        punkshot, punkshot, gfx,      ROT0,  "Konami", "Punk Shot (US 4 Players)" )
+GAME( 1990, punksht2, punkshot, punkshot, punksht2, gfx,      ROT0,  "Konami", "Punk Shot (US 2 Players)" )
+GAME( 1990, punkshtj, punkshot, punkshot, punksht2, gfx,      ROT0,  "Konami", "Punk Shot (Japan 2 Players)" )
 
 GAME( 1990, lgtnfght, 0,        lgtnfght, lgtnfght, gfx,      ROT90, "Konami", "Lightning Fighters (US)" )
 GAME( 1990, trigon,   lgtnfght, lgtnfght, lgtnfght, gfx,      ROT90, "Konami", "Trigon (Japan)" )
@@ -3513,17 +3960,20 @@ GAME( 1991, detatwin, blswhstl, detatwin, detatwin, gfx,      ROT90, "Konami", "
 GAMEX(1991, glfgreat, 0,        glfgreat, glfgreat, glfgreat, ROT0,  "Konami", "Golfing Greats", GAME_NOT_WORKING )
 GAMEX(1991, glfgretj, glfgreat, glfgreat, glfgreat, glfgreat, ROT0,  "Konami", "Golfing Greats (Japan)", GAME_NOT_WORKING )
 
-GAMEX(1991, tmnt2,    0,        tmnt2,    ssridr4p, gfx,      ROT0,  "Konami", "Teenage Mutant Ninja Turtles - Turtles in Time (4 Players US)", GAME_IMPERFECT_COLORS )
-GAMEX(1991, tmnt22p,  tmnt2,    tmnt2,    ssriders, gfx,      ROT0,  "Konami", "Teenage Mutant Ninja Turtles - Turtles in Time (2 Players US)", GAME_IMPERFECT_COLORS )
-GAMEX(1991, tmnt2a,   tmnt2,    tmnt2,    tmnt2a,   gfx,      ROT0,  "Konami", "Teenage Mutant Ninja Turtles - Turtles in Time (4 Players Asia)", GAME_IMPERFECT_COLORS )
+GAMEX(1991, tmnt2,    0,        tmnt2,    ssridr4p, gfx,      ROT0,  "Konami", "Teenage Mutant Ninja Turtles - Turtles in Time (US 4 Players)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, tmnt22p,  tmnt2,    tmnt2,    ssriders, gfx,      ROT0,  "Konami", "Teenage Mutant Ninja Turtles - Turtles in Time (US 2 Players)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, tmnt2a,   tmnt2,    tmnt2,    tmnt2a,   gfx,      ROT0,  "Konami", "Teenage Mutant Ninja Turtles - Turtles in Time (Asia 4 Players)", GAME_UNEMULATED_PROTECTION )
+GAME( 1993, qgakumon, 0,        tmnt2,    qgakumon, gfx,      ROT0,  "Konami", "Quiz Gakumon no Susume (Japan)" )
 
-GAME( 1991, ssriders, 0,        ssriders, ssridr4p, gfx,      ROT0,  "Konami", "Sunset Riders (World 4 Players ver. EAC)" )
-GAME( 1991, ssrdrebd, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (World 2 Players ver. EBD)" )
-GAME( 1991, ssrdrebc, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (World 2 Players ver. EBC)" )
-GAME( 1991, ssrdruda, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (US 4 Players ver. UDA)" )
-GAME( 1991, ssrdruac, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (US 4 Players ver. UAC)" )
-GAME( 1991, ssrdrubc, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (US 2 Players ver. UBC)" )
-GAME( 1991, ssrdrabd, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (Asia 2 Players ver. ABD)" )
-GAME( 1991, ssrdrjbd, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (Japan 2 Players ver. JBD)" )
+GAMEX(1991, ssriders, 0,        ssriders, ssridr4p, gfx,      ROT0,  "Konami", "Sunset Riders (World 4 Players ver. EAC)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, ssrdrebd, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (World 2 Players ver. EBD)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, ssrdrebc, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (World 2 Players ver. EBC)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, ssrdruda, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (US 4 Players ver. UDA)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, ssrdruac, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (US 4 Players ver. UAC)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, ssrdrubc, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (US 2 Players ver. UBC)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, ssrdrabd, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (Asia 2 Players ver. ABD)", GAME_UNEMULATED_PROTECTION )
+GAMEX(1991, ssrdrjbd, ssriders, ssriders, ssriders, gfx,      ROT0,  "Konami", "Sunset Riders (Japan 2 Players ver. JBD)", GAME_UNEMULATED_PROTECTION )
 
 GAME( 1991, thndrx2,  0,        thndrx2,  thndrx2,  gfx,      ROT0,  "Konami", "Thunder Cross II (Japan)" )
+
+GAMEX(1993, prmrsocr, 0,        prmrsocr, prmrsocr, glfgreat, ROT0,  "Konami", "Premier Soccer (Japan)", GAME_IMPERFECT_GRAPHICS )

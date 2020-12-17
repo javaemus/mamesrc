@@ -60,9 +60,11 @@ void rpunch_vh_stop(void);
 static void get_bg_tile_info(int tile_index)
 {
 	int data = callback_videoram[tile_index];
-	SET_TILE_INFO(callback_gfxbank,
+	SET_TILE_INFO(
+			callback_gfxbank,
 			callback_imagebase | (data & callback_imagemask),
-			callback_colorbase | ((data >> 13) & 7));
+			callback_colorbase | ((data >> 13) & 7),
+			0)
 }
 
 
@@ -352,7 +354,7 @@ static void draw_sprites(struct osd_bitmap *bitmap, int start, int stop)
 
 static void draw_bitmap(struct osd_bitmap *bitmap)
 {
-	UINT16 *pens = &Machine->pens[512 + (videoflags & 15) * 16];
+	UINT32 *pens = &Machine->pens[512 + (videoflags & 15) * 16];
 	int x, y;
 
 	/* draw any non-transparent scanlines from the VRAM directly */

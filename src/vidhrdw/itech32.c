@@ -21,7 +21,6 @@ void itech32_update_interrupts_fast(int vint, int xint, int qint);
  *
  *************************************/
 
-#define FULL_LOGGING			0
 #define BLIT_LOGGING			0
 #define INSTANT_BLIT			1
 
@@ -140,6 +139,8 @@ static void *scanline_timer;
 
 static UINT8 *grom_base;
 static UINT32 grom_size;
+static UINT32 grom_bank;
+static UINT32 grom_bank_mask;
 
 static UINT16 color_latch[2];
 static UINT8 enable_latch[2];
@@ -221,6 +222,10 @@ int itech32_vh_start(void)
 	/* fetch the GROM base */
 	grom_base = memory_region(REGION_GFX1);
 	grom_size = memory_region_length(REGION_GFX1);
+	grom_bank = 0;
+	grom_bank_mask = grom_size >> 24;
+	if (grom_bank_mask == 2)
+		grom_bank_mask = 3;
 
 	/* reset statics */
 	memset(itech32_video, 0, 0x80);
@@ -327,6 +332,7 @@ WRITE32_HANDLER( itech020_plane_w )
 	{
 		enable_latch[0] = (~data >> 9) & 1;
 		enable_latch[1] = (~data >> 10) & 1;
+		grom_bank = ((data >> 14) & grom_bank_mask) << 24;
 	}
 }
 
@@ -465,7 +471,7 @@ static void update_interrupts(int fast)
 	if (VIDEO_INTSTATE & VIDEO_INTENABLE & VIDEOINT_BLITTER)
 		blitter_state = 1;
 
-#if !MAME_DEBUG
+#ifndef MAME_DEBUG
 	if (fast)
 		itech32_update_interrupts_fast(-1, blitter_state, scanline_state);
 	else
@@ -497,7 +503,7 @@ static void scanline_interrupt(int param)
 
 static void draw_raw(UINT16 *base, UINT16 color)
 {
-	UINT8 *src = &grom_base[((VIDEO_TRANSFER_ADDRHI << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
+	UINT8 *src = &grom_base[(grom_bank | ((VIDEO_TRANSFER_ADDRHI & 0xff) << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
 	int transparent_pen = (VIDEO_TRANSFER_FLAGS & XFERFLAG_TRANSPARENT) ? 0xff : -1;
 	int width = VIDEO_TRANSFER_WIDTH << 8;
 	int height = ADJUSTED_HEIGHT(VIDEO_TRANSFER_HEIGHT) << 8;
@@ -651,7 +657,7 @@ do {												\
 
 INLINE void draw_rle_fast(UINT16 *base, UINT16 color)
 {
-	UINT8 *src = &grom_base[((VIDEO_TRANSFER_ADDRHI << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
+	UINT8 *src = &grom_base[(grom_bank | ((VIDEO_TRANSFER_ADDRHI & 0xff) << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
 	int transparent_pen = (VIDEO_TRANSFER_FLAGS & XFERFLAG_TRANSPARENT) ? 0xff : -1;
 	int width = VIDEO_TRANSFER_WIDTH;
 	int height = ADJUSTED_HEIGHT(VIDEO_TRANSFER_HEIGHT);
@@ -728,7 +734,7 @@ INLINE void draw_rle_fast(UINT16 *base, UINT16 color)
 
 INLINE void draw_rle_fast_xflip(UINT16 *base, UINT16 color)
 {
-	UINT8 *src = &grom_base[((VIDEO_TRANSFER_ADDRHI << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
+	UINT8 *src = &grom_base[(grom_bank | ((VIDEO_TRANSFER_ADDRHI & 0xff) << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
 	int transparent_pen = (VIDEO_TRANSFER_FLAGS & XFERFLAG_TRANSPARENT) ? 0xff : -1;
 	int width = VIDEO_TRANSFER_WIDTH;
 	int height = ADJUSTED_HEIGHT(VIDEO_TRANSFER_HEIGHT);
@@ -812,7 +818,7 @@ INLINE void draw_rle_fast_xflip(UINT16 *base, UINT16 color)
 
 INLINE void draw_rle_slow(UINT16 *base, UINT16 color)
 {
-	UINT8 *src = &grom_base[((VIDEO_TRANSFER_ADDRHI << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
+	UINT8 *src = &grom_base[(grom_bank | ((VIDEO_TRANSFER_ADDRHI & 0xff) << 16) | VIDEO_TRANSFER_ADDRLO) % grom_size];
 	int transparent_pen = (VIDEO_TRANSFER_FLAGS & XFERFLAG_TRANSPARENT) ? 0xff : -1;
 	int width = VIDEO_TRANSFER_WIDTH;
 	int height = ADJUSTED_HEIGHT(VIDEO_TRANSFER_HEIGHT);
@@ -820,6 +826,7 @@ INLINE void draw_rle_slow(UINT16 *base, UINT16 color)
 	int xleft, y, count = 0, val = 0, innercount;
 	int xdststep = 0x100;
 	int ydststep = VIDEO_DST_YSTEP;
+	int startx = (VIDEO_TRANSFER_X & 0xfff) << 8;
 
 	/* adjust for scaling */
 	if (VIDEO_TRANSFER_FLAGS & XFERFLAG_DSTXSCALE)
@@ -844,7 +851,7 @@ INLINE void draw_rle_slow(UINT16 *base, UINT16 color)
 		}
 
 		/* compute the address */
-		sx = (VIDEO_TRANSFER_X & 0xfff) << 8;
+		sx = startx;
 		dstbase = &base[compute_safe_address(clip_rect.min_x, sy >> 8) - clip_rect.min_x];
 
 		/* loop until gone */
@@ -876,6 +883,12 @@ INLINE void draw_rle_slow(UINT16 *base, UINT16 color)
 			else
 				sx += xdststep * innercount;
 		}
+
+		/* apply skew */
+		if (VIDEO_TRANSFER_FLAGS & XFERFLAG_DXDYSIGN)
+			startx += VIDEO_XSTEP_PER_Y;
+		else
+			startx -= VIDEO_XSTEP_PER_Y;
 	}
 }
 
@@ -888,7 +901,7 @@ static void draw_rle(UINT16 *base, UINT16 color)
 		disable_clipping();
 
 	/* if we have an X scale, draw it slow */
-	if ((VIDEO_TRANSFER_FLAGS & XFERFLAG_DSTXSCALE) && VIDEO_DST_XSTEP != 0x100)
+	if (((VIDEO_TRANSFER_FLAGS & XFERFLAG_DSTXSCALE) && VIDEO_DST_XSTEP != 0x100) || VIDEO_XSTEP_PER_Y)
 		draw_rle_slow(base, color);
 
 	/* else draw it fast */
@@ -1108,7 +1121,7 @@ WRITE16_HANDLER( bloodstm_video_w )
 
 READ16_HANDLER( bloodstm_video_r )
 {
-	return itech32_video_r(offset / 2);
+	return itech32_video_r(offset / 2,0);
 }
 
 
@@ -1123,7 +1136,7 @@ WRITE32_HANDLER( itech020_video_w )
 
 READ32_HANDLER( itech020_video_r )
 {
-	int result = itech32_video_r(offset);
+	int result = itech32_video_r(offset,0);
 	return (result << 16) | result;
 }
 

@@ -9,7 +9,6 @@ static int sram_locked;
 static offs_t sram_protection_hack;
 
 extern int neogeo_has_trackball;
-extern int neogeo_irq2type;
 
 
 /***************** MEMCARD GLOBAL VARIABLES ******************/
@@ -49,8 +48,9 @@ void neogeo_init_machine(void)
 	res = src & 0x3;
 
 	/* Console/arcade mode */
-	if (src & 0x04)
-		res |= 0x8000;
+#ifndef CONSOLE
+	res |= 0x8000;
+#endif
 
 	/* write the ID in the system BIOS ROM */
 	mem16[0x0200] = res;
@@ -73,7 +73,7 @@ void neogeo_init_machine(void)
 	pd4990a.hours = ((today->tm_hour/10)<<4) + (today->tm_hour%10);
 	pd4990a.days = ((today->tm_mday/10)<<4) + (today->tm_mday%10);
 	pd4990a.month = (today->tm_mon + 1);
-	pd4990a.year = ((today->tm_year/10)<<4) + (today->tm_year%10);
+	pd4990a.year = (((today->tm_year%100)/10)<<4) + (today->tm_year%10);
 	pd4990a.weekday = today->tm_wday;
 }
 
@@ -179,14 +179,6 @@ void init_neogeo(void)
 
 	/* Install custom memory handlers */
 	neogeo_custom_memory();
-
-
-	/* Flag how to handle IRQ2 raster effect */
-	/* 0=write 0,2	 1=write2,0 */
-	if (!strcmp(Machine->gamedrv->name,"neocup98") ||
-		!strcmp(Machine->gamedrv->name,"ssideki3") ||
-		!strcmp(Machine->gamedrv->name,"ssideki4"))
-		neogeo_irq2type = 1;
 }
 
 /******************************************************************************/
@@ -292,13 +284,13 @@ static void neogeo_custom_memory(void)
 			 !strcmp(Machine->gamedrv->name,"kof96") ||
 			 !strcmp(Machine->gamedrv->name,"kof97") ||
 			 !strcmp(Machine->gamedrv->name,"kof98") ||
-			 !strcmp(Machine->gamedrv->name,"kof99") ||
+			 !strcmp(Machine->gamedrv->name,"kof99p") ||
 			 !strcmp(Machine->gamedrv->name,"kizuna") ||
 			 !strcmp(Machine->gamedrv->name,"lastblad") ||
 			 !strcmp(Machine->gamedrv->name,"lastbld2") ||
 			 !strcmp(Machine->gamedrv->name,"rbff2") ||
 			 !strcmp(Machine->gamedrv->name,"mslug2") ||
-			 !strcmp(Machine->gamedrv->name,"garou"))
+			 !strcmp(Machine->gamedrv->name,"garoup"))
 		sram_protection_hack = 0x100 >> 1;
 
 	if (!strcmp(Machine->gamedrv->name,"pulstar"))

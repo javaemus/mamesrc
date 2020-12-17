@@ -233,6 +233,7 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 /* filenames for sample files */
 static const char *sbasketb_sample_names[] =
 {
+	"*sbasketb",
 	"00.wav","01.wav","02.wav","03.wav","04.wav","05.wav","06.wav","07.wav",
 	"08.wav","09.wav","0a.wav","0b.wav","0c.wav","0d.wav","0e.wav","0f.wav",
 	"10.wav","11.wav","12.wav","13.wav","14.wav","15.wav","16.wav","17.wav",
@@ -249,7 +250,6 @@ struct VLM5030interface sbasketb_vlm5030_interface =
 	255,        /* volume        */
 	REGION_SOUND1,	/* memory region  */
 	0,         /* memory size    */
-	0,         /* VCU            */
 	sbasketb_sample_names
 };
 

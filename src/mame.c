@@ -4,7 +4,9 @@
 #include "ui_text.h" /* LBO 042400 */
 #include "mamedbg.h"
 #include "artwork.h"
+#include "state.h"
 #include "vidhrdw/generic.h"
+#include "palette.h"
 
 static struct RunningMachine machine;
 struct RunningMachine *Machine = &machine;
@@ -464,11 +466,52 @@ int run_game(int game)
 	Machine->drv = drv = gamedrv->drv;
 
 	/* copy configuration */
-	if (options.color_depth == 16 ||
-			(options.color_depth != 8 && (Machine->gamedrv->flags & GAME_REQUIRES_16BIT)))
+	if (drv->video_attributes & VIDEO_RGB_DIRECT)
+	{
+		if (drv->video_attributes & VIDEO_NEEDS_6BITS_PER_GUN)
+			Machine->color_depth = 32;
+		else
+			Machine->color_depth = 15;
+	}
+	else if (Machine->gamedrv->flags & GAME_REQUIRES_16BIT)
 		Machine->color_depth = 16;
 	else
 		Machine->color_depth = 8;
+
+	switch (options.color_depth)
+	{
+		case 8:
+			/* -depth 8 is a request for speed, so always comply */
+			Machine->color_depth = options.color_depth;
+			break;
+
+		case 16:
+			/* comply to -depth 16 only if we don't need a direct RGB mode */
+			if (!(drv->video_attributes & VIDEO_RGB_DIRECT))
+				Machine->color_depth = options.color_depth;
+			break;
+
+		case 15:
+		case 32:
+			/* comply to -depth 15/32 only if we need a direct RGB mode */
+			if (drv->video_attributes & VIDEO_RGB_DIRECT)
+				Machine->color_depth = options.color_depth;
+			break;
+	}
+
+
+	if (Machine->color_depth == 15 || Machine->color_depth == 32)
+	{
+		if (!(drv->video_attributes & VIDEO_RGB_DIRECT))
+			Machine->color_depth = 16;
+		else
+		{
+			alpha_active = 1;
+			alpha_init();
+		}
+	}
+	else
+		alpha_active = 0;
 
 	if (options.vector_width == 0) options.vector_width = 640;
 	if (options.vector_height == 0) options.vector_height = 480;
@@ -533,6 +576,11 @@ int run_game(int game)
 	if (get_filenames())
 		return err;
 	#endif
+
+	if (options.savegame)
+		cpu_loadsave_schedule(LOADSAVE_LOAD, options.savegame);
+	else
+		cpu_loadsave_reset();
 
 	if (osd_init() == 0)
 	{
@@ -690,6 +738,7 @@ void shutdown_machine(void)
 	code_close();
 
 	uistring_shutdown (); /* LBO 042400 */
+	state_save_reset();
 }
 
 
@@ -773,7 +822,7 @@ static void scale_vectorgames(int gfx_width,int gfx_height,int *width,int *heigh
 static int vh_open(void)
 {
 	int i;
-	int bmwidth,bmheight,viswidth,visheight;
+	int bmwidth,bmheight,viswidth,visheight,attr;
 
 
 	for (i = 0;i < MAX_GFX_ELEMENTS;i++) Machine->gfx[i] = 0;
@@ -866,9 +915,14 @@ static int vh_open(void)
 		temp = viswidth; viswidth = visheight; visheight = temp;
 	}
 
+	/* take out the hicolor flag if it's not being used */
+	attr = drv->video_attributes;
+	if (Machine->color_depth != 15 && Machine->color_depth != 32)
+		attr &= ~VIDEO_RGB_DIRECT;
+
 	/* create the display bitmap, and allocate the palette */
 	if (osd_create_display(viswidth,visheight,Machine->color_depth,
-			drv->frames_per_second,drv->video_attributes,Machine->orientation))
+			drv->frames_per_second,attr,Machine->orientation))
 	{
 		vh_close();
 		return 1;
@@ -910,6 +964,9 @@ static int vh_open(void)
 				vh_close();
 				return 1;
 			}
+
+			state_save_register_UINT8("generic_video", 0, "buffered_spriteram", buffered_spriteram, spriteram_size);
+
 			if (spriteram_2_size)
 			{
 				buffered_spriteram_2 = malloc(spriteram_2_size);
@@ -918,6 +975,8 @@ static int vh_open(void)
 					vh_close();
 					return 1;
 				}
+
+				state_save_register_UINT8("generic_video", 0, "buffered_spriteram_2", buffered_spriteram_2, spriteram_2_size);
 			}
 
 			buffered_spriteram16 = (data16_t *)buffered_spriteram;
@@ -1010,12 +1069,16 @@ static int bitmap_dirty;
 
 void draw_screen(void)
 {
+	if (bitmap_dirty)
+		osd_mark_dirty(Machine->uixmin,Machine->uiymin,Machine->uixmin+Machine->uiwidth-1,Machine->uiymin+Machine->uiheight-1);
+
 	(*Machine->drv->vh_update)(Machine->scrbitmap,bitmap_dirty);  /* update screen */
 
 	if (artwork_backdrop || artwork_overlay)
 		artwork_draw(artwork_real_scrbitmap, Machine->scrbitmap,bitmap_dirty);
 
 	bitmap_dirty = 0;
+	palette_post_screen_update_cb();
 }
 
 void schedule_full_refresh(void)
@@ -1052,15 +1115,20 @@ int run_machine(void)
 	if (vh_open() == 0)
 	{
 		tilemap_init();
-		sprite_init();
-		gfxobj_init();
 		if (drv->vh_start == 0 || (*drv->vh_start)() == 0)		/* start the video hardware */
 		{
 			if (sound_start() == 0) /* start the audio hardware */
 			{
 				int region;
 
-				real_scrbitmap = (artwork_overlay || artwork_backdrop) ? artwork_real_scrbitmap : Machine->scrbitmap;
+				if (artwork_overlay || artwork_backdrop)
+				{
+					real_scrbitmap = artwork_real_scrbitmap;
+					artwork_remap();
+				}
+				else
+					real_scrbitmap = Machine->scrbitmap;
+
 
 				/* free memory regions allocated with REGIONFLAG_DISPOSE (typically gfx roms) */
 				for (region = 0; region < MAX_MEMORY_REGIONS; region++)
@@ -1142,8 +1210,6 @@ userquit:
 			printf("Unable to start video emulation\n");
 		}
 
-		gfxobj_close();
-		sprite_close();
 		tilemap_close();
 		vh_close();
 	}

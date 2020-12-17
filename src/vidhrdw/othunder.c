@@ -1,8 +1,12 @@
 #include "driver.h"
+#include "state.h"
 #include "vidhrdw/generic.h"
 #include "vidhrdw/taitoic.h"
 
 #define TC0100SCN_GFX_NUM 1
+
+void othunder_vh_stop(void);
+data16_t *othunder_ram;
 
 struct tempsprite
 {
@@ -43,7 +47,7 @@ static int has_TC0110PCR(void)
 }
 
 
-int othunder_core_vh_start (void)
+static int othunder_core_vh_start (void)
 {
 	/* Up to $800/8 big sprites, requires 0x100 * sizeof(*spritelist)
 	   Multiply this by 32 to give room for the number of small sprites,
@@ -53,12 +57,18 @@ int othunder_core_vh_start (void)
 	if (!spritelist)
 		return 1;
 
-	if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,taito_hide_pixels))
+	if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,taito_hide_pixels,0,0,0,0,0,0))
+	{
+		othunder_vh_stop();
 		return 1;
+	}
 
 	if (has_TC0110PCR())
 		if (TC0110PCR_vh_start())
+		{
+			othunder_vh_stop();
 			return 1;
+		}
 
 	return 0;
 }
@@ -84,18 +94,11 @@ void othunder_vh_stop (void)
 }
 
 
-/********************************************************
-          SPRITE READ AND WRITE HANDLERS
-********************************************************/
-
-// None //
-
-
 /*********************************************************
 				PALETTE
 *********************************************************/
 
-void othunder_update_palette (void)
+static void othunder_update_palette (void)
 {
 	int i,j;
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
@@ -119,8 +122,8 @@ void othunder_update_palette (void)
 
 			for (sprite_chunk=0;sprite_chunk<32;sprite_chunk++)
 			{
-				i = sprite_chunk % 4;   // 4 sprite chunks across
-				j = sprite_chunk / 4;   // 8 sprite chunks down
+				i = sprite_chunk % 4;   /* 4 chunks across */
+				j = sprite_chunk / 4;   /* 8 chunks down */
 
 				code = spritemap[map_offset + i + (j<<2)] &tile_mask;
 
@@ -249,8 +252,8 @@ static void othunder_draw_sprites_16x8(struct osd_bitmap *bitmap,int *primasks,i
 
 		for (sprite_chunk=0;sprite_chunk<32;sprite_chunk++)
 		{
-			k = sprite_chunk % 4;   // 4 sprite chunks per row
-			j = sprite_chunk / 4;   // 8 rows
+			k = sprite_chunk % 4;   /* 4 chunks per row */
+			j = sprite_chunk / 4;   /* 8 rows */
 
 			px = k;
 			py = j;
@@ -350,8 +353,11 @@ void othunder_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,1);
+
+	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,2);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,4);
 
@@ -363,13 +369,95 @@ void othunder_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	/* See if we should draw artificial gun targets */
 
-	if (input_port_4_word_r(0) &0x1)	/* Fake DSW */
+	if (input_port_9_word_r(0,0) & 0x1)	/* Fake DSW */
 	{
-//		char buf[80];
-//		sprintf(buf,"Gun targets");
-//		usrintf_showmessage(buf);
+		int rawx, rawy, centrex, centrey, screenx, screeny;
 
-		// Here we will draw gun targets //
+		/* calculate p1 screen co-ords by matching routine at $A932 */
+		rawx = othunder_ram[0x2848/2];
+		centrex = othunder_ram[0xa046/2];
+		if (rawx <= centrex)
+		{
+			rawx = centrex - rawx;
+			screenx = rawx * othunder_ram[0xa04e/2] + (((rawx * othunder_ram[0xa050/2]) & 0xffff0000) >> 16);
+			screenx = 0xa0 - screenx;
+			if (screenx < 0) screenx = 0;
+		}
+		else
+		{
+			if (rawx > othunder_ram[0xa028/2]) rawx = othunder_ram[0xa028/2];
+			rawx -= centrex;
+			screenx = rawx * othunder_ram[0xa056/2] + (((rawx * othunder_ram[0xa058/2]) & 0xffff0000) >> 16);
+			screenx += 0xa0;
+			if (screenx > 0x140) screenx = 0x140;
+		}
+		rawy = othunder_ram[0x284a/2];
+		centrey = othunder_ram[0xa048/2];
+		if (rawy <= centrey)
+		{
+			rawy = centrey - rawy;
+			screeny = rawy * othunder_ram[0xa052/2] + (((rawy * othunder_ram[0xa054/2]) & 0xffff0000) >> 16);
+			screeny = 0x78 - screeny;
+			if (screeny < 0) screeny = 0;
+		}
+		else
+		{
+			if (rawy > othunder_ram[0xa030/2]) rawy = othunder_ram[0xa030/2];
+			rawy -= centrey;
+			screeny = rawy * othunder_ram[0xa05a/2] + (((rawy * othunder_ram[0xa05c/2]) & 0xffff0000) >> 16);
+			screeny += 0x78;
+			if (screeny > 0xf0) screeny = 0xf0;
+		}
+
+		// fudge y to show in centre of scope/hit sprite, note that screenx, screeny
+		// were confirmed to match those stored by the game at $82732, $82734
+		screeny += 2;
+
+		/* player 1 */
+		draw_crosshair(bitmap,screenx,screeny,&Machine->visible_area);
+
+		/* calculate p2 screen co-ords by matching routine at $AA48 */
+		rawx = othunder_ram[0x284c/2];
+		centrex = othunder_ram[0xa04a/2];
+		if (rawx <= centrex)
+		{
+			rawx = centrex - rawx;
+			screenx = rawx * othunder_ram[0xa05e/2] + (((rawx * othunder_ram[0xa060/2]) & 0xffff0000) >> 16);
+			screenx = 0xa0 - screenx;
+			if (screenx < 0) screenx = 0;
+		}
+		else
+		{
+			if (rawx > othunder_ram[0xa038/2]) rawx = othunder_ram[0xa038/2];
+			rawx -= centrex;
+			screenx = rawx * othunder_ram[0xa066/2] + (((rawx * othunder_ram[0xa068/2]) & 0xffff0000) >> 16);
+			screenx += 0xa0;
+			if (screenx > 0x140) screenx = 0x140;
+		}
+		rawy = othunder_ram[0x284e/2];
+		centrey = othunder_ram[0xa04c/2];
+		if (rawy <= centrey)
+		{
+			rawy = centrey - rawy;
+			screeny = rawy * othunder_ram[0xa062/2] + (((rawy * othunder_ram[0xa064/2]) & 0xffff0000) >> 16);
+			screeny = 0x78 - screeny;
+			if (screeny < 0) screeny = 0;
+		}
+		else
+		{
+			if (rawy > othunder_ram[0xa040/2]) rawy = othunder_ram[0xa040/2];
+			rawy -= centrey;
+			screeny = rawy * othunder_ram[0xa06a/2] + (((rawy * othunder_ram[0xa06c/2]) & 0xffff0000) >> 16);
+			screeny += 0x78;
+			if (screeny > 0xf0) screeny = 0xf0;
+		}
+
+		// fudge y to show in centre of scope/hit sprite, note that screenx, screeny
+		// were confirmed to match those stored by the game at $82736, $82738
+		screeny += 2;
+
+		/* player 2 */
+		draw_crosshair(bitmap,screenx,screeny,&Machine->visible_area);
 	}
 }
 

@@ -22,8 +22,8 @@ extern "C" {
  * GNU compiler.
  */
 
-#ifdef __GNU__
-#if (__GNUC__ == 2) && (__GNUC_MINOR_ <= 7)
+#ifdef __GNUC__
+#if (__GNUC__ < 2) || ((__GNUC__ == 2) && (__GNUC_MINOR__ <= 7))
 #define UNUSEDARG
 #else
 #define UNUSEDARG __attribute__((__unused__))
@@ -37,8 +37,6 @@ extern "C" {
 /* obsolete, to be removed */
 #define READ_WORD(a)			(*(UINT16 *)(a))
 #define WRITE_WORD(a,d)			(*(UINT16 *)(a) = (d))
-#define COMBINE_WORD(w,d)		(((w) & ((d) >> 16)) | ((d) & 0xffff))
-#define COMBINE_WORD_MEM(a,d)	(WRITE_WORD((a), (READ_WORD(a) & ((d) >> 16)) | (d)))
 
 
 /***************************************************************************
@@ -58,9 +56,9 @@ typedef UINT32			offs_t;
 /* ----- typedefs for the various common memory/port handlers ----- */
 typedef data8_t			(*read8_handler)  (UNUSEDARG offs_t offset);
 typedef void			(*write8_handler) (UNUSEDARG offs_t offset, UNUSEDARG data8_t data);
-typedef data16_t		(*read16_handler) (UNUSEDARG offs_t offset);
+typedef data16_t		(*read16_handler) (UNUSEDARG offs_t offset, UNUSEDARG data16_t mem_mask);
 typedef void			(*write16_handler)(UNUSEDARG offs_t offset, UNUSEDARG data16_t data, UNUSEDARG data16_t mem_mask);
-typedef data32_t		(*read32_handler) (UNUSEDARG offs_t offset);
+typedef data32_t		(*read32_handler) (UNUSEDARG offs_t offset, UNUSEDARG data32_t mem_mask);
 typedef void			(*write32_handler)(UNUSEDARG offs_t offset, UNUSEDARG data32_t data, UNUSEDARG data32_t mem_mask);
 typedef offs_t			(*opbase_handler) (UNUSEDARG offs_t address);
 
@@ -99,9 +97,9 @@ struct ExtMemory
 /* ----- macros for declaring the various common memory/port handlers ----- */
 #define READ_HANDLER(name) 		data8_t  name(UNUSEDARG offs_t offset)
 #define WRITE_HANDLER(name) 	void     name(UNUSEDARG offs_t offset, UNUSEDARG data8_t data)
-#define READ16_HANDLER(name)	data16_t name(UNUSEDARG offs_t offset)
+#define READ16_HANDLER(name)	data16_t name(UNUSEDARG offs_t offset, UNUSEDARG data16_t mem_mask)
 #define WRITE16_HANDLER(name)	void     name(UNUSEDARG offs_t offset, UNUSEDARG data16_t data, UNUSEDARG data16_t mem_mask)
-#define READ32_HANDLER(name)	data32_t name(UNUSEDARG offs_t offset)
+#define READ32_HANDLER(name)	data32_t name(UNUSEDARG offs_t offset, UNUSEDARG data32_t mem_mask)
 #define WRITE32_HANDLER(name)	void     name(UNUSEDARG offs_t offset, UNUSEDARG data32_t data, UNUSEDARG data32_t mem_mask)
 #define OPBASE_HANDLER(name)	offs_t   name(UNUSEDARG offs_t address)
 
@@ -572,7 +570,6 @@ struct IO_WritePort32
 #define LEVEL1_BITS_PREF		12						/* preferred number of bits in the 1st level lookup */
 #define LEVEL1_BITS_BIAS		4						/* number of bits used to bias the L1 bits computation */
 #define SPARSE_THRESH			20						/* number of address bits above which we use sparse memory */
-#define PORT_BITS				16						/* address bits used for all port I/O */
 
 /* ----- external memory constants ----- */
 #define MAX_EXT_MEMORY			64						/* maximum external memory areas we can allocate */
@@ -609,46 +606,78 @@ struct IO_WritePort32
 ***************************************************************************/
 
 /* ----- for declaring 8-bit handlers ----- */
-#define DECLARE_HANDLERS_8BIT(abits) \
-data8_t  cpu_readmem##abits             (offs_t offset);				\
-void     cpu_writemem##abits            (offs_t offset, data8_t data);	\
-void     cpu_setopbase##abits           (offs_t pc);					\
+#define DECLARE_HANDLERS_8BIT(type, abits) \
+data8_t  cpu_read##type##abits             (offs_t offset);					\
+void     cpu_write##type##abits            (offs_t offset, data8_t data);
 
 /* ----- for declaring 16-bit bigendian handlers ----- */
-#define DECLARE_HANDLERS_16BIT_BE(abits) \
-data8_t  cpu_readmem##abits##bew        (offs_t offset);				\
-data16_t cpu_readmem##abits##bew_word   (offs_t offset);				\
-void     cpu_writemem##abits##bew       (offs_t offset, data8_t data);	\
-void     cpu_writemem##abits##bew_word  (offs_t offset, data16_t data);	\
-void     cpu_setopbase##abits##bew      (offs_t pc);					\
+#define DECLARE_HANDLERS_16BIT_BE(type, abits) \
+data8_t  cpu_read##type##abits##bew        (offs_t offset);					\
+data16_t cpu_read##type##abits##bew_word   (offs_t offset);					\
+void     cpu_write##type##abits##bew       (offs_t offset, data8_t data);	\
+void     cpu_write##type##abits##bew_word  (offs_t offset, data16_t data);
 
 /* ----- for declaring 16-bit littleendian handlers ----- */
-#define DECLARE_HANDLERS_16BIT_LE(abits) \
-data8_t  cpu_readmem##abits##lew        (offs_t offset);				\
-data16_t cpu_readmem##abits##lew_word   (offs_t offset);				\
-void     cpu_writemem##abits##lew       (offs_t offset, data8_t data);	\
-void     cpu_writemem##abits##lew_word  (offs_t offset, data16_t data);	\
-void     cpu_setopbase##abits##lew      (offs_t pc);					\
+#define DECLARE_HANDLERS_16BIT_LE(type, abits) \
+data8_t  cpu_read##type##abits##lew        (offs_t offset);					\
+data16_t cpu_read##type##abits##lew_word   (offs_t offset);					\
+void     cpu_write##type##abits##lew       (offs_t offset, data8_t data);	\
+void     cpu_write##type##abits##lew_word  (offs_t offset, data16_t data);
 
 /* ----- for declaring 32-bit bigendian handlers ----- */
-#define DECLARE_HANDLERS_32BIT_BE(abits) \
-data8_t  cpu_readmem##abits##bedw       (offs_t offset);				\
-data16_t cpu_readmem##abits##bedw_word  (offs_t offset);				\
-data32_t cpu_readmem##abits##bedw_dword (offs_t offset);				\
-void     cpu_writemem##abits##bedw      (offs_t offset, data8_t data);	\
-void     cpu_writemem##abits##bedw_word (offs_t offset, data16_t data);	\
-void     cpu_writemem##abits##bedw_dword(offs_t offset, data32_t data);	\
-void     cpu_setopbase##abits##bedw     (offs_t pc);					\
+#define DECLARE_HANDLERS_32BIT_BE(type, abits) \
+data8_t  cpu_read##type##abits##bedw       (offs_t offset);					\
+data16_t cpu_read##type##abits##bedw_word  (offs_t offset);					\
+data32_t cpu_read##type##abits##bedw_dword (offs_t offset);					\
+void     cpu_write##type##abits##bedw      (offs_t offset, data8_t data);	\
+void     cpu_write##type##abits##bedw_word (offs_t offset, data16_t data);	\
+void     cpu_write##type##abits##bedw_dword(offs_t offset, data32_t data);
 
 /* ----- for declaring 32-bit littleendian handlers ----- */
-#define DECLARE_HANDLERS_32BIT_LE(abits) \
-data8_t  cpu_readmem##abits##ledw       (offs_t offset);				\
-data16_t cpu_readmem##abits##ledw_word  (offs_t offset);				\
-data32_t cpu_readmem##abits##ledw_dword (offs_t offset);				\
-void     cpu_writemem##abits##ledw      (offs_t offset, data8_t data);	\
-void     cpu_writemem##abits##ledw_word (offs_t offset, data16_t data);	\
-void     cpu_writemem##abits##ledw_dword(offs_t offset, data32_t data);	\
-void     cpu_setopbase##abits##ledw     (offs_t pc);					\
+#define DECLARE_HANDLERS_32BIT_LE(type, abits) \
+data8_t  cpu_read##type##abits##ledw       (offs_t offset);					\
+data16_t cpu_read##type##abits##ledw_word  (offs_t offset);					\
+data32_t cpu_read##type##abits##ledw_dword (offs_t offset);					\
+void     cpu_write##type##abits##ledw      (offs_t offset, data8_t data);	\
+void     cpu_write##type##abits##ledw_word (offs_t offset, data16_t data);	\
+void     cpu_write##type##abits##ledw_dword(offs_t offset, data32_t data);
+
+/* ----- for declaring memory handlers ----- */
+#define DECLARE_MEM_HANDLERS_8BIT(abits) \
+DECLARE_HANDLERS_8BIT(mem, abits) \
+void     cpu_setopbase##abits              (offs_t pc);
+
+#define DECLARE_MEM_HANDLERS_16BIT_BE(abits) \
+DECLARE_HANDLERS_16BIT_BE(mem, abits) \
+void     cpu_setopbase##abits##bew         (offs_t pc);
+
+#define DECLARE_MEM_HANDLERS_16BIT_LE(abits) \
+DECLARE_HANDLERS_16BIT_LE(mem, abits) \
+void     cpu_setopbase##abits##lew         (offs_t pc);
+
+#define DECLARE_MEM_HANDLERS_32BIT_BE(abits) \
+DECLARE_HANDLERS_32BIT_BE(mem, abits) \
+void     cpu_setopbase##abits##bedw        (offs_t pc);
+
+#define DECLARE_MEM_HANDLERS_32BIT_LE(abits) \
+DECLARE_HANDLERS_32BIT_LE(mem, abits) \
+void     cpu_setopbase##abits##ledw        (offs_t pc);
+
+/* ----- for declaring port handlers ----- */
+#define DECLARE_PORT_HANDLERS_8BIT(abits) \
+DECLARE_HANDLERS_8BIT(port, abits)
+
+#define DECLARE_PORT_HANDLERS_16BIT_BE(abits) \
+DECLARE_HANDLERS_16BIT_BE(port, abits)
+
+#define DECLARE_PORT_HANDLERS_16BIT_LE(abits) \
+DECLARE_HANDLERS_16BIT_LE(port, abits)
+
+#define DECLARE_PORT_HANDLERS_32BIT_BE(abits) \
+DECLARE_HANDLERS_32BIT_BE(port, abits)
+
+#define DECLARE_PORT_HANDLERS_32BIT_LE(abits) \
+DECLARE_HANDLERS_32BIT_LE(port, abits)
 
 
 
@@ -659,52 +688,53 @@ void     cpu_setopbase##abits##ledw     (offs_t pc);					\
 ***************************************************************************/
 
 /* ----- declare 8-bit handlers ----- */
-DECLARE_HANDLERS_8BIT(16)
-DECLARE_HANDLERS_8BIT(20)
-DECLARE_HANDLERS_8BIT(21)
-DECLARE_HANDLERS_8BIT(24)
+DECLARE_MEM_HANDLERS_8BIT(16)
+DECLARE_MEM_HANDLERS_8BIT(17)
+DECLARE_MEM_HANDLERS_8BIT(20)
+DECLARE_MEM_HANDLERS_8BIT(21)
+DECLARE_MEM_HANDLERS_8BIT(24)
 #define change_pc16(pc)			change_pc_generic(pc, 16, 0, cpu_setopbase16)
+#define change_pc17(pc) 		change_pc_generic(pc, 17, 0, cpu_setopbase17)
 #define change_pc20(pc)			change_pc_generic(pc, 20, 0, cpu_setopbase20)
 #define change_pc21(pc)			change_pc_generic(pc, 21, 0, cpu_setopbase21)
 #define change_pc24(pc)			change_pc_generic(pc, 24, 0, cpu_setopbase24)
 
 /* ----- declare 16-bit bigendian handlers ----- */
-DECLARE_HANDLERS_16BIT_BE(16)
-DECLARE_HANDLERS_16BIT_BE(24)
-DECLARE_HANDLERS_16BIT_BE(32)
+DECLARE_MEM_HANDLERS_16BIT_BE(16)
+DECLARE_MEM_HANDLERS_16BIT_BE(24)
+DECLARE_MEM_HANDLERS_16BIT_BE(32)
 #define change_pc16bew(pc)		change_pc_generic(pc, 16, 1, cpu_setopbase16bew)
 #define change_pc24bew(pc)		change_pc_generic(pc, 24, 1, cpu_setopbase24bew)
 #define change_pc32bew(pc)		change_pc_generic(pc, 32, 1, cpu_setopbase32bew)
 
 /* ----- declare 16-bit littleendian handlers ----- */
-DECLARE_HANDLERS_16BIT_LE(16)
-DECLARE_HANDLERS_16BIT_LE(17)
-DECLARE_HANDLERS_16BIT_LE(29)
-DECLARE_HANDLERS_16BIT_LE(32)
+DECLARE_MEM_HANDLERS_16BIT_LE(16)
+DECLARE_MEM_HANDLERS_16BIT_LE(17)
+DECLARE_MEM_HANDLERS_16BIT_LE(29)
+DECLARE_MEM_HANDLERS_16BIT_LE(32)
 #define change_pc16lew(pc)		change_pc_generic(pc, 16, 1, cpu_setopbase16lew)
 #define change_pc17lew(pc)		change_pc_generic(pc, 17, 1, cpu_setopbase17lew)
 #define change_pc29lew(pc)		change_pc_generic(pc, 29, 1, cpu_setopbase29lew)
 #define change_pc32lew(pc)		change_pc_generic(pc, 32, 1, cpu_setopbase32lew)
 
 /* ----- declare 32-bit bigendian handlers ----- */
-DECLARE_HANDLERS_32BIT_BE(24)
-DECLARE_HANDLERS_32BIT_BE(29)
-DECLARE_HANDLERS_32BIT_BE(32)
+DECLARE_MEM_HANDLERS_32BIT_BE(24)
+DECLARE_MEM_HANDLERS_32BIT_BE(29)
+DECLARE_MEM_HANDLERS_32BIT_BE(32)
 #define change_pc24bedw(pc)		change_pc_generic(pc, 24, 2, cpu_setopbase24bedw)
 #define change_pc29bedw(pc)		change_pc_generic(pc, 29, 2, cpu_setopbase29bedw)
 #define change_pc32bedw(pc)		change_pc_generic(pc, 32, 2, cpu_setopbase32bedw)
 
 /* ----- declare 32-bit littleendian handlers ----- */
-DECLARE_HANDLERS_32BIT_LE(26)
-DECLARE_HANDLERS_32BIT_LE(29)
-DECLARE_HANDLERS_32BIT_LE(32)
+DECLARE_MEM_HANDLERS_32BIT_LE(26)
+DECLARE_MEM_HANDLERS_32BIT_LE(29)
+DECLARE_MEM_HANDLERS_32BIT_LE(32)
 #define change_pc26ledw(pc)		change_pc_generic(pc, 26, 2, cpu_setopbase26ledw)
 #define change_pc29ledw(pc)		change_pc_generic(pc, 29, 2, cpu_setopbase29ledw)
 #define change_pc32ledw(pc)		change_pc_generic(pc, 32, 2, cpu_setopbase32ledw)
 
-
 /* ----- declare pdp1 handler ----- */
-DECLARE_HANDLERS_32BIT_BE(18)
+DECLARE_MEM_HANDLERS_32BIT_BE(18)
 #define change_pc28bedw(pc)		change_pc_generic(pc, 18, 2, cpu_setopbase18bedw)
 
 
@@ -715,36 +745,21 @@ DECLARE_HANDLERS_32BIT_BE(18)
 ***************************************************************************/
 
 /* ----- declare 8-bit handlers ----- */
-data8_t  cpu_readport16                 (offs_t offset);
-void     cpu_writeport16                (offs_t offset, data8_t data);
+DECLARE_PORT_HANDLERS_8BIT(16)
 
-/* ----- declare 16-bit LE handlers ----- */
-data8_t  cpu_readport16lew              (offs_t offset);
-void     cpu_writeport16lew             (offs_t offset, data8_t data);
-data16_t cpu_readport16lew_word         (offs_t offset);
-void     cpu_writeport16lew_word        (offs_t offset, data16_t data);
+/* ----- declare 16-bit bigendian handlers ----- */
+DECLARE_PORT_HANDLERS_16BIT_BE(16)
 
-/* ----- declare 16-bit BE handlers ----- */
-data8_t  cpu_readport16bew              (offs_t offset);
-void     cpu_writeport16bew             (offs_t offset, data8_t data);
-data16_t cpu_readport16bew_word         (offs_t offset);
-void     cpu_writeport16bew_word        (offs_t offset, data16_t data);
+/* ----- declare 16-bit littleendian handlers ----- */
+DECLARE_PORT_HANDLERS_16BIT_LE(16)
 
-/* ----- declare 32-bit LE handlers ----- */
-data8_t  cpu_readport16ledw              (offs_t offset);
-void     cpu_writeport16ledw             (offs_t offset, data8_t data);
-data16_t cpu_readport16ledw_word         (offs_t offset);
-void     cpu_writeport16lew_word         (offs_t offset, data16_t data);
-data32_t cpu_readport16lew_dword         (offs_t offset);
-void     cpu_writeport16lew_dword        (offs_t offset, data32_t data);
+/* ----- declare 32-bit bigendian handlers ----- */
+DECLARE_PORT_HANDLERS_32BIT_BE(16)
 
-/* ----- declare 32-bit BE handlers ----- */
-data8_t  cpu_readport16bedw              (offs_t offset);
-void     cpu_writeport16bedw             (offs_t offset, data8_t data);
-data16_t cpu_readport16bedw_word         (offs_t offset);
-void     cpu_writeport16bew_word         (offs_t offset, data16_t data);
-data32_t cpu_readport16bew_dword         (offs_t offset);
-void     cpu_writeport16bew_dword        (offs_t offset, data32_t data);
+/* ----- declare 32-bit littleendian handlers ----- */
+DECLARE_PORT_HANDLERS_32BIT_LE(16)
+DECLARE_PORT_HANDLERS_32BIT_LE(24)
+
 
 /***************************************************************************
 
@@ -766,6 +781,8 @@ opbase_handler memory_set_opbase_handler(int cpu, opbase_handler function);
 
 /* ----- separate opcode/data encryption helpers ---- */
 void		memory_set_opcode_base(int cpu, void *base);
+void		memory_set_encrypted_opcode_range(int cpu, offs_t min_address,offs_t max_address);
+extern offs_t encrypted_opcode_start[],encrypted_opcode_end[];
 
 /* ----- return a base pointer to memory ---- */
 void *		memory_find_base(int cpu, offs_t offset);
@@ -799,7 +816,7 @@ extern UINT8 *			OP_ROM;				/* opcode ROM base */
 extern UINT8 *			OP_RAM;				/* opcode RAM base */
 extern UINT8 *			cpu_bankbase[];		/* array of bank bases */
 extern UINT8 *			readmem_lookup;		/* pointer to the readmem lookup table */
-extern offs_t			memory_amask;		/* memory address mask */
+extern offs_t			mem_amask;			/* memory address mask */
 extern struct ExtMemory	ext_memory[];		/* externally-allocated memory */
 
 
@@ -826,19 +843,19 @@ extern struct ExtMemory	ext_memory[];		/* externally-allocated memory */
 #define ACCESSING_MSB32				((mem_mask & 0xff000000) == 0)
 
 /* ----- opcode reading ----- */
-#define cpu_readop(A)				(OP_ROM[(A) & memory_amask])
-#define cpu_readop16(A)				(*(data16_t *)&OP_ROM[(A) & memory_amask])
-#define cpu_readop32(A)				(*(data32_t *)&OP_ROM[(A) & memory_amask])
+#define cpu_readop(A)				(OP_ROM[(A) & mem_amask])
+#define cpu_readop16(A)				(*(data16_t *)&OP_ROM[(A) & mem_amask])
+#define cpu_readop32(A)				(*(data32_t *)&OP_ROM[(A) & mem_amask])
 
 /* ----- opcode argument reading ----- */
-#define cpu_readop_arg(A)			(OP_RAM[(A) & memory_amask])
-#define cpu_readop_arg16(A)			(*(data16_t *)&OP_RAM[(A) & memory_amask])
-#define cpu_readop_arg32(A)			(*(data32_t *)&OP_RAM[(A) & memory_amask])
+#define cpu_readop_arg(A)			(OP_RAM[(A) & mem_amask])
+#define cpu_readop_arg16(A)			(*(data16_t *)&OP_RAM[(A) & mem_amask])
+#define cpu_readop_arg32(A)			(*(data32_t *)&OP_RAM[(A) & mem_amask])
 
 /* ----- bank switching for CPU cores ----- */
 #define change_pc_generic(pc,abits,minbits,setop)										\
 do {																					\
-	if (readmem_lookup[LEVEL1_INDEX((pc) & memory_amask,abits,minbits)] != opcode_entry)\
+	if (readmem_lookup[LEVEL1_INDEX((pc) & mem_amask,abits,minbits)] != opcode_entry)	\
 		setop(pc);																		\
 } while (0)																				\
 

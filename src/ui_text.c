@@ -35,6 +35,7 @@ const char * default_text[] =
 	"On",
 	"Off",
 	"NA",
+	"OK",
 	"INVALID",
 	"(none)",
 	"CPU",
@@ -51,6 +52,7 @@ const char * default_text[] =
 	"ALL CHANNELS",
 	"Brightness",
 	"Gamma",
+	"Vector Flicker",
 	"Vector Intensity",
 	"Overclock",
 	"ALL CPUS",
@@ -76,6 +78,7 @@ const char * default_text[] =
 #endif
 	"The colors aren't 100% accurate.",
 	"The colors are completely wrong.",
+	"The video emulation isn't 100% accurate.",
 	"The sound emulation isn't 100% accurate.",
 	"The game lacks sound.",
 	"Screen flipping in cocktail mode is not supported.",
@@ -149,6 +152,7 @@ const char * default_text[] =
 	"Restore Previous Results",
 	"Configure Watchpoints",
 	"General Help",
+	"Options",
 	"Watchpoint",
 	"Disabled",
 	"Cheats",
@@ -157,7 +161,12 @@ const char * default_text[] =
 	"More Info for",
 	"Name",
 	"Description",
+	"Activation Key",
 	"Code",
+	"Max",
+	"Set",
+	"Cheat conflict found: disable",
+	"Help not available yet",
 
 	/* watchpoints */
 	"Number of bytes",
@@ -168,17 +177,25 @@ const char * default_text[] =
 	"Watch",
 
 	/* searching */
-	"Lives (or some other value)",
+	"Lives (or another value)",
 	"Timers (+/- some value)",
 	"Energy (greater or less)",
 	"Status (bits or flags)",
-	"Slow but sure (changed or not)",
-	"Change Search Speed",
+	"Slow But Sure (changed or not)",
+	"Default Search Speed",
+	"Fast",
+	"Medium",
+	"Slow",
+	"Very Slow",
+	"Select Memory Areas",
 	"Matches found",
 	"Search not initialized",
 	"No previous values saved",
 	"Previous values already restored",
 	"Restoration successful",
+	"Select a value",
+	"All values saved",
+	"One match found - added to list",
 
 	NULL
 };

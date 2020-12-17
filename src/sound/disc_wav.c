@@ -29,6 +29,12 @@ struct dss_squarewave_context
 	double trigger;
 };
 
+struct dss_oneshot_context
+{
+	double countdown;
+	double stepsize;
+	int state;
+};
 
 /************************************************************************/
 /*                                                                      */
@@ -89,7 +95,7 @@ int dss_sinewave_init(struct node_description *node)
 	if((node->context=malloc(sizeof(struct dss_sinewave_context)))==NULL)
 	{
 		discrete_log("dss_sinewave_init() - Failed to allocate local context memory.");
-		return 1;			
+		return 1;
 	}
 	else
 	{
@@ -99,8 +105,8 @@ int dss_sinewave_init(struct node_description *node)
 
 	/* Initialise the object */
 	dss_sinewave_reset(node);
-		
-	return 0;	
+
+	return 0;
 }
 
 int dss_sinewave_kill(struct node_description *node)
@@ -162,12 +168,12 @@ int dss_squarewave_reset(struct node_description *node)
 	struct dss_squarewave_context *context;
 	double start;
 	context=(struct dss_squarewave_context*)node->context;
-	
+
 	/* Establish starting phase, convert from degrees to radians */
 	start=(node->input5/360.0)*(2.0*PI);
 	/* Make sure its always mod 2Pi */
 	context->phase=fmod(node->input5,2.0*PI);
-	
+
 	return 0;
 }
 
@@ -179,7 +185,7 @@ int dss_squarewave_init(struct node_description *node)
 	if((node->context=malloc(sizeof(struct dss_squarewave_context)))==NULL)
 	{
 		discrete_log("dss_squarewave_init() - Failed to allocate local context memory.");
-		return 1;			
+		return 1;
 	}
 	else
 	{
@@ -189,8 +195,8 @@ int dss_squarewave_init(struct node_description *node)
 
 	/* Initialise the object */
 	dss_squarewave_reset(node);
-		
-	return 0;	
+
+	return 0;
 }
 
 int dss_squarewave_kill(struct node_description *node)
@@ -230,7 +236,7 @@ int dss_noise_step(struct node_description *node)
 		/* Only sample noise on rollover to next cycle */
 		if(newphase>(2.0*PI))
 		{
-			int newval=rand();
+			int newval=rand() & 0x7fff;
 			node->output=node->input2*(1-(newval/16384.0));
 		}
 	}
@@ -257,7 +263,7 @@ int dss_noise_init(struct node_description *node)
 	if((node->context=malloc(sizeof(struct dss_noise_context)))==NULL)
 	{
 		discrete_log("dss_noise_init() - Failed to allocate local context memory.");
-		return 1;			
+		return 1;
 	}
 	else
 	{
@@ -267,11 +273,110 @@ int dss_noise_init(struct node_description *node)
 
 	/* Initialise the object */
 	dss_noise_reset(node);
-		
-	return 0;	
+
+	return 0;
 }
 
 int dss_noise_kill(struct node_description *node)
+{
+	free(node->context);
+	node->context=NULL;
+	return 0;
+}
+
+
+/************************************************************************/
+/*                                                                      */
+/* DSS_ONESHOT - Usage of node_description values for one shot pulse    */
+/*                                                                      */
+/* input0    - Enable input value                                       */
+/* input1    - Trigger value                                            */
+/* input2    - Reset value                                              */
+/* input3    - Amplitude value                                          */
+/* input4    - Width of oneshot pulse                                   */
+/* input5    - NOT USED                                                 */
+/*                                                                      */
+/************************************************************************/
+int dss_oneshot_step(struct node_description *node)
+{
+	struct dss_oneshot_context *context;
+	context=(struct dss_oneshot_context*)node->context;
+
+	/* Check state */
+	switch(context->state)
+	{
+		case 0:		/* Waiting for trigger */
+			if(node->input1)
+			{
+				context->state=1;
+				context->countdown=node->input4;
+				node->output=node->input3;
+			}
+		 	node->output=0;
+			break;
+
+		case 1:		/* Triggered */
+			node->output=node->input3;
+			if(node->input1 && node->input2)
+			{
+				// Dont start the countdown if we're still triggering
+				// and we've got a reset signal as well
+			}
+			else
+			{
+				context->countdown-=context->stepsize;
+				if(context->countdown<0.0)
+				{
+					context->countdown=0;
+					node->output=0;
+					context->state=2;
+				}
+			}
+			break;
+
+		case 2:		/* Waiting for reset */
+		default:
+			if(node->input2) context->state=0;
+		 	node->output=0;
+			break;
+	}
+	return 0;
+}
+
+
+int dss_oneshot_reset(struct node_description *node)
+{
+	struct dss_oneshot_context *context=(struct dss_oneshot_context*)node->context;
+	context->countdown=0;
+	context->stepsize=1.0/Machine->sample_rate;
+	context->state=0;
+ 	node->output=0;
+ 	return 0;
+}
+
+int dss_oneshot_init(struct node_description *node)
+{
+	discrete_log("dss_oneshot_init() - Creating node %d.",node->node-NODE_00);
+
+	/* Allocate memory for the context array and the node execution order array */
+	if((node->context=malloc(sizeof(struct dss_oneshot_context)))==NULL)
+	{
+		discrete_log("dss_oneshot_init() - Failed to allocate local context memory.");
+		return 1;
+	}
+	else
+	{
+		/* Initialise memory */
+		memset(node->context,0,sizeof(struct dss_oneshot_context));
+	}
+
+	/* Initialise the object */
+	dss_oneshot_reset(node);
+
+	return 0;
+}
+
+int dss_oneshot_kill(struct node_description *node)
 {
 	free(node->context);
 	node->context=NULL;

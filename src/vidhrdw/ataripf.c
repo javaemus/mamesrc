@@ -474,7 +474,11 @@ void ataripf_free(void)
 		/* free the extended usage maps */
 		for (i = 0; i < MAX_GFX_ELEMENTS; i++)
 			if (pf->gfxelement[i].usage)
+			{
 				free(pf->gfxelement[i].usage);
+				pf->gfxelement[i].usage = NULL;
+				pf->gfxelement[i].initialized = 0;
+			}
 
 		pf->initialized = 0;
 	}
@@ -1052,8 +1056,13 @@ WRITE32_HANDLER( ataripf_0_split32_w )
 static void pf_process(struct ataripf_data *pf, pf_callback callback, void *param, const struct rectangle *clip)
 {
 	struct ataripf_state *state = pf->statelist;
-	struct rectangle finalclip = clip ? *clip : Machine->visible_area;
+	struct rectangle finalclip;
 	int i;
+
+	if (clip)
+		finalclip = *clip;
+	else
+		finalclip = Machine->visible_area;
 
 	/* if the gfx has changed, make sure we have extended usage maps for everyone */
 	if (pf->gfxchanged)
@@ -1348,8 +1357,19 @@ static void pf_init_gfx(struct ataripf_data *pf, int gfxindex)
 		/* loop over all pixels, marking pens */
 		for (y = 0; y < gfx->element.height; y++)
 		{
-			for (x = 0; x < gfx->element.width; x++)
-				usage->bits[src[x] >> 5] |= 1 << (src[x] & 31);
+			/* if the graphics are 4bpp packed, do it one way */
+			if (gfx->element.flags & GFX_PACKED)
+				for (x = 0; x < gfx->element.width / 2; x++)
+				{
+					usage->bits[0] |= 1 << (src[x] & 15);
+					usage->bits[0] |= 1 << (src[x] >> 4);
+				}
+
+			/* otherwise, do it the original way */
+			else
+				for (x = 0; x < gfx->element.width; x++)
+					usage->bits[src[x] >> 5] |= 1 << (src[x] & 31);
+
 			src += gfx->element.line_modulo;
 		}
 

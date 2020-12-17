@@ -1,9 +1,12 @@
 #include "driver.h"
+#include "state.h"
 #include "vidhrdw/generic.h"
 #include "vidhrdw/taitoic.h"
 
 #define TC0100SCN_GFX_NUM 1
 #define TC0480SCP_GFX_NUM 1
+
+void taitoz_vh_stop(void);
 
 struct tempsprite
 {
@@ -16,8 +19,8 @@ struct tempsprite
 };
 static struct tempsprite *spritelist;
 
-static int taito_hide_pixels;
-static int chq2_spriteframe;
+static int sci_spriteframe;
+extern data16_t *taitoz_sharedram;
 
 
 /**********************************************************
@@ -43,6 +46,7 @@ int TC0150ROD_vh_start(void)
 
 	if (!TC0150ROD_ram) return 1;
 
+	state_save_register_UINT16("TC0150ROD", 0, "memory", TC0150ROD_ram, TC0150ROD_RAM_SIZE/2);
 	return 0;
 }
 
@@ -214,7 +218,7 @@ static int has_TC0110PCR(void)
 	return 0;
 }
 
-int taitoz_core_vh_start (void)
+static int taitoz_core_vh_start (int x_offs)
 {
 	/* Up to $2000/8 big sprites, requires 0x400 * sizeof(*spritelist)
 	   Multiply this by 32 to give room for the number of small sprites,
@@ -224,38 +228,48 @@ int taitoz_core_vh_start (void)
 	if (!spritelist)
 		return 1;
 
-	if (has_TC0480SCP())	/* it's a tc0480scp game */
+	if (has_TC0480SCP())	/* it's Dblaxle, a tc0480scp game */
 	{
-		if (TC0480SCP_vh_start(TC0480SCP_GFX_NUM,taito_hide_pixels,0x26,0x08,0))
+		if (TC0480SCP_vh_start(TC0480SCP_GFX_NUM,x_offs,0x21,0x08,4,0,0,0,0))
+		{
+			taitoz_vh_stop();
 			return 1;
+		}
 	}
 	else	/* it's a tc0100scn game */
 	{
-		if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,taito_hide_pixels))
+		if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,x_offs,0,0,0,0,0,0))
+		{
+			taitoz_vh_stop();
 			return 1;
+		}
 	}
 
 	if (has_TC0150ROD())
 		if (TC0150ROD_vh_start())
+		{
+			taitoz_vh_stop();
 			return 1;
+		}
 
 	if (has_TC0110PCR())
 		if (TC0110PCR_vh_start())
+		{
+			taitoz_vh_stop();
 			return 1;
+		}
 
 	return 0;
 }
 
 int taitoz_vh_start (void)
 {
-	taito_hide_pixels = 0;
-	return (taitoz_core_vh_start());
+	return (taitoz_core_vh_start(0));
 }
 
 int spacegun_vh_start (void)
 {
-	taito_hide_pixels = 4;
-	return (taitoz_core_vh_start());
+	return (taitoz_core_vh_start(4));
 }
 
 void taitoz_vh_stop (void)
@@ -285,34 +299,29 @@ void taitoz_vh_stop (void)
 ********************************************************/
 
 
-READ16_HANDLER( chq2_spriteframe_r )
+READ16_HANDLER( sci_spriteframe_r )
 {
-	return (chq2_spriteframe << 8);
+	return (sci_spriteframe << 8);
 }
 
-WRITE16_HANDLER( chq2_spriteframe_w )
+WRITE16_HANDLER( sci_spriteframe_w )
 {
-	chq2_spriteframe = (data >> 8) &0xff;
+	sci_spriteframe = (data >> 8) &0xff;
 }
 
 
 /*********************************************************
 				PALETTE
-
-&tile_mask is there to prevent occasional page faults
-from the line: Machine->gfx[0]->pen_usage[code];
-I assume this can behave badly if code is out of
-valid bounds (for instance during spriteram tests)...
 *********************************************************/
 
-void contcirc_update_palette (void)
+static void contcirc_update_palette (void)
 {
 	int i,j;
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
 	UINT16 tile_mask = (Machine->gfx[0]->total_elements) - 1;
 	int map_offset,sprite_chunk,code;
 	int offs,data,tilenum,color;
-	unsigned short palette_map[256];
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
@@ -354,7 +363,7 @@ void contcirc_update_palette (void)
 	}
 }
 
-void chasehq_update_palette (void)
+static void chasehq_update_palette (void)
 {
 	int i,j;
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
@@ -362,7 +371,7 @@ void chasehq_update_palette (void)
 	UINT16 tile_mask_2 = (Machine->gfx[2]->total_elements) - 1;
 	int map_offset,sprite_chunk,code;
 	int offs,data,tilenum,color,zoomx;
-	unsigned short palette_map[256];
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = 0;offs < spriteram_size/2;offs += 4)
@@ -434,14 +443,14 @@ void chasehq_update_palette (void)
 	}
 }
 
-void bshark_update_palette (void)
+static void bshark_update_palette (void)
 {
 	int i,j;
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
 	UINT16 tile_mask = (Machine->gfx[0]->total_elements) - 1;
 	int map_offset,sprite_chunk,code;
 	int offs,data,tilenum,color;
-	unsigned short palette_map[256];
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = 0;offs < spriteram_size/2;offs += 4)
@@ -483,14 +492,14 @@ void bshark_update_palette (void)
 	}
 }
 
-void aquajack_update_palette (void)
+static void aquajack_update_palette (void)
 {
 	int i,j;
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
 	UINT16 tile_mask = (Machine->gfx[0]->total_elements) - 1;
 	int map_offset,sprite_chunk,code;
 	int offs,data,tilenum,color;
-	unsigned short palette_map[256];
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
@@ -532,14 +541,14 @@ void aquajack_update_palette (void)
 	}
 }
 
-void spacegun_update_palette (void)
+static void spacegun_update_palette (void)
 {
 	int i,j;
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
 	UINT16 tile_mask = (Machine->gfx[0]->total_elements) - 1;
 	int map_offset,sprite_chunk,code;
 	int offs,data,tilenum,color;
-	unsigned short palette_map[256];
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
@@ -589,7 +598,8 @@ void spacegun_update_palette (void)
 These draw a series of small tiles ("chunks") together to
 create each big sprite. The spritemap rom provides the lookup
 table for this. E.g. Spacegun looks up 16x8 sprite chunks
-from the spritemap rom, creating this 64x64 sprite:
+from the spritemap rom, creating this 64x64 sprite (numbers
+are the word offset into the spritemap rom):
 
 	 0  1  2  3
 	 4  5  6  7
@@ -605,18 +615,14 @@ tiles. They are also more complicated to draw, as they have
 3 different aggregation formats [32/64/128 x 128]
 whereas the other games stick to one, typically 64x64.
 
-All the games make heavy use of sprite zooming. The MAME cpu
-load increases *significantly* when there are a lot on screen;
-ChaseHQ2 suffers a very noticeable speed hit.
+All the games make heavy use of sprite zooming.
 
-Since the road lines cannot be gfxdecoded and are
-not suitable for the tilemapper, we cannot use the
-pdrawgfx stuff to achieve the two levels of sprite priority
-(under and over the road).
+It is thought that there are just two levels of sprite
+priority - under and over the road - but this isn't
+certain.
 
-Instead, all the games which use a road have to call
-draw_sprites in two passes like Raine does; plotting low
-sprites, then road, then high sprites.
+The road games will need to be moved to pdrawgfx() and use
+pdrawscanline() for the road.
 
 		***
 
@@ -665,7 +671,7 @@ spriteram is being tested, take no notice of that.]
 		 6 | ........ .xxxxxxx | ZoomX
 		---+-------------------+--------------
 
-		 Bshark/Chasehq/Nightstr/Chasehq2 (modified Raine table): similar format.
+		 Bshark/Chasehq/Nightstr/SCI (modified Raine table): similar format.
 		 The zoom msb is only used for 128x128 sprites.
 
 		-----+--------+------------------------
@@ -1151,7 +1157,7 @@ logerror("Sprite number %04x had %02x invalid chunks\n",tilenum,bad_chunks);
 
 
 
-static void chasehq2_draw_sprites_16x8(struct osd_bitmap *bitmap,int pri,int y_offs)
+static void sci_draw_sprites_16x8(struct osd_bitmap *bitmap,int pri,int y_offs)
 {
 	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
 	int offs, start_offs, data, tilenum, color, flipx, flipy;
@@ -1163,13 +1169,13 @@ static void chasehq2_draw_sprites_16x8(struct osd_bitmap *bitmap,int pri,int y_o
 
 	struct tempsprite *sprite_ptr = spritelist;
 
-	/* Chasehq2 alternates between two areas of its spriteram */
+	/* SCI alternates between two areas of its spriteram */
 
 	// This gave back to front frames causing bad flicker... but
 	// reversing it now only gives us sprite updates on alternate
 	// frames. So we probably have to partly buffer spriteram :(
 
-	start_offs = (chq2_spriteframe &1) * 0x800;
+	start_offs = (sci_spriteframe &1) * 0x800;
 	start_offs = 0x800 - start_offs;
 
 	for (offs = start_offs;offs < (start_offs+0x800);offs += 4)
@@ -1512,7 +1518,7 @@ logerror("Sprite number %04x had %02x invalid chunks\n",tilenum,bad_chunks);
 
 void contcirc_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -1526,15 +1532,18 @@ void contcirc_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,0);
+
+	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,0);
 
 	contcirc_draw_sprites_16x8(bitmap,1,3);
 	TC0150ROD_draw(bitmap,0);
 	contcirc_draw_sprites_16x8(bitmap,0,3);
 
-	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);	// text layer
+	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);
 }
 
 
@@ -1542,7 +1551,7 @@ void contcirc_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 void chasehq_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -1556,21 +1565,24 @@ void chasehq_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,0);
+
+	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,0);
 
 	chasehq_draw_sprites_16x16(bitmap,1,0);
 	TC0150ROD_draw(bitmap,0);
 	chasehq_draw_sprites_16x16(bitmap,0,0);
 
-	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);	// text layer
+	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);
 }
 
 
 void bshark_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -1584,21 +1596,24 @@ void bshark_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,0);
+
+	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,0);
 
 	bshark_draw_sprites_16x8(bitmap,1,8);
 	TC0150ROD_draw(bitmap,0);
 	bshark_draw_sprites_16x8(bitmap,0,8);
 
-	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);	// text layer
+	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);
 }
 
 
-void chasehq2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void sci_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -1612,21 +1627,24 @@ void chasehq2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,0);
+
+	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,0);
 
-	chasehq2_draw_sprites_16x8(bitmap,1,6);
+	sci_draw_sprites_16x8(bitmap,1,6);
 	TC0150ROD_draw(bitmap,0);
-	chasehq2_draw_sprites_16x8(bitmap,0,6);
+	sci_draw_sprites_16x8(bitmap,0,6);
 
-	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);	// text layer
+	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);
 }
 
 
 void aquajack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -1640,21 +1658,24 @@ void aquajack_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,0);
+
+	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,0);
 
 	aquajack_draw_sprites_16x8(bitmap,1,3);
 	TC0150ROD_draw(bitmap,0);
 	aquajack_draw_sprites_16x8(bitmap,0,3);
 
-	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);	// text layer
+	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,0);
 }
 
 
 void spacegun_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -1668,8 +1689,11 @@ void spacegun_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,1);
+
+	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,2);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,4);
 
@@ -1681,26 +1705,124 @@ void spacegun_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	/* See if we should draw artificial gun targets */
 
-	if (input_port_4_word_r(0) &0x1)	/* Fake DSW */
+	if (input_port_9_word_r(0,0) &0x1)	/* Fake DSW */
 	{
-		char buf[80];
+		int rawx, rawy, centrex, centrey, screenx, screeny;
 
-		sprintf(buf,"Gun targets");
-		usrintf_showmessage(buf);
+		/* A lag of one frame can be seen with the scope pickup and on the test
+		   screen, however there is conflicting evidence so this isn't emulated
+		   During high score entry the scope is displayed slightly offset
+		   from the crosshair, close inspection shows the crosshair location
+		   being used to target letters. */
 
-		// Draw gun targets //
+		/* calculate p1 screen co-ords by matching routine at $195D4 */
+		rawx = taitoz_sharedram[0xd94/2];
+		centrex = taitoz_sharedram[0x26/2];
+		if (rawx <= centrex)
+		{
+			rawx = centrex - rawx;
+			screenx = rawx * taitoz_sharedram[0x2e/2] +
+				(((rawx * taitoz_sharedram[0x30/2]) &0xffff0000) >> 16);
+			screenx = 0xa0 - screenx;
+			if (screenx < 0) screenx = 0;
+		}
+		else
+		{
+			if (rawx > taitoz_sharedram[0x8/2]) rawx = taitoz_sharedram[0x8/2];
+			rawx -= centrex;
+			screenx = rawx * taitoz_sharedram[0x36/2] +
+				(((rawx * taitoz_sharedram[0x38/2]) &0xffff0000) >> 16);
+			screenx += 0xa0;
+			if (screenx > 0x140) screenx = 0x140;
+		}
+		rawy = taitoz_sharedram[0xd96/2];
+		centrey = taitoz_sharedram[0x28/2];
+		if (rawy <= centrey)
+		{
+			rawy = centrey - rawy;
+			screeny = rawy * taitoz_sharedram[0x32/2] +
+				(((rawy * taitoz_sharedram[0x34/2]) &0xffff0000) >> 16);
+			screeny = 0x78 - screeny;
+			if (screeny < 0) screeny = 0;
+		}
+		else
+		{
+			if (rawy > taitoz_sharedram[0x10/2]) rawy = taitoz_sharedram[0x10/2];
+			rawy -= centrey;
+			screeny = rawy * taitoz_sharedram[0x3a/2] +
+				(((rawy * taitoz_sharedram[0x3c/2]) &0xffff0000) >> 16);
+			screeny += 0x78;
+			if (screeny > 0xf0) screeny = 0xf0;
+		}
+
+		/* fudge x and y to show in centre of scope, note that screenx, screeny
+		   are confirmed to match those stored by the game at $317540, $317542 */
+		--screenx;
+		screeny += 15;
+
+		draw_crosshair(bitmap,screenx,screeny,&Machine->visible_area);
+
+		/* calculate p2 screen co-ords by matching routine at $196EA */
+		rawx = taitoz_sharedram[0xd98/2];
+		centrex = taitoz_sharedram[0x2a/2];
+		if (rawx <= centrex)
+		{
+			rawx = centrex - rawx;
+			screenx = rawx * taitoz_sharedram[0x3e/2] +
+				(((rawx * taitoz_sharedram[0x40/2]) &0xffff0000) >> 16);
+			screenx = 0xa0 - screenx;
+			if (screenx < 0) screenx = 0;
+		}
+		else
+		{
+			if (rawx > taitoz_sharedram[0x18/2]) rawx = taitoz_sharedram[0x18/2];
+			rawx -= centrex;
+			screenx = rawx * taitoz_sharedram[0x46/2] +
+				(((rawx * taitoz_sharedram[0x48/2]) &0xffff0000) >> 16);
+			screenx += 0xa0;
+			if (screenx > 0x140) screenx = 0x140;
+		}
+		rawy = taitoz_sharedram[0xd9a/2];
+		centrey = taitoz_sharedram[0x2c/2];
+		if (rawy <= centrey)
+		{
+			rawy = centrey - rawy;
+			screeny = rawy * taitoz_sharedram[0x42/2] +
+				(((rawy * taitoz_sharedram[0x44/2]) &0xffff0000) >> 16);
+			screeny = 0x78 - screeny;
+			if (screeny < 0) screeny = 0;
+		}
+		else
+		{
+			if (rawy > taitoz_sharedram[0x20/2]) rawy = taitoz_sharedram[0x20/2];
+			rawy -= centrey;
+			screeny = rawy * taitoz_sharedram[0x4a/2] +
+				(((rawy * taitoz_sharedram[0x4c/2]) &0xffff0000) >> 16);
+			screeny += 0x78;
+			if (screeny > 0xf0) screeny = 0xf0;
+		}
+
+		/* fudge x and y to show in centre of scope, note that screenx, screeny
+		   are confirmed to match those stored by the game at $317544, $317546 */
+		--screenx;
+		screeny += 15;
+
+		draw_crosshair(bitmap,screenx,screeny,&Machine->visible_area);
 	}
 }
 
+
 void dblaxle_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[5];
+	UINT8 layer[5];
+	UINT16 priority;
 
 	TC0480SCP_tilemap_update();
 
 	palette_init_used_colors();
 	bshark_update_palette();
 
+	/* This needs replacing with Bryan's superior method ! */
 	palette_used_colors[0] |= PALETTE_COLOR_VISIBLE;
 	{
 		int i;
@@ -1711,17 +1833,20 @@ void dblaxle_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 	palette_recalc();
 
-	/* I assume this priority order is fixed */
-	layer[0] = 0;	/* bottom bg */
-	layer[1] = 1;
-	layer[2] = 2;
-	layer[3] = 3;	/* top bg */
-	layer[4] = 4;	/* text */
+	priority = TC0480SCP_get_bg_priority();
+
+	layer[0] = (priority &0xf000) >> 12;	/* tells us which bg layer is bottom */
+	layer[1] = (priority &0x0f00) >>  8;
+	layer[2] = (priority &0x00f0) >>  4;
+	layer[3] = (priority &0x000f) >>  0;	/* tells us which is top */
+	layer[4] = 4;   /* text layer always over bg layers */
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
 
-	TC0480SCP_tilemap_draw(bitmap,layer[0],0,0);
+	/* Ensure screen blanked - this shouldn't be necessary! */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	TC0480SCP_tilemap_draw(bitmap,layer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
 	TC0480SCP_tilemap_draw(bitmap,layer[1],0,0);
 	TC0480SCP_tilemap_draw(bitmap,layer[2],0,0);
 

@@ -228,7 +228,7 @@ READ16_HANDLER( sys16_tileram_r ){
 static void draw_sprite16(
 	struct osd_bitmap *bitmap,
 	const unsigned char *addr, int pitch,
-	const UINT16 *paldata,
+	const UINT32 *paldata,
 	int x0, int y0, int screen_width, int screen_height,
 	int width, int height,
 	int flipx, int flipy,
@@ -311,7 +311,7 @@ static void draw_sprite16(
 static void draw_sprite8(
 	struct osd_bitmap *bitmap,
 	const unsigned char *addr, int pitch,
-	const UINT16 *paldata,
+	const UINT32 *paldata,
 	int x0, int y0, int screen_width, int screen_height,
 	int width, int height,
 	int flipx, int flipy,
@@ -399,7 +399,7 @@ static void draw_sprite8(
 static void draw_sprite(
 	struct osd_bitmap *bitmap,
 	const UINT8 *addr, int pitch,
-	const UINT16 *paldata,
+	const UINT32 *paldata,
 	int x0, int y0, int screen_width, int screen_height,
 	int width, int height,
 	int flipx, int flipy,
@@ -416,7 +416,7 @@ static void draw_sprite(
 }
 
 static void draw_sprites( struct osd_bitmap *bitmap, int b3d ){
-	const unsigned short *base_pal = Machine->gfx[0]->colortable;
+	const UINT32 *base_pal = Machine->gfx[0]->colortable;
 	const unsigned char *base_gfx = memory_region(REGION_GFX2);
 
 	struct sys16_sprite_attributes sprite;
@@ -627,13 +627,25 @@ static void get_bg_tile_info( int offset ){
 	int tile_number = (data&0xfff) + 0x1000*((data&sys16_tilebank_switch)?sys16_tile_bank1:sys16_tile_bank0);
 
 	if( sys16_textmode==2 ){ /* afterburner: ?---CCCT TTTTTTTT */
-		SET_TILE_INFO( 0, tile_number, 512+384+((data>>6)&0x7f) );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				512+384+((data>>6)&0x7f),
+				0)
 	}
 	else if(sys16_textmode==0){
-		SET_TILE_INFO( 0, tile_number, (data>>6)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>6)&0x7f,
+				0)
 	}
 	else{
-		SET_TILE_INFO( 0, tile_number, (data>>5)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>5)&0x7f,
+				0)
 	}
 
 	switch(sys16_bg_priority_mode) {
@@ -660,13 +672,25 @@ static void get_fg_tile_info( int offset ){
 	int tile_number = (data&0xfff) + 0x1000*((data&sys16_tilebank_switch)?sys16_tile_bank1:sys16_tile_bank0);
 
 	if( sys16_textmode==2 ){ /* afterburner: ?---CCCT TTTTTTTT */
-		SET_TILE_INFO( 0, tile_number, 512+384+((data>>6)&0x7f) );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				512+384+((data>>6)&0x7f),
+				0)
 	}
 	else if(sys16_textmode==0){
-		SET_TILE_INFO( 0, tile_number, (data>>6)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>6)&0x7f,
+				0)
 	}
 	else{
-		SET_TILE_INFO( 0, tile_number, (data>>5)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>5)&0x7f,
+				0)
 	}
 	switch(sys16_fg_priority_mode){
 	case 1: // alien syndrome
@@ -691,13 +715,25 @@ static void get_bg2_tile_info( int offset ){
 	int tile_number = (data&0xfff) + 0x1000*((data&0x1000)?sys16_tile_bank1:sys16_tile_bank0);
 
 	if( sys16_textmode==2 ){ /* afterburner: ?---CCCT TTTTTTTT */
-		SET_TILE_INFO( 0, tile_number, 512+384+((data>>6)&0x7f) );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				512+384+((data>>6)&0x7f),
+				0)
 	}
 	else if(sys16_textmode==0){
-		SET_TILE_INFO( 0, tile_number, (data>>6)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>6)&0x7f,
+				0)
 	}
 	else{
-		SET_TILE_INFO( 0, tile_number, (data>>5)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>5)&0x7f,
+				0)
 	}
 	tile_info.priority = 0;
 }
@@ -708,13 +744,25 @@ static void get_fg2_tile_info( int offset ){
 	int tile_number = (data&0xfff) + 0x1000*((data&0x1000)?sys16_tile_bank1:sys16_tile_bank0);
 
 	if( sys16_textmode==2 ){ /* afterburner: ?---CCCT TTTTTTTT */
-		SET_TILE_INFO( 0, tile_number, 512+384+((data>>6)&0x7f) );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				512+384+((data>>6)&0x7f),
+				0)
 	}
 	else if(sys16_textmode==0){
-		SET_TILE_INFO( 0, tile_number, (data>>6)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>6)&0x7f,
+				0)
 	}
 	else{
-		SET_TILE_INFO( 0, tile_number, (data>>5)&0x7f );
+		SET_TILE_INFO(
+				0,
+				tile_number,
+				(data>>5)&0x7f,
+				0)
 	}
 	if((data&0xff00) >= sys16_fg_priority_value) tile_info.priority = 1;
 	else tile_info.priority = 0;
@@ -759,14 +807,24 @@ static void get_text_tile_info( int offset ){
 	int pri = tile_number >> 8;
 	if( sys16_textmode==2 ){ /* afterburner: ?---CCCT TTTTTTTT */
 		SET_TILE_INFO(
-			0, (tile_number&0x1ff) + sys16_tile_bank0 * 0x1000,
-			512+384+((tile_number>>9)&0x7) );
+				0,
+				(tile_number&0x1ff) + sys16_tile_bank0 * 0x1000,
+				512+384+((tile_number>>9)&0x7),
+				0)
 	}
 	else if(sys16_textmode==0){
-		SET_TILE_INFO( 0, (tile_number&0x1ff) + sys16_tile_bank0 * 0x1000, (tile_number>>9)%8 );
+		SET_TILE_INFO(
+				0,
+				(tile_number&0x1ff) + sys16_tile_bank0 * 0x1000,
+				(tile_number>>9)%8,
+				0)
 	}
 	else{
-		SET_TILE_INFO( 0, (tile_number&0xff)  + sys16_tile_bank0 * 0x1000, (tile_number>>8)%8 );
+		SET_TILE_INFO(
+				0,
+				(tile_number&0xff)  + sys16_tile_bank0 * 0x1000,
+				(tile_number>>8)%8,
+				0)
 	}
 	if(pri>=sys16_textlayer_lo_min && pri<=sys16_textlayer_lo_max)
 		tile_info.priority = 1;
@@ -1365,8 +1423,8 @@ static void render_gr(struct osd_bitmap *bitmap,int priority){
 	int yflip=0, ypos;
 	int dx=1,xoff=0;
 
-	UINT16 *paldata1 = Machine->gfx[0]->colortable + sys16_gr_palette;
-	UINT16 *paldata2 = Machine->gfx[0]->colortable + sys16_gr_palette_default;
+	UINT32 *paldata1 = Machine->gfx[0]->colortable + sys16_gr_palette;
+	UINT32 *paldata2 = Machine->gfx[0]->colortable + sys16_gr_palette_default;
 
 #if 0
 if( keyboard_pressed( KEYCODE_S ) ){
@@ -1733,8 +1791,8 @@ static void render_grv2(struct osd_bitmap *bitmap,int priority)
 
 	int second_road = sys16_gr_second_road[0];
 
-	UINT16 *paldata1 = Machine->gfx[0]->colortable + sys16_gr_palette;
-	UINT16 *paldata2 = Machine->gfx[0]->colortable + sys16_gr_palette_default;
+	UINT32 *paldata1 = Machine->gfx[0]->colortable + sys16_gr_palette;
+	UINT32 *paldata2 = Machine->gfx[0]->colortable + sys16_gr_palette_default;
 
 	priority=priority << 11;
 
@@ -2079,9 +2137,10 @@ void sys16_outrun_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh){
 		tilemap_draw( bitmap, background, 0, 0 );
 		tilemap_draw( bitmap, foreground, 0, 0 );
 		render_grv2(bitmap,0);
-		tilemap_draw( bitmap, text_layer, 0, 0 );
 
 		draw_sprites( bitmap, 1 );
+
+		tilemap_draw( bitmap, text_layer, 0, 0 );
 	}
 }
 

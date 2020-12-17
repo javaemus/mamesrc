@@ -8,6 +8,7 @@
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
+#include "state.h"
 
 
 static struct rectangle spritevisiblearea =
@@ -28,12 +29,27 @@ unsigned char *wiz_attributesram;
 unsigned char *wiz_attributesram2;
 
 static int flipx, flipy;
+static int bgpen;
 
 unsigned char *wiz_sprite_bank;
 static unsigned char char_bank[2];
 static unsigned char palbank[2];
 static int palette_bank;
 
+
+int wiz_vh_start(void)
+{
+	if (generic_vh_start())
+		return 1;
+
+	state_save_register_UINT8("wiz", 0, "char_bank",   char_bank,   2);
+	state_save_register_UINT8("wiz", 0, "palbank",	   palbank,     2);
+	state_save_register_int  ("wiz", 0, "flipx",       &flipx);
+	state_save_register_int  ("wiz", 0, "flipy",       &flipy);
+	state_save_register_int  ("wiz", 0, "bgpen",       &bgpen);
+
+	return 0;
+}
 
 /***************************************************************************
 
@@ -103,6 +119,11 @@ WRITE_HANDLER( wiz_palettebank_w )
 
 		memset(dirtybuffer,1,videoram_size);
 	}
+}
+
+WRITE_HANDLER( wiz_bgcolor_w )
+{
+	bgpen = data;
 }
 
 WRITE_HANDLER( wiz_char_bank_select_w )
@@ -252,12 +273,6 @@ void wiz_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int bank;
 	const struct rectangle* visible_area;
-	int bgpen;
-
-	/* TODO: find what selects the background color */
-	bgpen = 0;
-	//if (sky) bgpen = 0x1a;
-	//if (book) bgpen = 0x24;
 
 	fillbitmap(bitmap,Machine->pens[bgpen],&Machine->visible_area);
 	draw_background(bitmap, 2 + ((char_bank[0] << 1) | char_bank[1]), 0);
@@ -265,15 +280,7 @@ void wiz_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	visible_area = flipx ? &spritevisibleareaflipx : &spritevisiblearea;
 
-	/* I seriously doubt that the real hardware works this way */
-	if ((spriteram[1] & 0x80) || !spriteram[3] || !spriteram[0])
-	{
-	    bank = 7 + *wiz_sprite_bank;
-	}
-	else
-	{
-		bank = 8;	// Dragon boss
-	}
+    bank = 7 + *wiz_sprite_bank;
 
 	draw_sprites(bitmap, spriteram_2, 6,    visible_area);
 	draw_sprites(bitmap, spriteram  , bank, visible_area);
@@ -282,7 +289,7 @@ void wiz_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 void stinger_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);
+	fillbitmap(bitmap,Machine->pens[bgpen],&Machine->visible_area);
 	draw_background(bitmap, 2 + char_bank[0], 1);
 	draw_foreground(bitmap, 1);
 	draw_sprites(bitmap, spriteram_2, 4, &Machine->visible_area);

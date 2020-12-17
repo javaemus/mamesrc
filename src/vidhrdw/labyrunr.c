@@ -53,7 +53,11 @@ static void get_tile_info0(int tile_index)
 
 	bank = (bank & ~(mask << 1)) | ((K007121_ctrlram[0][0x04] & mask) << 1);
 
-	SET_TILE_INFO(0,code+bank*256,((K007121_ctrlram[0][6]&0x30)*2+16)+(attr&7))
+	SET_TILE_INFO(
+			0,
+			code+bank*256,
+			((K007121_ctrlram[0][6]&0x30)*2+16)+(attr&7),
+			0)
 }
 
 static void get_tile_info1(int tile_index)
@@ -74,7 +78,11 @@ static void get_tile_info1(int tile_index)
 
 	bank = (bank & ~(mask << 1)) | ((K007121_ctrlram[0][0x04] & mask) << 1);
 
-	SET_TILE_INFO(0,code+bank*256,((K007121_ctrlram[0][6]&0x30)*2+16)+(attr&7))
+	SET_TILE_INFO(
+			0,
+			code+bank*256,
+			((K007121_ctrlram[0][6]&0x30)*2+16)+(attr&7),
+			0)
 }
 
 
@@ -148,5 +156,5 @@ void labyrunr_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 	tilemap_draw(bitmap,layer0,0,0);
 	K007121_sprites_draw(0,bitmap,spriteram,(K007121_ctrlram[0][6]&0x30)*2,40,0,-1);
-	tilemap_draw(bitmap,layer1,0 ,0);
+	tilemap_draw(bitmap,layer1,0,0);
 }

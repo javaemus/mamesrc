@@ -12,6 +12,7 @@
 #include "datafile.h"
 #include <stdarg.h>
 #include "ui_text.h"
+#include "state.h"
 
 #ifdef MESS
   #include "mess.h"
@@ -27,12 +28,14 @@ extern unsigned int coinlockedout[COIN_COUNTERS];
 /* MARTINEZ.F 990207 Memory Card */
 #ifndef MESS
 #ifndef TINY_COMPILE
+#ifndef CPSMAME
 int 		memcard_menu(struct osd_bitmap *bitmap, int);
 extern int	mcd_action;
 extern int	mcd_number;
 extern int	memcard_status;
 extern int	memcard_number;
 extern int	memcard_manager;
+#endif
 #endif
 #endif
 
@@ -81,7 +84,7 @@ void set_ui_visarea (int xmin, int ymin, int xmax, int ymax)
 	int temp,w,h;
 
 	/* special case for vectors */
-	if(Machine->drv->video_attributes == VIDEO_TYPE_VECTOR)
+	if (Machine->drv->video_attributes & VIDEO_TYPE_VECTOR)
 	{
 		if (Machine->ui_orientation & ORIENTATION_SWAP_XY)
 		{
@@ -376,7 +379,7 @@ struct GfxElement *builduifont(void)
 	};
 
 	struct GfxElement *font;
-	static unsigned short colortable[2*2];	/* ASG 980209 */
+	static UINT32 colortable[2*2];	/* ASG 980209 */
 
 
 	switch_ui_orientation();
@@ -443,7 +446,7 @@ void displaytext(struct osd_bitmap *bitmap,const struct DisplayText *dt)
 {
 	switch_ui_orientation();
 
-	osd_mark_dirty(0,0,Machine->uiwidth-1,Machine->uiheight-1);
+	osd_mark_dirty(Machine->uixmin,Machine->uiymin,Machine->uixmin+Machine->uiwidth-1,Machine->uiymin+Machine->uiheight-1);
 
 	while (dt->text)
 	{
@@ -535,8 +538,7 @@ void ui_text(struct osd_bitmap *bitmap,const char *buf,int x,int y)
 
 void ui_drawbox(struct osd_bitmap *bitmap,int leftx,int topy,int width,int height)
 {
-	unsigned short black,white;
-
+	UINT32 black,white;
 
 	switch_ui_orientation();
 
@@ -563,7 +565,7 @@ void ui_drawbox(struct osd_bitmap *bitmap,int leftx,int topy,int width,int heigh
 
 static void drawbar(struct osd_bitmap *bitmap,int leftx,int topy,int width,int height,int percentage,int default_percentage)
 {
-	unsigned short black,white;
+	UINT32 black,white;
 
 
 	switch_ui_orientation();
@@ -961,6 +963,7 @@ void ui_displaymessagewindow(struct osd_bitmap *bitmap,const char *text)
 
 #ifndef MESS
 #ifndef TINY_COMPILE
+#ifndef CPSMAME
 extern int no_of_tiles;
 void NeoMVSDrawGfx(unsigned char **line,const struct GfxElement *gfx,
 		unsigned int code,unsigned int color,int flipx,int flipy,int sx,int sy,
@@ -969,6 +972,7 @@ void NeoMVSDrawGfx16(unsigned char **line,const struct GfxElement *gfx,
 		unsigned int code,unsigned int color,int flipx,int flipy,int sx,int sy,
 		int zx,int zy,const struct rectangle *clip);
 extern struct GameDriver driver_neogeo;
+#endif
 #endif
 #endif
 
@@ -993,10 +997,12 @@ static void showcharset(struct osd_bitmap *bitmap)
 
 #ifndef MESS
 #ifndef TINY_COMPILE
+#ifndef CPSMAME
 	if (Machine->gamedrv->clone_of == &driver_neogeo ||
 			(Machine->gamedrv->clone_of &&
 				Machine->gamedrv->clone_of->clone_of == &driver_neogeo))
 		game_is_neogeo=1;
+#endif
 #endif
 #endif
 
@@ -1025,7 +1031,7 @@ static void showcharset(struct osd_bitmap *bitmap)
 
 			erase_screen(bitmap);
 
-			/* validity chack after char bank change */
+			/* validity check after char bank change */
 			if (bank >= 0)
 			{
 				if (firstdrawn >= Machine->gfx[bank]->total_elements)
@@ -1044,7 +1050,7 @@ static void showcharset(struct osd_bitmap *bitmap)
 					int table_offs;
 					int flipx,flipy;
 
-					if (palette_used_colors)
+					if (palette_used_colors && Machine->gfx[bank]->colortable)
 					{
 						memset(palette_used_colors,PALETTE_COLOR_TRANSPARENT,Machine->drv->total_colors * sizeof(unsigned char));
 						table_offs = Machine->gfx[bank]->colortable - Machine->remapped_colortable
@@ -1076,7 +1082,7 @@ static void showcharset(struct osd_bitmap *bitmap)
 								flipx,flipy,
 								(i % cpx) * Machine->gfx[bank]->width + Machine->uixmin,
 								Machine->uifontheight + (i / cpx) * Machine->gfx[bank]->height + Machine->uiymin,
-								0,TRANSPARENCY_NONE,0);
+								0,Machine->gfx[bank]->colortable ? TRANSPARENCY_NONE : TRANSPARENCY_NONE_RAW,0);
 
 						lastdrawn = i+firstdrawn;
 					}
@@ -1122,6 +1128,7 @@ static void showcharset(struct osd_bitmap *bitmap)
 			}
 #ifndef MESS
 #ifndef TINY_COMPILE
+#ifndef CPSMAME
 			else	/* neogeo sprite tiles */
 			{
 				struct rectangle clip;
@@ -1159,6 +1166,7 @@ static void showcharset(struct osd_bitmap *bitmap)
 					lastdrawn = i+firstdrawn;
 				}
 			}
+#endif
 #endif
 #endif
 
@@ -1761,7 +1769,7 @@ static int setcodesettings(struct osd_bitmap *bitmap,int selected)
 
 static int calibratejoysticks(struct osd_bitmap *bitmap,int selected)
 {
-	char *msg;
+	const char *msg;
 	static char buf[2048];
 	int sel;
 	static int calibration_started = 0;
@@ -2292,7 +2300,7 @@ int showgamewarnings(struct osd_bitmap *bitmap)
 
 	if (Machine->gamedrv->flags &
 			(GAME_NOT_WORKING | GAME_UNEMULATED_PROTECTION | GAME_WRONG_COLORS | GAME_IMPERFECT_COLORS |
-			  GAME_NO_SOUND | GAME_IMPERFECT_SOUND | GAME_NO_COCKTAIL))
+			  GAME_NO_SOUND | GAME_IMPERFECT_SOUND | GAME_IMPERFECT_GRAPHICS | GAME_NO_COCKTAIL))
 	{
 		int done;
 
@@ -2318,6 +2326,12 @@ int showgamewarnings(struct osd_bitmap *bitmap)
 		if (Machine->gamedrv->flags & GAME_WRONG_COLORS)
 		{
 			strcat(buf, ui_getstring (UI_wrongcolors));
+			strcat(buf, "\n");
+		}
+
+		if (Machine->gamedrv->flags & GAME_IMPERFECT_GRAPHICS)
+		{
+			strcat(buf, ui_getstring (UI_imperfectgraphics));
 			strcat(buf, "\n");
 		}
 
@@ -2701,6 +2715,7 @@ static int displayhistory (struct osd_bitmap *bitmap, int selected)
 
 #ifndef MESS
 #ifndef TINY_COMPILE
+#ifndef CPSMAME
 int memcard_menu(struct osd_bitmap *bitmap, int selection)
 {
 	int sel;
@@ -2820,6 +2835,7 @@ int memcard_menu(struct osd_bitmap *bitmap, int selection)
 }
 #endif
 #endif
+#endif
 
 
 #ifndef MESS
@@ -2893,12 +2909,14 @@ static void setup_menu_init(void)
 
 #ifndef MESS
 #ifndef TINY_COMPILE
+#ifndef CPSMAME
 	if (Machine->gamedrv->clone_of == &driver_neogeo ||
 			(Machine->gamedrv->clone_of &&
 				Machine->gamedrv->clone_of->clone_of == &driver_neogeo))
 	{
 		menu_item[menu_total] = ui_getstring (UI_memorycard); menu_action[menu_total++] = UI_MEMCARD;
 	}
+#endif
 #endif
 #endif
 
@@ -2964,9 +2982,11 @@ static int setup_menu(struct osd_bitmap *bitmap, int selected)
 				break;
 #ifndef MESS
 #ifndef TINY_COMPILE
+#ifndef CPSMAME
 			case UI_MEMCARD:
 				res = memcard_menu(bitmap, sel >> SEL_BITS);
 				break;
+#endif
 #endif
 #endif
 		}
@@ -3224,6 +3244,30 @@ static void onscrd_gamma(struct osd_bitmap *bitmap,int increment,int arg)
 	displayosd(bitmap,buf,100*(gamma_correction-0.5)/(2.0-0.5),100*(1.0-0.5)/(2.0-0.5));
 }
 
+static void onscrd_vector_flicker(struct osd_bitmap *bitmap,int increment,int arg)
+{
+	char buf[1000];
+	float flicker_correction;
+
+	if (!code_pressed(KEYCODE_LCONTROL) && !code_pressed(KEYCODE_RCONTROL))
+		increment *= 5;
+
+	if (increment)
+	{
+		flicker_correction = vector_get_flicker();
+
+		flicker_correction += increment;
+		if (flicker_correction < 0.0) flicker_correction = 0.0;
+		if (flicker_correction > 100.0) flicker_correction = 100.0;
+
+		vector_set_flicker(flicker_correction);
+	}
+	flicker_correction = vector_get_flicker();
+
+	sprintf(buf,"%s %1.2f", ui_getstring (UI_vectorflicker), flicker_correction);
+	displayosd(bitmap,buf,flicker_correction,0);
+}
+
 static void onscrd_vector_intensity(struct osd_bitmap *bitmap,int increment,int arg)
 {
 	char buf[30];
@@ -3327,6 +3371,10 @@ static void onscrd_init(void)
 
 	if (Machine->drv->video_attributes & VIDEO_TYPE_VECTOR)
 	{
+		onscrd_fnc[item] = onscrd_vector_flicker;
+		onscrd_arg[item] = 0;
+		item++;
+
 		onscrd_fnc[item] = onscrd_vector_intensity;
 		onscrd_arg[item] = 0;
 		item++;
@@ -3425,10 +3473,10 @@ void CLIB_DECL usrintf_showmessage_secs(int seconds, const char *text,...)
 	messagecounter = seconds * Machine->drv->frames_per_second;
 }
 
-
 int handle_user_interface(struct osd_bitmap *bitmap)
 {
 	static int show_profiler;
+	int request_loadsave = LOADSAVE_NONE;
 #ifdef MAME_DEBUG
 	static int show_total_colors;
 #endif
@@ -3580,6 +3628,65 @@ if (Machine->gamedrv->flags & GAME_COMPUTER)
 	if (input_ui_pressed(IPT_UI_RESET_MACHINE))
 		machine_reset();
 
+	if (input_ui_pressed(IPT_UI_SAVE_STATE))
+		request_loadsave = LOADSAVE_SAVE;
+
+	if (input_ui_pressed(IPT_UI_LOAD_STATE))
+		request_loadsave = LOADSAVE_LOAD;
+
+	if (request_loadsave != LOADSAVE_NONE)
+	{
+		int file = 0;
+
+		osd_sound_enable(0);
+		osd_pause(1);
+
+		do
+		{
+			InputCode code;
+
+			if (request_loadsave == LOADSAVE_SAVE)
+				displaymessage(bitmap, "Select position to save to");
+			else
+				displaymessage(bitmap, "Select position to load from");
+
+			update_video_and_audio();
+
+			if (input_ui_pressed(IPT_UI_CANCEL))
+				break;
+
+			code = code_read_async();
+			if (code != CODE_NONE)
+			{
+				if (code >= KEYCODE_A && code <= KEYCODE_Z)
+					file = 'a' + (code - KEYCODE_A);
+				else if (code >= KEYCODE_0 && code <= KEYCODE_9)
+					file = '0' + (code - KEYCODE_0);
+				else if (code >= KEYCODE_0_PAD && code <= KEYCODE_9_PAD)
+					file = '0' + (code - KEYCODE_0);
+			}
+		}
+		while (!file);
+
+		osd_pause(0);
+		osd_sound_enable(1);
+
+		if (file > 0)
+		{
+			if (request_loadsave == LOADSAVE_SAVE)
+				usrintf_showmessage("Save to position %c", file);
+			else
+				usrintf_showmessage("Load from position %c", file);
+			cpu_loadsave_schedule(request_loadsave, file);
+		}
+		else
+		{
+			if (request_loadsave == LOADSAVE_SAVE)
+				usrintf_showmessage("Save cancelled");
+			else
+				usrintf_showmessage("Load cancelled");
+		}
+	}
 
 	if (single_step || input_ui_pressed(IPT_UI_PAUSE)) /* pause the game */
 	{

@@ -179,6 +179,28 @@ WRITE_HANDLER( srdarwin_control_w )
 
 WRITE_HANDLER( lastmiss_control_w )
 {
+	unsigned char *RAM = memory_region(REGION_CPU1);
+
+	/*
+		Bit 0x0f - ROM bank switch.
+		Bit 0x10 - Unused
+		Bit 0x20 - X scroll MSB
+		Bit 0x40 - Y scroll MSB
+		Bit 0x80 - Hold subcpu reset line high if clear, else low
+	*/
+	cpu_setbank(1,&RAM[0x10000 + (data & 0x0f) * 0x4000]);
+
+	scroll2[0]=(data>>5)&1;
+	scroll2[2]=(data>>6)&1;
+
+	if (data&0x80)
+		cpu_set_reset_line(1,CLEAR_LINE);
+	else
+		cpu_set_reset_line(1,ASSERT_LINE);
+}
+
+WRITE_HANDLER( shackled_control_w )
+{
 	int bankaddress;
 	unsigned char *RAM = memory_region(REGION_CPU1);
 
@@ -188,11 +210,6 @@ WRITE_HANDLER( lastmiss_control_w )
 
 	scroll2[0]=(data>>5)&1;
 	scroll2[2]=(data>>6)&1;
-
-if (cpu_get_pc()==0xfa51) cpu_set_reset_line(1,PULSE_LINE); /* No way this can be right... */
-if (cpu_get_pc()==0xf9d2) cpu_set_reset_line(1,PULSE_LINE); /* No way this can be right... */
-
-//logerror("PC %06x - Write %02x to %04x\n",cpu_get_pc(),data,offset+0x1802);
 }
 
 WRITE_HANDLER( lastmiss_scrollx_w )
@@ -456,7 +473,11 @@ static void get_bac0_tile_info( int tile_index )
 	color=tile >> 12;
 	if (color>7 && game_uses_priority) tile_info.priority=1; else tile_info.priority=0;
 
-	SET_TILE_INFO(gfx_bank,tile&0xfff,color&gfx_mask)
+	SET_TILE_INFO(
+			gfx_bank,
+			tile&0xfff,
+			color&gfx_mask,
+			0)
 }
 
 static UINT32 bac0_scan_rows(UINT32 col,UINT32 row,UINT32 num_cols,UINT32 num_rows)
@@ -471,7 +492,11 @@ static void get_cobracom_fix_tile_info( int tile_index )
 	int tile=videoram[offs+1]+(videoram[offs]<<8);
 	int color=(tile&0xe000) >> 13;
 
-	SET_TILE_INFO(0,tile&0xfff,color)
+	SET_TILE_INFO(
+			0,
+			tile&0xfff,
+			color,
+			0)
 }
 
 int cobracom_vh_start(void)
@@ -520,7 +545,11 @@ static void get_ghostb_fix_tile_info( int tile_index )
 	int tile=videoram[offs+1]+(videoram[offs]<<8);
 	int color=(tile&0xc00) >> 10;
 
-	SET_TILE_INFO(0,tile&0x3ff,color)
+	SET_TILE_INFO(
+			0,
+			tile&0x3ff,
+			color,
+			0)
 }
 
 int ghostb_vh_start(void)
@@ -564,7 +593,11 @@ static void get_oscar_fix_tile_info( int tile_index )
 	int tile=videoram[offs+1]+(videoram[offs]<<8);
 	int color=(tile&0xf000) >> 14;
 
-	SET_TILE_INFO(0,tile&0xfff,color)
+	SET_TILE_INFO(
+			0,
+			tile&0xfff,
+			color,
+			0)
 }
 
 int oscar_vh_start(void)
@@ -576,8 +609,7 @@ int oscar_vh_start(void)
 		return 1;
 
 	tilemap_set_transparent_pen(dec8_fix_tilemap,0);
-	tilemap_set_transmask(dec8_pf0_tilemap,0,0x00ff); /* Bottom 8 pens */
-	tilemap_set_transmask(dec8_pf0_tilemap,1,0xff00); /* Top 8 pens */
+	tilemap_set_transmask(dec8_pf0_tilemap,0,0x00ff,0xff00); /* Bottom 8 pens */
 	game_uses_priority=1;
 	gfx_bank=2;
 	gfx_mask=0x7;
@@ -635,7 +667,11 @@ static void get_lastmiss_tile_info( int tile_index )
 
 	if (color>7 && game_uses_priority) tile_info.priority=1; else tile_info.priority=0;
 
-	SET_TILE_INFO(2,tile&0xfff,color)
+	SET_TILE_INFO(
+			2,
+			tile&0xfff,
+			color,
+			0)
 }
 
 static void get_lastmiss_fix_tile_info( int tile_index )
@@ -644,7 +680,11 @@ static void get_lastmiss_fix_tile_info( int tile_index )
 	int tile=videoram[offs+1]+(videoram[offs]<<8);
 	int color=(tile&0xc000) >> 14;
 
-	SET_TILE_INFO(0,tile&0xfff,color)
+	SET_TILE_INFO(
+			0,
+			tile&0xfff,
+			color,
+			0)
 }
 
 int lastmiss_vh_start(void)
@@ -670,8 +710,7 @@ int shackled_vh_start(void)
 		return 1;
 
 	tilemap_set_transparent_pen(dec8_fix_tilemap,0);
-	tilemap_set_transmask(dec8_pf0_tilemap,0,0x000f); /* Bottom 12 pens */
-	tilemap_set_transmask(dec8_pf0_tilemap,1,0xfff0); /* Top 4 pens */
+	tilemap_set_transmask(dec8_pf0_tilemap,0,0x000f,0xfff0); /* Bottom 12 pens */
 	game_uses_priority=1;
 
 	return 0;
@@ -702,7 +741,11 @@ static void get_srdarwin_fix_tile_info( int tile_index )
 
 	if (color>1) tile_info.priority=1; else tile_info.priority=0;
 
-	SET_TILE_INFO(0,tile,color)
+	SET_TILE_INFO(
+			0,
+			tile,
+			color,
+			0)
 }
 
 static void get_srdarwin_tile_info(int tile_index)
@@ -714,7 +757,11 @@ static void get_srdarwin_tile_info(int tile_index)
 	tile=tile&0xfff;
 	bank=(tile/0x100)+2;
 
-	SET_TILE_INFO(bank,tile,color)
+	SET_TILE_INFO(
+			bank,
+			tile,
+			color,
+			0)
 }
 
 int srdarwin_vh_start(void)
@@ -726,8 +773,7 @@ int srdarwin_vh_start(void)
 		return 1;
 
 	tilemap_set_transparent_pen(dec8_fix_tilemap,0);
-	tilemap_set_transmask(dec8_pf0_tilemap,0,0x00ff); /* Bottom 8 pens */
-	tilemap_set_transmask(dec8_pf0_tilemap,1,0xff00); /* Top 8 pens */
+	tilemap_set_transmask(dec8_pf0_tilemap,0,0x00ff,0xff00); /* Bottom 8 pens */
 
 	return 0;
 }
@@ -773,7 +819,11 @@ static void get_gondo_fix_tile_info( int tile_index )
 	int tile=videoram[offs+1]+(videoram[offs]<<8);
 	int color=(tile&0x7000) >> 12;
 
-	SET_TILE_INFO(0,tile&0xfff,color)
+	SET_TILE_INFO(
+			0,
+			tile&0xfff,
+			color,
+			0)
 }
 
 static void get_gondo_tile_info( int tile_index )
@@ -784,7 +834,11 @@ static void get_gondo_tile_info( int tile_index )
 
 	if (color>7 && game_uses_priority) tile_info.priority=1; else tile_info.priority=0;
 
-	SET_TILE_INFO(2,tile&0xfff,color)
+	SET_TILE_INFO(
+			2,
+			tile&0xfff,
+			color,
+			0)
 }
 
 int gondo_vh_start(void)
@@ -796,8 +850,7 @@ int gondo_vh_start(void)
 		return 1;
 
 	tilemap_set_transparent_pen(dec8_fix_tilemap,0);
-	tilemap_set_transmask(dec8_pf0_tilemap,0,0x00ff); /* Bottom 8 pens */
-	tilemap_set_transmask(dec8_pf0_tilemap,1,0xff00); /* Top 8 pens */
+	tilemap_set_transmask(dec8_pf0_tilemap,0,0x00ff,0xff00); /* Bottom 8 pens */
 	game_uses_priority=0;
 
 	return 0;

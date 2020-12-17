@@ -115,7 +115,11 @@ static void get_bg_tile_info(int tile_index)
 	color=tile >> 12;
 	tile=tile&0xfff;
 
-	SET_TILE_INFO(gfx_bank,tile,color)
+	SET_TILE_INFO(
+			gfx_bank,
+			tile,
+			color,
+			0)
 }
 
 static void get_fg_tile_info(int tile_index)
@@ -124,7 +128,11 @@ static void get_fg_tile_info(int tile_index)
 	int color=tile >> 12;
 
 	tile=tile&0xfff;
-	SET_TILE_INFO(0,tile,color)
+	SET_TILE_INFO(
+			0,
+			tile,
+			color,
+			0)
 }
 
 /******************************************************************************/
@@ -337,12 +345,12 @@ void darkseal_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	tilemap_set_scrollx( pf2_tilemap,0, darkseal_control_1[1]);
 	tilemap_set_scrolly( pf2_tilemap,0, darkseal_control_1[2] );
 
-	if (READ_WORD(&darkseal_control_0[0xc])&0x4000) { /* Rowscroll enable */
+	if (darkseal_control_0[6]&0x4000) { /* Rowscroll enable */
 		int offs,scrollx=darkseal_control_0[3];
 
 		tilemap_set_scroll_rows(pf3_tilemap,512);
 		for (offs = 0;offs < 512;offs++)
-			tilemap_set_scrollx( pf3_tilemap,offs, scrollx + darkseal_pf34_row[offs+0x80] );
+			tilemap_set_scrollx( pf3_tilemap,offs, scrollx + darkseal_pf34_row[offs+0x40] );
 	}
 	else {
 		tilemap_set_scroll_rows(pf3_tilemap,1);

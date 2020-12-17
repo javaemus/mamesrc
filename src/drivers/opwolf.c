@@ -23,11 +23,23 @@ which acts as a substitute c-chip. $800 bytes of the Z80's ram
 space are shared, mapped to $800 words in the 68000 address space
 used to access the c-chip.
 
-(Is it satisfactory to emulate a non-existent Z80 like this?)
+
+Gun Travel
+----------
+
+Horizontal gun travel maybe could be widened to include more
+of the status bar (you can shoot enemies underneath it).
+
+To keep the input span 0-255 a multiplier (300/256 ?)
+would be used.
 
 
 TODO
 ====
+
+Need to verify Opwolf against original board: various reports
+claim there are discrepancies (perhaps limitations of the fake
+Z80 c-chip substitute to blame?).
 
 There are a few unmapped writes for the sound Z80 in the log.
 
@@ -42,29 +54,30 @@ register. So what is controlling priority.
 ***************************************************************************/
 
 #include "driver.h"
+#include "state.h"
 #include "cpu/m68000/m68000.h"
 #include "vidhrdw/generic.h"
 #include "vidhrdw/taitoic.h"
 #include "sndhrdw/taitosnd.h"
 
-//extern data16_t *opwolf_ram;
 static data8_t *cchip_ram;
 
 WRITE16_HANDLER( rainbow_spritectrl_w );
 WRITE16_HANDLER( rastan_spriteflip_w );
 
 int  opwolf_vh_start(void);
-void rastan_vh_stop(void);
+void opwolf_eof_callback(void);
 void opwolf_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
+void rastan_vh_stop(void);
 
-static int opwolf_gun_x,opwolf_gun_y;
+static int opwolf_gun_xoffs,opwolf_gun_yoffs;
 
-static READ_HANDLER( cchip_r )
+static READ16_HANDLER( cchip_r )
 {
 	return cchip_ram[offset];
 }
 
-static WRITE_HANDLER( cchip_w )
+static WRITE16_HANDLER( cchip_w )
 {
 	cchip_ram[offset] = data &0xff;
 }
@@ -73,14 +86,14 @@ static WRITE_HANDLER( cchip_w )
 				INTERRUPTS
 ***********************************************************/
 
-void opwolf_irq_handler(int irq);
+//void opwolf_irq_handler(int irq);
 
-int opwolf_interrupt(void)
+static int opwolf_interrupt(void)
 {
 	return 5;  /* interrupt vector 5: others are RTE */
 }
 
-int sub_z80_interrupt(void)
+static int sub_z80_interrupt(void)
 {
 	return 1;  // ??
 }
@@ -94,10 +107,10 @@ static READ16_HANDLER( opwolf_lightgun_r )
 {
 	switch (offset)
 	{
-		case 0x00:
-			return (input_port_5_word_r(0) + 0x18 + opwolf_gun_x);	/* P1X */
-		case 0x01:
-			return (input_port_6_word_r(0) - 0x10 + opwolf_gun_y);	/* P1Y */
+		case 0x00:	/* P1X */
+			return (input_port_5_word_r(0,mem_mask) + 0x15 + opwolf_gun_xoffs);
+		case 0x01:	/* P1Y */
+			return (input_port_6_word_r(0,mem_mask) - 0x24 + opwolf_gun_yoffs);
 	}
 
 	return 0xff;
@@ -105,12 +118,12 @@ static READ16_HANDLER( opwolf_lightgun_r )
 
 static READ_HANDLER( z80_input1_r )
 {
-	return input_port_0_word_r(1);	/* probably an irrelevant mirror */
+	return input_port_0_word_r(0,0);	/* irrelevant mirror ? */
 }
 
 static READ_HANDLER( z80_input2_r )
 {
-	return input_port_0_word_r(0);	/* needed for coins */
+	return input_port_0_word_r(0,0);	/* needed for coins */
 }
 
 
@@ -118,13 +131,17 @@ static READ_HANDLER( z80_input2_r )
 				SOUND
 ******************************************************/
 
-static WRITE_HANDLER( opwolf_bankswitch_w )
-{
-	int bankaddress;
-	unsigned char *RAM = memory_region(REGION_CPU2);
+static int banknum = -1;
 
-	bankaddress = 0x10000 + ((data-1) & 0x03) * 0x4000;
-	cpu_setbank(10,&RAM[bankaddress]);
+static void reset_sound_region(void)
+{
+	cpu_setbank( 10, memory_region(REGION_CPU2) + (banknum * 0x4000) + 0x10000 );
+}
+
+static WRITE_HANDLER( sound_bankswitch_w )
+{
+	banknum = (data-1) & 0x03;
+	reset_sound_region();
 }
 
 
@@ -136,7 +153,7 @@ static MEMORY_READ16_START( opwolf_readmem )
 	{ 0x000000, 0x03ffff, MRA16_ROM },
 	{ 0x0f0008, 0x0f0009, input_port_0_word_r },	/* IN0 */
 	{ 0x0f000a, 0x0f000b, input_port_1_word_r },	/* IN1 */
-	{ 0x0ff000, 0x0fffff, (mem_read16_handler)cchip_r },
+	{ 0x0ff000, 0x0fffff, cchip_r },
 	{ 0x100000, 0x107fff, MRA16_RAM },	/* RAM */
 	{ 0x200000, 0x200fff, paletteram16_word_r },
 	{ 0x380000, 0x380001, input_port_2_word_r },	/* DSW A */
@@ -145,13 +162,13 @@ static MEMORY_READ16_START( opwolf_readmem )
 	{ 0x3e0000, 0x3e0001, MRA16_NOP },
 	{ 0x3e0002, 0x3e0003, taitosound_comm16_msb_r },
 	{ 0xc00000, 0xc0ffff, PC080SN_word_0_r },
-//	{ 0xc10000, 0xc1ffff, MRA16_RAM },	// debugging (I don't think this area is used)
+//	{ 0xc10000, 0xc1ffff, MRA16_RAM },	// (don't think this area is used)
 	{ 0xd00000, 0xd007ff, MRA16_RAM },	/* sprite ram */
 MEMORY_END
 
 static MEMORY_WRITE16_START( opwolf_writemem )
 	{ 0x000000, 0x03ffff, MWA16_ROM },
-	{ 0x0ff000, 0x0fffff, (mem_write16_handler)cchip_w },
+	{ 0x0ff000, 0x0fffff, cchip_w },
 	{ 0x100000, 0x107fff, MWA16_RAM },
 	{ 0x200000, 0x200fff, paletteram16_xxxxRRRRGGGGBBBB_word_w, &paletteram16 },
 	{ 0x380000, 0x380003, rainbow_spritectrl_w },	// usually 0x4, changes when you fire
@@ -159,7 +176,7 @@ static MEMORY_WRITE16_START( opwolf_writemem )
 	{ 0x3e0000, 0x3e0001, taitosound_port16_msb_w },
 	{ 0x3e0002, 0x3e0003, taitosound_comm16_msb_w },
 	{ 0xc00000, 0xc0ffff, PC080SN_word_0_w },
-	{ 0xc10000, 0xc1ffff, MWA16_RAM },	/* error in init code ? */
+	{ 0xc10000, 0xc1ffff, MWA16_RAM },	/* error in init code (?) */
 	{ 0xc20000, 0xc20003, PC080SN_yscroll_word_0_w },
 	{ 0xc40000, 0xc40003, PC080SN_xscroll_word_0_w },
 	{ 0xc50000, 0xc50003, PC080SN_ctrl_word_0_w },
@@ -176,14 +193,14 @@ static MEMORY_READ_START( sub_z80_readmem )
 	{ 0x0000, 0x7fff, MRA_ROM },
 	{ 0x8800, 0x8800, z80_input1_r },	/* read at PC=$637: poked to $c004 */
 	{ 0x9800, 0x9800, z80_input2_r },	/* read at PC=$631: poked to $c005 */
-	{ 0xc000, 0xcfff, cchip_r },	// does upper half exist ?
+	{ 0xc000, 0xcfff, MRA_RAM },	// does upper half exist ?
 MEMORY_END
 
 static MEMORY_WRITE_START( sub_z80_writemem )
 	{ 0x0000, 0x7fff, MWA_ROM },
 	{ 0x9000, 0x9000, MWA_NOP },	/* unknown write, 0 then 1 each interrupt */
 	{ 0xa000, 0xa000, MWA_NOP },	/* unknown write, once per interrupt */
-	{ 0xc000, 0xcfff, cchip_w, &cchip_ram },
+	{ 0xc000, 0xcfff, MWA_RAM, &cchip_ram },
 MEMORY_END
 
 /***************************************************************************/
@@ -197,8 +214,8 @@ static MEMORY_READ_START( z80_readmem )
 	{ 0xa001, 0xa001, taitosound_slave_comm_r },
 MEMORY_END
 
-static unsigned char adpcm_b[0x08];
-static unsigned char adpcm_c[0x08];
+static UINT8 adpcm_b[0x08];
+static UINT8 adpcm_c[0x08];
 
 //static unsigned char adpcm_d[0x08];
 //0 - start ROM offset LSB
@@ -226,7 +243,7 @@ static WRITE_HANDLER( opwolf_adpcm_b_w )
 		ADPCM_play(0,start,(end-start)*2);
 	}
 
-	logerror("CPU #1     b00%i-data=%2x   pc=%4x\n",offset,data,cpu_get_pc() );
+	/*logerror("CPU #1     b00%i-data=%2x   pc=%4x\n",offset,data,cpu_get_pc() );*/
 }
 
 
@@ -246,7 +263,7 @@ static WRITE_HANDLER( opwolf_adpcm_c_w )
 		ADPCM_play(1,start,(end-start)*2);
 	}
 
-	logerror("CPU #1     c00%i-data=%2x   pc=%4x\n",offset,data,cpu_get_pc() );
+	/*logerror("CPU #1     c00%i-data=%2x   pc=%4x\n",offset,data,cpu_get_pc() );*/
 }
 
 
@@ -323,7 +340,7 @@ INPUT_PORTS_START( opwolf )
 	PORT_DIPNAME( 0x01, 0x01, "NY Conversion of Upright" )
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x02, 0x02, "Allow Continue" )
+	PORT_DIPNAME( 0x02, 0x00, "Allow Continue" )
 	PORT_DIPSETTING(    0x02, DEF_STR( No ))
 	PORT_DIPSETTING(    0x00, DEF_STR( Yes ))
 	PORT_SERVICE( 0x04, IP_ACTIVE_LOW )
@@ -353,15 +370,15 @@ INPUT_PORTS_START( opwolf )
 	PORT_DIPSETTING(    0x00, "English" )
 
 	PORT_START	/* Fake DSW */
-	PORT_BITX(    0x01, 0x01, IPT_DIPSWITCH_NAME, "Show gun target", KEYCODE_F1, IP_JOY_NONE )
+	PORT_BITX(    0x01, 0x01, IPT_DIPSWITCH_NAME | IPF_TOGGLE, "Show gun target", KEYCODE_F1, IP_JOY_NONE )
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( On ) )
 
-	PORT_START	/* P1X (span about right) */
-	PORT_ANALOG( 0xff, 0x00, IPT_AD_STICK_X | IPF_PLAYER1, 25, 15, 0x00, 0xe9)
+	PORT_START	/* P1X (span allows you to shoot enemies behind status bar) */
+	PORT_ANALOG( 0xff, 0x80, IPT_AD_STICK_X | IPF_PLAYER1, 25, 15, 0x00, 0xff)
 
-	PORT_START	/* P1Y (span about right) */
-	PORT_ANALOG( 0xff, 0x00, IPT_AD_STICK_Y | IPF_PLAYER1, 25, 15, 0x00, 0xdf)
+	PORT_START	/* P1Y (span allows you to be slightly offscreen) */
+	PORT_ANALOG( 0xff, 0x80, IPT_AD_STICK_Y | IPF_PLAYER1, 25, 15, 0x00, 0xff)
 INPUT_PORTS_END
 
 
@@ -446,7 +463,7 @@ static struct YM2151interface ym2151_interface =
 	4000000,	/* 4 MHz ? */
 	{ YM3012_VOL(50,MIXER_PAN_CENTER,50,MIXER_PAN_CENTER) },
 	{ irq_handler },
-	{ opwolf_bankswitch_w }
+	{ sound_bankswitch_w }
 };
 
 
@@ -497,7 +514,7 @@ static struct MachineDriver machine_driver_opwolf =
 	0,
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
-	0,
+	opwolf_eof_callback,
 	opwolf_vh_start,
 	rastan_vh_stop,
 	opwolf_vh_screenrefresh,
@@ -550,7 +567,7 @@ static struct MachineDriver machine_driver_opwolfb =
 	0,
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
-	0,
+	opwolf_eof_callback,
 	opwolf_vh_start,
 	rastan_vh_stop,
 	opwolf_vh_screenrefresh,
@@ -581,11 +598,11 @@ ROM_START( opwolf )
 	ROM_LOAD16_BYTE( "opwlf.39",  0x20000, 0x10000, 0x216b4838 )
 	ROM_LOAD16_BYTE( "opwlf.29",  0x20001, 0x10000, 0xb71bc44c )
 
-	ROM_REGION( 0x1c000, REGION_CPU2, 0 )      /* sound cpu */
-	ROM_LOAD( "opwlf_s.10",   0x00000, 0x04000, 0x45c7ace3 )
-	ROM_CONTINUE(         0x10000, 0x0c000 ) /* banked stuff */
+	ROM_REGION( 0x20000, REGION_CPU2, 0 )      /* sound cpu */
+	ROM_LOAD( "opwlf_s.10",  0x00000, 0x04000, 0x45c7ace3 )
+	ROM_CONTINUE(            0x10000, 0x0c000 ) /* banked stuff */
 
-	ROM_REGION( 0x8000, REGION_CPU3, 0 )      /* fake Z80 from the bootleg */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )      /* fake Z80 from the bootleg */
 	ROM_LOAD( "opwlfb.09",   0x00000, 0x08000, 0xab27a3dd )
 
 	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
@@ -605,11 +622,11 @@ ROM_START( opwolfb )
 	ROM_LOAD16_BYTE( "opwlfb.13",  0x20000, 0x10000, 0x61230c6e )
 	ROM_LOAD16_BYTE( "opwlfb.11",  0x20001, 0x10000, 0x342e318d )
 
-	ROM_REGION( 0x14000, REGION_CPU2, 0 )      /* sound cpu */
-	ROM_LOAD( "opwlfb.30",   0x00000, 0x04000, 0x0669b94c )
-	ROM_CONTINUE(         0x10000, 0x04000 ) /* banked stuff */
+	ROM_REGION( 0x20000, REGION_CPU2, 0 )      /* sound cpu */
+	ROM_LOAD( "opwlfb.30",  0x00000, 0x04000, 0x0669b94c )
+	ROM_CONTINUE(           0x10000, 0x04000 ) /* banked stuff */
 
-	ROM_REGION( 0x8000, REGION_CPU3, 0 )      /* c-chip substitute Z80 */
+	ROM_REGION( 0x10000, REGION_CPU3, 0 )      /* c-chip substitute Z80 */
 	ROM_LOAD( "opwlfb.09",   0x00000, 0x08000, 0xab27a3dd )
 
 	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
@@ -644,21 +661,33 @@ ROM_START( opwolfb )
 ROM_END
 
 
-void init_opwolf(void)
+static void init_opwolf(void)
 {
-	opwolf_gun_x = 0;
-	opwolf_gun_y = 0;
+	opwolf_gun_xoffs = 0;
+	opwolf_gun_yoffs = 0;
+
+	/* (there are other sound vars that may need saving too) */
+	state_save_register_int("sound1", 0, "sound region", &banknum);
+	state_save_register_UINT8("sound2", 0, "registers", adpcm_b, 8);
+	state_save_register_UINT8("sound3", 0, "registers", adpcm_c, 8);
+	state_save_register_func_postload(reset_sound_region);
 }
 
-void init_opwolfb(void)
+static void init_opwolfb(void)
 {
 	/* bootleg needs different range of raw gun coords */
-	opwolf_gun_x = -2;
-	opwolf_gun_y = 17;
+	opwolf_gun_xoffs = -2;
+	opwolf_gun_yoffs = 17;
+
+	/* (there are other sound vars that may need saving too) */
+	state_save_register_int("sound1", 0, "sound region", &banknum);
+	state_save_register_UINT8("sound2", 0, "registers", adpcm_b, 8);
+	state_save_register_UINT8("sound3", 0, "registers", adpcm_c, 8);
+	state_save_register_func_postload(reset_sound_region);
 }
 
 
 
 /*    year  rom       parent    machine   inp       init */
 GAME( 1987, opwolf,   0,        opwolf,   opwolf,   opwolf,   ROT0, "Taito America Corp", "Operation Wolf (US)" )
-GAME( 1988, opwolfb,  opwolf,   opwolfb,  opwolf,   opwolfb,  ROT0, "Bear Corporation Korea", "Operation Wolf (bootleg)" )
+GAME( 1987, opwolfb,  opwolf,   opwolfb,  opwolf,   opwolfb,  ROT0, "bootleg", "Operation Bear" )

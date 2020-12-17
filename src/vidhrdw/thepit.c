@@ -9,7 +9,8 @@
 #include "driver.h"
 #include "vidhrdw/generic.h"
 
-extern unsigned char *galaxian_attributesram;
+
+unsigned char *thepit_attributesram;
 
 static int graphics_bank = 0;
 
@@ -74,10 +75,78 @@ void thepit_vh_convert_color_prom(unsigned char *palette, unsigned short *colort
 		*(palette++) = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
 	}
 
-	for (i = 0;i < Machine->drv->total_colors-8;i++)
+	for (i = 0;i < Machine->drv->color_table_len;i++)
 	{
 		colortable[i] = i + 8;
 	}
+}
+
+
+/***************************************************************************
+
+ Super Mouse has 5 bits per gun (maybe 6 for green), exact weights are
+ unknown.
+
+***************************************************************************/
+void suprmous_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
+{
+	int i;
+
+
+
+	/* first of all, allocate primary colors for the background and foreground */
+	/* this is wrong, but I don't know where to pick the colors from */
+	for (i = 0;i < 8;i++)
+	{
+		*(palette++) = 0xff * ((i >> 2) & 1);
+		*(palette++) = 0xff * ((i >> 1) & 1);
+		*(palette++) = 0xff * ((i >> 0) & 1);
+	}
+
+	for (i = 0;i < Machine->drv->total_colors-8;i++)
+	{
+		int bit0,bit1,bit2,bit3,bit4;
+
+
+		bit0 = (color_prom[i+0x20] >> 6) & 0x01;
+		bit1 = (color_prom[i+0x20] >> 7) & 0x01;
+		bit2 = (color_prom[i] >> 0) & 0x01;
+		bit3 = (color_prom[i] >> 1) & 0x01;
+		bit4 = (color_prom[i] >> 2) & 0x01;
+		*(palette++) = 0x10 * bit0 + 0x20 * bit1 + 0x30 * bit2 + 0x40 * bit3 + 0x50 * bit4;
+		bit0 = (color_prom[i+0x20] >> 1) & 0x01;
+		bit1 = (color_prom[i+0x20] >> 2) & 0x01;
+		bit2 = (color_prom[i+0x20] >> 3) & 0x01;
+		bit3 = (color_prom[i+0x20] >> 4) & 0x01;
+		bit4 = (color_prom[i+0x20] >> 5) & 0x01;
+		*(palette++) = 0x50 * bit0 + 0x40 * bit1 + 0x30 * bit2 + 0x20 * bit3 + 0x10 * bit4;
+		bit0 = (color_prom[i] >> 3) & 0x01;
+		bit1 = (color_prom[i] >> 4) & 0x01;
+		bit2 = (color_prom[i] >> 5) & 0x01;
+		bit3 = (color_prom[i] >> 6) & 0x01;
+		bit4 = (color_prom[i] >> 7) & 0x01;
+		*(palette++) = 0x50 * bit0 + 0x40 * bit1 + 0x30 * bit2 + 0x20 * bit3 + 0x10 * bit4;
+	}
+
+	for (i = 0;i < Machine->drv->color_table_len;i++)
+	{
+		colortable[i] = i + 8;
+	}
+}
+
+
+WRITE_HANDLER( thepit_attributes_w )
+{
+	if ((offset & 1) && thepit_attributesram[offset] != data)
+	{
+		int i;
+
+
+		for (i = offset / 2;i < videoram_size;i += 32)
+			dirtybuffer[i] = 1;
+	}
+
+	thepit_attributesram[offset] = data;
 }
 
 
@@ -157,17 +226,17 @@ static void drawtiles(struct osd_bitmap *bitmap,int priority)
 				code = spacechar;
 				bank = 0;
 
-				sy = (sy - galaxian_attributesram[2 * sx]) & 0xff;
+				sy = (sy - thepit_attributesram[2 * sx]) & 0xff;
 			}
 
 			if (flip_screen_x) sx = 31 - sx;
 			if (flip_screen_y) sy = 248 - sy;
 
-			color = colorram[offs] & 0x07;
+			color = colorram[offs] & (Machine->drv->gfxdecodeinfo[bank].total_color_codes - 1);
 
 			/* set up the background color */
 			Machine->gfx[bank]->
-					colortable[color * Machine->gfx[graphics_bank]->color_granularity] =
+					colortable[color * Machine->gfx[bank]->color_granularity] =
 					Machine->pens[bgcolor];
 
 			drawgfx(priority == 0 ? tmpbitmap : bitmap,Machine->gfx[bank],
@@ -189,7 +258,7 @@ static void drawtiles(struct osd_bitmap *bitmap,int priority)
 		{
 			for (i = 0;i < 32;i++)
 			{
-				scroll[31-i] = -galaxian_attributesram[2 * i];
+				scroll[31-i] = -thepit_attributesram[2 * i];
 				if (flip_screen_y) scroll[31-i] = -scroll[31-i];
 			}
 		}
@@ -197,7 +266,7 @@ static void drawtiles(struct osd_bitmap *bitmap,int priority)
 		{
 			for (i = 0;i < 32;i++)
 			{
-				scroll[i] = -galaxian_attributesram[2 * i];
+				scroll[i] = -thepit_attributesram[2 * i];
 				if (flip_screen_y) scroll[i] = -scroll[i];
 			}
 		}

@@ -306,6 +306,10 @@ void t11_SetBank(int offset, unsigned char *base)
 }
 
 
+void t11_init(void)
+{
+}
+
 void t11_reset(void *param)
 {
 	int i;
@@ -387,7 +391,7 @@ const char *t11_info( void *context, int regnum )
 	static int which = 0;
 	t11_Regs *r = context;
 
-	which = ++which % 16;
+	which = (which+1) % 16;
     buffer[which][0] = '\0';
 
 	if( !context )

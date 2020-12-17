@@ -4,7 +4,7 @@
  Driver by David Haywood
  with help from Steph and Phil Stroffolino
 
- Last Changes: 7 Jan 2001
+ Last Changes: 5 Mar 2001
 
  This driver was started after interest was shown in the game by a poster at
  various messageboards going under the name of 'ninjakid'  I decided to attempt
@@ -13,19 +13,20 @@
 
 Hold P1 Start after a reset to skip the startup memory tests.
 
-Known Issues:
-
-The most obvious problem is the vertical scrolling.  It's jerky, and occasionally
-scrolls to the wrong row.  See notes in vidhrdw/ninjakid.c
-
+Change Log:
+5 Mar - Added Saved State Support (DJH)
+8 Jun - Added palette animation, Fixed FG priority. (Uki)
+9 Jun - Fixed BG scroll handling, Fixed CPU clock.
 *******************************************************************************/
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
 #include "cpu/z80/z80.h"
+#include "state.h"
 
 extern WRITE_HANDLER( ninjakid_bg_videoram_w );
 extern WRITE_HANDLER( ninjakid_fg_videoram_w );
+extern READ_HANDLER( ninjakid_bg_videoram_r );
 
 extern READ_HANDLER( ninjakun_io_8000_r );
 extern WRITE_HANDLER( ninjakun_io_8000_w );
@@ -33,6 +34,8 @@ extern WRITE_HANDLER( ninjakun_io_8000_w );
 extern int ninjakid_vh_start( void );
 extern void ninjakid_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 extern WRITE_HANDLER( ninjakun_flipscreen_w );
+
+extern WRITE_HANDLER( ninjakun_paletteram_w );
 
 /******************************************************************************/
 
@@ -82,7 +85,8 @@ static MEMORY_READ_START( ninjakid_primary_readmem )
 	{ 0xa000, 0xa000, input_port_0_r },
 	{ 0xa001, 0xa001, input_port_1_r },
 	{ 0xa002, 0xa002, ninjakun_io_A002_r },
-	{ 0xc000, 0xcfff, MRA_RAM },	/* tilemaps */
+	{ 0xc000, 0xc7ff, MRA_RAM },	/* tilemaps */
+	{ 0xc800, 0xcfff, ninjakid_bg_videoram_r },
     { 0xd000, 0xd7ff, MRA_RAM },	/* spriteram */
     { 0xd800, 0xd9ff, paletteram_r },
     { 0xe000, 0xe7ff, MRA_RAM },
@@ -97,7 +101,7 @@ static MEMORY_WRITE_START( ninjakid_primary_writemem )
 	{ 0xc000, 0xc7ff, ninjakid_fg_videoram_w, &videoram },
 	{ 0xc800, 0xcfff, ninjakid_bg_videoram_w },
 	{ 0xd000, 0xd7ff, MWA_RAM, &spriteram },
-	{ 0xd800, 0xd9ff, paletteram_BBGGRRII_w, &paletteram },
+	{ 0xd800, 0xd9ff, ninjakun_paletteram_w, &paletteram },
 	{ 0xe000, 0xe7ff, MWA_RAM, &shareram },
 MEMORY_END
 
@@ -108,7 +112,8 @@ static MEMORY_READ_START( ninjakid_secondary_readmem )
 	{ 0xa000, 0xa000, input_port_0_r },
 	{ 0xa001, 0xa001, input_port_1_r },
 	{ 0xa002, 0xa002, ninjakun_io_A002_r },
-	{ 0xc000, 0xcfff, videoram_r },		/* tilemaps */
+	{ 0xc000, 0xc7ff, videoram_r },		/* tilemaps */
+	{ 0xc800, 0xcfff, ninjakid_bg_videoram_r },
     { 0xd000, 0xd7ff, spriteram_r },	/* shareram */
     { 0xd800, 0xd9ff, paletteram_r },
     { 0xe000, 0xe7ff, shareram_r },
@@ -122,7 +127,7 @@ static MEMORY_WRITE_START( ninjakid_secondary_writemem )
 	{ 0xc000, 0xc7ff, ninjakid_fg_videoram_w },
 	{ 0xc800, 0xcfff, ninjakid_bg_videoram_w },
 	{ 0xd000, 0xd7ff, spriteram_w },	/* shareram */
-	{ 0xd800, 0xd9ff, paletteram_BBGGRRII_w },
+	{ 0xd800, 0xd9ff, ninjakun_paletteram_w },
     { 0xe000, 0xe7ff, shareram_w },
 MEMORY_END
 
@@ -162,7 +167,7 @@ static struct GfxDecodeInfo ninjakid_gfxdecodeinfo[] =
 {
 	{ REGION_GFX1, 0, &tile_layout,		0x000, 0x10 },
 	{ REGION_GFX2, 0, &tile_layout,		0x100, 0x10 },
-	{ REGION_GFX1, 0, &sprite_layout,	0x000, 0x10 },
+	{ REGION_GFX1, 0, &sprite_layout,	0x200, 0x10 },
 	{ -1 }
 };
 
@@ -173,7 +178,7 @@ static struct GfxDecodeInfo ninjakid_gfxdecodeinfo[] =
 static struct AY8910interface ay8910_interface =
 {
 	2,	/* 2 chips */
-	6000000/3,	/* 2 MHz? */
+	6000000/2,	/* 3 MHz */
 	{ 50, 50 }
 };
 
@@ -182,13 +187,13 @@ static const struct MachineDriver machine_driver_ninjakid =
     {
     	{
 			CPU_Z80,
-			4000000, /* ? */
+			3000000, /* 3.00MHz */
 			ninjakid_primary_readmem,ninjakid_primary_writemem,0,0,
 			interrupt,1
 		},
 		{
 			CPU_Z80,
-			4000000, /* ? */
+			3000000, /* 3.00MHz */
 			ninjakid_secondary_readmem,ninjakid_secondary_writemem,0,0,
 			interrupt,4 /* ? */
 		}
@@ -201,7 +206,7 @@ static const struct MachineDriver machine_driver_ninjakid =
     /* video hardware */
 	32*8, 32*8, { 0*8, 32*8-1, 4*8, (32-4)*8-1 },
     ninjakid_gfxdecodeinfo,
-    512,512,
+    512+256,512+256,
 	0,
 
 	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
@@ -312,12 +317,12 @@ INPUT_PORTS_START( ninjakid )
 	PORT_DIPSETTING(    0x02, DEF_STR( 2C_2C ) )
 	PORT_DIPSETTING(    0x07, DEF_STR( 1C_1C ) )
 	PORT_DIPSETTING(    0x03, DEF_STR( 1C_2C ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )/* Probably Unused */
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )/* Probably Unused */
-	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x08, 0x08, "High Score Names" )
+	PORT_DIPSETTING(    0x00, "3 Letters" )
+	PORT_DIPSETTING(    0x08, "8 Letters" )
+	PORT_DIPNAME( 0x10, 0x10, "Allow Continue" )
+	PORT_DIPSETTING(    0x10, DEF_STR( No ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
 	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )/* Probably Unused */
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -330,7 +335,17 @@ INPUT_PORTS_START( ninjakid )
 INPUT_PORTS_END
 
 /*******************************************************************************
+ Init
+*******************************************************************************/
+
+static void init_ninjakid(void)
+{
+	/* Save State Stuff */
+	state_save_register_UINT8 ("NK_Main", 0, "ninjakun_io_a002_ctrl", &ninjakun_io_a002_ctrl, 1);
+}
+
+/*******************************************************************************
  Game Drivers
 *******************************************************************************/
 
-GAME( 1984, ninjakun, 0, ninjakid, ninjakid, 0, ROT0, "[UPL] (Taito license)", "Ninjakun Majou no Bouken" )
+GAME( 1984, ninjakun, 0, ninjakid, ninjakid, ninjakid, ROT0_16BIT, "[UPL] (Taito license)", "Ninjakun Majou no Bouken" )

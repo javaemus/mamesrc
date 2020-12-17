@@ -4,6 +4,8 @@
 
 #define TC0100SCN_GFX_NUM 1
 
+void ninjaw_vh_stop(void);
+
 struct tempsprite
 {
 	int gfx;
@@ -33,8 +35,10 @@ static int number_of_TC0100SCN(void)
 		{
 			if (!IS_MEMPORT_MARKER(mwa))
 			{
-				if (mwa->handler == TC0100SCN_word_0_w)
-					has_chip[0] = 1;
+				if ((mwa->handler == TC0100SCN_word_0_w) ||
+					(mwa->handler == TC0100SCN_dual_screen_w) ||
+					(mwa->handler == TC0100SCN_triple_screen_w))
+				has_chip[0] = 1;
 			}
 			mwa++;
 		}
@@ -69,6 +73,7 @@ static int number_of_TC0100SCN(void)
 	}
 
 	/* Catch illegal configurations */
+	/* TODO: we should give an appropriate warning */
 
 	if (!has_chip[0] && (has_chip[1] || has_chip[2]))
 		return -1;
@@ -149,7 +154,7 @@ static int has_third_TC0110PCR(void)
 }
 
 
-int ninjaw_core_vh_start (void)
+static int ninjaw_core_vh_start (void)
 {
 	int chips;
 
@@ -160,29 +165,47 @@ int ninjaw_core_vh_start (void)
 	chips = number_of_TC0100SCN();
 
 	if (chips <= 0)	/* we have an erroneous TC0100SCN configuration */
+	{
+		ninjaw_vh_stop();
 		return 1;
+	}
 
-	if (TC0100SCN_vh_start(chips,TC0100SCN_GFX_NUM,taito_hide_pixels))
+	if (TC0100SCN_vh_start(chips,TC0100SCN_GFX_NUM,taito_hide_pixels,0,0,0,0,0,0))
+	{
+		ninjaw_vh_stop();
 		return 1;
+	}
 
 	if (has_TC0110PCR())
 		if (TC0110PCR_vh_start())
+		{
+			ninjaw_vh_stop();
 			return 1;
+		}
 
 	if (has_second_TC0110PCR())
 		if (TC0110PCR_1_vh_start())
+		{
+			ninjaw_vh_stop();
 			return 1;
+		}
 
 	if (has_third_TC0110PCR())
 		if (TC0110PCR_2_vh_start())
+		{
+			ninjaw_vh_stop();
 			return 1;
+		}
+
+	/* Ensure palette from correct TC0110PCR used for each screen */
+	TC0100SCN_set_chip_colbanks(0x0,0x100,0x200);
 
 	return 0;
 }
 
 int ninjaw_vh_start (void)
 {
-	taito_hide_pixels = 0;
+	taito_hide_pixels = 22;
 	return (ninjaw_core_vh_start());
 }
 
@@ -207,11 +230,12 @@ void ninjaw_vh_stop (void)
 				PALETTE
 *********************************************************/
 
-void ninjaw_update_palette (void)
+static void ninjaw_update_palette (void)
 {
 	int i,j;
 	int offs,data,tilenum,color;
-	unsigned short palette_map[256];
+	UINT16 tile_mask = (Machine->gfx[0]->total_elements) - 1;
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
@@ -222,6 +246,7 @@ void ninjaw_update_palette (void)
 		data = spriteram16[offs+3];
 		color = (data & 0x7f00) >> 8;
 
+		tilenum &= tile_mask;
 		if (tilenum)
 		{
 			palette_map[color] |= Machine->gfx[0]->pen_usage[tilenum];
@@ -254,7 +279,7 @@ void ninjaw_update_palette (void)
 static void ninjaw_draw_sprites(struct osd_bitmap *bitmap,int *primasks,int y_offs)
 {
 	int offs, data, tilenum, color, flipx, flipy;
-	int x, y, priority, curx, cury;
+	int x, y, priority, invis, curx, cury;
 	int code;
 
 #ifdef MAME_DEBUG
@@ -267,24 +292,28 @@ static void ninjaw_draw_sprites(struct osd_bitmap *bitmap,int *primasks,int y_of
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
 	{
+		data = spriteram16[offs+2];
+		tilenum = data & 0x7fff;
+
+		if (!tilenum) continue;
+
 		data = spriteram16[offs+0];
-		x = (data - 8) & 0x3ff;	// -8 to align some sprites that sit on rock outcrops
+//		x = (data - 8) & 0x3ff;
+		x = (data - 32) & 0x3ff;	/* aligns sprites on rock outcrops and sewer hole */
 
 		data = spriteram16[offs+1];
 		y = (data - 0) & 0x1ff;
 
-		data = spriteram16[offs+2];
-		tilenum = data & 0x7fff;
-
-		/* don't know meaning of bit 4 (Darius: explosions of your bomb shots) */
+		/* don't know meaning of "invis" bit (Darius: explosions of your bomb shots) */
 		data = spriteram16[offs+3];
 		flipx    = (data & 0x1);
 		flipy    = (data & 0x2) >> 1;
-		priority = (data & 0x4) >> 2;
-		// ?     = (data & 0x8) >> 3;
+		priority = (data & 0x4) >> 2;	/* 1=low */
+		invis    = (data & 0x8) >> 3;
 		color    = (data & 0x7f00) >> 8;
 
-		if (!tilenum) continue;
+//	Ninjaw: this stops your player flickering black and cutting into tank sprites
+//		if (invis && (priority==1)) continue;
 
 #ifdef MAME_DEBUG
 		if (data & 0x80f0)   unknown |= (data &0x80f0);
@@ -354,7 +383,7 @@ static void ninjaw_draw_sprites(struct osd_bitmap *bitmap,int *primasks,int y_of
 
 void ninjaw_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -368,10 +397,20 @@ void ninjaw_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,1);
+
+	/* Ensure screen blanked even when bottom layers not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	/* chip 0 does tilemaps on the left, chip 1 center, chip 2 the right */
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);	/* left */
+	TC0100SCN_tilemap_draw(bitmap,1,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);	/* center */
+	TC0100SCN_tilemap_draw(bitmap,2,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);	/* right */
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,2);
+	TC0100SCN_tilemap_draw(bitmap,1,layer[1],0,2);
+	TC0100SCN_tilemap_draw(bitmap,2,layer[1],0,2);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,4);
+	TC0100SCN_tilemap_draw(bitmap,1,layer[2],0,4);
+	TC0100SCN_tilemap_draw(bitmap,2,layer[2],0,4);
 
 	/* Sprites can be under/over the layer below text layer */
 	{

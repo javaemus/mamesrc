@@ -19,10 +19,6 @@ static struct tempsprite *spritelist;
 
 int topspeed_vh_start (void)
 {
-	/* (chips, gfxnum, x_offs, y_offs, y_invert, opaque, dblwidth) */
-	if (PC080SN_vh_start(2,1,0,8,0,0,0))
-		return 1;
-
 	/* Up to $1000/8 big sprites, requires 0x200 * sizeof(*spritelist)
 	   Multiply this by 128 to give room for the number of small sprites,
 	   which are what actually get put in the structure. */
@@ -31,23 +27,33 @@ int topspeed_vh_start (void)
 	if (!spritelist)
 		return 1;
 
+	/* (chips, gfxnum, x_offs, y_offs, y_invert, opaque, dblwidth) */
+	if (PC080SN_vh_start(2,1,0,8,0,0,0))
+	{
+		free(spritelist);
+		spritelist = 0;
+		return 1;
+	}
+
 	return 0;
 }
 
 void topspeed_vh_stop(void)
 {
+	free(spritelist);
+	spritelist = 0;
+
 	PC080SN_vh_stop();
 }
 
 
 void topspeed_update_palette(void)
 {
-	int i,j;
+	int offs,map_offset,sprite_chunk,i,j;
 	data16_t *spritemap = topspeed_spritemap;
 	UINT16 tile_mask = (Machine->gfx[0]->total_elements) - 1;
-	int map_offset,sprite_chunk,code;
-	int offs,data,tilenum,color;
-	unsigned short palette_map[256];
+	UINT16 data,tilenum,code,color;
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
@@ -62,8 +68,8 @@ void topspeed_update_palette(void)
 
 			for (sprite_chunk=0;sprite_chunk<128;sprite_chunk++)
 			{
-				i = sprite_chunk % 8;   // 8 sprite chunks across
-				j = sprite_chunk / 8;   // 16 sprite chunks down
+				i = sprite_chunk % 8;   /* 8 sprite chunks across */
+				j = sprite_chunk / 8;   /* 16 sprite chunks down */
 
 				code = spritemap[map_offset + (j<<3) + i ] &tile_mask;
 				palette_map[color] |= Machine->gfx[0]->pen_usage[code];
@@ -88,16 +94,14 @@ void topspeed_update_palette(void)
 }
 
 
-void topspeed_draw_sprites(struct osd_bitmap *bitmap,int pri,int y_offs)
+void topspeed_draw_sprites(struct osd_bitmap *bitmap,int *primasks,int y_offs)
 {
+	int offs,map_offset,x,y,curx,cury,sprite_chunk;
 	data16_t *spritemap = topspeed_spritemap;
-	int offs, data, tilenum, color, flipx, flipy;
-	int x, y, priority, curx, cury;
-	int sprites_flipscreen = 0;
-	int zoomx, zoomy, zx, zy;
-	int sprite_chunk,map_offset,code,j,k,px,py;
-	int bad_chunks;
-
+	UINT16 data,tilenum,code,color;
+	UINT8 sprites_flipscreen = 0;
+	UINT8 flipx,flipy,priority,bad_chunks;
+	UINT8 j,k,px,py,zx,zy,zoomx,zoomy;
 	struct tempsprite *sprite_ptr = spritelist;
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
@@ -107,19 +111,20 @@ void topspeed_draw_sprites(struct osd_bitmap *bitmap,int pri,int y_offs)
 		y = data & 0x1ff;
 
 		data = spriteram16[offs+1];
+		flipy = (data & 0x8000) >> 15;
 		zoomx = (data & 0x7f);
 
 		data = spriteram16[offs+2];
 		priority = (data & 0x8000) >> 15;
 		flipx = (data & 0x4000) >> 14;
-		flipy = (data & 0x2000) >> 13;	// ?
+//		unknown = (data & 0x2000) >> 13;
 		x = data & 0x1ff;
 
 		data = spriteram16[offs+3];
 		color = (data & 0xff00) >> 8;
 		tilenum = data & 0xff;
 
-		if ((!tilenum) || (priority!=pri)) continue;
+		if (!tilenum) continue;
 
 		map_offset = tilenum << 7;
 
@@ -137,8 +142,8 @@ void topspeed_draw_sprites(struct osd_bitmap *bitmap,int pri,int y_offs)
 
 		for (sprite_chunk=0;sprite_chunk<128;sprite_chunk++)
 		{
-			k = sprite_chunk % 8;   // 8 sprite chunks per row
-			j = sprite_chunk / 8;   // 16 rows
+			k = sprite_chunk % 8;   /* 8 sprite chunks per row */
+			j = sprite_chunk / 8;   /* 16 rows */
 
 			px = k;
 			py = j;
@@ -180,17 +185,40 @@ void topspeed_draw_sprites(struct osd_bitmap *bitmap,int pri,int y_offs)
 			sprite_ptr->zoomx = zx << 12;
 			sprite_ptr->zoomy = zy << 13;
 
-			drawgfxzoom(bitmap,Machine->gfx[0],
-					sprite_ptr->code,
-					sprite_ptr->color,
-					sprite_ptr->flipx,sprite_ptr->flipy,
-					sprite_ptr->x,sprite_ptr->y,
-					&Machine->visible_area,TRANSPARENCY_PEN,0,
-					sprite_ptr->zoomx,sprite_ptr->zoomy);
+			if (primasks)
+			{
+				sprite_ptr->primask = primasks[priority];
+				sprite_ptr++;
+			}
+			else
+			{
+				drawgfxzoom(bitmap,Machine->gfx[0],
+						sprite_ptr->code,
+						sprite_ptr->color,
+						sprite_ptr->flipx,sprite_ptr->flipy,
+						sprite_ptr->x,sprite_ptr->y,
+						&Machine->visible_area,TRANSPARENCY_PEN,0,
+						sprite_ptr->zoomx,sprite_ptr->zoomy);
+			}
 		}
 
 		if (bad_chunks)
 logerror("Sprite number %04x had %02x invalid chunks\n",tilenum,bad_chunks);
+	}
+
+	/* this happens only if primsks != NULL */
+	while (sprite_ptr != spritelist)
+	{
+		sprite_ptr--;
+
+		pdrawgfxzoom(bitmap,Machine->gfx[0],
+				sprite_ptr->code,
+				sprite_ptr->color,
+				sprite_ptr->flipx,sprite_ptr->flipy,
+				sprite_ptr->x,sprite_ptr->y,
+				&Machine->visible_area,TRANSPARENCY_PEN,0,
+				sprite_ptr->zoomx,sprite_ptr->zoomy,
+				sprite_ptr->primask);
 	}
 }
 
@@ -198,49 +226,44 @@ logerror("Sprite number %04x had %02x invalid chunks\n",tilenum,bad_chunks);
 
 void topspeed_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[4];
+	UINT8 layer[4];
 
 #ifdef MAME_DEBUG
-	static int dislayer[5];
+	static UINT8 dislayer[5];
 	char buf[80];
 #endif
 
 #ifdef MAME_DEBUG
-	if (keyboard_pressed (KEYCODE_V))
+	if (keyboard_pressed_memory (KEYCODE_V))
 	{
-		while (keyboard_pressed (KEYCODE_V) != 0) {};
 		dislayer[0] ^= 1;
 		sprintf(buf,"bg: %01x",dislayer[0]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_B))
+	if (keyboard_pressed_memory (KEYCODE_B))
 	{
-		while (keyboard_pressed (KEYCODE_B) != 0) {};
 		dislayer[1] ^= 1;
 		sprintf(buf,"fg: %01x",dislayer[1]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_N))
+	if (keyboard_pressed_memory (KEYCODE_N))
 	{
-		while (keyboard_pressed (KEYCODE_N) != 0) {};
 		dislayer[2] ^= 1;
 		sprintf(buf,"bg2: %01x",dislayer[2]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_M))
+	if (keyboard_pressed_memory (KEYCODE_M))
 	{
-		while (keyboard_pressed (KEYCODE_M) != 0) {};
 		dislayer[3] ^= 1;
 		sprintf(buf,"fg2: %01x",dislayer[3]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_C))
+	if (keyboard_pressed_memory (KEYCODE_C))
 	{
-		while (keyboard_pressed (KEYCODE_C) != 0) {};
 		dislayer[4] ^= 1;
 		sprintf(buf,"sprites: %01x",dislayer[4]);
 		usrintf_showmessage(buf);
@@ -254,43 +277,45 @@ void topspeed_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	palette_used_colors[0] |= PALETTE_COLOR_VISIBLE;
 	palette_recalc();
 
+	/* Tilemap layer priority seems hardwired (the order is odd, too) */
 	layer[0] = 1;
 	layer[1] = 0;
 	layer[2] = 1;
 	layer[3] = 0;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
 
 #ifdef MAME_DEBUG
 	if (dislayer[3]==0)
 #endif
-	PC080SN_tilemap_draw(bitmap,1,layer[0],0,0);
-
-#ifdef MAME_DEBUG
-	if (dislayer[4]==0)
-#endif
-	topspeed_draw_sprites(bitmap,1,3);
+	PC080SN_tilemap_draw(bitmap,1,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);
 
 #ifdef MAME_DEBUG
 	if (dislayer[2]==0)
 #endif
-	PC080SN_tilemap_draw(bitmap,1,layer[1],0,0);
+	PC080SN_tilemap_draw(bitmap,1,layer[1],0,2);
 
 #ifdef MAME_DEBUG
 	if (dislayer[1]==0)
 #endif
- 	PC080SN_tilemap_draw(bitmap,0,layer[2],0,0);
-
-#ifdef MAME_DEBUG
-	if (dislayer[4]==0)
-#endif
-	topspeed_draw_sprites(bitmap,0,3);
+ 	PC080SN_tilemap_draw(bitmap,0,layer[2],0,4);
 
 #ifdef MAME_DEBUG
 	if (dislayer[0]==0)
 #endif
-	PC080SN_tilemap_draw(bitmap,0,layer[3],0,0);
+	PC080SN_tilemap_draw(bitmap,0,layer[3],0,8);
+
+#ifdef MAME_DEBUG
+	if (dislayer[4]==0)
+#endif
+	/* Sprites are either over bottom layer or under top layer */
+	/* sprite/sprite priority is from position in list, sprite/
+	   tile from a control bit, hence we must use pdrawgfx */
+	{
+		int primasks[2] = {0xff00,0xfffc};
+		topspeed_draw_sprites(bitmap,primasks,3);
+	}
 }
 
 

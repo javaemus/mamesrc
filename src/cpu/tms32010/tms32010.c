@@ -620,6 +620,13 @@ static opcode_fn opcode_7F_other[32]=
 
 
 /****************************************************************************
+ * Inits CPU emulation
+ ****************************************************************************/
+void tms320c10_init (void)
+{
+}
+
+/****************************************************************************
  * Reset registers to their initial values
  ****************************************************************************/
 void tms320c10_reset (void *param)
@@ -859,7 +866,7 @@ const char *tms320c10_info(void *context, int regnum)
 	static int which;
 	tms320c10_Regs *r = context;
 
-	which = ++which % 16;
+	which = (which+1) % 16;
 	buffer[which][0] = '\0';
 	if( !context )
 		r = &R;

@@ -1,9 +1,13 @@
 #include "driver.h"
+#include "state.h"
 #include "vidhrdw/generic.h"
 #include "vidhrdw/taitoic.h"
 
 #define TC0480SCP_GFX_NUM 1
 #define TC0100SCN_GFX_NUM 1
+
+extern UINT8 TC0360PRI_regs[16];
+void slapshot_vh_stop(void);
 
 struct tempsprite
 {
@@ -16,20 +20,16 @@ struct tempsprite
 };
 static struct tempsprite *spritelist;
 
-static int taito_hide_pixels;
-
-extern UINT8 TC0360PRI_regs[16];
-extern int TC0480SCP_pri_reg;
-
-static int spritebank[8];
-
 static int sprites_disabled,sprites_active_area,sprites_master_scrollx,sprites_master_scrolly;
 static int sprites_flipscreen = 0;
 static data16_t *spriteram_buffered,*spriteram_delayed;
 
+int taito_sprite_type = 0;
 data16_t *taito_sprite_ext;
 size_t taito_spriteext_size;
-UINT8 taito_sprite_type = 0;
+static UINT16 spritebank[8];
+
+static int taito_hide_pixels;
 
 /**********************************************************/
 
@@ -60,6 +60,8 @@ static int has_TC0480SCP(void)
 
 int slapshot_core_vh_start (void)
 {
+	int i;
+
 	spriteram_delayed = malloc(spriteram_size);
 	spriteram_buffered = malloc(spriteram_size);
 	spritelist = malloc(0x400 * sizeof(*spritelist));
@@ -69,24 +71,36 @@ int slapshot_core_vh_start (void)
 
 	if (has_TC0480SCP())	/* it's a tc0480scp game */
 	{
-		if (TC0480SCP_vh_start(TC0480SCP_GFX_NUM,taito_hide_pixels,0x20,0x10,256))
+		if (TC0480SCP_vh_start(TC0480SCP_GFX_NUM,taito_hide_pixels,30,9,-1,1,0,2,256))
+		{
+			slapshot_vh_stop();
 			return 1;
+		}
 	}
 	else	/* it's a tc0100scn game */
 	{
-		if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,taito_hide_pixels))
+		if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,taito_hide_pixels,0,0,0,0,0,0))
+		{
+			slapshot_vh_stop();
 			return 1;
+		}
 	}
 
-	{
-		int i;
+	TC0360PRI_vh_start();	/* Purely for save-state purposes */
 
-		for (i = 0; i < 8; i ++)
-			spritebank[i] = 0x400 * i;
-	}
+	for (i = 0; i < 8; i ++)
+		spritebank[i] = 0x400 * i;
 
 	sprites_disabled = 1;
 	sprites_active_area = 0;
+
+	state_save_register_int   ("main1", 0, "control", &taito_hide_pixels);
+	state_save_register_int   ("main2", 0, "control", &taito_sprite_type);
+	state_save_register_UINT16("main3", 0, "control", spritebank, 8);
+	state_save_register_int   ("main5", 0, "control", &sprites_disabled);
+	state_save_register_int   ("main6", 0, "control", &sprites_active_area);
+	state_save_register_UINT16("main7", 0, "memory", spriteram_delayed, spriteram_size/2);
+	state_save_register_UINT16("main8", 0, "memory", spriteram_buffered, spriteram_size/2);
 
 	return 0;
 }
@@ -118,13 +132,6 @@ void slapshot_vh_stop (void)
 }
 
 
-/********************************************************
-          SPRITE READ AND WRITE HANDLERS
-********************************************************/
-
-// none //
-
-
 /*********************************************************
 				PALETTE
 *********************************************************/
@@ -138,9 +145,6 @@ void slapshot_update_palette (void)
 	unsigned short palette_map[256];
 
 	memset (palette_map, 0, sizeof (palette_map));
-
-// DG: we aren't applying sprite marker tests here, but doesn't seem
-// to cause palette overflows, so I don't think we should worry.
 
 	color = 0;
 	area = sprites_active_area;
@@ -561,7 +565,7 @@ static void slapshot_draw_sprites(struct osd_bitmap *bitmap,int *primasks,int y_
 			   drawgfxzoom does not know to draw from flip-side of sprites when
 			   screen is flipped; so we must correct the coords ourselves. */
 
-			curx = 320 - curx - zx;
+			curx = 319 - curx - zx;
 			cury = 256 - cury - zy;
 			flipx = !flipx;
 			flipy = !flipy;
@@ -672,53 +676,10 @@ void taito_no_buffer_eof_callback(void)
 	prepare_sprites = 1;
 }
 
+
 /**************************************************************
 				SCREEN REFRESH
-**************************************************************/
 
-static UINT8 TC0480SCP_pri_lookup[32][4] =
-{
-	/* mb = seen during metal black game */
-	/* ss = seen during slap shot game */
-	/* odd = not standard bg0123 order */
-	/* (x,x) = layers whose intended order is uncertain e.g. they are empty at the time */
-
-	{ 0, 1, 2, 3, },	// 0x00  00000  mb ss
-	{ 0, 1, 2, 3, },	// 0x01  00001
-	{ 0, 1, 2, 3, },	// 0x02  00010
-	{ 0, 1, 2, 3, },	// 0x03  00011  mb
-	{ 0, 1, 2, 3, },	// 0x04  00100
-	{ 0, 1, 2, 3, },	// 0x05  00101
-	{ 0, 1, 2, 3, },	// 0x06  00110
-	{ 0, 1, 2, 3, },	// 0x07  00111
-	{ 0, 1, 2, 3, },	// 0x08  01000
-	{ 0, 1, 2, 3, },	// 0x09  01001
-	{ 0, 1, 2, 3, },	// 0x0a  01010
-	{ 0, 1, 2, 3, },	// 0x0b  01011
-	{ 0, 3, 1, 2, },	// 0x0c  01100  mb    odd ?? check
-	{ 0, 1, 2, 3, },	// 0x0d  01101
-	{ 0, 1, 2, 3, },	// 0x0e  01110
-	{ 3, 0, 1, 2, },	// 0x0f  01111  mb    odd ?? check
-	{ 3, 2, 0, 1, },	// 0x10  10000  mb ss odd (had to lower bg2 by 2 for ss, 0/1 or 1/0?)
-	{ 3, 2, 1, 0, },	// 0x11  10001     ss odd (1/0 or 0/1?)
-	{ 3, 2, 1, 0, },	// 0x12  10010  mb    odd
-	{ 3, 2, 1, 0, },	// 0x13  10011  mb    odd
-	{ 0, 1, 2, 3, },	// 0x14  10100  mb
-	{ 0, 1, 2, 3, },	// 0x15  10101
-	{ 0, 1, 2, 3, },	// 0x16  10110
-	{ 0, 1, 2, 3, },	// 0x17  10111  mb
-	{ 0, 1, 2, 3, },	// 0x18  11000
-	{ 0, 1, 2, 3, },	// 0x19  11001
-	{ 0, 1, 2, 3, },	// 0x1a  11010
-	{ 0, 1, 2, 3, },	// 0x1b  11011
-	{ 0, 1, 2, 3, },	// 0x1c  11100  mb
-	{ 0, 1, 2, 3, },	// 0x1d  11101
-	{ 0, 3, 2, 1, },	// 0x1e  11110  mb    odd
-	{ 0, 3, 2, 1, },	// 0x1f  11111  mb    odd
-};
-
-
-/*********************************************************************
 Slapshot and Metalb use in the PRI chip
 ---------------------------------------
 
@@ -734,10 +695,10 @@ a bg layer given priority over some sprites.
 
 void slapshot_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[5];
-	int tilepri[5];
-	int spritepri[4];
-	int priority;
+	UINT8 layer[5];
+	UINT8 tilepri[5];
+	UINT8 spritepri[4];
+	UINT16 priority;
 
 #ifdef MAME_DEBUG
 	static int dislayer[5];	/* Layer toggles to help get the layers correct */
@@ -745,41 +706,36 @@ void slapshot_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 #endif
 
 #ifdef MAME_DEBUG
-	if (keyboard_pressed (KEYCODE_Z))
+	if (keyboard_pressed_memory (KEYCODE_Z))
 	{
-		while (keyboard_pressed (KEYCODE_Z) != 0) {};
 		dislayer[0] ^= 1;
 		sprintf(buf,"bg0: %01x",dislayer[0]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_X))
+	if (keyboard_pressed_memory (KEYCODE_X))
 	{
-		while (keyboard_pressed (KEYCODE_X) != 0) {};
 		dislayer[1] ^= 1;
 		sprintf(buf,"bg1: %01x",dislayer[1]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_C))
+	if (keyboard_pressed_memory (KEYCODE_C))
 	{
-		while (keyboard_pressed (KEYCODE_C) != 0) {};
 		dislayer[2] ^= 1;
 			sprintf(buf,"bg2: %01x",dislayer[2]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_V))
+	if (keyboard_pressed_memory (KEYCODE_V))
 	{
-		while (keyboard_pressed (KEYCODE_V) != 0) {};
 		dislayer[3] ^= 1;
 		sprintf(buf,"bg3: %01x",dislayer[3]);
 		usrintf_showmessage(buf);
 	}
 
-	if (keyboard_pressed (KEYCODE_B))
+	if (keyboard_pressed_memory (KEYCODE_B))
 	{
-		while (keyboard_pressed (KEYCODE_B) != 0) {};
 		dislayer[4] ^= 1;
 		sprintf(buf,"text: %01x",dislayer[4]);
 		usrintf_showmessage(buf);
@@ -789,7 +745,6 @@ void slapshot_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	taito_handle_sprite_buffering();
 
 	TC0480SCP_tilemap_update();
-	priority = TC0480SCP_pri_reg & 0x1f;
 
 	palette_init_used_colors();
 	slapshot_update_palette();
@@ -804,12 +759,13 @@ void slapshot_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	}
 	palette_recalc();
 
-	layer[0] = TC0480SCP_pri_lookup[priority][0];   /* tells us which bg layer is bottom */
-	layer[1] = TC0480SCP_pri_lookup[priority][1];
-	layer[2] = TC0480SCP_pri_lookup[priority][2];
-	layer[3] = TC0480SCP_pri_lookup[priority][3];   /* tells us which is top */
+	priority = TC0480SCP_get_bg_priority();
 
-	layer[4] = 4;   // Text layer
+	layer[0] = (priority &0xf000) >> 12;	/* tells us which bg layer is bottom */
+	layer[1] = (priority &0x0f00) >>  8;
+	layer[2] = (priority &0x00f0) >>  4;
+	layer[3] = (priority &0x000f) >>  0;	/* tells us which is top */
+	layer[4] = 4;   /* text layer always over bg layers */
 
 	tilepri[0] = TC0360PRI_regs[4] & 0x0f;     /* bg0 */
 	tilepri[1] = TC0360PRI_regs[4] >> 4;       /* bg1 */
@@ -859,7 +815,7 @@ void slapshot_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 			if (spritepri[i] < tilepri[(layer[3])]) primasks[i] |= 0xff00;
 		}
 
-		slapshot_draw_sprites(bitmap,primasks,8);
+		slapshot_draw_sprites(bitmap,primasks,0);
 	}
 
 	/*
@@ -872,12 +828,5 @@ void slapshot_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	if (dislayer[layer[4]]==0)
 #endif
 	TC0480SCP_tilemap_draw(bitmap,layer[4],0,0);
-
-#if 0
-	/* show priority ctrl reg */
-	sprintf (buf, "%04x", TC0480SCP_pri_reg );
-	ui_text (Machine->scrbitmap, buf, 0, 0);
-#endif
 }
-
 

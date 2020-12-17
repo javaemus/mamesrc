@@ -283,7 +283,7 @@ static struct MachineDriver machine_driver_mrflea = {
 	{
 		{
 			CPU_Z80,
-			4000000, /* 4 Mhz? */
+			4000000, /* 4 MHz? */
 			readmem,writemem,
 			readport,writeport,
 			interrupt,1 /* NMI resets the game */
@@ -426,5 +426,5 @@ INPUT_PORTS_START( mrflea )
 	PORT_DIPSETTING( 0x00, DEF_STR( On ) )
 INPUT_PORTS_END
 
-/*         rom       parent    machine   inp       init */
-GAME(1982, mrflea,   0,        mrflea,   mrflea,   0,        ROT270, "Pacific Novelty", "Mr. F. Lea"  )
+
+GAME(1982, mrflea,   0,        mrflea,   mrflea,   0,        ROT270, "Pacific Novelty", "The Amazing Adventures of Mr. F. Lea"  )

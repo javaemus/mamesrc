@@ -135,6 +135,9 @@ UINT8	H6280_debug_mmr[8];
 #include "tblh6280.c"
 
 /*****************************************************************************/
+void h6280_init(void)
+{
+}
 
 void h6280_reset(void *param)
 {
@@ -378,7 +381,7 @@ const char *h6280_info(void *context, int regnum)
 	static int which = 0;
 	h6280_Regs *r = context;
 
-	which = ++which % 32;
+	which = (which+1) % 32;
 	buffer[which][0] = '\0';
 	if( !context )
 		r = &h6280;

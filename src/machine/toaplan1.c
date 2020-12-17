@@ -30,7 +30,7 @@ READ16_HANDLER( demonwld_dsp_r )
 	unsigned int input_data = 0;
 
 	switch (main_ram_seg) {
-		case 0xc00000:	input_data = READ_WORD(&(cpu_bankbase[1][(dsp_addr_w)])); break;
+		case 0xc00000:	input_data = *((data16_t *)&(cpu_bankbase[1][(dsp_addr_w)])); break;
 
 		default:		logerror("DSP PC:%04x Warning !!! IO reading from %08x (port 1)\n",cpu_getpreviouspc(),main_ram_seg + dsp_addr_w);
 	}
@@ -58,7 +58,7 @@ WRITE16_HANDLER( demonwld_dsp_w )
 
 		dsp_execute = 0;
 		switch (main_ram_seg) {
-			case 0xc00000:	WRITE_WORD(&(cpu_bankbase[1][(dsp_addr_w)]),data);
+			case 0xc00000:	*((data16_t *)&(cpu_bankbase[1][(dsp_addr_w)])) = data;
 							if ((dsp_addr_w < 3) && (data == 0)) dsp_execute = 1; break;
 			default:		logerror("DSP PC:%04x Warning !!! IO writing to %08x (port 1)\n",cpu_getpreviouspc(),main_ram_seg + dsp_addr_w);
 		}
@@ -144,14 +144,14 @@ READ16_HANDLER( samesame_port_6_word_r )
 {
 	/* Bit 0x80 is secondary CPU (HD647180) ready signal */
 	logerror("PC:%04x Warning !!! IO reading from $14000a\n",cpu_getpreviouspc());
-	return (0x80 | input_port_6_word_r(0)) & 0xff;
+	return (0x80 | input_port_6_word_r(0,0)) & 0xff;
 }
 
 READ16_HANDLER( vimana_input_port_5_word_r )
 {
 	int data, p;
 
-	p = input_port_5_word_r(0);
+	p = input_port_5_word_r(0,0);
 
 	latch ^= p;
 	data = (latch & p );

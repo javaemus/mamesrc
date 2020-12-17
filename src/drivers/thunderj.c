@@ -148,7 +148,7 @@ READ16_HANDLER( thunderj_video_control_r )
 	if (cpu_readmem24bew_word(0x163482) > 0xfff)
 		printf("You're screwed!");*/
 
-	return atarivc_r(offset);
+	return atarivc_r(offset,0);
 }
 
 
@@ -343,7 +343,7 @@ static const struct MachineDriver machine_driver_thunderj =
 	2048, 2048,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_NEEDS_6BITS_PER_GUN | VIDEO_UPDATE_BEFORE_VBLANK,
 	0,
 	thunderj_vh_start,
 	thunderj_vh_stop,

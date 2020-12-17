@@ -30,31 +30,18 @@ Memory map for Cadash
 0x080000 - 0x080003 : sprite control
 0x0c0000 - 0x0c0003 : communication with sound CPU
 0x100000 - 0x107fff : 32k of RAM
-0x800000 - 0x800fff : strange little chunk of RAM (not cchip used as ram like Megab?)
+0x800000 - 0x800fff : network RAM (for 2 machine hookup)
 0x900000 - 0x90000f : input ports and dipswitches
 0xa00000 - 0xa0000f : palette generator
 0xb00000 - 0xb007ff : sprite RAM
-0xc00000 - c200000f : standard TC0100SCN memory map, including:
-{
-	0xc00000 - 0xc03fff : 64x64 background layer (bg0)
-	0xc04000 - 0xc05fff : 64x64 foreground (text) layer (fg)
-	0xc06000 - 0xc06fff : 256 character generator RAM
-	0xc08000 - 0xc0bfff : 64x64 2nd background layer (bg1)
-
-	0xc20000 - 0xc20005 : x scroll for 3 layers
-	0xc20006 - 0xc2000b : y scroll for 3 layers
-	0xc2000c - 0xc2000f : tilemap layers control
-}
+0xc00000 - c200000f : standard TC0100SCN memory map (see taitoic.c)
 
 
 TODO
 ----
 
-Any other games on this hardware? (It may be close enough to Asuka
-hardware to consider merging the drivers eventually.)
-
 Hooks for twin arcade machine setup: will involve emulating an extra
-processor, the 07 rom is probably the program for it.
+microcontroller, the 07 rom might be the program for it.
 
 DIPs
 
@@ -66,8 +53,6 @@ DIPs
 #include "vidhrdw/generic.h"
 #include "vidhrdw/taitoic.h"
 #include "sndhrdw/taitosnd.h"
-
-//extern data16_t *cadash_ram;
 
 void cadash_vh_screenrefresh (struct osd_bitmap *bitmap,int full_refresh);
 
@@ -103,33 +88,6 @@ int cadash_interrupt(void)
 }
 
 
-/**********************************************************
-				GAME INPUTS
-**********************************************************/
-
-static READ16_HANDLER( cadash_input_r )
-{
-	switch (offset)
-	{
-		case 0x00:
-			return input_port_3_word_r(0);	/* DSW A */
-		case 0x01:
-			return input_port_4_word_r(0);	/* DSW B */
-		case 0x02:
-			return input_port_0_word_r(0);	/* IN0 */
-		case 0x03:
-			return input_port_1_word_r(0);	/* IN1 */
-		case 0x07:
-			return input_port_2_word_r(0);	/* IN2 */
-	}
-
-if (offset!=4)	// fills up log too much
-	logerror("CPU #0 PC %06x: warning - read unmapped input offset %06x\n",cpu_get_pc(),offset);
-
-	return 0xff;
-}
-
-
 /************************************************
 			SOUND
 ************************************************/
@@ -153,8 +111,8 @@ static MEMORY_READ16_START( cadash_readmem )
 	{ 0x0c0000, 0x0c0001, MRA16_NOP },
 	{ 0x0c0002, 0x0c0003, taitosound_comm16_lsb_r },
 	{ 0x100000, 0x107fff, MRA16_RAM },	/* RAM */
-	{ 0x800000, 0x800fff, MRA16_RAM },	/* like a cchip ?? */
-	{ 0x900000, 0x90000f, cadash_input_r },
+	{ 0x800000, 0x800fff, MRA16_RAM },	/* network ram */
+	{ 0x900000, 0x90000f, TC0220IOC_halfword_r },
 	{ 0xa00000, 0xa0000f, TC0110PCR_word_r },
 	{ 0xb00000, 0xb007ff, MRA16_RAM },	/* sprite ram */
 	{ 0xc00000, 0xc0ffff, TC0100SCN_word_0_r },	/* tilemaps */
@@ -167,9 +125,8 @@ static MEMORY_WRITE16_START( cadash_writemem )
 	{ 0x0c0000, 0x0c0001, taitosound_port16_lsb_w },
 	{ 0x0c0002, 0x0c0003, taitosound_comm16_lsb_w },
 	{ 0x100000, 0x107fff, MWA16_RAM },
-	{ 0x800000, 0x800fff, MWA16_RAM },	/* like a cchip ?? */
-	{ 0x900000, 0x900001, MWA16_NOP },	/* watchdog ?? */
-//	{ 0x900008, 0x900009, MWA16_NOP },	/* ? */
+	{ 0x800000, 0x800fff, MWA16_RAM },	/* network ram */
+	{ 0x900000, 0x90000f, TC0220IOC_halfword_w },
 	{ 0xa00000, 0xa0000f, TC0110PCR_step1_4bpg_word_w },
 	{ 0xb00000, 0xb007ff, MWA16_RAM, &spriteram16, &spriteram_size },
 	{ 0xb01bfe, 0xb01bff, cadash_spriteflip_w },
@@ -196,7 +153,7 @@ static MEMORY_WRITE_START( z80_writemem )
 	{ 0x9001, 0x9001, YM2151_data_port_0_w },
 	{ 0xa000, 0xa000, taitosound_slave_port_w },
 	{ 0xa001, 0xa001, taitosound_slave_comm_w },
-	{ 0xb000, 0xb000, rastan_adpcm_trigger_w },
+//	{ 0xb000, 0xb000, rastan_adpcm_trigger_w }, /* No ADPCM in this game */
 	{ 0xc000, 0xc000, rastan_c000_w },
 	{ 0xd000, 0xd000, rastan_d000_w },
 MEMORY_END
@@ -273,15 +230,6 @@ MEMORY_END
 
 
 INPUT_PORTS_START( cadash )
-	/* IN0 */
-	ASUKA_PLAYERS_INPUT( IPF_PLAYER1 )
-
-	/* IN1 */
-	ASUKA_PLAYERS_INPUT( IPF_PLAYER2 )
-
-	/* IN2 */
-	ASUKA_SYSTEM_INPUT
-
 	PORT_START	/* DSWA */
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unused ) )	// Manual says leave it off
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
@@ -318,9 +266,7 @@ INPUT_PORTS_START( cadash )
 	PORT_DIPSETTING(    0x80, "Master" )
 	PORT_DIPSETTING(    0x00, "Slave" )
 //	PORT_DIPSETTING(    0x40, "Stand alone" )
-INPUT_PORTS_END
 
-INPUT_PORTS_START( cadashj )
 	/* IN0 */
 	ASUKA_PLAYERS_INPUT( IPF_PLAYER1 )
 
@@ -329,7 +275,9 @@ INPUT_PORTS_START( cadashj )
 
 	/* IN2 */
 	ASUKA_SYSTEM_INPUT
+INPUT_PORTS_END
 
+INPUT_PORTS_START( cadashj )
 	PORT_START	/* DSWA */
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unused ) )	// Manual says leave it off
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
@@ -360,9 +308,7 @@ INPUT_PORTS_START( cadashj )
 	PORT_DIPSETTING(    0x80, "Master" )
 	PORT_DIPSETTING(    0x00, "Slave" )
 //	PORT_DIPSETTING(    0x40, "Stand alone" )
-INPUT_PORTS_END
 
-INPUT_PORTS_START( cadashu )
 	/* IN0 */
 	ASUKA_PLAYERS_INPUT( IPF_PLAYER1 )
 
@@ -371,7 +317,9 @@ INPUT_PORTS_START( cadashu )
 
 	/* IN2 */
 	ASUKA_SYSTEM_INPUT
+INPUT_PORTS_END
 
+INPUT_PORTS_START( cadashu )
 	PORT_START	/* DSWA */
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unused ) )	// Manual says leave it off
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
@@ -402,6 +350,15 @@ INPUT_PORTS_START( cadashu )
 	PORT_DIPSETTING(    0x80, "Master" )
 	PORT_DIPSETTING(    0x00, "Slave" )
 //	PORT_DIPSETTING(    0x40, "Stand alone" )
+
+	/* IN0 */
+	ASUKA_PLAYERS_INPUT( IPF_PLAYER1 )
+
+	/* IN1 */
+	ASUKA_PLAYERS_INPUT( IPF_PLAYER2 )
+
+	/* IN2 */
+	ASUKA_SYSTEM_INPUT
 INPUT_PORTS_END
 
 
@@ -474,6 +431,11 @@ static struct ADPCMinterface adpcm_interface =
 			     MACHINE DRIVERS
 ***********************************************************/
 
+void cadash_eof_callback(void)
+{
+	buffer_spriteram16_w(0,0,0);
+}
+
 static struct MachineDriver machine_driver_cadash =
 {
 	/* basic machine hardware */
@@ -501,8 +463,8 @@ static struct MachineDriver machine_driver_cadash =
 	4096, 4096,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
-	0,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_BUFFERS_SPRITERAM,
+	cadash_eof_callback,
 	cadash_vh_start,
 	cadash_vh_stop,
 	cadash_vh_screenrefresh,
@@ -545,7 +507,7 @@ ROM_START( cadash )
 
 	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* empty region */
 
-	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface cpu rom ? */
+	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface mcu rom ? */
 	ROM_LOAD( "c21-07.57",   0x00000, 0x08000, 0xf02292bd )
 
 	ROM_REGION( 0x01000, REGION_USER2, 0 )	/* pals ? */
@@ -574,7 +536,7 @@ ROM_START( cadashj )
 
 	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* empty region */
 
-	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface cpu rom ? */
+	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface mcu rom ? */
 	ROM_LOAD( "c21-07.57",   0x00000, 0x08000, 0xf02292bd )
 ROM_END
 
@@ -599,7 +561,7 @@ ROM_START( cadashu )
 
 	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* empty region */
 
-	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface cpu rom ? */
+	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface mcu rom ? */
 	ROM_LOAD( "c21-07.57",   0x00000, 0x08000, 0xf02292bd )
 ROM_END
 
@@ -622,7 +584,7 @@ ROM_START( cadashi )
 
 	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* empty region */
 
-	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface cpu rom ? */
+	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface mcu rom ? */
 	ROM_LOAD( "c21-07.57",   0x00000, 0x08000, 0xf02292bd )
 ROM_END
 
@@ -645,7 +607,7 @@ ROM_START( cadashf )
 
 	ROM_REGION( 0x10000, REGION_SOUND1, 0 )	/* empty region */
 
-	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface cpu rom ? */
+	ROM_REGION( 0x08000, REGION_USER1, 0 )	/* 2 machine interface mcu rom ? */
 	ROM_LOAD( "c21-07.57",   0x00000, 0x08000, 0xf02292bd )
 ROM_END
 

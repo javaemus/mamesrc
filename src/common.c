@@ -667,18 +667,9 @@ void save_screen_snapshot_as(void *fp,struct osd_bitmap *bitmap)
 				t = scalex; scalex = scaley; scaley = t;
 			}
 
-			if (bitmap->depth == 16)
+			switch (bitmap->depth)
 			{
-				for (y = 0;y < copy->height;y++)
-				{
-					for (x = 0;x < copy->width;x++)
-					{
-						((UINT16 *)copy->line[y])[x] = ((UINT16 *)bitmap->line[sy+(y/scaley)])[sx +(x/scalex)];
-					}
-				}
-			}
-			else
-			{
+			case 8:
 				for (y = 0;y < copy->height;y++)
 				{
 					for (x = 0;x < copy->width;x++)
@@ -686,8 +677,30 @@ void save_screen_snapshot_as(void *fp,struct osd_bitmap *bitmap)
 						copy->line[y][x] = bitmap->line[sy+(y/scaley)][sx +(x/scalex)];
 					}
 				}
+				break;
+			case 15:
+			case 16:
+				for (y = 0;y < copy->height;y++)
+				{
+					for (x = 0;x < copy->width;x++)
+					{
+						((UINT16 *)copy->line[y])[x] = ((UINT16 *)bitmap->line[sy+(y/scaley)])[sx +(x/scalex)];
+					}
+				}
+				break;
+			case 32:
+				for (y = 0;y < copy->height;y++)
+				{
+					for (x = 0;x < copy->width;x++)
+					{
+						((UINT32 *)copy->line[y])[x] = ((UINT32 *)bitmap->line[sy+(y/scaley)])[sx +(x/scalex)];
+					}
+				}
+				break;
+			default:
+				logerror("Unknown color depth\n");
+				break;
 			}
-
 			png_write_bitmap(fp,copy);
 			bitmap_free(copy);
 		}
@@ -729,7 +742,7 @@ void save_screen_snapshot(struct osd_bitmap *bitmap)
 	debugload - log data to a file
 -------------------------------------------------*/
 
-void debugload(const char *string, ...)
+void CLIB_DECL debugload(const char *string, ...)
 {
 #ifdef LOG_LOAD
 	static int opened;
@@ -1071,7 +1084,7 @@ static int read_rom_data(struct rom_load_data *romdata, const struct RomModule *
 			return 0;
 		numbytes -= bytesleft;
 
-		debugload("  Copying to %08X\n", (UINT32)base);
+		debugload("  Copying to %08X\n", (int)base);
 
 		/* unmasked cases */
 		if (datamask == 0xff)
@@ -1274,11 +1287,12 @@ static int process_rom_entries(struct rom_load_data *romdata, const struct RomMo
 					else
 						modified_romp._length = (modified_romp._length & ~ROM_INHERITEDFLAGS) | lastflags;
 
-					/* attempt to read using the modified entry */
+					explength += UNCOMPACT_LENGTH(modified_romp._length);
+
+                    /* attempt to read using the modified entry */
 					readresult = read_rom_data(romdata, &modified_romp);
 					if (readresult == -1)
 						goto fatalerror;
-					explength += readresult;
 				}
 				while (ROMENTRY_ISCONTINUE(romp));
 
@@ -1294,6 +1308,7 @@ static int process_rom_entries(struct rom_load_data *romdata, const struct RomMo
 				if (romdata->file)
 					osd_fseek(romdata->file, 0, SEEK_SET);
 				baserom = NULL;
+				explength = 0;
 			}
 			while (ROMENTRY_ISRELOAD(romp));
 
@@ -1330,7 +1345,8 @@ int rom_load_new(const struct RomModule *romp)
 	int regnum;
 
 	/* reset the region list */
-	memset(regionlist, 0, sizeof(regionlist));
+	for (regnum = 0;regnum < REGION_MAX;regnum++)
+		regionlist[regnum] = NULL;
 
 	/* reset the romdata struct */
 	memset(&romdata, 0, sizeof(romdata));
@@ -1364,7 +1380,7 @@ int rom_load_new(const struct RomModule *romp)
 		/* remember the base and length */
 		romdata.regionlength = memory_region_length(regiontype);
 		romdata.regionbase = memory_region(regiontype);
-		debugload("Allocated %X bytes @ %08X\n", romdata.regionlength, (UINT32)romdata.regionbase);
+		debugload("Allocated %X bytes @ %08X\n", romdata.regionlength, (int)romdata.regionbase);
 
 		/* clear the region if it's requested */
 		if (ROMREGION_ISERASE(region))

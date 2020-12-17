@@ -2,7 +2,7 @@
 
 								-= Seta Games =-
 
-					driver by	Luca Elia (eliavit@unina.it)
+					driver by	Luca Elia (l.elia@tin.it)
 
 
 Note:	if MAME_DEBUG is defined, pressing Z with:
@@ -57,8 +57,7 @@ Note:	if MAME_DEBUG is defined, pressing Z with:
 		Spriteram16_2 + 0x400.w
 
 						fedc b--- ---- ----		Color
-						---- -a-- ---- ----		?Code (Upper Bits)?
-						---- --9- ---- ----		Code (Upper Bits)
+						---- -a9- ---- ----		Code (Upper Bits)
 						---- ---8 7654 3210		X
 
 		Spriteram16   + 0x000.w
@@ -85,8 +84,7 @@ Note:	if MAME_DEBUG is defined, pressing Z with:
 		Spriteram16_2 + 0xc00 + 0x40 * I:
 
 						fedc b--- ---- ----		Color
-						---- -a-- ---- ----		? Code (Upper Bits) ?
-						---- --9- ---- ----		Code (Upper Bits)
+						---- -a9- ---- ----		Code (Upper Bits)
 						---- ---8 7654 3210		-
 
 	Each column	has a variable horizontal position and a vertical scrolling
@@ -120,7 +118,7 @@ Note:	if MAME_DEBUG is defined, pressing Z with:
 
 						7--- ----		0
 						-6-- ----		Sprite Bank
-						--5- ----		1 (0 only in Blandia & MSGundam!)
+						--5- ----		0 = Sprite Buffering (blandia,msgundam,qzkklogy)
 						---4 ----		0
 						---- 3210		Columns To Draw (1 is the special value for 16)
 
@@ -266,8 +264,7 @@ static void get_tile_info_##_n_( int tile_index ) \
 { \
 	data16_t code =	seta_vram_##_n_[ tile_index ]; \
 	data16_t attr =	seta_vram_##_n_[ tile_index + DIM_NX * DIM_NY ]; \
-	SET_TILE_INFO( 1 + _n_/2, seta_tiles_offset + (code & 0x3fff), attr & 0x1f ); \
-	tile_info.flags = TILE_FLIPXY( code >> (16-2) ); \
+	SET_TILE_INFO( 1 + _n_/2, seta_tiles_offset + (code & 0x3fff), attr & 0x1f, TILE_FLIPXY( code >> (16-2) )) \
 } \
 \
 WRITE16_HANDLER( seta_vram_##_n_##_w ) \
@@ -294,31 +291,19 @@ int seta_vh_start_2_layers(void)
 	   at any given time */
 
 	/* layer 0 */
-	tilemap_0 = tilemap_create(	get_tile_info_0,
-								tilemap_scan_rows,
-								TILEMAP_TRANSPARENT,
-								16,16,
-								DIM_NX,DIM_NY );
+	tilemap_0 = tilemap_create(	get_tile_info_0, tilemap_scan_rows,
+								TILEMAP_TRANSPARENT, 16,16, DIM_NX,DIM_NY );
 
-	tilemap_1 = tilemap_create(	get_tile_info_1,
-								tilemap_scan_rows,
-								TILEMAP_TRANSPARENT,
-								16,16,
-								DIM_NX,DIM_NY );
+	tilemap_1 = tilemap_create(	get_tile_info_1, tilemap_scan_rows,
+								TILEMAP_TRANSPARENT, 16,16, DIM_NX,DIM_NY );
 
 
 	/* layer 1 */
-	tilemap_2 = tilemap_create(	get_tile_info_2,
-								tilemap_scan_rows,
-								TILEMAP_TRANSPARENT,
-								16,16,
-								DIM_NX,DIM_NY );
+	tilemap_2 = tilemap_create(	get_tile_info_2, tilemap_scan_rows,
+								TILEMAP_TRANSPARENT, 16,16, DIM_NX,DIM_NY );
 
-	tilemap_3 = tilemap_create(	get_tile_info_3,
-								tilemap_scan_rows,
-								TILEMAP_TRANSPARENT,
-								16,16,
-								DIM_NX,DIM_NY );
+	tilemap_3 = tilemap_create(	get_tile_info_3, tilemap_scan_rows,
+								TILEMAP_TRANSPARENT, 16,16, DIM_NX,DIM_NY );
 
 	if (tilemap_0 && tilemap_1 && tilemap_2 && tilemap_3)
 	{
@@ -363,17 +348,11 @@ int seta_vh_start_1_layer(void)
 	   at any given time */
 
 	/* layer 0 */
-	tilemap_0 = tilemap_create(	get_tile_info_0,
-								tilemap_scan_rows,
-								TILEMAP_TRANSPARENT,
-								16,16,
-								DIM_NX,DIM_NY );
+	tilemap_0 = tilemap_create(	get_tile_info_0, tilemap_scan_rows,
+								TILEMAP_TRANSPARENT, 16,16, DIM_NX,DIM_NY );
 
-	tilemap_1 = tilemap_create(	get_tile_info_1,
-								tilemap_scan_rows,
-								TILEMAP_TRANSPARENT,
-								16,16,
-								DIM_NX,DIM_NY );
+	tilemap_1 = tilemap_create(	get_tile_info_1, tilemap_scan_rows,
+								TILEMAP_TRANSPARENT, 16,16, DIM_NX,DIM_NY );
 
 
 	/* NO layer 1 */
@@ -450,6 +429,34 @@ void blandia_vh_init_palette(unsigned char *palette, unsigned short *colortable,
 
 
 
+/* layers have 6 bits per pixel, but the color code has a 16 colors granularity,
+   even if the low 2 bits are ignored (so there are only 4 different palettes) */
+void gundhara_vh_init_palette(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
+{
+	int color, pen;
+	for( color = 0; color < 32; color++ )
+		for( pen = 0; pen < 64; pen++ )
+		{
+			colortable[color * 64 + pen + 32*16 + 32*64*0] = (((color&~3) * 16 + pen)%(32*16)) + 32*16*2;
+			colortable[color * 64 + pen + 32*16 + 32*64*1] = (((color&~3) * 16 + pen)%(32*16)) + 32*16*1;
+		}
+}
+
+
+
+/* layers have 6 bits per pixel, but the color code has a 16 colors granularity */
+void jjsquawk_vh_init_palette(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
+{
+	int color, pen;
+	for( color = 0; color < 32; color++ )
+		for( pen = 0; pen < 64; pen++ )
+		{
+			colortable[color * 64 + pen + 32*16 + 32*64*0] = ((color * 16 + pen)%(32*16)) + 32*16*2;
+			colortable[color * 64 + pen + 32*16 + 32*64*1] = ((color * 16 + pen)%(32*16)) + 32*16*1;
+		}
+}
+
+
 /* layer 0 is 6 bit per pixel, but the color code has a 16 colors granularity */
 void zingzip_vh_init_palette(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom)
 {
@@ -496,7 +503,8 @@ static void seta_draw_sprites_map(struct osd_bitmap *bitmap)
 	int flip	=	ctrl & 0x40;
 	int numcol	=	ctrl2 & 0x000f;
 
-	data16_t *src = spriteram16_2 + ((ctrl2 & 0x40) ? 0x2000/2 : 0);
+	/* Sprites Banking and/or Sprites Buffering */
+	data16_t *src = spriteram16_2 + ( ((ctrl2 ^ (~ctrl2<<1)) & 0x40) ? 0x2000/2 : 0 );
 
 	int upper	=	( spriteram16[ 0x604/2 ] & 0xFF ) +
 					( spriteram16[ 0x606/2 ] & 0xFF ) * 256;
@@ -535,7 +543,7 @@ static void seta_draw_sprites_map(struct osd_bitmap *bitmap)
 			int	flipx	=	code & 0x8000;
 			int	flipy	=	code & 0x4000;
 
-			int bank	=	color & 0x0200;
+			int bank	=	(color & 0x0600) >> 9;
 
 /*
 twineagl:	010 02d 0f 10	(ship)
@@ -565,7 +573,7 @@ oisipuzl:	059 020 00 00	(game - yes, flip on!)
 			}
 
 			color	=	( color >> (16-5) ) % total_color_codes;
-			code	=	(code & 0x3fff) + (bank ? 0x4000 : 0);
+			code	=	(code & 0x3fff) + (bank * 0x4000);
 
 #define DRAWTILE(_x_,_y_)  \
 			drawgfx(bitmap,Machine->gfx[0], \
@@ -599,7 +607,9 @@ static void seta_draw_sprites(struct osd_bitmap *bitmap)
 	int ctrl2	=	spriteram16[ 0x602/2 ];
 
 	int flip	=	ctrl & 0x40;
-	data16_t *src = spriteram16_2 + ((ctrl2 & 0x40) ? 0x2000/2 : 0);
+
+	/* Sprites Banking and/or Sprites Buffering */
+	data16_t *src = spriteram16_2 + ( ((ctrl2 ^ (~ctrl2<<1)) & 0x40) ? 0x2000/2 : 0 );
 
 //	int max_y	=	Machine->visible_area.max_y+1;
 	int max_y	=	Machine->drv->screen_height;
@@ -624,19 +634,19 @@ static void seta_draw_sprites(struct osd_bitmap *bitmap)
 		int	flipx	=	code & 0x8000;
 		int	flipy	=	code & 0x4000;
 
-		int bank	=	 x & 0x0200;
+		int bank	=	(x & 0x0600) >> 9;
 		int color	=	( x >> (16-5) ) % total_color_codes;
 
 		if (flip)
 		{
 //			y = max_y - y;
-			y = max_y - y 
+			y = max_y - y
 				+(Machine->drv->screen_height-(Machine->visible_area.max_y + 1));
 			flipx = !flipx;
 			flipy = !flipy;
 		}
 
-		code = (code & 0x3fff) + (bank ? 0x4000 : 0);
+		code = (code & 0x3fff) + (bank * 0x4000);
 
 		drawgfx(bitmap,Machine->gfx[0],
 				code,
@@ -685,7 +695,8 @@ void seta_mark_sprite_color(void)
 	int flip	=	ctrl & 0x40;
 	int numcol	=	ctrl2 & 0x000f;
 
-	data16_t *src = spriteram16_2 + ((ctrl2 & 0x40) ? 0x2000/2 : 0);
+	/* Sprites Banking and/or Sprites Buffering */
+	data16_t *src = spriteram16_2 + ( ((ctrl2 ^ (~ctrl2<<1)) & 0x40) ? 0x2000/2 : 0 );
 
 	/* Number of columns to draw - the value 1 seems special, meaning:
 	   draw every column */
@@ -724,7 +735,7 @@ void seta_mark_sprite_color(void)
 		if (flip)
 		{
 //			y = max_y - y;
-			y = max_y - y 
+			y = max_y - y
 				+(Machine->drv->screen_height-(Machine->visible_area.max_y+1));
 		}
 
@@ -745,7 +756,9 @@ void seta_mark_sprite_color(void)
 
 /***************************************************************************
 
+
 								Screen Drawing
+
 
 ***************************************************************************/
 

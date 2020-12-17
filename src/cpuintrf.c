@@ -18,15 +18,6 @@
 #if (HAS_Z80)
 #include "cpu/z80/z80.h"
 #endif
-#if (HAS_SH2)
-#include "cpu/sh2/sh2.h"
-#endif
-#if (HAS_Z80GB)
-#include "cpu/z80gb/z80gb.h"
-#endif
-#if (HAS_CDP1802)
-#include "cpu/cdp1802/cdp1802.h"
-#endif
 #if (HAS_8080 || HAS_8085A)
 #include "cpu/i8085/i8085.h"
 #endif
@@ -66,6 +57,9 @@
 #if (HAS_I8035 || HAS_I8039 || HAS_I8048 || HAS_N7751)
 #include "cpu/i8039/i8039.h"
 #endif
+#if (HAS_I8X41)
+#include "cpu/i8x41/i8x41.h"
+#endif
 #if (HAS_M6800 || HAS_M6801 || HAS_M6802 || HAS_M6803 || HAS_M6808 || HAS_HD63701)
 #include "cpu/m6800/m6800.h"
 #endif
@@ -90,12 +84,6 @@
 #if (HAS_S2650)
 #include "cpu/s2650/s2650.h"
 #endif
-#if (HAS_F8)
-#include "cpu/f8/f8.h"
-#endif
-#if (HAS_CP1600)
-#include "cpu/cp1600/cp1600.h"
-#endif
 #if (HAS_TMS34010 || HAS_TMS34020)
 #include "cpu/tms34010/tms34010.h"
 #endif
@@ -111,29 +99,65 @@
 #if (HAS_CCPU)
 #include "cpu/ccpu/ccpu.h"
 #endif
-#if (HAS_PDP1)
-#include "cpu/pdp1/pdp1.h"
-#endif
 #if (HAS_ADSP2100 || HAS_ADSP2105)
 #include "cpu/adsp2100/adsp2100.h"
 #endif
 #if (HAS_PSXCPU)
 #include "cpu/mips/mips.h"
 #endif
-#if (HAS_SC61860)
-#include "cpu/sc61860/sc61860.h"
-#endif
-#if (HAS_ARM)
-#include "cpu/arm/arm.h"
-#endif
-#if (HAS_G65816)
-#include "cpu/g65816/g65816.h"
-#endif
-#if (HAS_SPC700)
-#include "cpu/spc700/spc700.h"
-#endif
 #if (HAS_ASAP)
 #include "cpu/asap/asap.h"
+#endif
+#if (HAS_UPD7810)
+#include "cpu/upd7810/upd7810.h"
+#endif
+
+
+#ifdef MESS
+
+#if (HAS_APEXC)
+#include "mess/cpu/apexc/apexc.h"
+#endif
+#if (HAS_ARM)
+#include "mess/cpu/arm/arm.h"
+#endif
+#if (HAS_CDP1802)
+#include "mess/cpu/cdp1802/cdp1802.h"
+#endif
+#if (HAS_CP1600)
+#include "mess/cpu/cp1600/cp1600.h"
+#endif
+#if (HAS_F8)
+#include "mess/cpu/f8/f8.h"
+#endif
+#if (HAS_G65816)
+#include "mess/cpu/g65816/g65816.h"
+#endif
+#if (HAS_LH5801)
+#include "mess/cpu/lh5801/lh5801.h"
+#endif
+#if (HAS_PDP1)
+#include "mess/cpu/pdp1/pdp1.h"
+#endif
+#if (HAS_SATURN)
+#include "mess/cpu/saturn/saturn.h"
+#endif
+#if (HAS_SC61860)
+#include "mess/cpu/sc61860/sc61860.h"
+#endif
+#if (HAS_SH2)
+#include "mess/cpu/sh2/sh2.h"
+#endif
+#if (HAS_SPC700)
+#include "mess/cpu/spc700/spc700.h"
+#endif
+#if (HAS_Z80GB)
+#include "mess/cpu/z80gb/z80gb.h"
+#endif
+#if (HAS_Z80_MSX)
+#include "cpu/z80/z80_msx.h"
+#endif
+
 #endif
 
 
@@ -183,13 +207,13 @@ static int cycles_running;	/* number of cycles that the CPU emulation was reques
 					/* (needed by cpu_getfcount) */
 static int have_to_reset;
 
-static int interrupt_enable[MAX_CPU];
-static int interrupt_vector[MAX_CPU];
+static UINT8 interrupt_enable[MAX_CPU];
+static INT32 interrupt_vector[MAX_CPU];
 
-static int irq_line_state[MAX_CPU * MAX_IRQ_LINES];
-static int irq_line_vector[MAX_CPU * MAX_IRQ_LINES];
+static UINT8 irq_line_state[MAX_CPU * MAX_IRQ_LINES];
+static INT32 irq_line_vector[MAX_CPU * MAX_IRQ_LINES];
 
-static int watchdog_counter;
+static INT32 watchdog_counter;
 
 static void *vblank_timer;
 static int vblank_countdown;
@@ -209,6 +233,9 @@ static double scanline_period_inv;
 static int usres; /* removed from cpu_run and made global */
 static int vblank;
 static int current_frame;
+
+static int loadsave_schedule;
+static char loadsave_schedule_id;
 
 static void cpu_generate_interrupt(int cpunum, int (*func)(void), int num);
 static void cpu_vblankintcallback(int param);
@@ -258,6 +285,7 @@ UINT8 default_win_layout[] = {
 };
 
 /* Dummy interfaces for non-CPUs */
+static void Dummy_init(void);
 static void Dummy_reset(void *param);
 static void Dummy_exit(void);
 static int Dummy_execute(int cycles);
@@ -278,6 +306,7 @@ static const char *Dummy_info(void *context, int regnum);
 static unsigned Dummy_dasm(char *buffer, unsigned pc);
 
 /* Convenience macros - not in cpuintrf.h because they shouldn't be used by everyone */
+#define INIT(index) 					((*cpu[index].intf->init)())
 #define RESET(index)					((*cpu[index].intf->reset)(Machine->drv->cpu[index].reset_param))
 #define EXECUTE(index,cycles)			((*cpu[index].intf->execute)(cycles))
 #define GETCONTEXT(index,context)		((*cpu[index].intf->get_context)(context))
@@ -313,12 +342,12 @@ static unsigned Dummy_dasm(char *buffer, unsigned pc);
 #define CPU0(cpu,name,nirq,dirq,oc,i0,i1,i2,datawidth,mem,shift,bits,endian,align,maxinst) \
 	{																			   \
 		CPU_##cpu,																   \
-		name##_reset, name##_exit, name##_execute, NULL,						   \
+		name##_init, name##_reset, name##_exit, name##_execute, NULL,			   \
 		name##_get_context, name##_set_context, NULL, NULL, 					   \
 		name##_get_pc, name##_set_pc,											   \
 		name##_get_sp, name##_set_sp, name##_get_reg, name##_set_reg,			   \
 		name##_set_nmi_line, name##_set_irq_line, name##_set_irq_callback,		   \
-		NULL,NULL,NULL, name##_info, name##_dasm,								   \
+		NULL, name##_info, name##_dasm, 										   \
 		nirq, dirq, &name##_ICount, oc, i0, i1, i2, 							   \
 		datawidth,																   \
 		(mem_read_handler)cpu_readmem##mem, (mem_write_handler)cpu_writemem##mem, NULL, NULL,						   \
@@ -326,18 +355,18 @@ static unsigned Dummy_dasm(char *buffer, unsigned pc);
 		shift, bits, CPU_IS_##endian, align, maxinst							   \
 	}
 
-/* CPUs which have _burn, _state_save and _state_load functions */
-#define CPU1(cpu,name,nirq,dirq,oc,i0,i1,i2,datawidth,mem,shift,bits,endian,align,maxinst)   \
+/* CPUs which have the _burn function */
+#define CPU1(cpu,name,nirq,dirq,oc,i0,i1,i2,datawidth,mem,shift,bits,endian,align,maxinst)	 \
 	{																			   \
 		CPU_##cpu,																   \
-		name##_reset, name##_exit, name##_execute,								   \
+		name##_init, name##_reset, name##_exit, name##_execute, 				   \
 		name##_burn,															   \
 		name##_get_context, name##_set_context, 								   \
 		name##_get_cycle_table, name##_set_cycle_table, 						   \
 		name##_get_pc, name##_set_pc,											   \
 		name##_get_sp, name##_set_sp, name##_get_reg, name##_set_reg,			   \
 		name##_set_nmi_line, name##_set_irq_line, name##_set_irq_callback,		   \
-		NULL,name##_state_save,name##_state_load, name##_info, name##_dasm, 	   \
+		NULL, name##_info, name##_dasm, 										   \
 		nirq, dirq, &name##_ICount, oc, i0, i1, i2, 							   \
 		datawidth,																   \
 		(mem_read_handler)cpu_readmem##mem, (mem_write_handler)cpu_writemem##mem, NULL, NULL,						   \
@@ -346,16 +375,16 @@ static unsigned Dummy_dasm(char *buffer, unsigned pc);
 	}
 
 /* CPUs which have the _internal_interrupt function */
-#define CPU2(cpu,name,nirq,dirq,oc,i0,i1,i2,datawidth,mem,shift,bits,endian,align,maxinst)   \
+#define CPU2(cpu,name,nirq,dirq,oc,i0,i1,i2,datawidth,mem,shift,bits,endian,align,maxinst)	 \
 	{																			   \
 		CPU_##cpu,																   \
-		name##_reset, name##_exit, name##_execute,								   \
+		name##_init, name##_reset, name##_exit, name##_execute, 				   \
 		NULL,																	   \
 		name##_get_context, name##_set_context, NULL, NULL, 					   \
 		name##_get_pc, name##_set_pc,											   \
 		name##_get_sp, name##_set_sp, name##_get_reg, name##_set_reg,			   \
 		name##_set_nmi_line, name##_set_irq_line, name##_set_irq_callback,		   \
-		name##_internal_interrupt,NULL,NULL, name##_info, name##_dasm,			   \
+		name##_internal_interrupt, name##_info, name##_dasm,					   \
 		nirq, dirq, &name##_ICount, oc, i0, i1, i2, 							   \
 		datawidth,																   \
 		(mem_read_handler)cpu_readmem##mem, (mem_write_handler)cpu_writemem##mem, NULL, NULL,						   \
@@ -367,12 +396,12 @@ static unsigned Dummy_dasm(char *buffer, unsigned pc);
 #define CPU3(cpu,name,nirq,dirq,oc,i0,i1,i2,datawidth,mem,shift,bits,endian,align,maxinst) \
 	{																			   \
 		CPU_##cpu,																   \
-		name##_reset, name##_exit, name##_execute, NULL,						   \
+		name##_init, name##_reset, name##_exit, name##_execute, NULL,			   \
 		name##_get_context, name##_set_context, NULL, NULL, 					   \
 		name##_get_pc, name##_set_pc,											   \
 		name##_get_sp, name##_set_sp, name##_get_reg, name##_set_reg,			   \
 		name##_set_nmi_line, name##_set_irq_line, name##_set_irq_callback,		   \
-		NULL,NULL,NULL, name##_info, name##_dasm,								   \
+		NULL, name##_info, name##_dasm, 										   \
 		nirq, dirq, &name##_icount, oc, i0, i1, i2, 							   \
 		datawidth,																   \
 		(mem_read_handler)cpu_readmem##mem, (mem_write_handler)cpu_writemem##mem, NULL, NULL,						   \
@@ -384,12 +413,12 @@ static unsigned Dummy_dasm(char *buffer, unsigned pc);
 #define CPU4(cpu,name,nirq,dirq,oc,i0,i1,i2,datawidth,mem,shift,bits,endian,align,maxinst) \
 	{																			   \
 		CPU_##cpu,																   \
-		name##_reset, name##_exit, name##_execute, NULL,						   \
+		name##_init, name##_reset, name##_exit, name##_execute, NULL,			   \
 		name##_get_context, name##_set_context, NULL, NULL, 					   \
 		name##_get_pc, name##_set_pc,											   \
 		name##_get_sp, name##_set_sp, name##_get_reg, name##_set_reg,			   \
 		name##_set_nmi_line, name##_set_irq_line, name##_set_irq_callback,		   \
-		NULL,NULL,NULL, name##_info, name##_dasm,								   \
+		NULL, name##_info, name##_dasm, 										   \
 		nirq, dirq, &name##_icount, oc, i0, i1, i2, 							   \
 		datawidth,																   \
 		(mem_read_handler)cpu_readmem##mem, (mem_write_handler)cpu_writemem##mem, name##_internal_r, name##_internal_w, \
@@ -405,16 +434,6 @@ struct cpu_interface cpuintf[] =
 	CPU0(DUMMY,    Dummy,	 1,  0,1.00,0,				   -1,			   -1,			   8, 16,	  0,16,LE,1, 1	),
 #if (HAS_Z80)
 	CPU1(Z80,	   z80, 	 1,255,1.00,Z80_IGNORE_INT,    Z80_IRQ_INT,    Z80_NMI_INT,    8, 16,	  0,16,LE,1, 4	),
-#endif
-#if (HAS_SH2)
-    CPU4(SH2,      sh2,     16,  0,1.00,SH2_INT_NONE ,               0,             -1,   32,32bew,   0,27,BE,2, 2  ),
-#endif
-#if (HAS_Z80GB)
-	CPU0(Z80GB,    z80gb,	 5,255,1.00,Z80GB_IGNORE_INT,  0,			   1,			   8, 16,	  0,16,LE,1, 4	),
-#endif
-#if (HAS_CDP1802)
-#define cdp1802_ICount cdp1802_icount
-	CPU0(CDP1802,  cdp1802,  1,  0,1.00,CDP1802_INT_NONE,  CDP1802_IRQ,    -1,			   8, 16,	  0,16,BE,1, 3	),
 #endif
 #if (HAS_8080)
 	CPU0(8080,	   i8080,	 4,255,1.00,I8080_NONE, 	   I8080_INTR,	   I8080_TRAP,	   8, 16,	  0,16,LE,1, 3	),
@@ -494,6 +513,9 @@ struct cpu_interface cpuintf[] =
 #if (HAS_N7751)
 	CPU0(N7751,    n7751,	 1,  0,1.00,N7751_IGNORE_INT,  N7751_EXT_INT,  -1,			   8, 16,	  0,16,LE,1, 2	),
 #endif
+#if (HAS_I8X41)
+	CPU0(I8X41,    i8x41,	 1,  0,1.00,I8X41_INT_NONE,    I8X41_INT_IBF,  -1,			   8, 16,	  0,16,LE,1, 2	),
+#endif
 #if (HAS_M6800)
 	CPU0(M6800,    m6800,	 1,  0,1.00,M6800_INT_NONE,    M6800_INT_IRQ,  M6800_INT_NMI,  8, 16,	  0,16,BE,1, 4	),
 #endif
@@ -543,21 +565,13 @@ struct cpu_interface cpuintf[] =
 	CPU0(M68EC020, m68ec020, 8, -1,1.00,MC68EC020_INT_NONE,-1,			   -1,			   32,24bedw, 0,24,BE,4,10	),
 #endif
 #if (HAS_M68020)
-	CPU0(M68020,   m68020,   8, -1,1.00,MC68020_INT_NONE,   -1,			   -1,			   32,32bedw, 0,32,BE,4,10	),
+	CPU0(M68020,   m68020,	 8, -1,1.00,MC68020_INT_NONE,	-1, 		   -1,			   32,32bedw, 0,32,BE,4,10	),
 #endif
 #if (HAS_T11)
 	CPU0(T11,	   t11, 	 4,  0,1.00,T11_INT_NONE,	   -1,			   -1,			   16,16lew,  0,16,LE,2, 6	),
 #endif
 #if (HAS_S2650)
 	CPU0(S2650,    s2650,	 2,  0,1.00,S2650_INT_NONE,    -1,			   -1,			   8, 16,	  0,15,LE,1, 3	),
-#endif
-#if (HAS_F8)
-#define f8_ICount f8_icount
-	CPU4(F8,	   f8,		 1,  0,1.00,F8_INT_NONE,	   F8_INT_INTR,    -1,			   8, 16,	  0,16,LE,1, 3	),
-#endif
-#if (HAS_CP1600)
-#define cp1600_ICount cp1600_icount
-    CPU0(CP1600,   cp1600,   0,  0,1.00,CP1600_INT_NONE,   -1,             -1,             8, 16,     0,16,LE,1, 3	),
 #endif
 #if (HAS_TMS34010)
 	CPU2(TMS34010, tms34010, 2,  0,1.00,TMS34010_INT_NONE, TMS34010_INT1,  -1,			   16,29lew,  3,29,LE,2,10	),
@@ -598,9 +612,6 @@ struct cpu_interface cpuintf[] =
 #if (HAS_CCPU)
 	CPU3(CCPU,	   ccpu,	 2,  0,1.00,0,				   -1,			   -1,			   16,16bew,  0,15,BE,2, 3	),
 #endif
-#if (HAS_PDP1)
-	CPU0(PDP1,	   pdp1,	 0,  0,1.00,0,				   -1,			   -1,			   8, 16,	  0,18,LE,1, 3	),
-#endif
 #if (HAS_ADSP2100)
 	CPU3(ADSP2100, adsp2100, 4,  0,1.00,ADSP2100_INT_NONE, -1,			   -1,			   16,17lew, -1,14,LE,2, 4	),
 #endif
@@ -610,22 +621,64 @@ struct cpu_interface cpuintf[] =
 #if (HAS_PSXCPU)
 	CPU0(PSXCPU,   mips,	 8, -1,1.00,MIPS_INT_NONE,	   MIPS_INT_NONE,  MIPS_INT_NONE,  16,32lew,  0,32,LE,4, 4	),
 #endif
-#if (HAS_SC61860)
-	#define sc61860_ICount sc61860_icount
-	CPU0(SC61860,  sc61860,  1,  0,1.00,-1, 			   -1,			   -1,			   8, 16,	  0,16,BE,1, 4	),
+#if (HAS_ASAP)
+	#define asap_ICount asap_icount
+	CPU0(ASAP,	   asap,	 1,  0,1.00,ASAP_INT_NONE,	   -1,			   -1,			   32,32ledw, 0,32,LE,4, 12 ),
+#endif
+#if (HAS_UPD7810)
+#define upd7810_ICount upd7810_icount
+	CPU0(UPD7810,  upd7810,  2,  0,1.00,UPD7810_INT_NONE,  UPD7810_INTF1,  UPD7810_INTNMI, 8, 16,	  0,16,LE,1, 4	),
+#endif
+
+#ifdef MESS
+#if (HAS_APEXC)
+	CPU0(APEXC,    apexc,	 0,  0,1.00,0,				   -1,			   -1,			   32,18bedw, 0,18,LE,1, 1	),
 #endif
 #if (HAS_ARM)
 	CPU0(ARM,	   arm, 	 2,  0,1.00,ARM_INT_NONE,	   ARM_FIRQ,	   ARM_IRQ, 	   32,26ledw, 0,26,LE,4, 4	),
 #endif
+#if (HAS_CDP1802)
+#define cdp1802_ICount cdp1802_icount
+	CPU0(CDP1802,  cdp1802,  1,  0,1.00,CDP1802_INT_NONE,  CDP1802_IRQ,    -1,			   8, 16,	  0,16,BE,1, 3	),
+#endif
+#if (HAS_CP1600)
+#define cp1600_ICount cp1600_icount
+	CPU0(CP1600,   cp1600,	 0,  0,1.00,CP1600_INT_NONE,   -1,			   -1,			   8, 16,	  0,16,LE,1, 3	),
+#endif
+#if (HAS_F8)
+#define f8_ICount f8_icount
+	CPU4(F8,	   f8,		 1,  0,1.00,F8_INT_NONE,	   F8_INT_INTR,    -1,			   8, 16,	  0,16,LE,1, 3	),
+#endif
 #if (HAS_G65816)
 	CPU0(G65816,  g65816,	 1,  0,1.00,G65816_INT_NONE,   G65816_INT_IRQ, G65816_INT_NMI, 8, 24,	  0,24,BE,1, 3	),
+#endif
+#if (HAS_LH5801)
+#define lh5801_ICount lh5801_icount
+	CPU0(LH5801,   lh5801,	 1,  0,1.00,LH5801_INT_NONE,   LH5801_IRQ,	   -1,			   8, 17,	  0,17,BE,1, 5	),
+#endif
+#if (HAS_PDP1)
+	CPU0(PDP1,	   pdp1,	 0,  0,1.00,0,				   -1,			   -1,			   8, 16,	  0,18,LE,1, 3	),
+#endif
+#if (HAS_SATURN)
+#define saturn_ICount saturn_icount
+	CPU0(SATURN,   saturn,	 1,  0,1.00,SATURN_INT_NONE,   SATURN_INT_IRQ, SATURN_INT_NMI,	8,20,	  0,20,LE,1, 21 ),
+#endif
+#if (HAS_SC61860)
+	#define sc61860_ICount sc61860_icount
+	CPU0(SC61860,  sc61860,  1,  0,1.00,-1, 			   -1,			   -1,			   8, 16,	  0,16,BE,1, 4	),
+#endif
+#if (HAS_SH2)
+	CPU4(SH2,	   sh2, 	16,  0,1.00,SH2_INT_NONE ,				 0, 			-1,   32,32bedw,   0,32,BE,2, 2  ),
 #endif
 #if (HAS_SPC700)
 	CPU0(SPC700,   spc700,	 0,  0,1.00,0,				   -1,			   -1,			   8, 16,	  0,16,LE,1, 3	),
 #endif
-#if (HAS_ASAP)
-	#define asap_ICount asap_icount
-	CPU0(ASAP,     asap,     1,  0,1.00,ASAP_INT_NONE,	   -1,			   -1,			   32,32ledw, 0,32,LE,4, 12 ),
+#if (HAS_Z80GB)
+	CPU0(Z80GB,    z80gb,	 5,255,1.00,Z80GB_IGNORE_INT,  0,			   1,			   8, 16,	  0,16,LE,1, 4	),
+#endif
+#if (HAS_Z80_MSX)
+	CPU1(Z80_MSX,  z80_msx,	 1,255,1.00,Z80_IGNORE_INT,    Z80_IRQ_INT,    Z80_NMI_INT,    8, 16,	  0,16,LE,1, 4	),
+#endif
 #endif
 };
 
@@ -657,21 +710,15 @@ void cpu_init(void)
 
 	/* Set up the interface functions */
 	for (i = 0; i < MAX_CPU; i++)
+	{
 		cpu[i].intf = &cpuintf[CPU_TYPE(i)];
+	}
 
-	/* reset the timer system */
-	timer_init();
-	timeslice_timer = refresh_timer = vblank_timer = NULL;
-}
-
-void cpu_run(void)
-{
-	int i;
-
-	/* determine which CPUs need a context switch */
 	for (i = 0; i < totalcpu; i++)
 	{
 		int j, size;
+
+		activecpu = i;
 
 		/* allocate a context buffer for the CPU */
 		size = GETCONTEXT(i,NULL);
@@ -693,7 +740,6 @@ logerror("CPU #%d failed to allocate context buffer (%d bytes)!\n", i, size);
 		/* Zap the context buffer */
 		memset(cpu[i].context, 0, size );
 
-
 		/* Save if there is another CPU of the same type */
 		cpu[i].save_context = 0;
 
@@ -707,7 +753,6 @@ logerror("CPU #%d failed to allocate context buffer (%d bytes)!\n", i, size);
 		{
 			cpu[i].save_context |= mame_debug;
 		}
-
 		#endif
 
 		for( j = 0; j < MAX_IRQ_LINES; j++ )
@@ -715,7 +760,28 @@ logerror("CPU #%d failed to allocate context buffer (%d bytes)!\n", i, size);
 			irq_line_state[i * MAX_IRQ_LINES + j] = CLEAR_LINE;
 			irq_line_vector[i * MAX_IRQ_LINES + j] = cpuintf[CPU_TYPE(i)].default_vector;
 		}
+
+		state_save_set_current_tag(i+1);
+		INIT(i);
+		if (cpu[i].save_context) GETCONTEXT(i, cpu[i].context);
 	}
+
+	state_save_set_current_tag(0);
+
+	state_save_register_UINT8("cpu", 0, "irq enable",     interrupt_enable,  totalcpu);
+	state_save_register_INT32("cpu", 0, "irq vector",     interrupt_vector,  totalcpu);
+	state_save_register_UINT8("cpu", 0, "irqline state",  irq_line_state,    totalcpu*MAX_IRQ_LINES);
+	state_save_register_INT32("cpu", 0, "irqline vector", irq_line_vector,   totalcpu*MAX_IRQ_LINES);
+	state_save_register_INT32("cpu", 0, "watchdog count", &watchdog_counter, 1);
+
+	/* reset the timer system */
+	timer_init();
+	timeslice_timer = refresh_timer = vblank_timer = NULL;
+}
+
+void cpu_run(void)
+{
+	int i;
 
 #ifdef	MAME_DEBUG
 	/* Initialize the debugger */
@@ -790,6 +856,7 @@ logerror("Machine reset\n");
 	/* reset the globals */
 	cpu_vblankreset();
 	current_frame = 0;
+	state_save_dump_registry();
 
 	/* loop until the user quits */
 	usres = 0;
@@ -807,49 +874,70 @@ logerror("Machine reset\n");
 		}
 		profiler_mark(PROFILER_EXTRA);
 
-#if SAVE_STATE_TEST
+		if (loadsave_schedule != LOADSAVE_NONE)
 		{
-			if( keyboard_pressed_memory(KEYCODE_S) )
+			if (loadsave_schedule == LOADSAVE_SAVE)
 			{
-				void *s = state_create(Machine->gamedrv->name);
-				if( s )
+				void *file;
+				char name[2];
+				name[0] = loadsave_schedule_id;
+				name[1] = 0;
+				file = osd_fopen(Machine->gamedrv->name, name, OSD_FILETYPE_STATE, 1);
+
+				state_save_save_begin(file);
+				state_save_set_current_tag(0);
+				state_save_save_continue();
+
+				for( cpunum = 0; cpunum < totalcpu; cpunum++ )
 				{
-					for( cpunum = 0; cpunum < totalcpu; cpunum++ )
+					activecpu = cpunum;
+					memory_set_context(activecpu);
+					if (cpu[activecpu].save_context) SETCONTEXT(activecpu, cpu[activecpu].context);
+					/* make sure any bank switching is reset */
+					SET_OP_BASE(activecpu, cpu_get_pc_byte());
+					state_save_set_current_tag(activecpu + 1);
+					state_save_save_continue();
+				}
+
+				state_save_save_finish();
+				osd_fclose(file);
+			}
+			else
+			{
+				void *file;
+				char name[2];
+				name[0] = loadsave_schedule_id;
+				name[1] = 0;
+				file = osd_fopen(Machine->gamedrv->name, name, OSD_FILETYPE_STATE, 0);
+
+				if(file)
+				{
+					if (!state_save_load_begin(file))
 					{
-						activecpu = cpunum;
-						memory_set_context(activecpu);
-						if (cpu[activecpu].save_context) SETCONTEXT(activecpu, cpu[activecpu].context);
-						/* make sure any bank switching is reset */
-						SET_OP_BASE(activecpu, cpu_get_pc_byte());
-						if( cpu[activecpu].intf->cpu_state_save )
-							(*cpu[activecpu].intf->cpu_state_save)(s);
+						state_save_set_current_tag(0);
+						state_save_load_continue();
+
+						for( cpunum = 0; cpunum < totalcpu; cpunum++ )
+						{
+							activecpu = cpunum;
+							memory_set_context(activecpu);
+							if (cpu[activecpu].save_context) SETCONTEXT(activecpu, cpu[activecpu].context);
+							/* make sure any bank switching is reset */
+							SET_OP_BASE(activecpu, cpu_get_pc_byte());
+							state_save_set_current_tag(activecpu + 1);
+							state_save_load_continue();
+							/* update the contexts */
+							if (cpu[activecpu].save_context) GETCONTEXT(activecpu, cpu[activecpu].context);
+						}
+
+						state_save_load_finish();
 					}
-					state_close(s);
+					osd_fclose(file);
 				}
 			}
 
-			if( keyboard_pressed_memory(KEYCODE_L) )
-			{
-				void *s = state_open(Machine->gamedrv->name);
-				if( s )
-				{
-					for( cpunum = 0; cpunum < totalcpu; cpunum++ )
-					{
-						activecpu = cpunum;
-						memory_set_context(activecpu);
-						if (cpu[activecpu].save_context) SETCONTEXT(activecpu, cpu[activecpu].context);
-						/* make sure any bank switching is reset */
-						SET_OP_BASE(activecpu, cpu_get_pc_byte());
-						if( cpu[activecpu].intf->cpu_state_load )
-							(*cpu[activecpu].intf->cpu_state_load)(s);
-						/* update the contexts */
-						if (cpu[activecpu].save_context) GETCONTEXT(activecpu, cpu[activecpu].context);
-					}
-					state_close(s);
-				}
-			}
+			loadsave_schedule = LOADSAVE_NONE;
 		}
-#endif
 		/* ask the timer system to schedule */
 		if (timer_schedule_cpu(&cpunum, &cycles_running))
 		{
@@ -877,6 +965,7 @@ logerror("Machine reset\n");
 
 			/* update the timer with how long we actually ran */
 			timer_update_cpu(cpunum, ran);
+
 		}
 
 		profiler_mark(PROFILER_END);
@@ -912,7 +1001,16 @@ logerror("Machine reset\n");
 	totalcpu = 0;
 }
 
+void cpu_loadsave_schedule(int type, char id)
+{
+	loadsave_schedule = type;
+	loadsave_schedule_id = id;
+}
 
+void cpu_loadsave_reset(void)
+{
+	loadsave_schedule = LOADSAVE_NONE;
+}
 
 
 /***************************************************************************
@@ -923,15 +1021,15 @@ logerror("Machine reset\n");
   onwards, if you don't call it at least once every 2 seconds, the machine
   will be reset.
 
-  The 2 seconds delay is targeted at dondokod, which during boot stays more
-  than 1 second without resetting the watchdog.
+  The 3 seconds delay is targeted at qzshowby, which otherwise would reset
+  at the start of a game.
 
 ***************************************************************************/
 
 static void watchdog_reset(void)
 {
 	if (watchdog_counter == -1) logerror("watchdog armed\n");
-	watchdog_counter = 2*Machine->drv->frames_per_second;
+	watchdog_counter = 3*Machine->drv->frames_per_second;
 }
 
 WRITE_HANDLER( watchdog_reset_w )
@@ -942,7 +1040,7 @@ WRITE_HANDLER( watchdog_reset_w )
 READ_HANDLER( watchdog_reset_r )
 {
 	watchdog_reset();
-	return 0;
+	return 0xff;
 }
 
 WRITE16_HANDLER( watchdog_reset16_w )
@@ -953,7 +1051,7 @@ WRITE16_HANDLER( watchdog_reset16_w )
 READ16_HANDLER( watchdog_reset16_r )
 {
 	watchdog_reset();
-	return 0;
+	return 0xffff;
 }
 
 
@@ -1395,13 +1493,18 @@ void cpu_clear_pending_interrupts(int cpunum)
 
 
 
+void cpu_interrupt_enable(int cpunum,int enabled)
+{
+	interrupt_enable[cpunum] = enabled;
+
+	/* make sure there are no queued interrupts */
+	if (enabled == 0) cpu_clear_pending_interrupts(cpunum);
+}
+
 WRITE_HANDLER( interrupt_enable_w )
 {
 	int cpunum = (activecpu < 0) ? 0 : activecpu;
-	interrupt_enable[cpunum] = data;
-
-	/* make sure there are no queued interrupts */
-	if (data == 0) cpu_clear_pending_interrupts(cpunum);
+	cpu_interrupt_enable(cpunum,data);
 }
 
 
@@ -1997,9 +2100,6 @@ static void cpu_generate_interrupt(int cpunum, int (*func)(void), int num)
 #if (HAS_S2650)
 			case CPU_S2650: 			irq_line = 0; LOG(("S2650 IRQ\n")); break;
 #endif
-#if (HAS_F8)
-			case CPU_F8:				irq_line = 0; LOG(("F8 INTR\n")); break;
-#endif
 #if (HAS_TMS34010)
 			case CPU_TMS34010:
 				switch (num)
@@ -2304,6 +2404,7 @@ static void cpu_vblankcallback(int param)
 	/* is it a real VBLANK? */
 	if (!--vblank_countdown)
 	{
+
 		/* do we update the screen now? */
 		if (!(Machine->drv->video_attributes & VIDEO_UPDATE_AFTER_VBLANK))
 			usres = updatescreen();
@@ -3283,6 +3384,7 @@ void cpu_dump_states(void)
   Dummy interfaces for non-CPUs
 
 ***************************************************************************/
+static void Dummy_init(void) { }
 static void Dummy_reset(void *param) { }
 static void Dummy_exit(void) { }
 static int Dummy_execute(int cycles) { return cycles; }
@@ -3324,3 +3426,46 @@ static unsigned Dummy_dasm(char *buffer, unsigned pc)
 	return 1;
 }
 
+#if (HAS_M68000 || HAS_M68010 || HAS_M68020 || HAS_M68EC020)
+void cpu_set_m68k_reset(int cpunum, void (*resetfn)(void))
+{
+	void m68k_set_reset_instr_callback(void  (*callback)(void));
+
+	if ( 1
+#if (HAS_M68000)
+		&& CPU_TYPE(cpunum) != CPU_M68000
+#endif
+#if (HAS_M68010)
+		&& CPU_TYPE(cpunum) != CPU_M68010
+#endif
+#if (HAS_M68020)
+		&& CPU_TYPE(cpunum) != CPU_M68020
+#endif
+#if (HAS_M68EC020)
+		&& CPU_TYPE(cpunum) != CPU_M68EC020
+#endif
+		)
+	{
+		logerror("Trying to set m68k reset vector on non-68k cpu\n");
+		exit(1);
+	}
+
+	if (cpunum != activecpu)
+	{
+		if(activecpu != -1)
+			if (cpu[activecpu].save_context) GETCONTEXT(activecpu, cpu[activecpu].context);
+		memory_set_context(cpunum);
+		if (cpu[cpunum].save_context) SETCONTEXT(cpunum, cpu[cpunum].context);
+	}
+
+	m68k_set_reset_instr_callback(resetfn);
+
+	if(cpunum != activecpu)
+	{
+		memory_set_context(cpunum);
+		if (cpu[cpunum].save_context) GETCONTEXT(cpunum, cpu[cpunum].context);
+		if(activecpu != -1)
+			if (cpu[activecpu].save_context) SETCONTEXT(activecpu, cpu[activecpu].context);
+	}
+}
+#endif

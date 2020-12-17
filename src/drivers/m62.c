@@ -5,6 +5,12 @@ Irem "M62" system
 TODO:
 - Kid Niki is missing the drums. There is an analog section in the sound board.
 
+Notes:
+- I believe that both kungfum bootlegs are derived from an Irem original which we
+  don't have (prototype/early revision?). They say "kanfu master" instead of
+  "kung-fu master" on the introduction screen.
+
+
 
 The following information is gathered from Kung Fu Master; the board was most
 likely modified for other games (or, not all the games in this driver are
@@ -482,10 +488,24 @@ INPUT_PORTS_START( kungfum )
 	IN0_PORT
 
 	PORT_START	/* IN1 */
-	IN1_PORT
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_4WAY )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_4WAY )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_4WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_4WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_BUTTON1 )
 
 	PORT_START	/* IN2 */
-	IN2_PORT
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_4WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_COCKTAIL )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN ) /* probably unused */
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )
 
 	PORT_START	/* DSW1 */
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Difficulty ) )
@@ -928,7 +948,7 @@ INPUT_PORTS_START( spelunkr )
 	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
 	/* In teleport mode, keep 1 pressed and press up or down to move the character */
 	PORT_BITX   ( 0x10, 0x10, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Teleport", IP_KEY_NONE, IP_JOY_NONE )
-	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	/* In freeze mode, press 2 to stop and 1 to restart */
 	PORT_BITX   ( 0x20, 0x20, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Freeze", IP_KEY_NONE, IP_JOY_NONE )
@@ -1857,6 +1877,72 @@ ROM_START( spelunkr )
 	ROM_LOAD( "sprb.6f",      0x0820, 0x0100, 0x34d88d3c )	/* video timing - common to the other games */
 ROM_END
 
+ROM_START( spelnkrj )
+	ROM_REGION( 0x18000, REGION_CPU1, 0 )	/* main CPU */
+	ROM_LOAD( "spr_a4ec.bin", 0x00000, 0x4000, 0x4e94a80c )
+	ROM_LOAD( "spr_a4dd.bin", 0x04000, 0x4000, 0xe7c0cbce )
+	ROM_LOAD( "spr_m7cc.bin", 0x10000, 0x4000, 0x57598a36 )	/* banked at 8000-9fff */
+	ROM_LOAD( "spr_m7bd.bin", 0x14000, 0x4000, 0xecf5137f )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )	/* sound CPU */
+	ROM_LOAD( "spra.3d",      0x8000, 0x04000, 0x4110363c ) /* adpcm data */
+	ROM_LOAD( "spra.3f",      0xc000, 0x04000, 0x67a9d2e6 ) /* 6803 code */
+
+	ROM_REGION( 0x18000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "sprm.1d",      0x00000, 0x4000, 0x4ef7ae89 )	/* tiles */
+	ROM_LOAD( "sprm.1e",      0x04000, 0x4000, 0xa3755180 )
+	ROM_LOAD( "sprm.3c",      0x08000, 0x4000, 0xb4008e6a )
+	ROM_LOAD( "sprm.3b",      0x0c000, 0x4000, 0xf61cf012 )
+	ROM_LOAD( "sprm.1c",      0x10000, 0x4000, 0x58b21c76 )
+	ROM_LOAD( "sprm.1b",      0x14000, 0x4000, 0xa95cb3e5 )
+
+	ROM_REGION( 0x18000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD( "sprb.4k",      0x00000, 0x4000, 0xe7f0e861 )	/* sprites */
+	ROM_LOAD( "sprb.4f",      0x04000, 0x4000, 0x32663097 )
+	ROM_LOAD( "sprb.3p",      0x08000, 0x4000, 0x8fbaf373 )
+	ROM_LOAD( "sprb.4p",      0x0c000, 0x4000, 0x37069b76 )
+	ROM_LOAD( "sprb.4c",      0x10000, 0x4000, 0xcfe46a88 )
+	ROM_LOAD( "sprb.4e",      0x14000, 0x4000, 0x11c48979 )
+
+	ROM_REGION( 0x0c000, REGION_GFX3, ROMREGION_DISPOSE )
+	ROM_LOAD( "sprm.4p",      0x00000, 0x0800, 0x4dfe2e63 )	/* chars */
+	ROM_CONTINUE(             0x02000, 0x0800 )			/* first and second half identical, */
+	ROM_CONTINUE(             0x00800, 0x0800 )			/* second half not used by the driver */
+	ROM_CONTINUE(             0x02800, 0x0800 )
+	ROM_CONTINUE(             0x00000, 0x0800 )
+	ROM_CONTINUE(             0x03000, 0x0800 )
+	ROM_CONTINUE(             0x00800, 0x0800 )
+	ROM_CONTINUE(             0x03800, 0x0800 )
+	ROM_LOAD( "sprm.4l",      0x04000, 0x0800, 0x239f2cd4 )
+	ROM_CONTINUE(             0x06000, 0x0800 )
+	ROM_CONTINUE(             0x04800, 0x0800 )
+	ROM_CONTINUE(             0x06800, 0x0800 )
+	ROM_CONTINUE(             0x05000, 0x0800 )
+	ROM_CONTINUE(             0x07000, 0x0800 )
+	ROM_CONTINUE(             0x05800, 0x0800 )
+	ROM_CONTINUE(             0x07800, 0x0800 )
+	ROM_LOAD( "sprm.4m",      0x08000, 0x0800, 0xd6d07d70 )
+	ROM_CONTINUE(             0x0a000, 0x0800 )
+	ROM_CONTINUE(             0x08800, 0x0800 )
+	ROM_CONTINUE(             0x0a800, 0x0800 )
+	ROM_CONTINUE(             0x09000, 0x0800 )
+	ROM_CONTINUE(             0x0b000, 0x0800 )
+	ROM_CONTINUE(             0x09800, 0x0800 )
+	ROM_CONTINUE(             0x0b800, 0x0800 )
+
+	ROM_REGION( 0x0920, REGION_PROMS, 0 )
+	ROM_LOAD( "sprm.2k",      0x0000, 0x0100, 0xfd8fa991 )	/* character palette red component */
+	ROM_LOAD( "sprb.1m",      0x0100, 0x0100, 0x8d8cccad )	/* sprite palette red component */
+	ROM_LOAD( "sprm.2j",      0x0200, 0x0100, 0x0e3890b4 )	/* character palette blue component */
+	ROM_LOAD( "sprb.1n",      0x0300, 0x0100, 0xc40e1cb2 )	/* sprite palette green component */
+	ROM_LOAD( "sprm.2h",      0x0400, 0x0100, 0x0478082b )	/* character palette green component */
+	ROM_LOAD( "sprb.1l",      0x0500, 0x0100, 0x3ec46248 )	/* sprite palette blue component */
+	ROM_LOAD( "sprb.5p",      0x0600, 0x0020, 0x746c6238 )	/* sprite height, one entry per 32 */
+	                                                        /* sprites. Used at run time! */
+	ROM_LOAD( "sprm.8h",      0x0620, 0x0200, 0x875cc442 )	/* unknown */
+	ROM_LOAD( "sprb.6f",      0x0820, 0x0100, 0x34d88d3c )	/* video timing - common to the other games */
+ROM_END
+
 ROM_START( spelunk2 )
 	ROM_REGION( 0x24000, REGION_CPU1, 0 )	/* main CPU */
 	ROM_LOAD( "sp2-a.4e",     0x00000, 0x4000, 0x96c04bbb )
@@ -1923,19 +2009,20 @@ ROM_END
 
 
 
-GAME( 1984, kungfum,  0,       kungfum,  kungfum,  0, ROT0,  "Irem", "Kung Fu Master" )
-GAME( 1984, kungfud,  kungfum, kungfum,  kungfum,  0, ROT0,  "Irem (Data East license)", "Kung Fu Master (Data East)" )
-GAME( 1984, spartanx, kungfum, kungfum,  kungfum,  0, ROT0,  "Irem", "Spartan X (Japan)" )
-GAME( 1984, kungfub,  kungfum, kungfum,  kungfum,  0, ROT0,  "bootleg", "Kung Fu Master (bootleg set 1)" )
-GAME( 1984, kungfub2, kungfum, kungfum,  kungfum,  0, ROT0,  "bootleg", "Kung Fu Master (bootleg set 2)" )
-GAME( 1984, battroad, 0,       battroad, battroad, 0, ROT90, "Irem", "The Battle-Road" )
-GAME( 1984, ldrun,    0,       ldrun,    ldrun,    0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner (set 1)" )
-GAME( 1984, ldruna,   ldrun,   ldrun,    ldrun,    0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner (set 2)" )
-GAME( 1984, ldrun2,   0,       ldrun2,   ldrun2,   0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner II - The Bungeling Strikes Back" )	/* Japanese version is called Bangeringu Teikoku No Gyakushuu */
-GAME( 1985, ldrun3,   0,       ldrun3,   ldrun3,   0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner III - Majin No Fukkatsu" )
-GAME( 1986, ldrun4,   0,       ldrun4,   ldrun4,   0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner IV - Teikoku Karano Dasshutsu" )
-GAME( 1985, lotlot,   0,       lotlot,   lotlot,   0, ROT0,  "Irem (licensed from Tokuma Shoten)", "Lot Lot" )
-GAMEX(1986, kidniki,  0,       kidniki,  kidniki,  0, ROT0,  "Irem (Data East USA license)", "Kid Niki - Radical Ninja (US)", GAME_IMPERFECT_SOUND )
-GAMEX(1986, yanchamr, kidniki, kidniki,  kidniki,  0, ROT0,  "Irem", "Kaiketsu Yanchamaru (Japan)", GAME_IMPERFECT_SOUND )
-GAME( 1985, spelunkr, 0,       spelunkr, spelunkr, 0, ROT0,  "Irem (licensed from Broderbund)", "Spelunker" )
-GAME( 1986, spelunk2, 0,       spelunk2, spelunk2, 0, ROT0,  "Irem (licensed from Broderbund)", "Spelunker II" )
+GAME( 1984, kungfum,  0,        kungfum,  kungfum,  0, ROT0,  "Irem", "Kung-Fu Master" )
+GAME( 1984, kungfud,  kungfum,  kungfum,  kungfum,  0, ROT0,  "Irem (Data East license)", "Kung-Fu Master (Data East)" )
+GAME( 1984, spartanx, kungfum,  kungfum,  kungfum,  0, ROT0,  "Irem", "Spartan X (Japan)" )
+GAME( 1984, kungfub,  kungfum,  kungfum,  kungfum,  0, ROT0,  "bootleg", "Kung-Fu Master (bootleg set 1)" )
+GAME( 1984, kungfub2, kungfum,  kungfum,  kungfum,  0, ROT0,  "bootleg", "Kung-Fu Master (bootleg set 2)" )
+GAME( 1984, battroad, 0,        battroad, battroad, 0, ROT90, "Irem", "The Battle-Road" )
+GAME( 1984, ldrun,    0,        ldrun,    ldrun,    0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner (set 1)" )
+GAME( 1984, ldruna,   ldrun,    ldrun,    ldrun,    0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner (set 2)" )
+GAME( 1984, ldrun2,   0,        ldrun2,   ldrun2,   0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner II - The Bungeling Strikes Back" )	/* Japanese version is called Bangeringu Teikoku No Gyakushuu */
+GAME( 1985, ldrun3,   0,        ldrun3,   ldrun3,   0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner III - Majin No Fukkatsu" )
+GAME( 1986, ldrun4,   0,        ldrun4,   ldrun4,   0, ROT0,  "Irem (licensed from Broderbund)", "Lode Runner IV - Teikoku Karano Dasshutsu" )
+GAME( 1985, lotlot,   0,        lotlot,   lotlot,   0, ROT0,  "Irem (licensed from Tokuma Shoten)", "Lot Lot" )
+GAMEX(1986, kidniki,  0,        kidniki,  kidniki,  0, ROT0,  "Irem (Data East USA license)", "Kid Niki - Radical Ninja (US)", GAME_IMPERFECT_SOUND )
+GAMEX(1986, yanchamr, kidniki,  kidniki,  kidniki,  0, ROT0,  "Irem", "Kaiketsu Yanchamaru (Japan)", GAME_IMPERFECT_SOUND )
+GAME( 1985, spelunkr, 0,        spelunkr, spelunkr, 0, ROT0,  "Irem (licensed from Broderbund)", "Spelunker" )
+GAME( 1985, spelnkrj, spelunkr, spelunkr, spelunkr, 0, ROT0,  "Irem (licensed from Broderbund)", "Spelunker (Japan)" )
+GAME( 1986, spelunk2, 0,        spelunk2, spelunk2, 0, ROT0,  "Irem (licensed from Broderbund)", "Spelunker II" )

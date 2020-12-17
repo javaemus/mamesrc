@@ -4,6 +4,8 @@
 
 #define TC0100SCN_GFX_NUM 1
 
+void warriorb_vh_stop(void);
+
 struct tempsprite
 {
 	int gfx;
@@ -14,8 +16,6 @@ struct tempsprite
 	int primask;
 };
 static struct tempsprite *spritelist;
-
-static int taito_hide_pixels;
 
 /**********************************************************/
 
@@ -89,31 +89,48 @@ static int has_second_TC0110PCR(void)
 }
 
 
-int warriorb_core_vh_start (void)
+static int warriorb_core_vh_start (int x_offs,int multiscrn_xoffs)
 {
 
 	spritelist = malloc(0x800 * sizeof(*spritelist));
 	if (!spritelist)
 		return 1;
 
-	if (TC0100SCN_vh_start(has_two_TC0100SCN() ? 2 : 1,TC0100SCN_GFX_NUM,taito_hide_pixels))
+	if (TC0100SCN_vh_start(has_two_TC0100SCN() ? 2 : 1,TC0100SCN_GFX_NUM,x_offs,0,0,0,0,0,
+			multiscrn_xoffs))
+	{
+		warriorb_vh_stop();
 		return 1;
+	}
 
 	if (has_TC0110PCR())
 		if (TC0110PCR_vh_start())
+		{
+			warriorb_vh_stop();
 			return 1;
+		}
 
 	if (has_second_TC0110PCR())
 		if (TC0110PCR_1_vh_start())
+		{
+			warriorb_vh_stop();
 			return 1;
+		}
+
+	/* Ensure palette from correct TC0110PCR used for each screen */
+	TC0100SCN_set_chip_colbanks(0,0x100,0x0);
 
 	return 0;
 }
 
+int darius2d_vh_start (void)
+{
+	return (warriorb_core_vh_start(4,0));
+}
+
 int warriorb_vh_start (void)
 {
-	taito_hide_pixels = 0;
-	return (warriorb_core_vh_start());
+	return (warriorb_core_vh_start(4,1));
 }
 
 void warriorb_vh_stop (void)
@@ -142,21 +159,23 @@ void warriorb_vh_stop (void)
 				PALETTE
 *********************************************************/
 
-void warriorb_update_palette (void)
+static void warriorb_update_palette (void)
 {
 	int i,j;
 	int offs,data,tilenum,color;
-	unsigned short palette_map[256];
+	UINT16 tile_mask = (Machine->gfx[0]->total_elements) - 1;
+	UINT16 palette_map[256];
 	memset (palette_map, 0, sizeof (palette_map));
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
 	{
 		data = spriteram16[offs+1];
-		tilenum = data & 0x7fff;
+		tilenum = data &0x7fff;
 
 		data = spriteram16[offs+2];
 		color = (data & 0x7f);
 
+		tilenum &= tile_mask;
 		if (tilenum)
 		{
 			palette_map[color] |= Machine->gfx[0]->pen_usage[tilenum];
@@ -202,23 +221,24 @@ static void warriorb_draw_sprites(struct osd_bitmap *bitmap,int *primasks,int y_
 
 	for (offs = (spriteram_size/2)-4;offs >=0;offs -= 4)
 	{
-		data = spriteram16[offs+0];
-		y = (-(data &0x1ff) - 24) & 0x1ff;	// offset changes with vis. area
-		flipy = (data & 0x200) >> 9;
-
 		data = spriteram16[offs+1];
 		tilenum = data & 0x7fff;
 
+		if (!tilenum) continue;
+
+		data = spriteram16[offs+0];
+		y = (-(data &0x1ff) - 24) & 0x1ff;	/* (inverted y adjusted for vis area) */
+		flipy = (data & 0x200) >> 9;
+
 		data2 = spriteram16[offs+2];
 		/* 8,4 also seen in msbyte */
-		priority = (data2 & 0x0100) >> 8;
+		priority = (data2 & 0x0100) >> 8;	// 0x300
 		color    = (data2 & 0x7f);
 
 		data = spriteram16[offs+3];
-		x = ((data & 0x3ff) + 4) &0x3ff;
+		x = (data & 0x3ff);
 		flipx = (data & 0x400) >> 10;
 
-		if (!tilenum) continue;
 
 #ifdef MAME_DEBUG
 		if (data2 & 0xf280)   unknown |= (data2 &0xf280);
@@ -288,7 +308,7 @@ static void warriorb_draw_sprites(struct osd_bitmap *bitmap,int *primasks,int y_
 
 void warriorb_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
-	int layer[3];
+	UINT8 layer[3];
 
 	TC0100SCN_tilemap_update();
 
@@ -302,10 +322,23 @@ void warriorb_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	layer[2] = 2;
 
 	fillbitmap(priority_bitmap,0,NULL);
-	fillbitmap(bitmap,Machine->pens[0],&Machine->visible_area);	/* wrong color? */
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],0,1);
+
+	/* Ensure screen blanked even when bottom layers not drawn due to disable bit */
+	fillbitmap(bitmap, palette_transparent_pen, &Machine -> visible_area);
+
+	/* chip 0 does tilemaps on the left, chip 1 does the ones on the right */
+	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);	/* left */
+	TC0100SCN_tilemap_draw(bitmap,1,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);	/* right */
 	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,2);
+	TC0100SCN_tilemap_draw(bitmap,1,layer[1],0,2);
 	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,4);
+	TC0100SCN_tilemap_draw(bitmap,1,layer[2],0,4);
+
+//	/* Sprites have 3 priorities wrt tiles (unsure if they have a 4th - on top of text) */
+//	{
+//		int primasks[4] = {0xf0,0xfc,0x0,0xfe};
+//		warriorb_draw_sprites(bitmap,primasks,8);
+//	}
 
 	/* Sprites can be under/over the layer below text layer */
 	{

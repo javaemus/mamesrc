@@ -10,11 +10,20 @@
 #include "vidhrdw/generic.h"
 #include "artwork.h"
 
+int invaders_interrupt(void);
+
 static int use_tmpbitmap;
+static int sight_xs;
+static int sight_xc;
+static int sight_xe;
+static int sight_ys;
+static int sight_yc;
+static int sight_ye;
 static int screen_red;
 static int screen_red_enabled;		/* 1 for games that can turn the screen red */
 static int color_map_select;
 static int background_color;
+static UINT8 polaris_cloud_pos;
 
 static int artwork_type;
 static const void *init_artwork;
@@ -271,7 +280,7 @@ int invaders_vh_start(void)
 	}
 
 	/* make sure that the screen matches the videoram, this fixes invad2ct */
-	//schedule_full_refresh();
+	schedule_full_refresh();
 
 	return 0;
 }
@@ -303,12 +312,36 @@ void invaders_screen_red_w(int data)
 }
 
 
+int polaris_interrupt(void)
+{
+	static int cloud_speed;
+
+	cloud_speed++;
+
+	if (cloud_speed >= 8)	/* every 4 frames - this was verified against real machine */
+	{
+		cloud_speed = 0;
+
+		polaris_cloud_pos--;
+
+		if (polaris_cloud_pos >= 0xe0)
+		{
+			polaris_cloud_pos = 0xdf;	/* no delay for invisible region */
+		}
+
+		schedule_full_refresh();
+	}
+
+	return invaders_interrupt();
+}
+
+
 static void plot_pixel_8080 (int x, int y, int col)
 {
 	if (flip_screen)
 	{
 		x = 255-x;
-		y = 223-y;
+		y = 255-y;
 	}
 
 	plot_pixel(Machine->scrbitmap,x,y,Machine->pens[col]);
@@ -319,7 +352,7 @@ static void plot_pixel_8080_tmpbitmap (int x, int y, int col)
 	if (flip_screen)
 	{
 		x = 255-x;
-		y = 223-y;
+		y = 255-y;
 	}
 
 	plot_pixel(tmpbitmap,x,y,Machine->pens[col]);
@@ -387,20 +420,66 @@ static WRITE_HANDLER( lupin3_videoram_w )
 
 static WRITE_HANDLER( polaris_videoram_w )
 {
-	int x,y,back_color,foreground_color;
+	int x,i,col,back_color,fore_color,color_map;
+	UINT8 y, cloud_y;
 
 	videoram[offset] = data;
 
 	y = offset / 32;
 	x = 8 * (offset % 32);
 
-	/* for the background color, bit 0 if the map PROM is connected to blue gun.
-	   red is 0 */
+	/* for the background color, bit 0 of the map PROM is connected to green gun.
+	   red is 0 and blue is 1, giving cyan and blue for the background.  This
+	   is different from what the schematics shows, but it's supported
+	   by screenshots. */
 
-	back_color = (memory_region(REGION_PROMS)[(((y+32)/8)*32) + (x/8)] & 1) ? 6 : 4;
-	foreground_color = ~colorram[offset & 0x1f1f] & 0x07;
+	color_map = memory_region(REGION_PROMS)[(((y+32)/8)*32) + (x/8)];
+	back_color = (color_map & 1) ? 6 : 2;
+	fore_color = ~colorram[offset & 0x1f1f] & 0x07;
 
-	plot_byte(x, y, data, foreground_color, back_color);
+	/* bit 3 is connected to the cloud enable. bits 1 and 2 are marked 'not use' (sic)
+	   on the schematics */
+
+	if (y < polaris_cloud_pos)
+	{
+		cloud_y = y - polaris_cloud_pos - 0x20;
+	}
+	else
+	{
+		cloud_y = y - polaris_cloud_pos;
+	}
+
+	if ((color_map & 0x08) || (cloud_y > 64))
+	{
+		plot_byte(x, y, data, fore_color, back_color);
+	}
+	else
+	{
+		/* cloud appears in this part of the screen */
+		for (i = 0; i < 8; i++)
+		{
+			if (data & 0x01)
+			{
+				col = fore_color;
+			}
+			else
+			{
+				int offs,bit;
+
+				col = back_color;
+
+				bit = 1 << (~x & 0x03);
+				offs = ((x >> 2) & 0x03) | ((~cloud_y & 0x3f) << 2);
+
+				col = (memory_region(REGION_USER1)[offs] & bit) ? 7 : back_color;
+			}
+
+			plot_pixel_p (x, y, col);
+
+			x++;
+			data >>= 1;
+		}
+	}
 }
 
 static WRITE_HANDLER( helifire_videoram_w )
@@ -480,28 +559,69 @@ static void vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 
 
 	if (use_tmpbitmap)
+	{
 		copybitmap(bitmap,tmpbitmap,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
+		osd_mark_dirty( sight_xc, sight_ys, sight_xc, sight_ye );
+		osd_mark_dirty( sight_xs, sight_yc, sight_xe, sight_yc );
+	}
 }
 
 
-static void draw_sight(int x_center, int y_center)
+static void draw_sight(struct osd_bitmap *bitmap,int x_center, int y_center)
 {
 	int x,y;
 
+	sight_xc = x_center;
+	if( sight_xc < 2 )
+	{
+		sight_xc = 2;
+	}
+	else if( sight_xc > 253 )
+	{
+		sight_xc = 253;
+	}
 
-    if (x_center<2)   x_center=2;
-    if (x_center>253) x_center=253;
+	sight_yc = y_center;
+	if( sight_yc < 2 )
+	{
+		sight_yc = 2;
+	}
+	else if( sight_yc > 221 )
+	{
+		sight_yc = 221;
+	}
 
-    if (y_center<2)   y_center=2;
-    if (y_center>253) y_center=253;
+	sight_xs = sight_xc - 20;
+	if( sight_xs < 0 )
+	{
+		sight_xs = 0;
+	}
+	sight_xe = sight_xc + 20;
+	if( sight_xe > 255 )
+	{
+		sight_xe = 255;
+	}
 
-	for(y = y_center-10; y < y_center+11; y++)
-		if((y >= 0) && (y < 256))
-			plot_pixel_8080(x_center,y,1);
+	sight_ys = sight_yc - 20;
+	if( sight_ys < 0 )
+	{
+		sight_ys = 0;
+	}
+	sight_ye = sight_yc + 20;
+	if( sight_ye > 223 )
+	{
+		sight_ye = 223;
+	}
 
-	for(x = x_center-20; x < x_center+21; x++)
-		if((x >= 0) && (x < 256))
-			plot_pixel_8080(x,y_center,1);
+	x = sight_xc;
+	y = sight_yc;
+	if (flip_screen)
+	{
+		x = 255-x;
+		y = 255-y;
+	}
+
+	draw_crosshair(bitmap,x,y,&Machine->visible_area);
 }
 
 
@@ -510,7 +630,7 @@ static void seawolf_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	/* update the bitmap (and erase old cross) */
 	vh_screenrefresh(bitmap, full_refresh);
 
-    draw_sight(((input_port_0_r(0) & 0x1f) * 8) + 4, 31);
+    draw_sight(bitmap,((input_port_0_r(0) & 0x1f) * 8) + 4, 31);
 }
 
 static void blueshrk_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
@@ -518,7 +638,7 @@ static void blueshrk_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh
 	/* update the bitmap (and erase old cross) */
 	vh_screenrefresh(bitmap, full_refresh);
 
-    draw_sight(((input_port_0_r(0) & 0x7f) * 2) - 12, 31);
+    draw_sight(bitmap,((input_port_0_r(0) & 0x7f) * 2) - 12, 31);
 }
 
 static void desertgu_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
@@ -526,7 +646,7 @@ static void desertgu_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh
 	/* update the bitmap (and erase old cross) */
 	vh_screenrefresh(bitmap, full_refresh);
 
-	draw_sight(((input_port_0_r(0) & 0x7f) * 2) - 30,
+	draw_sight(bitmap,((input_port_0_r(0) & 0x7f) * 2) - 30,
 			   ((input_port_2_r(0) & 0x7f) * 2) - 30);
 }
 

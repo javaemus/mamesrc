@@ -7,7 +7,7 @@
 #include "driver.h"
 #include "vidhrdw/generic.h"
 
-static data16_t *dirty_f;
+static unsigned char *dirty_f;
 static struct osd_bitmap *bitmap_f;
 data16_t karnov_scroll[2], *karnov_pf_data;
 static struct tilemap *fix_tilemap;
@@ -211,7 +211,11 @@ void karnov_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 static void get_fix_tile_info(int tile_index)
 {
 	int tile=videoram16[tile_index];
-	SET_TILE_INFO(0,tile&0xfff,tile>>14)
+	SET_TILE_INFO(
+			0,
+			tile&0xfff,
+			tile>>14,
+			0)
 }
 
 WRITE16_HANDLER( karnov_videoram_w )

@@ -18,6 +18,7 @@
 #include "driver.h"
 #include "png.h"
 #include "artwork.h"
+#include <ctype.h>
 
 /* the backdrop instance */
 struct artwork_info *artwork_backdrop = NULL;
@@ -29,13 +30,27 @@ struct osd_bitmap *artwork_real_scrbitmap;
 
 void artwork_free(struct artwork_info **a);
 
+int my_stricmp( const char *dst, const char *src)
+{
+	while (*src && *dst)
+	{
+		if( tolower(*src) != tolower(*dst) ) return *dst - *src;
+		src++;
+		dst++;
+	}
+	return *dst - *src;
+}
+
 static void brightness_update (struct artwork_info *a)
 {
 	int i;
 	UINT8 rgb[3];
-	UINT16 *pens = Machine->pens;
+	UINT32 *pens = Machine->pens;
 
 	/* Calculate brightness of all colors */
+	if (Machine->scrbitmap->depth == 15 || Machine->scrbitmap->depth == 32)
+		abort();
+
 	if (Machine->scrbitmap->depth == 8)
 		i = MIN(256, Machine->drv->total_colors);
 	else
@@ -447,7 +462,7 @@ static int decode_png(const char *file_name, struct osd_bitmap **bitmap, struct 
 	/* check for .png */
 	strcpy(file_name2, file_name);
 	file_name_len = strlen(file_name2);
-	if ((file_name_len < 4) || stricmp(&file_name2[file_name_len - 4], ".png"))
+	if ((file_name_len < 4) || my_stricmp(&file_name2[file_name_len - 4], ".png"))
 	{
 		strcat(file_name2, ".png");
 	}
@@ -895,7 +910,7 @@ static void overlay_draw(struct osd_bitmap *dest, struct osd_bitmap *source)
 			UINT16 *src, *dst;
 			UINT64 *rgb = artwork_overlay->rgb;
 			UINT8 *bright = artwork_overlay->brightness;
-			unsigned short *pens = &Machine->pens[artwork_overlay->start_pen];
+			UINT32 *pens = &Machine->pens[artwork_overlay->start_pen];
 
 			copybitmap(dest, artwork_overlay->artwork ,0,0,0,0,NULL,TRANSPARENCY_NONE,0);
 
@@ -1446,7 +1461,7 @@ int artwork_get_size_info(const char *file_name, struct artwork_size_info *a)
 	/* check for .png */
 	strcpy(file_name2, file_name);
 	file_name_len = strlen(file_name2);
-	if ((file_name_len < 4) || stricmp(&file_name2[file_name_len - 4], ".png"))
+	if ((file_name_len < 4) || my_stricmp(&file_name2[file_name_len - 4], ".png"))
 	{
 		strcat(file_name2, ".png");
 	}

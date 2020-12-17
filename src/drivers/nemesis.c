@@ -7,7 +7,8 @@
 	Galactic Warriors		GX578
 	Konami GT				GX561
 	RF2						GX561
-	Salamander				GX587
+	Salamander (Version D)			GX587
+	Salamander (Version J)			GX587
 	Lifeforce (US)			GX587
 	Lifeforce (Japan)		GX587
 	Black Panther			GX604
@@ -1370,16 +1371,16 @@ INPUT_PORTS_START( salamand )
 	PORT_DIPSETTING(    0x0a, DEF_STR( 1C_6C ) )
 	PORT_DIPSETTING(    0x09, DEF_STR( 1C_7C ) )
 	PORT_DIPSETTING(    0x00, "Disabled" )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unused ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 
@@ -1974,7 +1975,6 @@ static struct VLM5030interface vlm5030_interface =
     70,            /* volume        */
     REGION_SOUND1, /* memory region  */
     0,             /* memory length */
-    0,             /* VCU            */
 };
 
 static struct VLM5030interface gx400_vlm5030_interface =
@@ -1983,7 +1983,6 @@ static struct VLM5030interface gx400_vlm5030_interface =
     100,           /* volume        */
     0,             /* memory region (RAM based) */
     0x0800,        /* memory length (not sure if correct) */
-    0,             /* VCU            */
 };
 
 static void volume_callback(int v)
@@ -2108,7 +2107,7 @@ static const struct MachineDriver machine_driver_salamand =
 	{
 		{
 			CPU_M68000,
-			7159090*1.5,       /* ??? */
+			18432000/2,       /* 9.216MHz */
 			salamand_readmem,salamand_writemem,0,0,
 			salamand_interrupt,1
 		},
@@ -2312,7 +2311,7 @@ static const struct MachineDriver machine_driver_gx400 =
 	{
 		{
 			CPU_M68000,
-			7159090*1.25,     /* ??? */
+			18432000/2,     /* 9.216MHz */
 			gx400_readmem,gx400_writemem,0,0,
 			gx400_interrupt,3
 		},
@@ -2364,7 +2363,7 @@ static const struct MachineDriver machine_driver_twinbee_gx400 =
 	{
 		{
 			CPU_M68000,
-			7159090*1.25,     /* ??? */
+			18432000/2,     /* 9.216MHz */
 			gx400_readmem,gx400_writemem,0,0,
 			gx400_interrupt,3
 		},
@@ -2416,7 +2415,7 @@ static const struct MachineDriver machine_driver_rf2_gx400 =
 	{
 		{
 			CPU_M68000,
-			7159090,     /* ??? */
+			18432000/2,     /* 9.216MHz */
 			rf2_gx400_readmem,rf2_gx400_writemem,0,0,
 			gx400_interrupt,3
 		},
@@ -2602,6 +2601,23 @@ ROM_START( salamand )
 	ROM_LOAD(      "10a.bin",      0x00000, 0x20000, 0x09fe0632 )
 ROM_END
 
+ROM_START( salamanj )
+	ROM_REGION( 0x80000, REGION_CPU1, 0 )    /* 64k for code */
+	ROM_LOAD16_BYTE( "587j02.18b",   0x00000, 0x10000, 0xf68ee99a )
+	ROM_LOAD16_BYTE( "587j05.18c",   0x00001, 0x10000, 0x72c16128 )
+	ROM_LOAD16_BYTE( "17b.bin",      0x40000, 0x20000, 0xe5caf6e6 )
+	ROM_LOAD16_BYTE( "17c.bin",      0x40001, 0x20000, 0xc2f567ea )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )    /* 64k for sound */
+	ROM_LOAD(      "11j.bin",      0x00000, 0x08000, 0x5020972c )
+
+	ROM_REGION( 0x04000, REGION_SOUND1, 0 )    /* VLM5030 data? */
+	ROM_LOAD(      "8g.bin",       0x00000, 0x04000, 0xf9ac6b82 )
+
+	ROM_REGION( 0x20000, REGION_SOUND2, 0 )    /* 007232 data */
+	ROM_LOAD(      "10a.bin",      0x00000, 0x20000, 0x09fe0632 )
+ROM_END
+
 ROM_START( lifefrce )
 	ROM_REGION( 0x80000, REGION_CPU1, 0 )    /* 64k for code */
 	ROM_LOAD16_BYTE( "587-k02.bin",  0x00000, 0x10000, 0x4a44da18 )
@@ -2686,6 +2702,20 @@ ROM_START( citybmrj )
 	ROM_LOAD(      "787e01.1k",   0x00000, 0x80000, 0xedc34d01 )
 ROM_END
 
+ROM_START( kittenk )
+	ROM_REGION( 0x140000, REGION_CPU1, 0 )    /* 64k for code */
+	ROM_LOAD16_BYTE( "kitten.15k",   0x000000, 0x10000, 0x8267cb2b )
+	ROM_LOAD16_BYTE( "kitten.15h",   0x000001, 0x10000, 0xeb41cfa5 )
+	ROM_LOAD16_BYTE( "712b08.15f",   0x100000, 0x20000, 0xe6d71611 )
+	ROM_LOAD16_BYTE( "712b07.15d",   0x100001, 0x20000, 0x30f75c9f )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )    /* 64k for sound */
+	ROM_LOAD(      "712e02.4h",   0x00000, 0x08000, 0xba76f310 )
+
+	ROM_REGION( 0x80000, REGION_SOUND2, 0 )    /* 007232 data */
+	ROM_LOAD(      "712b01.1k",   0x00000, 0x80000, 0xf65b5d95 )
+ROM_END
+
 ROM_START( nyanpani )
 	ROM_REGION( 0x140000, REGION_CPU1, 0 )    /* 64k for code */
 	ROM_LOAD16_BYTE( "712j10.15k",   0x000000, 0x10000, 0x924b27ec )
@@ -2709,11 +2739,12 @@ GAME( 1985, rf2,      konamigt, rf2_gx400,     rf2,      0, ROT0,   "Konami", "K
 GAME( 1985, twinbee,  0,        twinbee_gx400, twinbee,  0, ORIENTATION_SWAP_XY, "Konami", "TwinBee" )
 GAME( 1985, gradius,  nemesis,  gx400,         gradius,  0, ROT0,   "Konami", "Gradius" )
 GAME( 1985, gwarrior, 0,        gx400,         gwarrior, 0, ROT0,   "Konami", "Galactic Warriors" )
-GAME( 1986, salamand, 0,        salamand,      salamand, 0, ROT0,   "Konami", "Salamander" )
+GAME( 1986, salamand, 0,        salamand,      salamand, 0, ROT0,   "Konami", "Salamander (version D)" )
+GAME( 1986, salamanj, salamand, salamand,      salamand, 0, ROT0,   "Konami", "Salamander (version J)" )
 GAME( 1986, lifefrce, salamand, salamand,      salamand, 0, ROT0,   "Konami", "Lifeforce (US)" )
 GAME( 1986, lifefrcj, salamand, salamand,      lifefrcj, 0, ROT0,   "Konami", "Lifeforce (Japan)" )
 GAME( 1987, blkpnthr, 0,        blkpnthr,      blkpnthr, 0, ROT0,   "Konami", "Black Panther" )
 GAME( 1987, citybomb, 0,        citybomb,      citybomb, 0, ROT270, "Konami", "City Bomber (World)" )
 GAME( 1987, citybmrj, citybomb, citybomb,      citybomb, 0, ROT270, "Konami", "City Bomber (Japan)" )
-GAME( 1988, nyanpani, 0,        nyanpani,      nyanpani, 0, ROT0,   "Konami", "Nyan Nyan Panic (Japan)" )
-
+GAME( 1988, kittenk,  0,        nyanpani,      nyanpani, 0, ROT0,   "Konami", "Kitten Kaboodle" )
+GAME( 1988, nyanpani, kittenk,  nyanpani,      nyanpani, 0, ROT0,   "Konami", "Nyan Nyan Panic (Japan)" )

@@ -71,6 +71,10 @@ extern UINT16 ioSwitches;
 extern UINT16 ioInputs;
 
 
+void ccpu_init(void)
+{
+}
+
 void ccpu_reset(void *param)
 {
 	cineReset();
@@ -246,7 +250,7 @@ const char *ccpu_info(void *context, int regnum)
 	static int which = 0;
 	CONTEXTCCPU *r = context;
 
-	which = ++which % 16;
+	which = (which+1) % 16;
     buffer[which][0] = '\0';
 	if( !context )
 	{

@@ -1,16 +1,22 @@
 #include "driver.h"
+#include "state.h"
 #include "vidhrdw/generic.h"
 #include "vidhrdw/konamiic.h"
 
-static int xexexbg_ctrla, xexexbg_ctrlb, xexexbg_select, xexexbg_x, xexexbg_y;
+static data8_t xexexbg_regs[8];
 static unsigned char *xexexbg_base;
 static data16_t *xexexbg_ram, *xexexbg_rammax;
+static UINT32 xexexbg_rommask;
 
 int xexexbg_vh_start(int region)
 {
 	xexexbg_base = memory_region(region);
 	xexexbg_ram = malloc(0x1000);
 	xexexbg_rammax = xexexbg_ram + 0x800;
+	xexexbg_rommask = memory_region_length(region) - 1;
+
+	state_save_register_UINT16("xexexbg", 0, "memory",    xexexbg_ram,  0x800);
+	state_save_register_UINT8 ("xexexbg", 0, "registers", xexexbg_regs, 8);
 	return 0;
 }
 
@@ -21,59 +27,20 @@ void xexexbg_vh_stop(void)
 
 WRITE16_HANDLER( xexexbg_w )
 {
-	if(ACCESSING_LSB) {
-		int old;
-		data &= 0xff;
-		switch(offset) {
-		case 0x0:
-			old = xexexbg_x;
-			xexexbg_x = (xexexbg_x & 0xff) | (data << 8);
-			break;
-		case 0x1:
-			old = xexexbg_x;
-			xexexbg_x = (xexexbg_x & 0xff00) | data;
-			break;
-		case 0x2:
-			old = xexexbg_y;
-			xexexbg_y = (xexexbg_y & 0xff) | (data << 8);
-			break;
-		case 0x3:
-			old = xexexbg_y;
-			xexexbg_y = (xexexbg_y & 0xff00) | data;
-			break;
-		case 0x4:
-			if((xexexbg_ctrlb & 0xe5) != (data & 0xe5))
-				logerror("Back.b %02x\n", data & 0xe5);
-			xexexbg_ctrlb = data;
-			break;
-		case 0x5:
-			if(xexexbg_ctrla != data)
-				logerror("Back.a %02x\n", data);
-			xexexbg_ctrla = data;
-			break;
-		case 0x7:
-			xexexbg_select = data;
-			break;
-		}
-	}
+	if(ACCESSING_LSB)
+		xexexbg_regs[offset] = data;
 }
 
 READ16_HANDLER( xexexbg_r )
 {
-	switch(offset) {
-	case 0x5:
-		return xexexbg_ctrla;
-	case 0x7:
-		return xexexbg_select;
-	default:
-		logerror("xexexbg: Reading %x at %x\n", offset*2, cpu_get_pc());
-		return 0;
-	}
+	return xexexbg_regs[offset];
 }
 
 WRITE16_HANDLER( xexexbg_ram_w )
 {
+	int off1;
 	COMBINE_DATA( xexexbg_ram + offset);
+	off1 = offset & ~3;
 }
 
 READ16_HANDLER( xexexbg_ram_r )
@@ -83,30 +50,24 @@ READ16_HANDLER( xexexbg_ram_r )
 
 READ16_HANDLER( xexexbg_rom_r )
 {
-	if (!(xexexbg_ctrla & 1))
+	if (!(xexexbg_regs[5] & 1))
 		logerror("Back: Reading rom memory with enable=0\n");
-	return *(xexexbg_base + 2048*xexexbg_select + (offset>>2));
+	return *(xexexbg_base + 2048*xexexbg_regs[7] + (offset>>1));
 }
-
-#if 1
-int ddy = -358;
-int ddx = -19;
-#else
-int ddy = -358 + 299 - (-201);
-int ddx = -19 - 201 - 299;
-#endif
 
 void xexexbg_mark_colors(int colorbase)
 {
-	int cmap = 0;
-	int i, j;
-	for(i=0; i<512*8; i+=8)
-		if(xexexbg_ram[i] || xexexbg_ram[i+1])
-			cmap |= 1 << (xexexbg_ram[i] & 0xf);
-	for(i=0; i<16; i++)
-		if(cmap & (1<<i))
-			for(j=0; j<16; j++)
-				palette_used_colors[colorbase*16 + i * 16 + j] = PALETTE_COLOR_VISIBLE;
+	if(palette_used_colors) {
+		int cmap = 0;
+		int i, j;
+		for(i=0; i<512*8; i+=8)
+			if(xexexbg_ram[i] || xexexbg_ram[i+1])
+				cmap |= 1 << (xexexbg_ram[i] & 0xf);
+		for(i=0; i<16; i++)
+			if(cmap & (1<<i))
+				for(j=0; j<16; j++)
+					palette_used_colors[colorbase*16 + i * 16 + j] = PALETTE_COLOR_VISIBLE;
+	}
 }
 
 void xexexbg_draw(struct osd_bitmap *bitmap, int colorbase, int pri)
@@ -115,34 +76,65 @@ void xexexbg_draw(struct osd_bitmap *bitmap, int colorbase, int pri)
 	data16_t *line;
 	int delta, dim1, dim1_max, dim2_max;
 	UINT32 mask1, mask2;
+	int sp;
 
-	int orientation = (xexexbg_ctrlb & 8 ? ORIENTATION_FLIP_X : 0)\
-		| (xexexbg_ctrlb & 16 ? ORIENTATION_FLIP_Y : 0)
-		| (xexexbg_ctrlb & 1 ? 0 : ORIENTATION_SWAP_XY);
+	int orientation = (xexexbg_regs[4] & 8 ? ORIENTATION_FLIP_X : 0)\
+		| (xexexbg_regs[4] & 16 ? ORIENTATION_FLIP_Y : 0)
+		| (xexexbg_regs[4] & 1 ? 0 : ORIENTATION_SWAP_XY);
+
+	INT16 cur_x = (xexexbg_regs[0] << 8) | xexexbg_regs[1];
+	INT16 cur_y = (xexexbg_regs[2] << 8) | xexexbg_regs[3];
 
 	colorbase <<= 4;
 
 	if(orientation & ORIENTATION_SWAP_XY) {
 		dim1_max = area.max_x - area.min_x + 1;
 		dim2_max = area.max_y - area.min_y + 1;
-		delta = (INT16)xexexbg_y + ddy;
-		line = xexexbg_ram + (((area.min_x + (INT16)xexexbg_x + ddx) & 0x1ff) << 2);
+		// -358 for level 1 boss, huh?
+		delta = cur_y - 495;
+		line = xexexbg_ram + (((area.min_x + cur_x - 19) & 0x1ff) << 2);
 	} else {
 		dim1_max = area.max_y - area.min_y + 1;
 		dim2_max = area.max_x - area.min_x + 1;
-		delta = (INT16)xexexbg_x + 49;
-		line = xexexbg_ram + (((area.min_y + (INT16)xexexbg_y + 16) & 0x1ff) << 2);
+		delta = cur_x + 49;
+		line = xexexbg_ram + (((area.min_y + cur_y + 16) & 0x1ff) << 2);
 	}
 
-	if(xexexbg_ctrlb & 0x80) {
-		mask1 = 0xffffc000;
-		mask2 = 0x00003fff;
-	} else {
+	switch(xexexbg_regs[4] & 0xe0) {
+	case 0x00: // Not sure.  Warp level
 		mask1 = 0xffff0000;
 		mask2 = 0x0000ffff;
+		sp = 0;
+		break;
+	case 0x20:
+		mask1 = 0xffff8000;
+		mask2 = 0x00007fff;
+		sp = 0;
+		break;
+	case 0x40:
+		mask1 = 0xffff0000;
+		mask2 = 0x0000ffff;
+		sp = 0;
+		break;
+	case 0x80:
+		mask1 = 0xffffc000;
+		mask2 = 0x00003fff;
+		sp = 0;
+		break;
+	case 0xe0:
+		mask1 = 0xffff0000;
+		mask2 = 0x0000ffff;
+		sp = 1;
+		break;
+	default:
+		logerror("Unknown mode %02x\n", xexexbg_regs[4] & 0xe0);
+		mask1 = 0xffff0000;
+		mask2 = 0x0000ffff;
+		sp = 0;
+		break;
 	}
 
-	if(xexexbg_ctrlb & 4)
+	if(xexexbg_regs[4] & 4)
 		mask1 = 0;
 
 	for(dim1 = 0; dim1 < dim1_max; dim1++) {
@@ -167,15 +159,20 @@ void xexexbg_draw(struct osd_bitmap *bitmap, int colorbase, int pri)
 
 		for(dim2 = 0; dim2 < dim2_max; dim2++) {
 			int romp;
-			if(cpos & mask1) {
+			UINT32 rcpos = cpos;
+
+			if(sp && (rcpos & mask1))
+				rcpos += inc << 9;
+
+			if(rcpos & mask1) {
 				*pixel++ = 0;
 				cpos += inc;
 				continue;
 			}
 
-			romp = xexexbg_base[((cpos & mask2)>>7) + start];
+			romp = xexexbg_base[(((rcpos & mask2)>>7) + start) & xexexbg_rommask];
 
-			if(cpos & 0x40)
+			if(rcpos & 0x40)
 				romp &= 0xf;
 			else
 				romp >>= 4;
@@ -206,7 +203,7 @@ void xexex_set_alpha(int on)
 WRITE16_HANDLER(xexex_alpha_level_w)
 {
 	if(ACCESSING_LSB)
-		cur_alpha_level = data & 0x1f;
+		cur_alpha_level = ((data & 0x1f) << 3) | ((data & 0x1f) >> 2);
 }
 
 static void xexex_sprite_callback(int *code, int *color, int *priority_mask)
@@ -227,9 +224,9 @@ static void xexex_tile_callback(int layer, int *code, int *color)
 	*color = layer_colorbase[layer] | ((*color & 0xf0) >> 4);
 }
 
-static int xexex_scrolld[2][4][2] = {
- 	{{ 42-64, 16 }, {42-64-4, 16}, {42-64-2, 16}, {42-64, 16}},
- 	{{ 53-64, 16 }, {53-64-4, 16}, {53-64-2, 16}, {53-64, 16}}
+static int scrolld[2][4][2] = {
+ 	{{ 42-64, 16 }, {42-64, 16}, {42-64-2, 16}, {42-64-4, 16}},
+ 	{{ 53-64, 16 }, {53-64, 16}, {53-64-2, 16}, {53-64-4, 16}}
 };
 
 int xexex_vh_start(void)
@@ -237,8 +234,10 @@ int xexex_vh_start(void)
 	cur_alpha = 0;
 	cur_alpha_level = 0x1f;
 
+	K053251_vh_start();
+
 	xexexbg_vh_start(REGION_GFX3);
-	if (K054157_vh_start(REGION_GFX1, 1, xexex_scrolld, NORMAL_PLANE_ORDER, xexex_tile_callback))
+	if (K054157_vh_start(REGION_GFX1, 1, scrolld, NORMAL_PLANE_ORDER, xexex_tile_callback))
 	{
 		xexexbg_vh_stop();
 		return 1;
@@ -249,6 +248,9 @@ int xexex_vh_start(void)
 		xexexbg_vh_stop();
 		return 1;
 	}
+
+	// cur_alpha is saved as part of "control2" in the main driver
+	state_save_register_int ("video", 0, "alpha", &cur_alpha_level);
 	return 0;
 }
 
@@ -278,42 +280,18 @@ static void sortlayers(int *layer, int *pri)
 	SWAP(1, 3)
 	SWAP(2, 3)
 }
-
+int xdump = 0;
 void xexex_vh_screenrefresh(struct osd_bitmap *bitmap, int full_refresh)
 {
 	int layer[4];
 	int plane;
 
-#if 0
-if (keyboard_pressed(KEYCODE_D))
-{
-#if 0
-	FILE *fp;
-	fp=fopen("bg.dmp", "w+b");
-	if (fp)
-	{
-		fwrite(cpu_bankbase[4], 0x8000, 1, fp);
-		usrintf_showmessage("saved");
-		fclose(fp);
-	}
-#endif
-	int i, j;
-	for(i=0; i<16*64; i+=16) {
-		fprintf(stderr, "%03x:", i*2);
-		for(j=0; j<16; j++)
-			fprintf(stderr, " %04x", xexexbg_ram[i+j]);
-		fprintf(stderr, "\n");
-	}
-	fprintf(stderr, "\n");
-}
-#endif
-
-	bg_colorbase       = K053251_get_palette_index(K053251_CI1);
 	sprite_colorbase   = K053251_get_palette_index(K053251_CI0);
-	layer_colorbase[0] = K053251_get_palette_index(K053251_CI2);
-	layer_colorbase[1] = K053251_get_palette_index(K053251_CI4);
+	bg_colorbase       = K053251_get_palette_index(K053251_CI1);
+	layer_colorbase[0] = 0x70;
+	layer_colorbase[1] = K053251_get_palette_index(K053251_CI2);
 	layer_colorbase[2] = K053251_get_palette_index(K053251_CI3);
-	layer_colorbase[3] = 0x70;
+	layer_colorbase[3] = K053251_get_palette_index(K053251_CI4);
 
 	K054157_tilemap_update();
 
@@ -323,12 +301,12 @@ if (keyboard_pressed(KEYCODE_D))
 
 	palette_recalc();
 
-	layer[0] = 0;
+	layer[0] = 1;
 	layerpri[0] = K053251_get_priority(K053251_CI2);
-	layer[1] = 1;
-	layerpri[1] = K053251_get_priority(K053251_CI4);
-	layer[2] = 2;
-	layerpri[2] = K053251_get_priority(K053251_CI3);
+	layer[1] = 2;
+	layerpri[1] = K053251_get_priority(K053251_CI3);
+	layer[2] = 3;
+	layerpri[2] = K053251_get_priority(K053251_CI4);
 	layer[3] = -1;
 	layerpri[3] = K053251_get_priority(K053251_CI1);
 
@@ -339,13 +317,15 @@ if (keyboard_pressed(KEYCODE_D))
 	for(plane=0; plane<4; plane++)
 		if(layer[plane] < 0)
 			xexexbg_draw(bitmap, bg_colorbase, 1<<plane);
-		else if(1 || !cur_alpha || !layer[plane])
+		else if(!cur_alpha || (layer[plane] != 1))
 			K054157_tilemap_draw(bitmap, layer[plane], 0, 1<<plane);
 
 	K053247_sprites_draw(bitmap);
-#if 0
-	if(cur_alpha)
-		K054157_tilemap_draw(bitmap, 0, TILEMAP_ALPHA, cur_alpha_level);
-#endif
-	K054157_tilemap_draw(bitmap, 3, 0, 0);
+
+	if(cur_alpha) {
+		alpha_set_level(cur_alpha_level);
+		K054157_tilemap_draw(bitmap, 1, TILEMAP_ALPHA, 0);
+	}
+
+	K054157_tilemap_draw(bitmap, 0, 0, 0);
 }

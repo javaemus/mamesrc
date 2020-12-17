@@ -643,16 +643,16 @@ static READ16_HANDLER( outrun_analog_r )
 	switch (selected_analog)
 	{
 		default:
-		case 0: return or_io_acc_steer_r(0) >> 8;
-		case 1: return or_io_acc_steer_r(0) & 0xff;
-		case 2: return or_io_brake_r(0) >> 8;
-		case 3: return or_io_brake_r(0) & 0xff;
+		case 0: return or_io_acc_steer_r(0,0) >> 8;
+		case 1: return or_io_acc_steer_r(0,0) & 0xff;
+		case 2: return or_io_brake_r(0,0) >> 8;
+		case 3: return or_io_brake_r(0,0) & 0xff;
 	}
 }
 
 static WRITE16_HANDLER( outrun_analog_select_w )
 {
-	if ((data & 0x00ff0000) == 0)
+	if ( ACCESSING_LSB )
 	{
 		selected_analog = (data & 0x0c) >> 2;
 	}
@@ -824,7 +824,7 @@ static void outrun_init_machine( void ){
 	sys16_gr_colorflip[1][2]=0x02 / 2;
 	sys16_gr_colorflip[1][3]=0x00 / 2;
 
-	sys16_gr_second_road = &sys16_extraram[0x10000];
+	sys16_gr_second_road = &sys16_extraram[0x8000];
 }
 
 static void outruna_init_machine( void ){
@@ -1341,5 +1341,5 @@ GAME( 1992, shangonb, shangon,  shangon,  shangon,  shangonb, ROT0,         "boo
 GAME( 1986, outrun,   0,        outrun,   outrun,   outrun,   ROT0,         "Sega",    "Out Run (set 1)" )
 GAME( 1986, outruna,  outrun,   outruna,  outrun,   outrun,   ROT0,         "Sega",    "Out Run (set 2)" )
 GAME( 1986, outrunb,  outrun,   outruna,  outrun,   outrunb,  ROT0,         "Sega",    "Out Run (set 3)" )
-GAMEX(????, toutrun,  0,        outrun,   outrun,   outrun,   ROT0,         "Sega", "Turbo Outrun (set 1)", GAME_NOT_WORKING )
-GAMEX(????, toutruna, toutrun,  outrun,   outrun,   outrun,   ROT0,         "Sega", "Turbo Outrun (set 2)", GAME_NOT_WORKING )
+GAMEX(19??, toutrun,  0,        outrun,   outrun,   outrun,   ROT0,         "Sega", "Turbo Outrun (set 1)", GAME_NOT_WORKING )
+GAMEX(19??, toutruna, toutrun,  outrun,   outrun,   outrun,   ROT0,         "Sega", "Turbo Outrun (set 2)", GAME_NOT_WORKING )

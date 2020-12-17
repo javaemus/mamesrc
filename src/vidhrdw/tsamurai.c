@@ -81,7 +81,11 @@ static void get_bg_tile_info(int tile_index)
 	int tile_number = tsamurai_videoram[2*tile_index];
 	tile_number += (( attributes & 0xc0 ) >> 6 ) * 256;	 /* legacy */
 	tile_number += (( attributes & 0x20 ) >> 5 ) * 1024; /* Mission 660 add-on*/
-	SET_TILE_INFO(0,tile_number,attributes & 0x1f)
+	SET_TILE_INFO(
+			0,
+			tile_number,
+			attributes & 0x1f,
+			0)
 }
 
 static void get_fg_tile_info(int tile_index)
@@ -89,7 +93,11 @@ static void get_fg_tile_info(int tile_index)
 	int tile_number = videoram[tile_index];
 	if (textbank1 & 0x01) tile_number += 256; /* legacy */
 	if (textbank2 & 0x01) tile_number += 512; /* Mission 660 add-on */
-	SET_TILE_INFO(1,tile_number,colorram[((tile_index&0x1f)*2)+1] & 0x1f )
+	SET_TILE_INFO(
+			1,
+			tile_number,
+			colorram[((tile_index&0x1f)*2)+1] & 0x1f,
+			0)
 }
 
 
@@ -261,4 +269,55 @@ void tsamurai_vh_screenrefresh( struct osd_bitmap *bitmap, int fullrefresh )
 	tilemap_draw(bitmap,background,0,0);
 	draw_sprites(bitmap);
 	tilemap_draw(bitmap,foreground,0,0);
+}
+
+/***************************************************************************
+
+VS Gong Fight runs on older hardware
+
+***************************************************************************/
+
+int vsgongf_color;
+
+WRITE_HANDLER( vsgongf_color_w )
+{
+	if( vsgongf_color != data )
+	{
+		vsgongf_color = data;
+		tilemap_mark_all_tiles_dirty( foreground );
+	}
+}
+
+static void get_vsgongf_tile_info(int tile_index)
+{
+	int tile_number = videoram[tile_index];
+	int color = vsgongf_color&0x1f;
+	if( textbank1 ) tile_number += 0x100;
+	SET_TILE_INFO(
+			1,
+			tile_number,
+			color,
+			0)
+}
+
+int vsgongf_vh_start(void)
+{
+	foreground = tilemap_create(get_vsgongf_tile_info,tilemap_scan_rows,TILEMAP_OPAQUE,8,8,32,32);
+	if (!foreground) return 1;
+	return 0;
+}
+
+void vsgongf_vh_screenrefresh( struct osd_bitmap *bitmap, int fullrefresh )
+{
+	static int k;
+	if( keyboard_pressed( KEYCODE_Q ) ){
+		while( keyboard_pressed( KEYCODE_Q ) ){}
+		k++;
+		vsgongf_color = k;
+		tilemap_mark_all_tiles_dirty( foreground );
+	}
+
+	tilemap_update( ALL_TILEMAPS );
+	tilemap_draw(bitmap,foreground,0,0);
+	draw_sprites(bitmap);
 }

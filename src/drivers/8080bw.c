@@ -56,6 +56,7 @@ READ_HANDLER( invaders_shift_data_r );
 READ_HANDLER( invaders_shift_data_rev_r );
 READ_HANDLER( invaders_shift_data_comp_r );
 int  invaders_interrupt(void);
+int  polaris_interrupt(void);
 
 READ_HANDLER( boothill_shift_data_r );
 
@@ -1563,7 +1564,7 @@ INPUT_PORTS_START( boothill )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START2 )
 
 	PORT_START                                                                                          /* Player 2 Gun */
-	PORT_ANALOGX( 0xff, 0x00, IPT_PADDLE | IPF_PLAYER2, 50, 10, 1, 255, IP_KEY_NONE, IP_KEY_NONE, IP_JOY_NONE, IP_JOY_NONE )
+	PORT_ANALOGX( 0xff, 0x00, IPT_PADDLE | IPF_PLAYER2, 50, 10, 1, 255, KEYCODE_X, KEYCODE_S, IP_JOY_NONE, IP_JOY_NONE )
 
 	PORT_START                                                                                          /* Player 1 Gun */
 	PORT_ANALOGX( 0xff, 0x00, IPT_PADDLE, 50, 10, 1, 255, KEYCODE_Z, KEYCODE_A, IP_JOY_NONE, IP_JOY_NONE )
@@ -2259,7 +2260,7 @@ static const struct MachineDriver machine_driver_polaris =
 			CPU_8080,
 			1996800,        /* 19.968MHz / 10 */
 			schaser_readmem,schaser_writemem,invaders_readport,writeport_0_3,
-			invaders_interrupt,2    /* two interrupts per frame */
+			polaris_interrupt,2    /* two interrupts per frame */
 		}
 	},
 	60, DEFAULT_60HZ_VBLANK_DURATION,       /* frames per second, vblank duration */
@@ -4156,12 +4157,12 @@ ROM_END
 /* 626 */ GAMEX(1977, m4,       0,        m4,       m4,       8080bw,   ROT0,   	"Midway", "M-4", GAME_NO_SOUND )
 /* 630 */ GAMEX(1978, clowns,   0,        clowns,   clowns,   8080bw,   ROT0,   	"Midway", "Clowns", GAME_NO_SOUND )
 /* 640    																			"Midway", "Space Walk" */
-/* 642 */ GAMEX(1978, einnings, 0,        m4,       einnings, 8080bw,	ROT0,   	"Midway", "Extra Innings", GAME_NO_SOUND )
+/* 642 */ GAMEX(1978, einnings, 0,        m4,       einnings, 8080bw,	ROT0,   	"Midway", "Extra Inning", GAME_NO_SOUND )
 /* 643 */ GAMEX(1978, shuffle,  0,        shuffle,  shuffle,  8080bw,	ROT90,  	"Midway", "Shuffleboard", GAME_NO_SOUND )
 /* 644 */ GAMEX(1977, dogpatch, 0,        clowns,   dogpatch, 8080bw,   ROT0,   	"Midway", "Dog Patch", GAME_NO_SOUND )
 /* 645 */ GAMEX(1980, spcenctr, 0,        spcenctr, spcenctr, spcenctr,	ROT0_16BIT,	"Midway", "Space Encounters", GAME_NO_SOUND )
 /* 652 */ GAMEX(1979, phantom2, 0,        m4,       phantom2, phantom2, ROT0,   	"Midway", "Phantom II", GAME_NO_SOUND )
-/* 730 */ GAMEX(1978, bowler,   0,        bowler,   bowler,   8080bw,	ROT90,  	"Midway", "4 Player Bowling", GAME_NO_SOUND )
+/* 730 */ GAMEX(1978, bowler,   0,        bowler,   bowler,   8080bw,	ROT90,  	"Midway", "4 Player Bowling Alley", GAME_NO_SOUND )
 /* 739 */ GAME( 1978, invaders, 0,        invaders, invaders, invaders, ROT270, 	"Midway", "Space Invaders" )
 /* 742 */ GAMEX(1978, blueshrk, 0,        blueshrk, blueshrk, blueshrk, ROT0,   	"Midway", "Blue Shark", GAME_NO_SOUND )
 /* 851 */ GAME( 1980, invad2ct, 0,        invad2ct, invad2ct, invad2ct, ROT90,  	"Midway", "Space Invaders II (Midway, cocktail)" )
@@ -4200,19 +4201,19 @@ ROM_END
 
 		  GAME( 1980, earthinv, invaders, invaders, earthinv, invaders, ROT270, 	"bootleg", "Super Earth Invasion" )
 		  GAME( 1980, spaceatt, invaders, invaders, spaceatt, invaders, ROT270, 	"Zenitone-Microsec Ltd", "Space Attack II" )
-		  GAME( ????, sinvzen,  invaders, invaders, spaceatt, invaders, ROT270, 	"Zenitone-Microsec Ltd", "Super Invaders (Zenitone-Microsec)" )
-		  GAME( ????, sinvemag, invaders, invaders, sinvemag, invaders, ROT270, 	"bootleg", "Super Invaders (EMAG)" )
-		  GAME( ????, alieninv, invaders, invaders, earthinv, invaders, ROT270, 	"bootleg", "Alien Invasion Part II" )
+		  GAME( 19??, sinvzen,  invaders, invaders, spaceatt, invaders, ROT270, 	"Zenitone-Microsec Ltd", "Super Invaders (Zenitone-Microsec)" )
+		  GAME( 19??, sinvemag, invaders, invaders, sinvemag, invaders, ROT270, 	"bootleg", "Super Invaders (EMAG)" )
+		  GAME( 19??, alieninv, invaders, invaders, earthinv, invaders, ROT270, 	"bootleg", "Alien Invasion Part II" )
 		  GAME( 1978, spceking, invaders, invaders, spceking, invaders, ROT270, 	"Leijac (Konami)","Space King" )
 		  GAME( 1978, spcewars, invaders, invaders, invadpt2, invaders, ROT270, 	"Sanritsu", "Space War (Sanritsu)" )
 		  GAME( 1978, spacewr3, invaders, invaders, spacewr3, invaders, ROT270, 	"bootleg", "Space War Part 3" )
 		  GAME( 1978, invaderl, invaders, invaders, invaders, invaders, ROT270, 	"bootleg", "Space Invaders (Logitec)" )
 		  GAME( 1979, jspecter, invaders, invaders, jspecter, invaders, ROT270, 	"Jatre", "Jatre Specter" )
 		  GAME( 1979, cosmicmo, invaders, invaders, cosmicmo, invaders, ROT270, 	"Universal", "Cosmic Monsters" )
-		  GAME( ????, superinv, invaders, invaders, invaders, invaders, ROT270, 	"bootleg", "Super Invaders" )
-		  GAME( ????, moonbase, invadpt2, invaders, invadpt2, invaddlx, ROT270, 	"Nichibutsu", "Moon Base" )
-		  GAMEX(????, invrvnge, 0,        tornbase, invrvnge, invrvnge, ROT270, 	"Zenitone Microsec", "Invader's Revenge",  GAME_NO_SOUND )
-		  GAMEX(????, invrvnga, invrvnge, tornbase, invrvnge, invrvnge, ROT270, 	"Zenitone Microsec (Dutchford license)", "Invader's Revenge (Dutchford)", GAME_NO_SOUND )
+		  GAME( 19??, superinv, invaders, invaders, invaders, invaders, ROT270, 	"bootleg", "Super Invaders" )
+		  GAME( 19??, moonbase, invadpt2, invaders, invadpt2, invaddlx, ROT270, 	"Nichibutsu", "Moon Base" )
+		  GAMEX(19??, invrvnge, 0,        tornbase, invrvnge, invrvnge, ROT270, 	"Zenitone Microsec", "Invader's Revenge",  GAME_NO_SOUND )
+		  GAMEX(19??, invrvnga, invrvnge, tornbase, invrvnge, invrvnge, ROT270, 	"Zenitone Microsec (Dutchford license)", "Invader's Revenge (Dutchford)", GAME_NO_SOUND )
 		  GAME( 1980, spclaser, 0,        invaders, spclaser, invaddlx, ROT270, 	"Game Plan, Inc. (Taito)", "Space Laser" )
 		  GAME( 1980, laser,    spclaser, invaders, spclaser, invaddlx, ROT270, 	"<unknown>", "Laser" )
 		  GAME( 1979, spcewarl, spclaser, invaders, spclaser, invaddlx, ROT270, 	"Leijac (Konami)","Space War (Leijac)" )

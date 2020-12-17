@@ -10,113 +10,117 @@
 	Andrew Prime
 
 
-	TODO :
-			- What does 0x3c0006-7 *REALLY* do?
+	GRAPHICAL ISSUES :
 
+	- Effects created using the Raster Interrupt are probably not 100% correct,
+	  e.g.:
+	  - there is currently a kludge to get zedblade working correctly. It seems
+	    to control the line IRQ2 happens on differently from the other games.
+	  - trally, neodrift and tpgolf need to use the raster driver, however that
+	    way full screen zoom does NOT work correctly (the video driver has kludges
+		to make it work without the raster driver).
+	  - garoup enables IRQ2 on Terry's stage, but with no noticeable effect. Note
+	    that it is NOT enabled in 2 players mode, only vs cpu.
+	  - ridhero requires 262 raster lines to work correctly. However the aodk 100
+		mega shock logo works better with 261.
+	  - spinmast uses IRQ2 with no noticeable effect (it seems to be always near
+	    the bottom of the screen).
+	  - strhoop enables IRQ2 on every scanline during attract mode, with no
+	    noticeable effect.
+	  - Money Idol Exchanger runs slow during the "vs. Computer" mode. Solo mode
+	    works fine.
+	  - Super Dodge Balls runs about as slow as Exchanger (above), and doesn't
+	    even seem to register key presses, other than the coin slots and start.
+		This is related to bit 15 of neo_control_16_r(), it needs to be 1 more
+		often than it is now.
 
-known problems, some might have already been fixed:
+	- Viewpoint resets halfway through level 1. This is a bug in the asm 68k core.
 
-ssideki2:
-locks up at random times
+	- Gururin has bad tiles all over the place (used to work ..)
 
-gpilots:
-bad sound (clipping and such)
+	- Start of Kof94 Japan stage seems to have incorrect scrolling. rbffspec has a similar prob?
 
-popbounc:
-hangs after a few seconds of gameplay if sound is off. Fixed with a patch.
+	- Bad clipping during scrolling at the sides on some games.
+		(tpgolf for example)
 
-neoturf:
-There appear to be some bad/inverted palette shifts on the scorecards that
-appear when you double/triple bogie.
+	- Zooming is not perfect, sometimes things that are meant to be zoomed down
+	  to be invisible end up being a single line of pixels
+		(tophuntr how to play, kuizkof map)
 
-lastbld2:
-hangs during the intermission between level 1 and 2. If you skip the intermission
-before it hangs, it goes on playing.
+	AUDIO ISSUES :
 
-Se anche Sidekick 3 e 4 usano la stessa tecnica, allora e' evidente che il
-campo si vede male perche' gli emu Neo Geo attualmente usano un engine "tile
-by tile" e non "line by line", ed e' lo stesso motivo per cui ad esempio in
-Fighter's History i fondali che dovrebbero essere prospettici restano
-immobili (e credo sia anche lo stesso motivo per cui in Zed Blade i fondali
-sono ugualmente immobili).
+	- Sound (Music) cuts out in ncommand and ncombat
+		(both these are early Alpha Denshi / ADK Games .. Sloppy Coding?)
 
-2020 Baseball = When the batter gets hit by the pitcher the game resets,
-only on  arcade mode, in console mode it works fine
+	- Some rather bad sounding parts in a couple of Games
+		(doubledr Intro Sequence, shocktro End of Intro, savagere a lot of the time...)
 
-Ninja Combat = The music stops after the charge move is used ( the
-dragon)
+	- In mahretsu music should stop when you begin play (correct after a continue) *untested*
 
-Ninja Commando = The music stops a little after the intro
+	GAMEPLAY ISSUES / LOCKUPS :
 
-magdrop2
-In a two player game if P2 wins a game, then BOTH players are shown to lose, If P1 wins then P1 is correctly shown as the winner!!
+	- magdrop2 behaves strangely when P2 wins a 2 Player game (reports both as losing)
 
+	- popbounc without a patch this locks up when sound is disabled, also for this game 'paddle'
+	  conroller can be selected in the setup menus, but Mame doesn't support this.
 
-So far Ninja Combat, Ninja Commando, Alpha Mission 2, and Blues Journey, still have sound problems, and Burning Fight
-quits playing right after I choose my character. Am I the only one with these problems? Please let me know cause im trying to FIX
+	- ssideki2 locks up sometimes during play *not tested recently, certainly used to*
 
-Shock Trooper get stucked after killing the first final enemy
+	- 2020bb apparently resets when the batter gets hit by the pitcher *not tested*
 
-blazstar,
-Although the sound is perfect, there is still a problem
-with parallax, in level 2.
-Actually, the speed of scrolling should be twice as
-fast as now.
+	- some games apparently crash / reset when you finish them before you get the ending *untested*
 
-samsho4,
-I've just played Samurai Showdown 4, the level with the coast in the
-background, and the water animation seems much to fast. I've made this
-observation in at least another NeoGeo game (don't remember which
-one anymore).
+	NON-ISSUES / FIXED ISSUES :
 
-Shock Troopers - this has bad bugs. The game stops scrolling when you kill
-the mid-boss on any of the 3 starting levels. There are also some
-sprite/collision problems in the Jungle route. I'm told MAME32 works, so
-perhaps this can still be fixed for the DOS final.
+	- Auto Animation Speed is not quite right in Many Games
+		(mslug waterfalls, some bg's in samsho4, blazstar lev 2 etc.)
 
-rbffspec
-at the beginning of Hong Kong level, sky abruptly disappears while it scrolls up.
+	- shocktro locking up at the bosses, this was fixed a long long time ago, it was due to bugs
+	  in the 68k Core.
 
-lastblad
-rom M1 could be bad (second half is mostly FF, missing music in some levels)
+	- sound, graphic, the odd game crash & any other strange happenings in kof99p and garoup are
+	  probably because these machines are prototypes, the games are therefore not finished.  There
+	  are 'patched' versions of these romsets available in some locations, however these will not
+	  be supported.
 
-in the game Super Spy, the white dialog box that appers when you are in a room
-and somebody is talking at you, is missing. the text is black, and it is hard
-to read because all the background is very dark. the dialog box missing has white colour.
+	OTHER MINOR THINGS :
 
----2020 Super Baseball---
-Game resets when batter is hit by pitch.
+	- 2020bb version display, the program roms contains two version numbers, the one which always
+	  get displayed when running in Mame is that which would be displayed on a console.
+	  This depends on location 0x46 of nvram, which should be set in the arcade version. There
+	  doesn't seem to be a place in the BIOS where this location is initialized.
 
----Cyberlip---
-Crashes during the demo display (reported but I don't see it)
+	- Encryption on newer games (some have program code & gfx encrypted, some just have gfx, S1
+	  rom is also missing from all these later boards, although the games still appear to get
+	  this data from somewhere)  kof99 and garou can only be supported at present because the
+	  romsets avaliable are beta versions.  Actually we don't have any valid encrytped program
+	  code to look at, but we have what we can only assume is a good dump of encrypted kof99 gfx
+	  roms.
 
+	POSSIBLE BAD DUMPS :
 
+	- there should be a more complete list of these over at www.mametesters.com
+		S1 Rom in strhoop (holes in some gfx?)
+		P  Roms in kof99p (these could be hacked..the most common dump is)
 
-doubledr,
-garbage sound during the movie in attract mode
+	NOTES ABOUT UNSUPPORTED GAMES :
 
-kof94,
-possible wrong scroll at the beginning of Japan match (abruptly clipped ground)
+	- Ganryu (Visco / SNK, 1999) - Not Dumped / Avaliable was thought to have encrypted GFX but some
+	  screenshots have showed up from NRX on a Chinese(?) Website
 
-tpgolf:
-clipped tiles at the sides of the screen during scrolling
+	- Prehistoric Isle 2 (Yumekobo / SNK, 1999) - Dump is incomplete, Encrypted GFX?
 
-mahretsu:
-the song should stop while you are playing. You can hear the real sound
-  effects if you continue a lost game.
+	- King of Fighters '99 (Release Version) (SNK, 1999) - Dump is Bad, Encrypted Code + GFX?
 
+	- Garou - Mark of the Wolves (Release Version (SNK, 1999) - Not Dumped, Encrypted Code + GFX?
 
+	- Strikers 1945 Plus (Psikyo / SNK, 1999) - Not Dumped, Encrypted GFX?
 
+	- Metal Slug 3 (SNK, 2000) - Not Dumped, Encrypted GFX + Code, Too New?
 
-ncombat,
-sound hangs when you use the power up
+	- King of Fighters 2000 (SNK, 2000) - Not Dumped, Encrypted GFX + Code, Too New?
 
-ncommand,
-no music and reduced sound effects during gameplay
-
-savagere,
-BAD clipping during intro
-
+	- Diggerman (???, 2000) - Not A Real Arcade Game .. Will Not Be Supported.
 
 =============================================================================
 
@@ -197,14 +201,12 @@ Points to note, known and proven information deleted from this map:
 #include "cpu/z80/z80.h"
 
 
-#define RASTER_LINES 261	/* guess! */
+#define RASTER_LINES 262	/* almost certainly correct */
 #define FIRST_VISIBLE_LINE 16
 #define LAST_VISIBLE_LINE 239
-#define RASTER_VBLANK_END (RASTER_LINES-(LAST_VISIBLE_LINE-FIRST_VISIBLE_LINE+1))
 
 
 extern data16_t *neogeo_vidram16;
-extern data16_t *neogeo_ram16;
 extern data16_t *neogeo_sram16;
 
 WRITE16_HANDLER( neogeo_sram16_lock_w );
@@ -240,12 +242,6 @@ WRITE16_HANDLER( neogeo_vidram16_offset_w );
 READ16_HANDLER( neogeo_vidram16_data_r );
 READ16_HANDLER( neogeo_vidram16_modulo_r );
 
-/* debug, used to 'see' the locations mapped in ROM space */
-/* with the debugger */
-READ16_HANDLER( mish_vid16_r );
-WRITE16_HANDLER( mish_vid16_w );
-/* end debug */
-
 
 /* from machine/neogeo.c */
 void neogeo_init_machine(void);
@@ -259,87 +255,176 @@ unsigned int neogeo_frame_counter_speed=4;
 
 /******************************************************************************/
 
-static int irq2_enable;
+static int irq2start=1000,irq2control;
+static int current_scanline,current_rasterline,scanline_read;
+static UINT32 irq2pos_value;
+static int vblank_int,scanline_int;
+static int irq2taken;
+int neogeo_raster_enable = 1;
+
+
+static void update_interrupts(void)
+{
+	int level = 0;
+
+	/* determine which interrupt is active */
+	if (vblank_int) level = 1;
+	if (scanline_int) level = 2;
+
+	/* either set or clear the appropriate lines */
+	if (level)
+		cpu_set_irq_line(0, level, ASSERT_LINE);
+	else
+		cpu_set_irq_line(0, 7, CLEAR_LINE);
+}
+
+static WRITE16_HANDLER( neo_irqack_w )
+{
+	if (ACCESSING_LSB)
+	{
+		if (data & 4) vblank_int = 0;
+		if (data & 2) scanline_int = 0;
+		update_interrupts();
+	}
+}
+
 
 static int neogeo_interrupt(void)
 {
 	static int fc=0;
-
-
-	/* Add a timer tick to the pd4990a */
-	pd4990a_addretrace();
-
-	/* Animation counter, 1 once per frame is too fast, every 4 seems good */
-		if	(fc>=neogeo_frame_counter_speed) {
-				fc=0;
-				neogeo_frame_counter++;
-		}
-		fc++;
-
-#ifdef MAME_DEBUG
-	if (irq2_enable || keyboard_pressed(KEYCODE_F1)) cpu_cause_interrupt(0,2);
-#else
-	if (irq2_enable) cpu_cause_interrupt(0,2);
-#endif
-
-	/* return a standard vblank interrupt */
-	return 1;	   /* vertical blank */
-}
-
-static int irq2enable,irq2start,irq2repeat=1000,irq2control;
-static int lastirq2line = 1000;
-
-static int neogeo_raster_interrupt(void)
-{
-	static int fc=0;
 	int line = RASTER_LINES - cpu_getiloops();
-static int raster_enable=1;
+
+	current_rasterline = line;
+	current_scanline = line - (RASTER_LINES-(LAST_VISIBLE_LINE+1));
 
 	if (line == RASTER_LINES)	/* vblank */
 	{
-		if (keyboard_pressed_memory(KEYCODE_F1))
-		{
-			raster_enable ^= 1;
-			usrintf_showmessage("raster effects %sabled",raster_enable ? "en" : "dis");
-		}
-
-		lastirq2line = 1000;
+		current_rasterline = 0;
 
 		/* Add a timer tick to the pd4990a */
 		pd4990a_addretrace();
 
 		/* Animation counter, 1 once per frame is too fast, every 4 seems good */
-		if	(fc >= neogeo_frame_counter_speed)
+		if (!(irq2control & 0x8))
 		{
-			fc=0;
-			neogeo_frame_counter++;
+			if (fc>neogeo_frame_counter_speed)
+			{
+				fc=0;
+				neogeo_frame_counter++;
+			}
+			fc++;
 		}
-		fc++;
 
-		if (osd_skip_this_frame()==0)
-			neogeo_vh_raster_partial_refresh(Machine->scrbitmap,line-RASTER_VBLANK_END+FIRST_VISIBLE_LINE-1);
+		if (irq2control & 0x10)
+			usrintf_showmessage("IRQ2 enabled, need raster driver");
+
+		/* return a standard vblank interrupt */
+		vblank_int = 1;	   /* vertical blank */
+	}
+
+	update_interrupts();
+	return 0;
+}
+
+
+static int raster_interrupt(int busy)
+{
+	static int fc=0;
+	int line = RASTER_LINES - cpu_getiloops();
+	int do_refresh = 0;
+
+	current_rasterline = line;
+	current_scanline = line - (RASTER_LINES-(LAST_VISIBLE_LINE+1));
+
+	irq2taken = 0;
+
+/* kludge to get zedblade working correctly without breaking everything else */
+if (!strcmp(Machine->gamedrv->name,"zedblade"))
+	current_scanline = line-4;// - (RASTER_LINES-(LAST_VISIBLE_LINE+1));
+
+	if (busy)
+	{
+		if (neogeo_raster_enable && scanline_read)
+		{
+			do_refresh = 1;
+//logerror("partial refresh at raster line %d (screen line %d)\n",line,current_scanline);
+			scanline_read = 0;
+		}
+	}
+
+	if (irq2control & 0x10)
+	{
+		if (line == irq2start)
+		{
+//logerror("trigger IRQ2 at raster line %d (screen line %d)\n",line,current_scanline);
+			if (!busy)
+			{
+				if (neogeo_raster_enable)
+					do_refresh = 1;
+			}
+
+			if (irq2control & 0x80)
+				irq2start += (irq2pos_value + 3) / 0x180;	/* ridhero gives 0x17d */
+
+			scanline_int = 1;
+			irq2taken = 1;
+		}
+	}
+
+	if (line == RASTER_LINES)	/* vblank */
+	{
+		current_rasterline = 0;
+
+		if (keyboard_pressed_memory(KEYCODE_F1))
+		{
+			neogeo_raster_enable = (neogeo_raster_enable + 1) % 3;
+			usrintf_showmessage("raster effects %sabled",neogeo_raster_enable ? "en" : "dis");
+		}
+
+		if (irq2control & 0x40)
+			irq2start = (irq2pos_value + 3) / 0x180;	/* ridhero gives 0x17d */
+		else
+			irq2start = 1000;
+
+
+		/* Add a timer tick to the pd4990a */
+		pd4990a_addretrace();
+
+		/* Animation counter */
+		if(!(irq2control & 0x8))
+		{
+			if (fc>neogeo_frame_counter_speed)
+			{
+				fc=0;
+				neogeo_frame_counter++;
+			}
+			fc++;
+		}
+
+		do_refresh = 1;
 
 		/* return a standard vblank interrupt */
 //logerror("trigger IRQ1\n");
-		return 1;	   /* vertical blank */
+		vblank_int = 1;	   /* vertical blank */
 	}
 
-	if (irq2enable)
-	{
-		if (line == irq2start || line == lastirq2line + irq2repeat)
-		{
-//			logerror("trigger IRQ2 at raster line %d (screen line %d)\n",line,line-RASTER_VBLANK_END+FIRST_VISIBLE_LINE);
-			if (raster_enable && osd_skip_this_frame()==0)
-				neogeo_vh_raster_partial_refresh(Machine->scrbitmap,line-RASTER_VBLANK_END+FIRST_VISIBLE_LINE-1);
+	if (do_refresh && osd_skip_this_frame() == 0)
+		neogeo_vh_raster_partial_refresh(Machine->scrbitmap,current_scanline);
 
-			lastirq2line = line;
-
-			return 2;
-		}
-	}
-
+	update_interrupts();
 	return 0;
 }
+
+static int neogeo_raster_interrupt(void)
+{
+	return raster_interrupt(0);
+}
+
+static int neogeo_raster_interrupt_busy(void)
+{
+	return raster_interrupt(1);
+}
+
 
 
 static int pending_command;
@@ -396,14 +481,7 @@ static READ16_HANDLER( controller1_16_r )
 	if (neogeo_has_trackball)
 		res = (readinputport(ts?7:0) << 8) + readinputport(3);
 	else
-	{
 		res = (readinputport(0) << 8) + readinputport(3);
-
-		if (readinputport(7) & 0x01) res &= 0xcfff; /* A+B */
-		if (readinputport(7) & 0x02) res &= 0x3fff; /* C+D */
-		if (readinputport(7) & 0x04) res &= 0x8fff; /* A+B+C */
-		if (readinputport(7) & 0x08) res &= 0x0fff; /* A+B+C+D */
-	}
 
 	return res;
 }
@@ -412,14 +490,6 @@ static READ16_HANDLER( controller2_16_r )
 	data16_t res;
 
 	res = (readinputport(1) << 8);
-
-	if (!neogeo_has_trackball)
-	{
-		if (readinputport(7) & 0x10) res &= 0xcfff; /* A+B */
-		if (readinputport(7) & 0x20) res &= 0x3fff; /* C+D */
-		if (readinputport(7) & 0x40) res &= 0x8fff; /* A+B+C */
-		if (readinputport(7) & 0x80) res &= 0x0fff; /* A+B+C+D */
-	}
 
 	return res;
 }
@@ -463,19 +533,16 @@ logerror("PC %06x: warning: bankswitch to empty bank %02x\n",cpu_get_pc(),data);
 /* TODO: Figure out how this really works! */
 static READ16_HANDLER( neo_control_16_r )
 {
-	int line,irq_bit;
+	int line,irq_bit,res;
 
 	/*
-		The format of this very important location is:	AAAA AAAA B??? CDDD
+		The format of this very important location is:	ABBB BBBB B??? CDDD
 
-		A is most likely the video beam line, however from how it is used it
-		  doesn't seem to be a 0-255 direct map: the top bit is often masked out.
-		  I think the top bit of A is: (vblank OR irq2). sdodgeb loops waiting for
-		  it to be 1; zedblade heavily depends on it to work correctly.
-		B is used together with A in one place, so most likely video beam position
-		  Maybe AAAAAAAAB is a 9-bit video line counter.
-		  It is tested individually in many cases (e.g. samsho3) so it might not be
-		  the low bit of the raster line.
+		A I think this is: (vblank OR irq2). sdodgeb loops waiting for
+		  it to be 1; zedblade heavily depends on it to work correctly (it
+		  checks it in the IRQ2 handler).
+		B is the video beam line. mosyougi relies solely on this to do the
+		  raster effects on the title screen.
 		C is definitely a PAL/NTSC flag. Evidence:
 		  1) trally changes the position of the speed indicator depending on
 			 it (0 = lower 1 = higher).
@@ -483,123 +550,81 @@ static READ16_HANDLER( neo_control_16_r )
 			 This is obviously the video refresh rate in Hz.
 		  3) samsho3 sets another variable to 256 or 307. This could be the total
 			 screen height (including vblank), or close to that.
-		  Some game (e.g. lstbld2, samsho3) do this (or similar):
+		  Some games (e.g. lstbld2, samsho3) do this (or similar):
 		  bclr	  #$0, $3c000e.l
 		  when the bit is set, so 3c000e (whose function is unknown) has to be
 		  related
-		D is unknown (counter of some kind, used in a couple of places).
-		  in blazstar, this controls the background speed in level 2.
+		D is a variable speed counter. In blazstar, it controls the background
+		  speed in level 2.
 	*/
-//logerror("PC %06x: neo_control_16_r\n",cpu_get_pc());
 
-	line = RASTER_LINES - cpu_getiloops();
-	irq_bit = (irq2enable && (line == irq2start || line == lastirq2line + irq2repeat)) ||
-		(line == RASTER_LINES);
+	line = current_scanline;
+	scanline_read = 1;	/* needed for raster_busy optimization */
 
-	return	((cpu_getscanline() * 0x80) & 0x7f80)	/* scanline */
-			| (irq_bit << 15)						/* vblank or irq2 */
-			| (neogeo_frame_counter & 0x0007);		/* frame counter */
+	irq_bit = irq2taken
+			|| (line < FIRST_VISIBLE_LINE) || (line > LAST_VISIBLE_LINE);
 
-#if 0
-logerror("PC %06x: read 0x3c0006\n",cpu_get_pc());
-	switch(neogeo_game_fix)
-	{
-	case 0: /* Blazing Star */
-		return (neogeo_frame_counter) & 0x0007;
-	case 1: /* Fix for Voltage Fighter */
-		if (cpu_get_pc() == 0x1b04) return 0x8000;
-	case 2: /* real bout 2 */
-		return 0x2000;
-	case 3: /* sam sho3 */
-		return 0x80;
-	case 4: /* overtop */
-		return 0xb801;
-	case 5: /* Fix for KOF97 */
-		return 0x7000;
-	case 6: /* Money Idol Exchanger */
-		return 0x8000;
-	case 8: /* Ninja Command */
-		return 0xffff;
-	case 9: /* KOF98 */
-		return 0x4000;
-	}
+	res =	((line << 7) & 0x7f80) |				/* scanline */
+			(irq_bit << 15) |						/* vblank or irq2 */
+			(neogeo_frame_counter & 0x0007);		/* frame counter */
 
-	/* anything 0x8000 seems better than 0 */
-	return(0x8000);
-#endif
+	logerror("PC %06x: neo_control_16_r (%04x)\n",cpu_get_pc(),res);
+
+	return res;
 }
 
-
-int neogeo_irq2type;
-static int irq2repeat_limit;
 
 /* this does much more than this, but I'm not sure exactly what */
 WRITE16_HANDLER( neo_control_16_w )
 {
-	/* Games which definitely need IRQ2:
-	neocup98
-	ssideki4
-	ssideki3
-	sengoku2
-	spinmast
-	ridhero
-	turfmast
-	karnovr
-	galaxyfg
-	zedblade
-	mslug2 (dunes at the beginning)
-	*/
+	logerror("%06x: neo_control_16_w %04x\n",cpu_get_pc(),data);
 
-	/* Auto-Anim Speed Control? */
-	if((data & 0xf0ff) == 0)
-	{
-		int speed = (data >> 8) & 0x0f;
-		if (speed) neogeo_frame_counter_speed=speed;
-	}
+	/* Auto-Anim Speed Control */
+	neogeo_frame_counter_speed = (data >> 8) & 0xff;
 
-	if (data & 0x10)
-		irq2enable = 1;
-	else
-	{
-		irq2enable = 0;
-		lastirq2line = 1000;
-		return;
-	}
+/*	0x01 - 0x80 flags:
 
-	if (data & 0x40)
-		lastirq2line = 1000;
+	0x01 unknown, no game sets this ?
+	0x02 unknown, no game sets this ?
+	0x04 unknown, kof94 sets this at some point ?
 
+	0x08 shocktro2, stops autoanim counter
+
+	0x10 irq2 enable, tile engine scanline irq that is triggered
+	when a certain scanline is reached.
+
+	0x20 when set, the next values written in the irq position register
+	sets irq2 to happen N lines after the current one
+
+	0x40 when set, irq position register is automatically loaded at vblank to
+	set the irq2 line.
+
+	0x80 when set, every time irq2 is triggered the irq position register is
+	automatically loaded to set the next irq2 line.
+
+	0x80 and 0x40 may be set at the same time (Viewpoint does this).
+*/
 	irq2control = data & 0xff;
-
-	/* ssideki2, zedblade and turfmast seem to be the only games to not set these
-	  bits, and also the only ones to have an irq2repeat > 8. Coincidence?
-	  */
-	if (data & 0xc0)
-		irq2repeat_limit = 16;
-	else
-		irq2repeat_limit = 29;
 }
 
 static WRITE16_HANDLER( neo_irq2pos_16_w )
 {
-	static UINT32 value;
-	int line;
+	logerror("%06x: neo_irq2pos_16_w offset %d %04x\n",cpu_get_pc(),offset,data);
 
 	if (offset)
-	{
-		value = (value & 0xffff0000) | (UINT32)data;
-		if (neogeo_irq2type) return;
-	}
+		irq2pos_value = (irq2pos_value & 0xffff0000) | (UINT32)data;
 	else
-	{
-		value = (value & 0x0000ffff) | ((UINT32)data << 16);
-		if (!neogeo_irq2type) return;
-	}
+		irq2pos_value = (irq2pos_value & 0x0000ffff) | ((UINT32)data << 16);
 
-	line = value / 0x180 + 1;
-	if (line <= irq2repeat_limit) irq2repeat = line;
-	/* ugly kludge to align irq2start in all games */
-	else irq2start = line + (neogeo_irq2type);
+	if (irq2control & 0x20)
+	{
+//		int line = (irq2pos_value + 3) / 0x180;	/* ridhero gives 0x17d */
+		int line = (irq2pos_value + 0x3b) / 0x180;	/* turfmast goes as low as 0x145 */
+
+		irq2start = current_rasterline + line;
+
+		logerror("irq2start = %d, current_rasterline = %d, current_scanline = %d\n",irq2start,current_rasterline,current_scanline);
+	}
 }
 
 
@@ -623,7 +648,7 @@ static MEMORY_READ16_START( neogeo_readmem )
 	{ 0x3c000a, 0x3c000b, neogeo_vidram16_data_r }, /* Puzzle de Pon */
 
 	{ 0x400000, 0x401fff, neogeo_paletteram16_r },
-	{ 0x600000, 0x61ffff, mish_vid16_r },
+	{ 0x6a0000, 0x6a1fff, MRA16_RAM },
 	{ 0x800000, 0x800fff, neogeo_memcard16_r }, /* memory card */
 	{ 0xc00000, 0xc1ffff, MRA16_BANK3 },		/* system bios rom */
 	{ 0xd00000, 0xd0ffff, neogeo_sram16_r },	/* 64k battery backed SRAM */
@@ -631,7 +656,7 @@ MEMORY_END
 
 static MEMORY_WRITE16_START( neogeo_writemem )
 	{ 0x000000, 0x0fffff, MWA16_ROM },	  /* ghost pilots writes to ROM */
-	{ 0x100000, 0x10ffff, MWA16_BANK1 },
+	{ 0x100000, 0x10ffff, MWA16_BANK1 },	// WORK RAM
 /*	{ 0x200000, 0x200fff, whp copies ROM data here. Why? Is there RAM in the banked ROM space? */
 /* trally writes to 200000-200003 as well, probably looking for a serial link */
 /* both games write to 0000fe before writing to 200000. The two things could be related. */
@@ -663,17 +688,13 @@ static MEMORY_WRITE16_START( neogeo_writemem )
 	{ 0x3c0002, 0x3c0003, neogeo_vidram16_data_w },
 	{ 0x3c0004, 0x3c0005, neogeo_vidram16_modulo_w },
 
-	{ 0x3c0006, 0x3c0007, neo_control_16_w },	/* See level 2 of spinmasters, rowscroll data? */
-	{ 0x3c0008, 0x3c000b, neo_irq2pos_16_w },	/* IRQ2 x/y position? */
+	{ 0x3c0006, 0x3c0007, neo_control_16_w },	/* IRQ2 control */
+	{ 0x3c0008, 0x3c000b, neo_irq2pos_16_w },	/* IRQ2 position */
+	{ 0x3c000c, 0x3c000d, neo_irqack_w },		/* IRQ acknowledge */
+//	{ 0x3c000e, 0x3c000f }, /* Unknown, see control_r */
 
-	{ 0x3c000c, 0x3c000d, MWA16_NOP },	/* IRQ acknowledge */
-										/* 4 = IRQ 1 */
-										/* 2 = IRQ 2 */
-										/* 1 = IRQ 3 (does any game use this?) */
-//	{ 0x3c000e, 0x3c000f, }, /* Unknown, see control_r */
-
-	{ 0x400000, 0x401fff, neogeo_paletteram16_w },
-	{ 0x600000, 0x61ffff, mish_vid16_w },			/* Debug only, not part of real NeoGeo */
+	{ 0x400000, 0x401fff, neogeo_paletteram16_w },	// COLOR RAM BANK1
+	{ 0x6a0000, 0x6a1fff, MWA16_RAM },	// COLOR RAM BANK0 (used only in startup tests?)
 	{ 0x800000, 0x800fff, neogeo_memcard16_w }, 	/* mem card */
 	{ 0xd00000, 0xd0ffff, neogeo_sram16_w, &neogeo_sram16 },	/* 64k battery backed SRAM */
 MEMORY_END
@@ -874,7 +895,8 @@ INPUT_PORTS_START( neogeo )
 	PORT_START		/* IN4 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3 ) /* Service */
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )  /* used, affects the values stored at location 0x47 of nvram */
 
 	/* Fake  IN 5 */
 	PORT_START
@@ -882,9 +904,9 @@ INPUT_PORTS_START( neogeo )
 	PORT_DIPSETTING(	0x00,"Japan" )
 	PORT_DIPSETTING(	0x01,"USA" )
 	PORT_DIPSETTING(	0x02,"Europe" )
-	PORT_DIPNAME( 0x04, 0x04,"Machine Mode" )
-	PORT_DIPSETTING(	0x00,"Home" )
-	PORT_DIPSETTING(	0x04,"Arcade" )
+//	PORT_DIPNAME( 0x04, 0x04,"Machine Mode" )
+//	PORT_DIPSETTING(	0x00,"Home" )
+//	PORT_DIPSETTING(	0x04,"Arcade" )
 
 	PORT_START		/* Test switch */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN )
@@ -893,18 +915,8 @@ INPUT_PORTS_START( neogeo )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNKNOWN )
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNKNOWN )  /* This bit is used.. */
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )  /* used, affects the values stored at location 0x47 of nvram */
 	PORT_BITX( 0x80, IP_ACTIVE_LOW, 0, "Test Switch", KEYCODE_F2, IP_JOY_NONE )
-
-	PORT_START		/* FAKE */
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON5 | IPF_CHEAT )	/* A+B */
-	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON6 | IPF_CHEAT )	/* C+D */
-	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON7 | IPF_CHEAT )	/* A+B+C */
-	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON8 | IPF_CHEAT )	/* A+B+C+D */
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON5 | IPF_CHEAT | IPF_PLAYER2 )
-	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_BUTTON6 | IPF_CHEAT | IPF_PLAYER2 )
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_BUTTON7 | IPF_CHEAT | IPF_PLAYER2 )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_BUTTON8 | IPF_CHEAT | IPF_PLAYER2 )
 INPUT_PORTS_END
 
 INPUT_PORTS_START( irrmaze )
@@ -956,7 +968,7 @@ INPUT_PORTS_START( irrmaze )
 	PORT_START		/* IN4 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN3 ) /* Service */
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_SERVICE1 )
 
 	/* Fake  IN 5 */
 	PORT_START
@@ -964,9 +976,9 @@ INPUT_PORTS_START( irrmaze )
 	PORT_DIPSETTING(	0x00,"Japan" )
 	PORT_DIPSETTING(	0x01,"USA" )
 	PORT_DIPSETTING(	0x02,"Europe" )
-	PORT_DIPNAME( 0x04, 0x04,"Machine Mode" )
-	PORT_DIPSETTING(	0x00,"Home" )
-	PORT_DIPSETTING(	0x04,"Arcade" )
+//	PORT_DIPNAME( 0x04, 0x04,"Machine Mode" )
+//	PORT_DIPSETTING(	0x00,"Home" )
+//	PORT_DIPSETTING(	0x04,"Arcade" )
 
 	PORT_START		/* Test switch */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNKNOWN )
@@ -1050,7 +1062,7 @@ static const struct MachineDriver machine_driver_neogeo =
 			CPU_M68000,
 			12000000,
 			neogeo_readmem,neogeo_writemem,0,0,
-			neogeo_interrupt,1
+			neogeo_interrupt,RASTER_LINES
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU | CPU_16BIT_PORT,
@@ -1112,7 +1124,49 @@ static const struct MachineDriver machine_driver_raster =
 	4096,4096,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_RGB_DIRECT,
+	0,
+	neogeo_mvs_vh_start,
+	neogeo_vh_stop,
+	neogeo_vh_raster_screenrefresh,
+
+	/* sound hardware */
+	SOUND_SUPPORTS_STEREO,0,0,0,
+	{
+		{
+			SOUND_YM2610,
+			&neogeo_ym2610_interface,
+		},
+	},
+
+	neogeo_nvram_handler
+};
+
+static const struct MachineDriver machine_driver_raster_busy =
+{
+	{
+		{
+			CPU_M68000,
+			12000000,
+			neogeo_readmem,neogeo_writemem,0,0,
+			neogeo_raster_interrupt_busy,RASTER_LINES
+		},
+		{
+			CPU_Z80 | CPU_AUDIO_CPU | CPU_16BIT_PORT,
+			6000000,
+			sound_readmem,sound_writemem,neo_readio,neo_writeio,
+			ignore_interrupt,0
+		}
+	},
+	60, DEFAULT_60HZ_VBLANK_DURATION,
+	1,
+	neogeo_init_machine,
+	40*8, 32*8, { 1*8, 39*8-1, FIRST_VISIBLE_LINE, LAST_VISIBLE_LINE },
+	neogeo_mvs_gfxdecodeinfo,
+	4096,4096,
+	0,
+
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_RGB_DIRECT,
 	0,
 	neogeo_mvs_vh_start,
 	neogeo_vh_stop,
@@ -2438,7 +2492,7 @@ ROM_START( savagere )
 
 	ROM_REGION( 0x600000, REGION_SOUND1, ROMREGION_SOUNDONLY )
 	ROM_LOAD( "savag_v1.rom", 0x000000, 0x200000, 0x530c50fd )
-	ROM_LOAD( "savag_v2.rom", 0x200000, 0x200000, 0xe79a9bd0 )
+	ROM_LOAD( "savag_v2.rom", 0x200000, 0x200000, BADCRC( 0xe79a9bd0 ) )
 	ROM_LOAD( "savag_v3.rom", 0x400000, 0x200000, 0x7038c2f9 )
 
 	NO_DELTAT_REGION
@@ -4349,60 +4403,146 @@ ROM_START( mslugx )
 	ROM_LOAD16_BYTE( "msx_c6.rom", 0x2000001, 0x800000, 0x83e3e69d ) /* Plane 0,1 */
 ROM_END
 
-ROM_START( kof99 )
+ROM_START( kof99 ) /* Original Version - Encrypted Code(?) & GFX */
 	ROM_REGION( 0x500000, REGION_CPU1, 0 )
-	ROM_LOAD16_WORD_SWAP( "kf99p_p1.rom", 0x000000, 0x100000, 0x00000000 )
-	ROM_LOAD16_WORD_SWAP( "kf99p_p2.rom", 0x100000, 0x400000, 0x00000000 )
+	/* Current Dump of Code is Bad, although the original is thought to be encrypted anyway
+	   figures at end of lines indicate size and CRC32 of current dumps                     */
+	ROM_LOAD16_WORD_SWAP( "kof99_p1.rom", 0x000000, 0x100000, 0x00000000 ) /* 0x400000 0x006e4532 */
+	ROM_LOAD16_WORD_SWAP( "kof99_p2.rom", 0x100000, 0x400000, 0x00000000 ) /* 0x400000 0x90175f12 */
 
-	NEO_SFIX_128K( "kf99p_s1.rom", 0x00000000 )
+	/* The Encrypted Boards do _not_ have an s1 rom, data for it comes from elsewhere? */
+	ROM_REGION( 0x40000, REGION_GFX1, 0 )
+	ROM_FILL(                 0x000000, 0x20000, 0 )
+	ROM_LOAD( "ng-sfix.rom",  0x020000, 0x20000, 0x354029fc )
 
 	NEO_BIOS_SOUND_128K( "kof99_m1.rom", 0x5e74539c )
 
-	ROM_REGION( 0x0e00000, REGION_SOUND1, ROMREGION_SOUNDONLY )
+	ROM_REGION( 0x0c00000, REGION_SOUND1, ROMREGION_SOUNDONLY )
 	ROM_LOAD( "kof99_v1.rom", 0x000000, 0x400000, 0xef2eecc8 )
 	ROM_LOAD( "kof99_v2.rom", 0x400000, 0x400000, 0x73e211ca )
 	ROM_LOAD( "kof99_v3.rom", 0x800000, 0x400000, 0x821901da )
-	ROM_LOAD( "kof99_v4.rom", 0xc00000, 0x200000, 0xb49e6178 )
 
-	NO_DELTAT_REGION
+	ROM_REGION( 0x0200000, REGION_SOUND2, ROMREGION_SOUNDONLY )
+	ROM_LOAD( "kof99_v4.rom", 0x000000, 0x200000, 0xb49e6178 )
 
 	ROM_REGION( 0x4000000, REGION_GFX2, 0 )
-	ROM_LOAD16_BYTE( "kf99p_c1.rom", 0x0000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "kf99p_c2.rom", 0x0000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
-	ROM_LOAD16_BYTE( "kf99p_c3.rom", 0x1000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "kf99p_c4.rom", 0x1000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
-	ROM_LOAD16_BYTE( "kf99p_c5.rom", 0x2000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "kf99p_c6.rom", 0x2000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
-	ROM_LOAD16_BYTE( "kf99p_c7.rom", 0x3000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "kf99p_c8.rom", 0x3000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
+	/* Encrypted */
+	ROM_LOAD16_BYTE( "kof99_c1.rom", 0x0000000, 0x800000, 0x0f9e93fe )
+	ROM_LOAD16_BYTE( "kof99_c2.rom", 0x0000001, 0x800000, 0xe71e2ea3 )
+	ROM_LOAD16_BYTE( "kof99_c3.rom", 0x1000000, 0x800000, 0x238755d2 )
+	ROM_LOAD16_BYTE( "kof99_c4.rom", 0x1000001, 0x800000, 0x438c8b22 )
+	ROM_LOAD16_BYTE( "kof99_c5.rom", 0x2000000, 0x800000, 0x0b0abd0a )
+	ROM_LOAD16_BYTE( "kof99_c6.rom", 0x2000001, 0x800000, 0x65bbf281 )
+	ROM_LOAD16_BYTE( "kof99_c7.rom", 0x3000000, 0x800000, 0xff65f62e )
+	ROM_LOAD16_BYTE( "kof99_c8.rom", 0x3000001, 0x800000, 0x8d921c68 )
 ROM_END
 
-ROM_START( garou )
+ROM_START( kof99p ) /* Prototype Version - Possibly Hacked */
 	ROM_REGION( 0x500000, REGION_CPU1, 0 )
-	ROM_LOAD16_WORD_SWAP( "motw_p1.rom", 0x000000, 0x100000, 0x00000000 )
-	ROM_LOAD16_WORD_SWAP( "motw_p2.rom", 0x100000, 0x400000, 0x00000000 )
+	/* these program roms are possibly hacked, P1 especially, this was the earliest copy i could find..
+	   I guess we'll need another prototype to verify ...                                               */
+	ROM_LOAD16_WORD_SWAP( "kf99p_p1.rom", 0x000000, 0x100000, BADCRC(0x5d41395d) )
+	ROM_LOAD16_WORD_SWAP( "kf99p_p2.rom", 0x100000, 0x400000, BADCRC(0x739742ad) )
 
-	NEO_SFIX_128K( "motw_s1.rom", 0x00000000 )
+	/* This is the S1 from the prototype, the final is certainly be different */
+	NEO_SFIX_128K( "kf99p_s1.rom", 0xfb1498ed )
 
-	NEO_BIOS_SOUND_256K( "motw_m1.rom", 0x00000000 )
+	/* Did the Prototype really use the same sound program / voice roms, sound isn't great .. */
+	NEO_BIOS_SOUND_128K( "kof99_m1.rom", 0x5e74539c )
+
+	ROM_REGION( 0x0c00000, REGION_SOUND1, ROMREGION_SOUNDONLY )
+	ROM_LOAD( "kof99_v1.rom", 0x000000, 0x400000, 0xef2eecc8 )
+	ROM_LOAD( "kof99_v2.rom", 0x400000, 0x400000, 0x73e211ca )
+	ROM_LOAD( "kof99_v3.rom", 0x800000, 0x400000, 0x821901da )
+
+	ROM_REGION( 0x0200000, REGION_SOUND2, ROMREGION_SOUNDONLY )
+	ROM_LOAD( "kof99_v4.rom", 0x000000, 0x200000, 0xb49e6178 )
+
+	ROM_REGION( 0x4000000, REGION_GFX2, 0 )
+	/* these are probably decrypted versions of the roms found in the final */
+	ROM_LOAD16_BYTE( "kf99p_c1.rom", 0x0000000, 0x800000, 0xe5d8ffa4 ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "kf99p_c2.rom", 0x0000001, 0x800000, 0xd822778f ) /* Plane 2,3 */
+	ROM_LOAD16_BYTE( "kf99p_c3.rom", 0x1000000, 0x800000, 0xf20959e8 ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "kf99p_c4.rom", 0x1000001, 0x800000, 0x54ffbe9f ) /* Plane 2,3 */
+	ROM_LOAD16_BYTE( "kf99p_c5.rom", 0x2000000, 0x800000, 0xd87a3bbc ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "kf99p_c6.rom", 0x2000001, 0x800000, 0x4d40a691 ) /* Plane 2,3 */
+	ROM_LOAD16_BYTE( "kf99p_c7.rom", 0x3000000, 0x800000, 0xa4479a58 ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "kf99p_c8.rom", 0x3000001, 0x800000, 0xead513ce ) /* Plane 2,3 */
+ROM_END
+
+ROM_START( ganryu ) /* Original Version - Encrypted GFX */
+	ROM_REGION( 0x200000, REGION_CPU1, 0 )
+	ROM_LOAD16_WORD_SWAP( "252-p1.bin", 0x100000, 0x100000, 0x4b8ac4fb )
+	ROM_CONTINUE(						0x000000, 0x100000 )
+
+	/* The Encrypted Boards do _not_ have an s1 rom, data for it comes from elsewhere? */
+	ROM_REGION( 0x40000, REGION_GFX1, 0 )
+	ROM_FILL(                 0x000000, 0x20000, 0 )
+	ROM_LOAD( "ng-sfix.rom",  0x020000, 0x20000, 0x354029fc )
+
+	NEO_BIOS_SOUND_128K( "252-m1.bin", 0x30cc4099 )
+
+	ROM_REGION( 0x0400000, REGION_SOUND1, ROMREGION_SOUNDONLY )
+	ROM_LOAD( "252-v1.bin", 0x000000, 0x400000, 0xe5946733 )
+
+	NO_DELTAT_REGION
+
+	ROM_REGION( 0x1000000, REGION_GFX2, 0 )
+	/* Encrypted */
+	ROM_LOAD16_BYTE( "252-c1.bin", 0x0000000, 0x800000, 0x50ee7882 )
+	ROM_LOAD16_BYTE( "252-c2.bin", 0x0000001, 0x800000, 0x62585474 )
+ROM_END
+
+ROM_START( preisle2 ) /* Original Version, Encrypted GFX Roms -NOT DUMPED- */
+	ROM_REGION( 0x500000, REGION_CPU1, 0 )
+	ROM_LOAD16_WORD_SWAP( "pi2_p1.rom", 0x000000, 0x100000, 0xdfa3c0f3 )
+	ROM_LOAD16_WORD_SWAP( "pi2_p2.rom", 0x100000, 0x400000, 0x42050b80 )
+
+	/* The Encrypted Boards do _not_ have an s1 rom, data for it comes from elsewhere? */
+	ROM_REGION( 0x40000, REGION_GFX1, 0 )
+	ROM_FILL(                 0x000000, 0x20000, 0 )
+	ROM_LOAD( "ng-sfix.rom",  0x020000, 0x20000, 0x354029fc )
+
+	NEO_BIOS_SOUND_128K( "pi2_m1.rom", 0x8efd4014 )
+
+	ROM_REGION( 0x0600000, REGION_SOUND1, ROMREGION_SOUNDONLY )
+	ROM_LOAD( "pi2_v1.rom", 0x000000, 0x400000, 0x5a14543d )
+	ROM_LOAD( "pi2_v2.rom", 0x400000, 0x200000, 0x6610d91a )
+
+	NO_DELTAT_REGION
+
+	ROM_REGION( 0x1000000, REGION_GFX2, 0 )
+	/* this would be encrypted, and the roms aren't dumped yet. */
+	ROM_LOAD16_BYTE( "pi2_c1.bin", 0x0000000, 0x800000, 0x00000000 )
+	ROM_LOAD16_BYTE( "pi2_c2.bin", 0x0000001, 0x800000, 0x00000000 )
+ROM_END
+
+ROM_START( garoup ) /* Prototype Version, seems genuine */
+	ROM_REGION( 0x500000, REGION_CPU1, 0 )
+	ROM_LOAD16_WORD_SWAP( "motwp_p1.rom", 0x000000, 0x100000, 0xc72f0c16 )
+	ROM_LOAD16_WORD_SWAP( "motwp_p2.rom", 0x100000, 0x400000, 0xbf8de565 )
+
+	NEO_SFIX_128K( "motwp_s1.rom", 0x779989de )
+
+	NEO_BIOS_SOUND_256K( "motw_m1.rom", 0xbbe464f7 )
 
 	ROM_REGION( 0x1000000, REGION_SOUND1, ROMREGION_SOUNDONLY )
-	ROM_LOAD( "motw_v1.rom", 0x000000, 0x400000, 0x00000000 )
-	ROM_LOAD( "motw_v2.rom", 0x400000, 0x400000, 0x00000000 )
-	ROM_LOAD( "motw_v3.rom", 0x800000, 0x400000, 0x00000000 )
-	ROM_LOAD( "motw_v4.rom", 0xc00000, 0x400000, 0x00000000 )
+	ROM_LOAD( "motw_v1.rom", 0x000000, 0x400000, 0x274f3923 )
+	ROM_LOAD( "motw_v2.rom", 0x400000, 0x400000, 0x8f86dabe )
+	ROM_LOAD( "motw_v3.rom", 0x800000, 0x400000, 0x05fd06cd )
+	ROM_LOAD( "motw_v4.rom", 0xc00000, 0x400000, 0x14984063 )
 
 	NO_DELTAT_REGION
 
 	ROM_REGION( 0x4000000, REGION_GFX2, 0 )
-	ROM_LOAD16_BYTE( "motw_c1.rom", 0x0000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "motw_c2.rom", 0x0000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
-	ROM_LOAD16_BYTE( "motw_c3.rom", 0x1000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "motw_c4.rom", 0x1000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
-	ROM_LOAD16_BYTE( "motw_c5.rom", 0x2000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "motw_c6.rom", 0x2000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
-	ROM_LOAD16_BYTE( "motw_c7.rom", 0x3000000, 0x800000, 0x00000000 ) /* Plane 0,1 */
-	ROM_LOAD16_BYTE( "motw_c8.rom", 0x3000001, 0x800000, 0x00000000 ) /* Plane 2,3 */
+	ROM_LOAD16_BYTE( "motwp_c1.rom", 0x0000000, 0x800000, 0x5bb5d137 ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "motwp_c2.rom", 0x0000001, 0x800000, 0x5c8d2960 ) /* Plane 2,3 */
+	ROM_LOAD16_BYTE( "motwp_c3.rom", 0x1000000, 0x800000, 0x234d16fc ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "motwp_c4.rom", 0x1000001, 0x800000, 0xb9b5b993 ) /* Plane 2,3 */
+	ROM_LOAD16_BYTE( "motwp_c5.rom", 0x2000000, 0x800000, 0x722615d2 ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "motwp_c6.rom", 0x2000001, 0x800000, 0x0a6fab38 ) /* Plane 2,3 */
+	ROM_LOAD16_BYTE( "motwp_c7.rom", 0x3000000, 0x800000, 0xd68e806f ) /* Plane 0,1 */
+	ROM_LOAD16_BYTE( "motwp_c8.rom", 0x3000001, 0x800000, 0xf778fe99 ) /* Plane 2,3 */
 ROM_END
 
 /******************************************************************************/
@@ -4442,8 +4582,8 @@ GAME( 1990, cyberlip, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Cyb
 GAME( 1990, superspy, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "The Super Spy" )
 GAME( 1992, mutnat,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Mutation Nation" )
 GAME( 1991, kotm,     neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "King of the Monsters" )
-GAME( 1991, sengoku,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Sengoku / Sengoku Denshou (set 1)" )
-GAME( 1991, sengokh,  sengoku,  neogeo, neogeo,  neogeo, ROT0,       "SNK", "Sengoku / Sengoku Denshou (set 2)" )
+GAME( 1991, sengoku,  neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "Sengoku / Sengoku Denshou (set 1)" )
+GAME( 1991, sengokh,  sengoku,  raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "Sengoku / Sengoku Denshou (set 2)" )
 GAME( 1991, burningf, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Burning Fight (set 1)" )
 GAME( 1991, burningh, burningf, neogeo, neogeo,  neogeo, ROT0,       "SNK", "Burning Fight (set 2)" )
 GAME( 1990, lbowling, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "League Bowling" )
@@ -4451,7 +4591,7 @@ GAME( 1991, gpilots,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Gho
 GAME( 1990, joyjoy,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Puzzled / Joy Joy Kid" )
 GAME( 1991, quizdais, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Quiz Daisousa Sen - The Last Count Down" )
 GAME( 1992, lresort,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Last Resort" )
-GAME( 1991, eightman, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK / Pallas", "Eight Man" )
+GAME( 1991, eightman, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK / Pallas", "Eight Man" )
 GAME( 1991, legendos, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Legend of Success Joe / Ashitano Joe Densetsu" )
 GAME( 1991, 2020bb,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK / Pallas", "2020 Super Baseball (set 1)" )
 GAME( 1991, 2020bbh,  2020bb,   neogeo, neogeo,  neogeo, ROT0,       "SNK / Pallas", "2020 Super Baseball (set 2)" )
@@ -4464,10 +4604,10 @@ GAME( 1993, sengoku2, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "Sen
 GAME( 1992, bstars2,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Baseball Stars 2" )
 GAME( 1992, quizdai2, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Quiz Meintantei Neo Geo - Quiz Daisousa Sen Part 2" )
 GAME( 1993, 3countb,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "3 Count Bout / Fire Suplex" )
-GAME( 1992, aof,      neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Art of Fighting / Ryuuko no Ken" )
+GAME( 1992, aof,      neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "Art of Fighting / Ryuuko no Ken" )
 GAME( 1993, samsho,   neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Samurai Shodown / Samurai Spirits" )
-GAME( 1994, tophuntr, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Top Hunter - Roddy & Cathy" )
-GAME( 1992, fatfury2, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Fatal Fury 2 / Garou Densetsu 2 - arata-naru tatakai" )
+GAME( 1994, tophuntr, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "Top Hunter - Roddy & Cathy" )
+GAME( 1992, fatfury2, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Fatal Fury 2 / Garou Densetsu 2 - arata-naru tatakai" )
 GAME( 1992, ssideki,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "SNK", "Super Sidekicks / Tokuten Ou" )
 GAME( 1994, kof94,    neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "The King of Fighters '94" )
 GAME( 1994, aof2,     neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Art of Fighting 2 / Ryuuko no Ken 2" )
@@ -4495,8 +4635,10 @@ GAME( 1998, kof98,    neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "The
 GAME( 1998, lastbld2, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "The Last Blade 2 / Bakumatsu Roman - Dai Ni Maku Gekkano Kenshi" )
 GAME( 1998, neocup98, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "Neo-Geo Cup '98 - The Road to the Victory" )
 GAME( 1999, mslugx,   neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Metal Slug X - Super Vehicle-001" )
-GAME( 1999, kof99,    neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "The King of Fighters '99 - Millennium Battle (prototype)" )
-GAME( 1999, garou,    neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK", "Garou - Mark of the Wolves (prototype)" )
+GAMEX(1999, kof99,    neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "The King of Fighters '99 - Millennium Battle", GAME_NOT_WORKING ) /* Encrypted Code & GFX, Bad Dump */
+GAME( 1999, kof99p,   kof99,    raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "The King of Fighters '99 - Millennium Battle (prototype)" )
+GAME( 1999, garoup,   neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "SNK", "Garou - Mark of the Wolves (prototype)" )
+GAMEX(1999, preisle2, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "SNK / Yumekobo", "Prehistoric Isle 2", GAME_NOT_WORKING ) /* Encrypted GFX, Incomplete Dump */
 
 /* Alpha Denshi Co. / ADK (changed name in 1993) */
 GAME( 1990, maglord,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Magician Lord (set 1)" )
@@ -4506,25 +4648,25 @@ GAME( 1990, bjourney, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Dens
 GAME( 1991, crsword,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Crossed Swords" )
 GAME( 1991, trally,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Thrash Rally" )
 GAME( 1992, ncommand, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "Ninja Commando" )
-GAME( 1992, wh1,      neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Alpha Denshi Co.", "World Heroes" )
-GAME( 1993, wh2,      neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK",              "World Heroes 2" )
-GAME( 1994, wh2j,     neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",        "World Heroes 2 Jet" )
-GAME( 1994, aodk,     neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",        "Aggressors of Dark Kombat / Tsuukai GANGAN Koushinkyoku" )
+GAME( 1992, wh1,      neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Alpha Denshi Co.", "World Heroes" )
+GAME( 1993, wh2,      neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "ADK",              "World Heroes 2" )
+GAME( 1994, wh2j,     neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",        "World Heroes 2 Jet" )
+GAME( 1994, aodk,     neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",        "Aggressors of Dark Kombat / Tsuukai GANGAN Koushinkyoku" )
 GAME( 1995, whp,      neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",        "World Heroes Perfect" )
-GAME( 1995, mosyougi, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",        "Syougi No Tatsujin - Master of Syougi" )
+GAME( 1995, mosyougi, neogeo,   raster_busy, neogeo,  neogeo, ROT0_16BIT, "ADK / SNK",        "Syougi No Tatsujin - Master of Syougi" )
 GAME( 1996, overtop,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK",              "Over Top" )
 GAME( 1996, ninjamas, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "ADK / SNK",        "Ninja Master's - haoh-ninpo-cho" )
 GAME( 1996, twinspri, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "ADK",              "Twinkle Star Sprites" )
 
 /* Aicom */
 GAME( 1994, janshin,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Aicom", "Jyanshin Densetsu - Quest of Jongmaster" )
-GAME( 1995, pulstar,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Aicom", "Pulstar" )
+GAME( 1995, pulstar,  neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Aicom", "Pulstar" )
 
 /* Data East Corporation */
 GAME( 1993, spinmast, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Data East Corporation", "Spinmaster / Miracle Adventure" )
 GAME( 1994, wjammers, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Data East Corporation", "Windjammers / Flying Power Disc" )
 GAME( 1994, karnovr,  neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Data East Corporation", "Karnov's Revenge / Fighter's History Dynamite" )
-GAME( 1994, strhoop,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Data East Corporation", "Street Hoop / Street Slam / Dunk Dream" )
+GAME( 1994, strhoop,  neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Data East Corporation", "Street Hoop / Street Slam / Dunk Dream" )
 GAME( 1996, magdrop2, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Data East Corporation", "Magical Drop II" )
 GAME( 1997, magdrop3, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Data East Corporation", "Magical Drop III" )
 
@@ -4549,14 +4691,14 @@ GAME( 1996, mslug,    neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Nazca", "M
 GAME( 1994, zedblade, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "NMK", "Zed Blade / Operation Ragnarok" )
 
 /* Sammy */
-GAME( 1992, viewpoin, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Sammy", "Viewpoint" )
+GAME( 1992, viewpoin, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Sammy", "Viewpoint" )
 
 /* Saurus */
 GAME( 1995, quizkof,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Saurus", "Quiz King of Fighters" )
 GAME( 1995, stakwin,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Saurus", "Stakes Winner / Stakes Winner - GI kinzen seihae no michi" )
 GAME( 1996, ragnagrd, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Saurus", "Operation Ragnagard / Shin-Oh-Ken" )
 GAME( 1996, pgoal,    neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Saurus", "Pleasure Goal / Futsal - 5 on 5 Mini Soccer" )
-GAME( 1996, stakwin2, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Saurus", "Stakes Winner 2" )
+GAME( 1996, stakwin2, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Saurus", "Stakes Winner 2" )
 GAME( 1997, shocktro, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Saurus", "Shock Troopers" )
 GAME( 1997, shocktrj, shocktro, neogeo, neogeo,  neogeo, ROT0_16BIT, "Saurus", "Shock Troopers (Japan)" )
 GAME( 1998, shocktr2, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Saurus", "Shock Troopers - 2nd Squad" )
@@ -4573,9 +4715,9 @@ GAME( 1999, pbobbl2n, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Taito (SNK
 GAME( 1995, marukodq, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Takara", "Chibi Marukochan Deluxe Quiz" )
 
 /* Technos */
-GAME( 1995, doubledr, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Technos", "Double Dragon (Neo-Geo)" )
+GAME( 1995, doubledr, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Technos", "Double Dragon (Neo-Geo)" )
 GAME( 1995, gowcaizr, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Technos", "Voltage Fighter - Gowcaizer / Choujin Gakuen Gowcaizer")
-GAME( 1996, sdodgeb,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Technos", "Super Dodge Ball / Kunio no Nekketsu Toukyuu Densetsu" )
+GAME( 1996, sdodgeb,  neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Technos", "Super Dodge Ball / Kunio no Nekketsu Toukyuu Densetsu" )
 
 /* Tecmo */
 GAME( 1996, tws96,    neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Tecmo", "Tecmo World Soccer '96" )
@@ -4587,7 +4729,7 @@ GAME( 1998, blazstar, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Yumekobo",
 GAME( 1994, fightfev, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Viccom", "Fight Fever / Crystal Legacy" )
 
 /* Video System Co. */
-GAME( 1994, pspikes2, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Video System Co.", "Power Spikes II" )
+GAME( 1994, pspikes2, neogeo,   raster, neogeo,  neogeo, ROT0_16BIT, "Video System Co.", "Power Spikes II" )
 GAME( 1994, sonicwi2, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Video System Co.", "Aero Fighters 2 / Sonic Wings 2" )
 GAME( 1995, sonicwi3, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Video System Co.", "Aero Fighters 3 / Sonic Wings 3" )
 GAME( 1997, popbounc, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Video System Co.", "Pop 'n Bounce / Gapporin" )
@@ -4595,7 +4737,7 @@ GAME( 1997, popbounc, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Video Syst
 /* Visco */
 GAME( 1992, androdun, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Visco", "Andro Dunos" )
 GAME( 1995, puzzledp, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Taito (Visco license)", "Puzzle De Pon" )
-GAME( 1996, neomrdo,  neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Visco", "Neo Mr. Do!" )
+GAME( 1996, neomrdo,  neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Visco", "Neo Mr. Do!" )
 GAME( 1995, goalx3,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Visco", "Goal! Goal! Goal!" )
 GAME( 1996, neodrift, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Visco", "Neo Drift Out - New Technology" )
 GAME( 1996, breakers, neogeo,   neogeo, neogeo,  neogeo, ROT0_16BIT, "Visco", "Breakers" )
@@ -4603,4 +4745,4 @@ GAME( 1997, puzzldpr, puzzledp, neogeo, neogeo,  neogeo, ROT0,       "Taito (Vis
 GAME( 1998, breakrev, breakers, neogeo, neogeo,  neogeo, ROT0_16BIT, "Visco", "Breakers Revenge")
 GAME( 1998, flipshot, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Visco", "Battle Flip Shot" )
 GAME( 1999, ctomaday, neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Visco", "Captain Tomaday" )
-
+GAMEX(1999, ganryu,   neogeo,   neogeo, neogeo,  neogeo, ROT0,       "Visco", "Musashi Ganryuuki", GAME_NOT_WORKING )

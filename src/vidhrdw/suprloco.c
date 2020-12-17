@@ -62,12 +62,12 @@ void suprloco_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 	/* generate a second bank of sprite palette with red changed to purple */
 	for (i = 0;i < 256;i++)
 	{
-		*(palette++) = palette[-256*3];
-		*(palette++) = palette[-256*3];
+		palette[3*i+0] = palette[3*i+0-256*3];
+		palette[3*i+1] = palette[3*i+1-256*3];
 		if ((i & 0x0f) == 0x09)
-			*(palette++) = 0xff;
+			palette[3*i+2] = 0xff;
 		else
-			*(palette++) = palette[-256*3];
+			palette[3*i+2] = palette[3*i+2-256*3];
 	}
 }
 
@@ -82,7 +82,11 @@ void suprloco_vh_convert_color_prom(unsigned char *palette, unsigned short *colo
 static void get_tile_info(int tile_index)
 {
 	unsigned char attr = suprloco_videoram[2*tile_index+1];
-	SET_TILE_INFO(0,suprloco_videoram[2*tile_index] | ((attr & 0x03) << 8),(attr & 0x1c) >> 2)
+	SET_TILE_INFO(
+			0,
+			suprloco_videoram[2*tile_index] | ((attr & 0x03) << 8),
+			(attr & 0x1c) >> 2,
+			0)
 	tile_info.priority = (attr & 0x20) >> 5;
 }
 
@@ -202,7 +206,7 @@ static void render_sprite(struct osd_bitmap *bitmap,int spr_number)
 {
 	int sx,sy,col,row,height,src,adjy,dy;
 	unsigned char *spr_reg;
-	unsigned short *spr_palette;
+	UINT32 *spr_palette;
 	short skip;	/* bytes to skip before drawing each row (can be negative) */
 
 

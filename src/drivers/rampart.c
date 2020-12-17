@@ -126,7 +126,7 @@ static OPBASE_HANDLER( opbase_override )
 
 	/* tweak the slapstic at the source PC */
 	if (oldpc >= 0x140000 && oldpc < 0x148000)
-		slapstic_bank_r(oldpc - 0x140000);
+		slapstic_bank_r(oldpc - 0x140000,0);
 
 	/* tweak the slapstic at the destination PC */
 	if (address >= 0x140000 && address < 0x148000)
@@ -191,12 +191,6 @@ static WRITE16_HANDLER( adpcm_w )
  *	YM2413 I/O
  *
  *************************************/
-
-static READ16_HANDLER( ym2413_r )
-{
-	return (YM2413_status_port_0_r(0) << 8) | 0x00ff;
-}
-
 
 static WRITE16_HANDLER( ym2413_w )
 {
@@ -263,7 +257,6 @@ static MEMORY_READ16_START( main_readmem )
 	{ 0x3c0000, 0x3c07ff, MRA16_RAM },
 	{ 0x3e0000, 0x3effff, MRA16_RAM },
 	{ 0x460000, 0x460001, adpcm_r },
-	{ 0x480000, 0x480001, ym2413_r },
 	{ 0x500000, 0x500fff, atarigen_eeprom_r },
 	{ 0x640000, 0x640001, input_port_0_word_r },
 	{ 0x640002, 0x640003, input_port_1_word_r },
@@ -460,8 +453,7 @@ static struct YM2413interface ym2413_interface =
 {
 	1,
 	ATARI_CLOCK_14MHz/4,
-	{ 75 },
-	{ 0 }
+	{ 75 }
 };
 
 
@@ -493,7 +485,7 @@ static const struct MachineDriver machine_driver_rampart =
 	512,512,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_UPDATE_BEFORE_VBLANK,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_NEEDS_6BITS_PER_GUN | VIDEO_UPDATE_BEFORE_VBLANK,
 	0,
 	rampart_vh_start,
 	rampart_vh_stop,

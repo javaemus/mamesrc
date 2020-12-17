@@ -9,7 +9,7 @@ driver by Nicola Salmoria
 #include "vidhrdw/konamiic.h"
 #include "machine/eeprom.h"
 #include "cpu/z80/z80.h"
-
+#include "state.h"
 
 int xmen_vh_start(void);
 void xmen_vh_stop(void);
@@ -62,7 +62,7 @@ logerror("%06x eeprom_r\n",cpu_get_pc());
 	/* bit 6 is EEPROM data */
 	/* bit 7 is EEPROM ready */
 	/* bit 14 is service button */
-	res = (EEPROM_read_bit() << 6) | input_port_2_word_r(0);
+	res = (EEPROM_read_bit() << 6) | input_port_2_word_r(0,0);
 	if (init_eeprom_count)
 	{
 		init_eeprom_count--;
@@ -124,16 +124,18 @@ static WRITE16_HANDLER( xmen_18fa00_w )
 	}
 }
 
-static WRITE_HANDLER( sound_bankswitch_w )
+static data8_t sound_curbank;
+
+static void sound_reset_bank(void)
 {
-	int bankaddress;
-	unsigned char *RAM = memory_region(REGION_CPU2);
-
-
-	bankaddress = 0x10000 + (data & 0x07) * 0x4000;
-	cpu_setbank(4,&RAM[bankaddress]);
+	cpu_setbank(4, memory_region(REGION_CPU2) + 0x10000 + (sound_curbank & 0x07) * 0x4000);
 }
 
+static WRITE_HANDLER( sound_bankswitch_w )
+{
+	sound_curbank = data;
+	sound_reset_bank();
+}
 
 
 static MEMORY_READ16_START( readmem )
@@ -300,8 +302,8 @@ INPUT_PORTS_END
 static struct YM2151interface ym2151_interface =
 {
 	1,			/* 1 chip */
-	3579545,	/* 3.579545 MHz */
-	{ YM3012_VOL(100,MIXER_PAN_LEFT,100,MIXER_PAN_RIGHT) },
+	4000000,	/* 4 MHz? (hand tuned) */
+	{ YM3012_VOL(50,MIXER_PAN_LEFT,50,MIXER_PAN_RIGHT) },
 	{ 0 }
 };
 
@@ -309,7 +311,9 @@ static struct K054539interface k054539_interface =
 {
 	1,			/* 1 chip */
 	48000,
-	REGION_SOUND1
+	{ REGION_SOUND1 },
+	{ { 100, 100 } },
+	{ 0 }		/* The YM does not seem to be connected to the 539 analog input */
 };
 
 
@@ -398,7 +402,7 @@ ROM_START( xmen )
 	ROM_LOAD( "xmen22h.bin",  0x200000, 0x100000, 0x321ed07a )
 	ROM_LOAD( "xmen22l.bin",  0x300000, 0x100000, 0x46da948e )
 
-	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054544 */
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054539 */
 	ROM_LOAD( "xmenc25.bin",  0x000000, 0x200000, 0x5adbcee0 )
 ROM_END
 
@@ -423,7 +427,7 @@ ROM_START( xmen6p )
 	ROM_LOAD( "xmen22h.bin",  0x200000, 0x100000, 0x321ed07a )
 	ROM_LOAD( "xmen22l.bin",  0x300000, 0x100000, 0x46da948e )
 
-	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054544 */
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054539 */
 	ROM_LOAD( "xmenc25.bin",  0x000000, 0x200000, 0x5adbcee0 )
 ROM_END
 
@@ -448,7 +452,7 @@ ROM_START( xmen2pj )
 	ROM_LOAD( "xmen22h.bin",  0x200000, 0x100000, 0x321ed07a )
 	ROM_LOAD( "xmen22l.bin",  0x300000, 0x100000, 0x46da948e )
 
-	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054544 */
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )	/* samples for the 054539 */
 	ROM_LOAD( "xmenc25.bin",  0x000000, 0x200000, 0x5adbcee0 )
 ROM_END
 
@@ -458,21 +462,24 @@ static void init_xmen(void)
 {
 	konami_rom_deinterleave_2(REGION_GFX1);
 	konami_rom_deinterleave_4(REGION_GFX2);
+
+	state_save_register_UINT8("main", 0, "sound bank", &sound_curbank, 1);
+	state_save_register_func_postload(sound_reset_bank);
 }
 
 static void init_xmen6p(void)
 {
-	unsigned char *RAM = memory_region(REGION_CPU1);
+	data16_t *rom = (data16_t *)memory_region(REGION_CPU1);
 
-	WRITE_WORD(&RAM[0x21a6],0x4e71);
-	WRITE_WORD(&RAM[0x21a8],0x4e71);
-	WRITE_WORD(&RAM[0x21aa],0x4e71);
+	rom[0x21a6/2] = 0x4e71;
+	rom[0x21a8/2] = 0x4e71;
+	rom[0x21aa/2] = 0x4e71;
 
 	init_xmen();
 }
 
 
 
-GAMEX( 1992, xmen,    0,    xmen, xmen,   xmen,   ROT0, "Konami", "X-Men (4 Players)", GAME_IMPERFECT_SOUND )
-GAMEX( 1992, xmen6p,  xmen, xmen, xmen,   xmen6p, ROT0, "Konami", "X-Men (6 Players)", GAME_IMPERFECT_SOUND | GAME_NOT_WORKING )
-GAMEX( 1992, xmen2pj, xmen, xmen, xmen2p, xmen,   ROT0, "Konami", "X-Men (2 Players Japan)", GAME_IMPERFECT_SOUND )
+GAME ( 1992, xmen,    0,    xmen, xmen,   xmen,   ROT0, "Konami", "X-Men (4 Players)" )
+GAMEX( 1992, xmen6p,  xmen, xmen, xmen,   xmen6p, ROT0, "Konami", "X-Men (6 Players)", GAME_NOT_WORKING )
+GAME ( 1992, xmen2pj, xmen, xmen, xmen2p, xmen,   ROT0, "Konami", "X-Men (2 Players Japan)" )

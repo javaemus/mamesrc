@@ -16,7 +16,6 @@ source was very helpful in many areas particularly the sprites.)
 
 The dual screen games operate on hardware with various similarities to
 the Taito F2 system, as they share some custom ics e.g. the TC0100SCN.
-In the arcades they have two horizontal screens side by side. (???)
 
 For each screen the games have 3 separate layers of graphics: - one
 128x64 tiled scrolling background plane of 8x8 tiles, a similar
@@ -24,14 +23,21 @@ foreground plane, and a 128x32 text plane with character definitions
 held in ram. As well as this, there is a single sprite plane which
 covers both screens. The sprites are 16x16 and are not zoomable.
 
+Writing to the first TC0100SCN "writes through" to the subsidiary one
+so both have identical contents. The only time the second TC0100SCN is
+addressed on its own is during initial memory checks, I think. (?)
+
 Warrior Blade has a slightly different gfx set for the 2nd screen
-[the last few pages only], so we will have to draw tilemaps from
-both TC0100SCN chips using their respective gfx set.
+because the programmers ran out of scr gfx space (only 0xffff tiles
+can be addressed by the TC0100SCN). In-game while tiles are
+scrolling from one screen to the other it is necessary to have
+identical gfx tiles for both screens. But for static screens (e.g. cut
+scenes between levels) the gfx tiles needn't be the same. By
+exploiting this they squeezed some extra graphics into the game.
 
 There is a single 68000 processor which takes care of everything
 except sound. That is done by a Z80 controlling a YM2610. Sound
-commands are written to the Z80 by the 68000 (the same as in Taito
-F2 games).
+commands are written to the Z80 by the 68000.
 
 
 Tilemaps
@@ -39,48 +45,83 @@ Tilemaps
 
 TC0100SCN has tilemaps twice as wide as usual. The two BG tilemaps take
 up twice the usual space, $8000 bytes each. The text tilemap takes up
-the usual space, as its height is halved [like Cameltru].
+the usual space, as its height is halved.
 
 The double palette generator (one for each screen) is probably just a
-result of the way the 2-screen hardware works. I think the second one
-simply duplicates the colors in the first, rather than offering any
-different colors. However, we emulate both.
+result of the way the hardware works: they both have the same colors.
+
+
+Dumper's Info
+-------------
+
+Darius II (Dual Screen Old & New JPN Ver.)
+(c)1989 Taito
+J1100204A
+K1100483A
+
+CPU 	:MC68000P12F(16MHz),Z80A
+Sound	:YM2610
+OSC 	:26.686MHz,16.000MHz
+Other	:
+TC0140SYT
+TC0220IOC
+TC0110PCR x2
+TC0100SCN x2
+TC0390LHC-1
+TC0130LNB x8
+
+Warrior Blade (JPN Ver.)
+(c)1991 Taito
+J1100295A
+K1100710A (Label K11J0710A)
+
+CPU 	:MC68000P12F(16MHz),Z80A
+Sound	:YM2610B
+OSC 	:26.686MHz,16.000MHz
+Other	:
+TC0140SYT
+TC0510NIO
+TC0110PCR x2
+TC0100SCN x2
+TC0390LHC-1
+TC0130LNB x8
+
+[The 390LHC/130LNB functions are unknown].
 
 TODO
 ====
 
-DIPs
+Unknown sprite bits.
 
 
 Darius 2
 --------
 
-Some sounds seem bad.
+The unpleasant sounds when some big enemies appear are wrong: they
+are meant to create rumbling on a subwoofer in the cabinet, a sort of
+vibration device. They still affect the other channels despite
+filtering above 100Hz.
 
 
 Warriorb
 --------
 
-The SCR tiles are *different* for screens 1 and 2. This is why we get
-some junk tiles in the intermissions between levels. If we properly
-drew the right hand half of the screen using the 2nd TC0100SCN and its
-gfx set, the problem would vanish.
+Colscroll effects?
 
 
 ***************************************************************************/
 
 #include "driver.h"
+#include "state.h"
 #include "cpu/m68000/m68000.h"
 #include "vidhrdw/generic.h"
 #include "vidhrdw/taitoic.h"
 #include "sndhrdw/taitosnd.h"
 
+int darius2d_vh_start (void);
 int warriorb_vh_start (void);
 void warriorb_vh_stop (void);
-
 void warriorb_vh_screenrefresh (struct osd_bitmap *bitmap,int full_refresh);
-
-//static data16_t *warriorb_ram;
 
 
 /***********************************************************
@@ -93,70 +134,32 @@ static int warriorb_interrupt(void)
 }
 
 
-/**********************************************************
-			GAME INPUTS
-**********************************************************/
+/***********************************************************
+				  SOUND
+***********************************************************/
 
-static READ16_HANDLER( warriorb_input_r )
+static int banknum = -1;
+
+static void reset_sound_region(void)
 {
-	switch (offset)
-	{
-		case 0x00:
-			return input_port_3_word_r(0);	/* DSW A */
-
-		case 0x01:
-			return input_port_4_word_r(0);	/* DSW B */
-
-		case 0x02:
-			return input_port_0_word_r(0);	/* IN0 */
-
-		case 0x03:
-			return input_port_1_word_r(0);	/* IN1 */
-
-		case 0x07:
-			return input_port_2_word_r(0);	/* IN2 */
-	}
-
-logerror("CPU #0 PC %06x: warning - read unmapped input offset %06x\n",cpu_get_pc(),offset);
-
-	return 0xff;
+	cpu_setbank( 10, memory_region(REGION_CPU2) + (banknum * 0x4000) + 0x10000 );
 }
 
-
-/*****************************************
-			SOUND
-*****************************************/
-
-static WRITE_HANDLER( bankswitch_w )
+static WRITE_HANDLER( sound_bankswitch_w )
 {
-	unsigned char *RAM = memory_region(REGION_CPU2);
-	int banknum = (data - 1) & 7;
-
-#ifdef MAME_DEBUG
-	if (banknum>3) logerror("CPU#1 (Z80) switch to ROM bank %06x: should only happen if Z80 prg rom is 128K!\n",banknum);
-#endif
-	cpu_setbank (10, &RAM [0x10000 + (banknum * 0x4000)]);
+	banknum = (data - 1) & 7;
+	reset_sound_region();
 }
 
-WRITE16_HANDLER( warriorb_sound_w )
+static WRITE16_HANDLER( warriorb_sound_w )
 {
 	if (offset == 0)
 		taitosound_port_w (0, data & 0xff);
 	else if (offset == 1)
 		taitosound_comm_w (0, data & 0xff);
-
-#ifdef MAME_DEBUG
-	if (data & 0xff00)
-	{
-		char buf[80];
-
-		sprintf(buf,"warriorb_sound_w to high byte: %04x",data);
-		usrintf_showmessage(buf);
-	}
-#endif
 }
 
-READ16_HANDLER( warriorb_sound_r )
+static READ16_HANDLER( warriorb_sound_r )
 {
 	if (offset == 1)
 		return ((taitosound_comm_r (0) & 0xff));
@@ -178,14 +181,14 @@ static MEMORY_READ16_START( darius2d_readmem )
 	{ 0x400000, 0x400007, TC0110PCR_word_r },		/* palette (1st screen) */
 	{ 0x420000, 0x420007, TC0110PCR_word_1_r },	/* palette (2nd screen) */
 	{ 0x600000, 0x6013ff, MRA16_RAM },	/* sprite ram */
-	{ 0x800000, 0x80000f, warriorb_input_r },
+	{ 0x800000, 0x80000f, TC0220IOC_halfword_r },
 	{ 0x830000, 0x830003, warriorb_sound_r },
 MEMORY_END
 
 static MEMORY_WRITE16_START( darius2d_writemem )
 	{ 0x000000, 0x0fffff, MWA16_ROM },
 	{ 0x100000, 0x10ffff, MWA16_RAM },
-	{ 0x200000, 0x213fff, TC0100SCN_word_0_w },	/* tilemaps (1st screen) */
+	{ 0x200000, 0x213fff, TC0100SCN_dual_screen_w },	/* tilemaps (all screens) */
 	{ 0x214000, 0x2141ff, MWA16_NOP },	/* error in screen clearing code ? */
 	{ 0x220000, 0x22000f, TC0100SCN_ctrl_word_0_w },
 	{ 0x240000, 0x253fff, TC0100SCN_word_1_w },	/* tilemaps (2nd screen) */
@@ -193,8 +196,7 @@ static MEMORY_WRITE16_START( darius2d_writemem )
 	{ 0x400000, 0x400007, TC0110PCR_step1_word_w },		/* palette (1st screen) */
 	{ 0x420000, 0x420007, TC0110PCR_step1_word_1_w },	/* palette (2nd screen) */
 	{ 0x600000, 0x6013ff, MWA16_RAM, &spriteram16, &spriteram_size },
-//	{ 0x800000, 0x800001, MWA16_NOP },	/* watchdog ?? */
-//	{ 0x800008, 0x800009, MWA16_NOP },	/* coin lockout/ctr ? */
+	{ 0x800000, 0x80000f, TC0220IOC_halfword_w },
 //	{ 0x820000, 0x820001, MWA16_NOP },	// ???
 	{ 0x830000, 0x830003, warriorb_sound_w },
 MEMORY_END
@@ -210,23 +212,22 @@ static MEMORY_READ16_START( warriorb_readmem )
 	{ 0x400000, 0x400007, TC0110PCR_word_r },		/* palette (1st screen) */
 	{ 0x420000, 0x420007, TC0110PCR_word_1_r },	/* palette (2nd screen) */
 	{ 0x600000, 0x6013ff, MRA16_RAM },	/* sprite ram */
-	{ 0x800000, 0x80000f, warriorb_input_r },
+	{ 0x800000, 0x80000f, TC0510NIO_halfword_r },
 	{ 0x830000, 0x830003, warriorb_sound_r },
 MEMORY_END
 
 static MEMORY_WRITE16_START( warriorb_writemem )
 	{ 0x000000, 0x1fffff, MWA16_ROM },
 	{ 0x200000, 0x213fff, MWA16_RAM },
-	{ 0x300000, 0x313fff, TC0100SCN_word_0_w },	/* tilemaps (1st screen) */
+	{ 0x300000, 0x313fff, TC0100SCN_dual_screen_w },	/* tilemaps (all screens) */
 	{ 0x320000, 0x32000f, TC0100SCN_ctrl_word_0_w },
 	{ 0x340000, 0x353fff, TC0100SCN_word_1_w },	/* tilemaps (2nd screen) */
 	{ 0x360000, 0x36000f, TC0100SCN_ctrl_word_1_w },
 	{ 0x400000, 0x400007, TC0110PCR_step1_word_w },		/* palette (1st screen) */
 	{ 0x420000, 0x420007, TC0110PCR_step1_word_1_w },	/* palette (2nd screen) */
 	{ 0x600000, 0x6013ff, MWA16_RAM, &spriteram16, &spriteram_size },
-//	{ 0x800000, 0x800001, MWA16_NOP },	/* watchdog ?? */
-//	{ 0x800008, 0x800009, MWA16_NOP },	/* coin lockout/ctr ? */
-//	{ 0x820000, 0x820001, MWA16_NOP },	// ??? uses bits 0,2,3
+	{ 0x800000, 0x80000f, TC0510NIO_halfword_w },
+//	{ 0x820000, 0x820001, MWA16_NOP },	// ? uses bits 0,2,3
 	{ 0x830000, 0x830003, warriorb_sound_w },
 MEMORY_END
 
@@ -257,7 +258,7 @@ static MEMORY_WRITE_START( z80_sound_writemem )
 	{ 0xe400, 0xe403, MWA_NOP }, /* pan */
 	{ 0xee00, 0xee00, MWA_NOP }, /* ? */
 	{ 0xf000, 0xf000, MWA_NOP }, /* ? */
-	{ 0xf200, 0xf200, bankswitch_w },
+	{ 0xf200, 0xf200, sound_bankswitch_w },
 MEMORY_END
 
 
@@ -285,38 +286,8 @@ MEMORY_END
 	PORT_DIPSETTING(    0x00, "Hardest" )
 
 INPUT_PORTS_START( darius2d )
-	PORT_START      /* IN0 */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_SERVICE1 )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_TILT )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START1 )
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
-
-	PORT_START      /* IN1 */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
-
-	PORT_START      /* IN2 */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW,  IPT_UNKNOWN )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW,  IPT_UNKNOWN )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW,  IPT_UNKNOWN )
-	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON3 | IPF_PLAYER1 )	// Freezes game
-	PORT_BIT( 0x10, IP_ACTIVE_LOW,  IPT_BUTTON1 | IPF_PLAYER1 )
-	PORT_BIT( 0x20, IP_ACTIVE_LOW,  IPT_BUTTON2 | IPF_PLAYER1 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW,  IPT_BUTTON1 | IPF_PLAYER2 )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW,  IPT_BUTTON2 | IPF_PLAYER2 )
-
 	PORT_START /* DSW A */
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )  //used, but manual in japanese
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )  // used, but manual in japanese
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x02, 0x02, "Continuous fire" )
@@ -346,9 +317,7 @@ INPUT_PORTS_START( darius2d )
 	PORT_DIPNAME( 0x80, 0x80, "Allow Continue" )
 	PORT_DIPSETTING(    0x00, DEF_STR( No ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Yes ) )
-INPUT_PORTS_END
 
-INPUT_PORTS_START( warriorb )
 	PORT_START      /* IN0 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_TILT )
@@ -356,8 +325,8 @@ INPUT_PORTS_START( warriorb )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1 )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START      /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
@@ -373,12 +342,14 @@ INPUT_PORTS_START( warriorb )
 	PORT_BIT( 0x01, IP_ACTIVE_LOW,  IPT_UNKNOWN )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW,  IPT_UNKNOWN )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW,  IPT_UNKNOWN )
-	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON4 | IPF_PLAYER1 )	// Freezes game
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON3 | IPF_PLAYER1 )	// Freezes game
 	PORT_BIT( 0x10, IP_ACTIVE_LOW,  IPT_BUTTON1 | IPF_PLAYER1 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW,  IPT_BUTTON2 | IPF_PLAYER1 )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW,  IPT_BUTTON1 | IPF_PLAYER2 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW,  IPT_BUTTON2 | IPF_PLAYER2 )
+INPUT_PORTS_END
 
+INPUT_PORTS_START( warriorb )
 	PORT_START /* DSW A */
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
@@ -412,6 +383,36 @@ INPUT_PORTS_START( warriorb )
 	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+
+	PORT_START      /* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_TILT )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 )
+
+	PORT_START      /* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
+
+	PORT_START      /* IN2 */
+	PORT_BIT( 0x01, IP_ACTIVE_LOW,  IPT_UNKNOWN )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW,  IPT_UNKNOWN )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW,  IPT_UNKNOWN )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON4 | IPF_PLAYER1 )	// Freezes game
+	PORT_BIT( 0x10, IP_ACTIVE_LOW,  IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW,  IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW,  IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW,  IPT_BUTTON2 | IPF_PLAYER2 )
 INPUT_PORTS_END
 
 
@@ -451,7 +452,7 @@ static struct GfxDecodeInfo warriorb_gfxdecodeinfo[] =
 
 
 /**************************************************************
-			     YM2610 (SOUND)
+				YM2610 (SOUND)
 **************************************************************/
 
 /* handler called by the YM2610 emulator when the internal timers cause an IRQ */
@@ -476,6 +477,29 @@ static struct YM2610interface ym2610_interface =
 };
 
 
+/**************************************************************
+			     SUBWOOFER (SOUND)
+**************************************************************/
+
+static int subwoofer_sh_start(const struct MachineSound *msound)
+{
+	/* Adjust the lowpass filter of the first three YM2610 channels */
+
+	mixer_set_lowpass_frequency(0,100);
+	mixer_set_lowpass_frequency(1,100);
+	mixer_set_lowpass_frequency(2,100);
+
+	return 0;
+}
+
+static struct CustomSound_interface subwoofer_interface =
+{
+	subwoofer_sh_start,
+	0, /* none */
+	0 /* none */
+};
+
+
 /***********************************************************
 			     MACHINE DRIVERS
 ***********************************************************/
@@ -485,13 +509,13 @@ static struct MachineDriver machine_driver_darius2d =
 	{
 		{
 			CPU_M68000,
-			12000000,	/* 12 MHz ??? */
+			12000000,	/* 12 MHz ??? (Might well be 16!) */
 			darius2d_readmem,darius2d_writemem,0,0,
 			warriorb_interrupt, 1
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			16000000/4,	/* 4 MHz ??? */
+			16000000/4,	/* 4 MHz ? */
 			z80_sound_readmem, z80_sound_writemem,0,0,
 			ignore_interrupt,0	/* IRQs are triggered by the YM2610 */
 		},
@@ -501,15 +525,15 @@ static struct MachineDriver machine_driver_darius2d =
 	0,
 
 	/* video hardware */
-	81*8, 32*8, { 0*8+4, 80*8+4-1, 3*8, 32*8-1 },
+	80*8, 32*8, { 0*8, 80*8-1, 3*8, 32*8-1 },
 
 	warriorb_gfxdecodeinfo,
 	4096*2, 4096*2,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_DUAL_MONITOR,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(8,3),
 	0,
-	warriorb_vh_start,
+	darius2d_vh_start,
 	warriorb_vh_stop,
 	warriorb_vh_screenrefresh,
 
@@ -519,6 +543,10 @@ static struct MachineDriver machine_driver_darius2d =
 		{
 			SOUND_YM2610,
 			&ym2610_interface
+		},
+		{
+			SOUND_CUSTOM,
+			&subwoofer_interface
 		}
 	}
 };
@@ -528,13 +556,13 @@ static struct MachineDriver machine_driver_warriorb =
 	{
 		{
 			CPU_M68000,
-			16000000,	/* 16 MHz ??? */
+			16000000,	/* 16 MHz ? */
 			warriorb_readmem,warriorb_writemem,0,0,
 			warriorb_interrupt, 1
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			16000000/4,	/* 4 MHz ??? */
+			16000000/4,	/* 4 MHz ? */
 			z80_sound_readmem, z80_sound_writemem,0,0,
 			ignore_interrupt,0	/* IRQs are triggered by the YM2610 */
 		},
@@ -544,7 +572,7 @@ static struct MachineDriver machine_driver_warriorb =
 	0,
 
 	/* video hardware */
-	81*8, 32*8, { 0*8+4, 80*8+4-1, 2*8, 32*8-1 },
+	80*8, 32*8, { 0*8, 80*8-1, 2*8, 32*8-1 },
 
 	warriorb_gfxdecodeinfo,
 	4096*2, 4096*2,
@@ -573,78 +601,145 @@ static struct MachineDriver machine_driver_warriorb =
 
 ROM_START( darius2d )
 	ROM_REGION( 0x100000, REGION_CPU1, 0 )	/* 512K for 68000 code */
-	ROM_LOAD16_BYTE( "c07-20", 0x00000, 0x20000, 0x48b0804a )
-	ROM_LOAD16_BYTE( "c07-19", 0x00001, 0x20000, 0x1f9a4f83 )
-	ROM_LOAD16_BYTE( "c07-21", 0x40000, 0x20000, 0xb491b0ca )
-	ROM_LOAD16_BYTE( "c07-18", 0x40001, 0x20000, 0xc552e42f )
+	ROM_LOAD16_BYTE( "c07_20-2.74", 0x00000, 0x20000, 0xa0f345b8 )
+	ROM_LOAD16_BYTE( "c07_19-2.73", 0x00001, 0x20000, 0x925412c6 )
+	ROM_LOAD16_BYTE( "c07_21-2.76", 0x40000, 0x20000, 0xbdd60e37 )
+	ROM_LOAD16_BYTE( "c07_18-2.71", 0x40001, 0x20000, 0x23fcd89b )
 
-	ROM_LOAD16_WORD_SWAP( "c07-09",   0x80000, 0x80000, 0xcc69c2ce )	/* data rom */
+	ROM_LOAD16_WORD_SWAP( "c07-09.75",   0x80000, 0x80000, 0xcc69c2ce )	/* data rom */
 
 	ROM_REGION( 0x2c000, REGION_CPU2, 0 )	/* sound cpu */
-	ROM_LOAD( "c07-17",  0x00000, 0x04000, 0xae16c905 )
-	ROM_CONTINUE(        0x10000, 0x1c000 )	/* banked stuff */
+	ROM_LOAD( "c07-17.69", 0x00000, 0x04000, 0xae16c905 )
+	ROM_CONTINUE(          0x10000, 0x1c000 ) /* banked stuff */
 
 	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
-	ROM_LOAD( "c07-03", 0x00000, 0x80000, 0x189bafce )	/* SCR (screen 1) */
-	ROM_LOAD( "c07-04", 0x80000, 0x80000, 0x50421e81 )
+	ROM_LOAD( "c07-03.12", 0x00000, 0x80000, 0x189bafce )	/* SCR (screen 1) */
+	ROM_LOAD( "c07-04.11", 0x80000, 0x80000, 0x50421e81 )
 
-	ROM_REGION( 0x100000, REGION_GFX2, ROMREGION_DISPOSE )
-	ROM_LOAD32_BYTE( "c07-06", 0x00000, 0x40000, 0x7ca7fc52 )	/* OBJ */
-	ROM_LOAD32_BYTE( "c07-05", 0x00001, 0x40000, 0xe10715f4 )
-	ROM_LOAD32_BYTE( "c07-08", 0x00002, 0x40000, 0x1de7f1d7 )
-	ROM_LOAD32_BYTE( "c07-07", 0x00003, 0x40000, 0x632b0a85 )
+	ROM_REGION( 0x200000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD32_BYTE( "c07-06.27", 0x00000, 0x80000, 0x5eebbcd6 )	/* OBJ */
+	ROM_LOAD32_BYTE( "c07-05.24", 0x00001, 0x80000, 0xfb6d0550 )
+	ROM_LOAD32_BYTE( "c07-08.25", 0x00002, 0x80000, 0xa07dc846 )
+	ROM_LOAD32_BYTE( "c07-07.26", 0x00003, 0x80000, 0xfd9f9e74 )
 
 	ROM_REGION( 0x100000, REGION_GFX3, ROMREGION_DISPOSE )
 	ROM_COPY( REGION_GFX1, 0x000000, 0x000000, 0x100000 )	/* SCR (screen 2) */
 
-	ROM_REGION( 0x100000, REGION_SOUND1, 0 )	/* ADPCM samples */
-	ROM_LOAD( "c07-10", 0x00000, 0x80000, 0x4bbe0ed9 )
-	ROM_LOAD( "c07-11", 0x80000, 0x80000, 0x3c815699 )
+/* The actual board duplicates the SCR gfx roms for the 2nd TC0100SCN */
+//	ROM_LOAD( "c07-03.47", 0x00000, 0x80000, 0x189bafce )
+//	ROM_LOAD( "c07-04.48", 0x80000, 0x80000, 0x50421e81 )
 
-	ROM_REGION( 0x080000, REGION_SOUND2, 0 )	/* delta-t samples */
-	ROM_LOAD( "c07-12", 0x00000, 0x80000, 0xe0b71258 )
+	ROM_REGION( 0x100000, REGION_SOUND1, 0 )	/* ADPCM samples */
+	ROM_LOAD( "c07-10.95", 0x00000, 0x80000, 0x4bbe0ed9 )
+	ROM_LOAD( "c07-11.96", 0x80000, 0x80000, 0x3c815699 )
+
+	ROM_REGION( 0x080000, REGION_SOUND2, 0 )	/* Delta-T samples */
+	ROM_LOAD( "c07-12.107", 0x00000, 0x80000, 0xe0b71258 )
+
+	ROM_REGION( 0x001000, REGION_USER1, 0 )	/* unknown roms */
+	ROM_LOAD( "c07-13.37", 0x00000, 0x00400, 0x3ca18eb3 )
+	ROM_LOAD( "c07-14.38", 0x00000, 0x00400, 0xbaf2a193 )
+
+// Pals, not dumped
+//	ROM_LOAD( "C07-15.78", 0x00000, 0x00?00, 0x00000000 )
+//	ROM_LOAD( "C07-16.79", 0x00000, 0x00?00, 0x00000000 )
+ROM_END
+
+ROM_START( drius2do )
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )	/* 512K for 68000 code */
+	ROM_LOAD16_BYTE( "c07_20-1.74", 0x00000, 0x20000, 0x48b0804a )
+	ROM_LOAD16_BYTE( "c07_19-1.73", 0x00001, 0x20000, 0x1f9a4f83 )
+	ROM_LOAD16_BYTE( "c07_21-1.76", 0x40000, 0x20000, 0xb491b0ca )
+	ROM_LOAD16_BYTE( "c07_18-1.71", 0x40001, 0x20000, 0xc552e42f )
+
+	ROM_LOAD16_WORD_SWAP( "c07-09.75",   0x80000, 0x80000, 0xcc69c2ce )	/* data rom */
+
+	ROM_REGION( 0x2c000, REGION_CPU2, 0 )	/* sound cpu */
+	ROM_LOAD( "c07-17.69", 0x00000, 0x04000, 0xae16c905 )
+	ROM_CONTINUE(          0x10000, 0x1c000 ) /* banked stuff */
+
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "c07-03.12", 0x00000, 0x80000, 0x189bafce )	/* SCR (screen 1) */
+	ROM_LOAD( "c07-04.11", 0x80000, 0x80000, 0x50421e81 )
+
+	ROM_REGION( 0x200000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD32_BYTE( "c07-06.27", 0x00000, 0x80000, 0x5eebbcd6 )	/* OBJ */
+	ROM_LOAD32_BYTE( "c07-05.24", 0x00001, 0x80000, 0xfb6d0550 )
+	ROM_LOAD32_BYTE( "c07-08.25", 0x00002, 0x80000, 0xa07dc846 )
+	ROM_LOAD32_BYTE( "c07-07.26", 0x00003, 0x80000, 0xfd9f9e74 )
+
+	ROM_REGION( 0x100000, REGION_GFX3, ROMREGION_DISPOSE )
+	ROM_COPY( REGION_GFX1, 0x000000, 0x000000, 0x100000 )	/* SCR (screen 2) */
+
+/* The actual board duplicates the SCR gfx roms for the 2nd TC0100SCN */
+//	ROM_LOAD( "c07-03.47", 0x00000, 0x80000, 0x189bafce )
+//	ROM_LOAD( "c07-04.48", 0x80000, 0x80000, 0x50421e81 )
+
+	ROM_REGION( 0x100000, REGION_SOUND1, 0 )	/* ADPCM samples */
+	ROM_LOAD( "c07-10.95", 0x00000, 0x80000, 0x4bbe0ed9 )
+	ROM_LOAD( "c07-11.96", 0x80000, 0x80000, 0x3c815699 )
+
+	ROM_REGION( 0x080000, REGION_SOUND2, 0 )	/* Delta-T samples */
+	ROM_LOAD( "c07-12.107", 0x00000, 0x80000, 0xe0b71258 )
+
+	ROM_REGION( 0x001000, REGION_USER1, 0 )	/* unknown roms */
+	ROM_LOAD( "c07-13.37", 0x00000, 0x00400, 0x3ca18eb3 )
+	ROM_LOAD( "c07-14.38", 0x00000, 0x00400, 0xbaf2a193 )
 ROM_END
 
 ROM_START( warriorb )
 	ROM_REGION( 0x200000, REGION_CPU1, 0 )	/* 1024K for 68000 code */
-	ROM_LOAD16_BYTE( "d24-20", 0x000000, 0x40000, 0x4452dc25 )
-	ROM_LOAD16_BYTE( "d24-19", 0x000001, 0x40000, 0x15c16016 )
-	ROM_LOAD16_BYTE( "d24-21", 0x080000, 0x40000, 0x783ef8e1 )
-	ROM_LOAD16_BYTE( "d24-18", 0x080001, 0x40000, 0x4502db60 )
+	ROM_LOAD16_BYTE( "d24_20-1.74", 0x000000, 0x40000, 0x4452dc25 )
+	ROM_LOAD16_BYTE( "d24_19-1.73", 0x000001, 0x40000, 0x15c16016 )
+	ROM_LOAD16_BYTE( "d24_21-1.76", 0x080000, 0x40000, 0x783ef8e1 )
+	ROM_LOAD16_BYTE( "d24_18-1.71", 0x080001, 0x40000, 0x4502db60 )
 
-	ROM_LOAD16_WORD_SWAP( "d24-09",   0x100000, 0x100000, 0xece5cc59 )	/* data rom */
+	ROM_LOAD16_WORD_SWAP( "d24-09.75",   0x100000, 0x100000, 0xece5cc59 )	/* data rom */
+	/* Note: Raine wrongly doubles up d24-09 as delta-t samples */
 
 	ROM_REGION( 0x2c000, REGION_CPU2, 0 )	/* sound cpu */
-	ROM_LOAD( "d24-17",  0x00000, 0x04000, 0xe41e4aae )
-	ROM_CONTINUE(        0x10000, 0x1c000 )	/* banked stuff */
+	ROM_LOAD( "d24_17.69",  0x00000, 0x04000, 0xe41e4aae )
+	ROM_CONTINUE(           0x10000, 0x1c000 ) /* banked stuff */
 
 	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
-	ROM_LOAD( "d24-02", 0x000000, 0x100000, 0x9f50c271 )	/* SCR A, screen 1 */
-	ROM_LOAD( "d24-01", 0x100000, 0x100000, 0x326dcca9 )
+	ROM_LOAD( "d24-02.12", 0x000000, 0x100000, 0x9f50c271 )	/* SCR A, screen 1 */
+	ROM_LOAD( "d24-01.11", 0x100000, 0x100000, 0x326dcca9 )
 
 	ROM_REGION( 0x400000, REGION_GFX2, ROMREGION_DISPOSE )
-	ROM_LOAD32_BYTE( "d24-06", 0x000000, 0x100000, 0x918486fe )	/* OBJ */
-	ROM_LOAD32_BYTE( "d24-03", 0x000001, 0x100000, 0x46db9fd7 )
-	ROM_LOAD32_BYTE( "d24-04", 0x000002, 0x100000, 0x148e0493 )
-	ROM_LOAD32_BYTE( "d24-05", 0x000003, 0x100000, 0x9f414317 )
+	ROM_LOAD32_BYTE( "d24-06.27", 0x000000, 0x100000, 0x918486fe )	/* OBJ */
+	ROM_LOAD32_BYTE( "d24-03.24", 0x000001, 0x100000, 0x46db9fd7 )
+	ROM_LOAD32_BYTE( "d24-04.25", 0x000002, 0x100000, 0x148e0493 )
+	ROM_LOAD32_BYTE( "d24-05.26", 0x000003, 0x100000, 0x9f414317 )
 
 	ROM_REGION( 0x200000, REGION_GFX3, ROMREGION_DISPOSE )
-	ROM_LOAD( "d24-07", 0x000000, 0x100000, 0x9f50c271 )	/* SCR B, screen 2 */
-	ROM_LOAD( "d24-08", 0x100000, 0x100000, 0x1e6d1528 )
+	ROM_LOAD( "d24-07.47", 0x000000, 0x100000, 0x9f50c271 )	/* SCR B, screen 2 */
+	ROM_LOAD( "d24-08.48", 0x100000, 0x100000, 0x1e6d1528 )
 
 	ROM_REGION( 0x300000, REGION_SOUND1, 0 )	/* ADPCM samples */
-	ROM_LOAD( "d24-12", 0x000000, 0x100000, 0x279203a1 )
-	ROM_LOAD( "d24-10", 0x100000, 0x100000, 0x0e0c716d )
-	ROM_LOAD( "d24-11", 0x200000, 0x100000, 0x15362573 )
+	ROM_LOAD( "d24-12.107", 0x000000, 0x100000, 0x279203a1 )
+	ROM_LOAD( "d24-10.95",  0x100000, 0x100000, 0x0e0c716d )
+	ROM_LOAD( "d24-11.118", 0x200000, 0x100000, 0x15362573 )
 
-	ROM_REGION( 0x1000, REGION_SOUND2, 0 )	/* delta-t samples, unused */
-	/* Note: Raine wrongly doubles up d24-09 as delta-t samples */
+	/* No Delta-T samples */
+
+	ROM_REGION( 0x01000, REGION_USER1, 0 )	/* unknown roms */
+	ROM_LOAD( "d24-13.37", 0x00000, 0x400, 0x3ca18eb3 )
+	ROM_LOAD( "d24-14.38", 0x00000, 0x400, 0xbaf2a193 )
+//	ROM_LOAD( "d24-15.78", 0x00000, 0xa??, 0x00000000 )	/* Pals */
+//	ROM_LOAD( "d24-16.79", 0x00000, 0xa??, 0x00000000 )
 ROM_END
 
+
+static void init_warriorb(void)
+{
+	state_save_register_int("sound1", 0, "sound region", &banknum);
+	state_save_register_func_postload(reset_sound_region);
+}
 
 
 /* Working Games */
 
-GAME( 1989, darius2d, darius2,  darius2d, darius2d, 0, ROT0, "Taito Corporation", "Darius II (dual screen) (Japan)" )
-GAME( 1991, warriorb, 0,        warriorb, warriorb, 0, ROT0, "Taito Corporation", "Warrior Blade (Japan)" )
+GAME( 1989, darius2d, darius2,  darius2d, darius2d, warriorb, ROT0, "Taito Corporation", "Darius II (dual screen) (Japan)" )
+GAME( 1989, drius2do, darius2,  darius2d, darius2d, warriorb, ROT0, "Taito Corporation", "Darius II (dual screen) (Japan old version)" )
+GAME( 1991, warriorb, 0,        warriorb, warriorb, warriorb, ROT0, "Taito Corporation", "Warrior Blade (Japan)" )
 

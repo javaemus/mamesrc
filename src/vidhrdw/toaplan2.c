@@ -235,7 +235,11 @@ static void get_top0_tile_info(int tile_index)
 	attrib = topvideoram16[0][2*tile_index];
 	tile_number = topvideoram16[0][2*tile_index+1];
 	color = attrib & 0x7f;
-	SET_TILE_INFO(0,tile_number,color)
+	SET_TILE_INFO(
+			0,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -246,7 +250,11 @@ static void get_fg0_tile_info(int tile_index)
 	attrib = fgvideoram16[0][2*tile_index];
 	tile_number = fgvideoram16[0][2*tile_index+1];
 	color = attrib & 0x7f;
-	SET_TILE_INFO(0,tile_number,color)
+	SET_TILE_INFO(
+			0,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -257,7 +265,11 @@ static void get_bg0_tile_info(int tile_index)
 	attrib = bgvideoram16[0][2*tile_index];
 	tile_number = bgvideoram16[0][2*tile_index+1];
 	color = attrib & 0x7f;
-	SET_TILE_INFO(0,tile_number,color)
+	SET_TILE_INFO(
+			0,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 ///	if ((attrib & 0x0f00) == 0) tile_info.flags |= TILE_IGNORE_TRANSPARENCY;
 }
@@ -269,7 +281,11 @@ static void get_top1_tile_info(int tile_index)
 	attrib = topvideoram16[1][2*tile_index];
 	tile_number = topvideoram16[1][2*tile_index+1];
 	color = attrib & 0x7f;
-	SET_TILE_INFO(2,tile_number,color)
+	SET_TILE_INFO(
+			2,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -280,7 +296,11 @@ static void get_fg1_tile_info(int tile_index)
 	attrib = fgvideoram16[1][2*tile_index];
 	tile_number = fgvideoram16[1][2*tile_index+1];
 	color = attrib & 0x7f;
-	SET_TILE_INFO(2,tile_number,color)
+	SET_TILE_INFO(
+			2,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -291,7 +311,11 @@ static void get_bg1_tile_info(int tile_index)
 	attrib = bgvideoram16[1][2*tile_index];
 	tile_number = bgvideoram16[1][2*tile_index+1];
 	color = attrib & 0x7f;
-	SET_TILE_INFO(2,tile_number,color)
+	SET_TILE_INFO(
+			2,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -303,7 +327,11 @@ static void batrider_get_top0_tile_info(int tile_index)
 	tile = topvideoram16[0][2*tile_index+1];
 	tile_number = ( batrider_object_bank[(tile >> 13) & 7] << 13 ) | ( tile & 0x1fff );
 	color = attrib & 0x7f;
-	SET_TILE_INFO(0,tile_number,color)
+	SET_TILE_INFO(
+			0,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -315,7 +343,11 @@ static void batrider_get_fg0_tile_info(int tile_index)
 	tile = fgvideoram16[0][2*tile_index+1];
 	tile_number = ( batrider_object_bank[(tile >> 13) & 7] << 13 ) | ( tile & 0x1fff );
 	color = attrib & 0x7f;
-	SET_TILE_INFO(0,tile_number,color)
+	SET_TILE_INFO(
+			0,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -327,7 +359,11 @@ static void batrider_get_bg0_tile_info(int tile_index)
 	tile = bgvideoram16[0][2*tile_index+1];
 	tile_number = ( batrider_object_bank[(tile >> 13) & 7] << 13 ) | ( tile & 0x1fff );
 	color = attrib & 0x7f;
-	SET_TILE_INFO(0,tile_number,color)
+	SET_TILE_INFO(
+			0,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = (attrib & 0x0f00) >> 8;
 }
 
@@ -338,7 +374,11 @@ static void get_text_tile_info(int tile_index)
 	attrib = toaplan2_txvideoram16[tile_index];
 	tile_number = attrib & 0x3ff;
 	color = ((attrib >> 10) | 0x40) & 0x7f;
-	SET_TILE_INFO(2,tile_number,color)
+	SET_TILE_INFO(
+			2,
+			tile_number,
+			color,
+			0)
 	tile_info.priority = 0;
 }
 
@@ -612,7 +652,7 @@ WRITE16_HANDLER( toaplan2_txvideoram16_offs_w )
 	/* Besides containing flip, function of this RAM is still unknown */
 	/* This is however line related as per line-scroll RAM below */
 	/* Maybe specifies which line to draw text info (line number data is */
-	/*  opposite when flip bits are on) */
+	/*   opposite when flip bits are on) */
 
 	data16_t oldword = toaplan2_txvideoram16_offs[offset];
 
@@ -651,7 +691,7 @@ WRITE16_HANDLER( toaplan2_txvideoram16_offs_w )
 		}
 		COMBINE_DATA(&toaplan2_txvideoram16_offs[offset]);
 	}
-	logerror("Writing %04x to text offs RAM offset %04x\n",data,offset);
+//	logerror("Writing %04x to text offs RAM offset %04x\n",data,offset);
 }
 
 READ16_HANDLER( toaplan2_txscrollram16_r )
@@ -674,8 +714,8 @@ WRITE16_HANDLER( toaplan2_txscrollram16_w )
 	}
 	tilemap_set_scrollx(tx_tilemap, offset, (data_tx - tx_scrollx_zero));
 
-	logerror("Writing %04x to text scroll RAM offset %04x\n",data,offset);
-	logerror("Line number %08x  Scroll %08x  data_tx=%04x tx_scrollx_zero=%04x\n",((data_tx - tx_scrollx_zero) - offset),(data_tx - tx_scrollx_zero),data_tx,tx_scrollx_zero);
+//	logerror("Writing %04x to text scroll RAM offset %04x\n",data,offset);
+//	logerror("Line number %08x  Scroll %08x  data_tx=%04x tx_scrollx_zero=%04x\n",((data_tx - tx_scrollx_zero) - offset),(data_tx - tx_scrollx_zero),data_tx,tx_scrollx_zero);
 	COMBINE_DATA(&toaplan2_txscrollram16[offset]);
 }
 
@@ -1023,66 +1063,57 @@ void toaplan2_scroll_reg_data_w(offs_t offset, data16_t data, UINT32 mem_mask, i
 		vid_controllers = 2;
 	}
 
-	if ( keyboard_pressed(KEYCODE_W) )
+	if ( keyboard_pressed_memory(KEYCODE_W) )
 	{
-		while (keyboard_pressed(KEYCODE_W)) ;
 		display_tx += 1;
 		display_tx &= 1;
 		if (toaplan2_txvideoram16 != 0)
 			tilemap_set_enable(tx_tilemap, display_tx);
 	}
-	if ( keyboard_pressed(KEYCODE_L) )
+	if ( keyboard_pressed_memory(KEYCODE_L) )
 	{
-		while (keyboard_pressed(KEYCODE_L)) ;
 		display_sp[0] += 1;
 		display_sp[0] &= 1;
 	}
-	if ( keyboard_pressed(KEYCODE_K) )
+	if ( keyboard_pressed_memory(KEYCODE_K) )
 	{
-		while (keyboard_pressed(KEYCODE_K)) ;
 		display_top[0] += 1;
 		display_top[0] &= 1;
 		tilemap_set_enable(top_tilemap[0], display_top[0]);
 	}
-	if ( keyboard_pressed(KEYCODE_J) )
+	if ( keyboard_pressed_memory(KEYCODE_J) )
 	{
-		while (keyboard_pressed(KEYCODE_J)) ;
 		display_fg[0] += 1;
 		display_fg[0] &= 1;
 		tilemap_set_enable(fg_tilemap[0], display_fg[0]);
 	}
-	if ( keyboard_pressed(KEYCODE_H) )
+	if ( keyboard_pressed_memory(KEYCODE_H) )
 	{
-		while (keyboard_pressed(KEYCODE_H)) ;
 		display_bg[0] += 1;
 		display_bg[0] &= 1;
 		tilemap_set_enable(bg_tilemap[0], display_bg[0]);
 	}
 	if (vid_controllers == 2)
 	{
-		if ( keyboard_pressed(KEYCODE_O) )
+		if ( keyboard_pressed_memory(KEYCODE_O) )
 		{
-			while (keyboard_pressed(KEYCODE_O)) ;
 			display_sp[1] += 1;
 			display_sp[1] &= 1;
 		}
-		if ( keyboard_pressed(KEYCODE_I) )
+		if ( keyboard_pressed_memory(KEYCODE_I) )
 		{
-			while (keyboard_pressed(KEYCODE_I)) ;
 			display_top[1] += 1;
 			display_top[1] &= 1;
 			tilemap_set_enable(top_tilemap[1], display_top[1]);
 		}
-		if ( keyboard_pressed(KEYCODE_U) )
+		if ( keyboard_pressed_memory(KEYCODE_U) )
 		{
-			while (keyboard_pressed(KEYCODE_U)) ;
 			display_fg[1] += 1;
 			display_fg[1] &= 1;
 			tilemap_set_enable(fg_tilemap[1], display_fg[1]);
 		}
-		if ( keyboard_pressed(KEYCODE_Y) )
+		if ( keyboard_pressed_memory(KEYCODE_Y) )
 		{
-			while (keyboard_pressed(KEYCODE_Y)) ;
 			display_bg[1] += 1;
 			display_bg[1] &= 1;
 			tilemap_set_enable(bg_tilemap[1], display_bg[1]);
@@ -1165,7 +1196,7 @@ void toaplan2_log_vram(void)
 		vid_controllers = 2;
 	}
 
-	if ( keyboard_pressed(KEYCODE_M) )
+	if ( keyboard_pressed_memory(KEYCODE_M) )
 	{
 		data16_t *source_now0  = (data16_t *)(spriteram16_now[0]);
 		data16_t *source_next0 = (data16_t *)(spriteram16_next[0]);
@@ -1183,7 +1214,6 @@ void toaplan2_log_vram(void)
 			source_new1  = (data16_t *)(spriteram16_new[1]);
 		}
 
-		while (keyboard_pressed(KEYCODE_M)) ;
 		logerror("Scrolls   BG-X  BG-Y   FG-X  FG-Y   TOP-X  TOP-Y   Sprite-X  Sprite-Y\n");
 		logerror("---0-->   %04x  %04x   %04x  %04x    %04x  %04x       %04x    %04x\n", bg_scrollx[0],bg_scrolly[0],fg_scrollx[0],fg_scrolly[0],top_scrollx[0],top_scrolly[0],sprite_scrollx[0], sprite_scrolly[0]);
 		if (vid_controllers == 2)
@@ -1230,10 +1260,9 @@ void toaplan2_log_vram(void)
 			}
 		}
 	}
-	if ( keyboard_pressed(KEYCODE_N) )
+	if ( keyboard_pressed_memory(KEYCODE_N) )
 	{
 		int tchar[2], tattr[2];
-		while (keyboard_pressed(KEYCODE_N)) ;
 		logerror("Scrolls   BG-X  BG-Y   FG-X  FG-Y   TOP-X  TOP-Y   Sprite-X  Sprite-Y\n");
 		logerror("---0-->   %04x  %04x   %04x  %04x    %04x  %04x       %04x    %04x\n", bg_scrollx[0],bg_scrolly[0],fg_scrollx[0],fg_scrolly[0],top_scrollx[0],top_scrolly[0],sprite_scrollx[0], sprite_scrolly[0]);
 		if (vid_controllers == 2)
@@ -1256,10 +1285,9 @@ void toaplan2_log_vram(void)
 			}
 		}
 	}
-	if ( keyboard_pressed(KEYCODE_B) )
+	if ( keyboard_pressed_memory(KEYCODE_B) )
 	{
 		int tchar[2], tattr[2];
-		while (keyboard_pressed(KEYCODE_B)) ;
 		logerror("Scrolls   BG-X  BG-Y   FG-X  FG-Y   TOP-X  TOP-Y   Sprite-X  Sprite-Y\n");
 		logerror("---0-->   %04x  %04x   %04x  %04x    %04x  %04x       %04x    %04x\n", bg_scrollx[0],bg_scrolly[0],fg_scrollx[0],fg_scrolly[0],top_scrollx[0],top_scrolly[0],sprite_scrollx[0], sprite_scrolly[0]);
 		if (vid_controllers == 2)
@@ -1282,10 +1310,9 @@ void toaplan2_log_vram(void)
 			}
 		}
 	}
-	if ( keyboard_pressed(KEYCODE_V) )
+	if ( keyboard_pressed_memory(KEYCODE_V) )
 	{
 		int tchar[2], tattr[2];
-		while (keyboard_pressed(KEYCODE_V)) ;
 		logerror("Scrolls   BG-X  BG-Y   FG-X  FG-Y   TOP-X  TOP-Y   Sprite-X  Sprite-Y\n");
 		logerror("---0-->   %04x  %04x   %04x  %04x    %04x  %04x       %04x    %04x\n", bg_scrollx[0],bg_scrolly[0],fg_scrollx[0],fg_scrolly[0],top_scrollx[0],top_scrolly[0],sprite_scrollx[0], sprite_scrolly[0]);
 		if (vid_controllers == 2)
@@ -1309,14 +1336,11 @@ void toaplan2_log_vram(void)
 		}
 	}
 
-	if ( keyboard_pressed(KEYCODE_C) )
-	{
-		while (keyboard_pressed(KEYCODE_C)) ;
+	if ( keyboard_pressed_memory(KEYCODE_C) )
 		logerror("Mark here\n");
-	}
-	if ( keyboard_pressed(KEYCODE_E) )
+
+	if ( keyboard_pressed_memory(KEYCODE_E) )
 	{
-		while (keyboard_pressed(KEYCODE_E)) ;
 		displog += 1;
 		displog &= 1;
 	}
@@ -1341,7 +1365,7 @@ void toaplan2_log_vram(void)
 static void mark_sprite_colors(int controller)
 {
 	int offs, attrib, sprite, color, i, pal_base;
-	int sprite_sizex, sprite_sizey, temp_x, temp_y;
+	int sprite_sizex, sprite_sizey, dim_x, dim_y;
 	int colmask[64];
 
 	data16_t *source = (data16_t *)(spriteram16_now[controller]);
@@ -1364,9 +1388,9 @@ static void mark_sprite_colors(int controller)
 			sprite_sizex = (source[offs + 2] & 0x0f) + 1;
 			sprite_sizey = (source[offs + 3] & 0x0f) + 1;
 
-			for (temp_y = 0; temp_y < sprite_sizey; temp_y++)
+			for (dim_y = 0; dim_y < sprite_sizey; dim_y++)
 			{
-				for (temp_x = 0; temp_x < sprite_sizex; temp_x++)
+				for (dim_x = 0; dim_x < sprite_sizex; dim_x++)
 				{
 					colmask[color] |= Machine->gfx[ ((controller*2)+1) ]->pen_usage[sprite];
 					sprite++ ;
@@ -1375,10 +1399,9 @@ static void mark_sprite_colors(int controller)
 		}
 	}
 
-	palette_used_colors[pal_base] = PALETTE_COLOR_USED;
-	for (color = 1;color < 64;color++)
+	for (color = 0;color < 64;color++)
 	{
-		if (colmask[0] & 1)
+		if ((color == 0) && (colmask[0] & 1))
 			palette_used_colors[pal_base + 16 * color] = PALETTE_COLOR_TRANSPARENT;
 		for (i = 1; i < 16; i++)
 		{
@@ -1386,16 +1409,13 @@ static void mark_sprite_colors(int controller)
 				palette_used_colors[pal_base + 16 * color + i] = PALETTE_COLOR_USED;
 		}
 	}
+
 }
 
 
 
 static void draw_sprites( struct osd_bitmap *bitmap, int controller, int priority_to_display, int bank_sel )
 {
-	/* bank_sel is whether it is needed to take account of bank select or not */
-	/*  0 : not take account of bank select */
-	/*  1 : take account of bank select used for Batrider */
-
 	const struct GfxElement *gfx = Machine->gfx[ ((controller*2)+1) ];
 	const struct rectangle *clip = &Machine->visible_area;
 
@@ -1405,7 +1425,7 @@ static void draw_sprites( struct osd_bitmap *bitmap, int controller, int priorit
 	for (offs = 0; offs < (TOAPLAN2_SPRITERAM_SIZE/2); offs += 4)
 	{
 		int attrib, sprite, color, priority, flipx, flipy, sx, sy;
-		int sprite_sizex, sprite_sizey, temp_x, temp_y, sx_base, sy_base;
+		int sprite_sizex, sprite_sizey, dim_x, dim_y, sx_base, sy_base;
 		int bank, sprite_num;
 
 		attrib = source[offs];
@@ -1413,11 +1433,11 @@ static void draw_sprites( struct osd_bitmap *bitmap, int controller, int priorit
 
 		if ((priority == priority_to_display) && (attrib & 0x8000))
 		{
-			if (!bank_sel)
+			if (!bank_sel)	/* No Sprite select bank switching needed */
 			{
-				sprite = ((attrib & 3) << 16) | source[offs + 1] ;	/* 18 bit */
+				sprite = ((attrib & 3) << 16) | source[offs + 1];	/* 18 bit */
 			}
-			else
+			else		/* Batrider Sprite select bank switching required */
 			{
 				sprite_num = source[offs + 1] & 0x7fff;
 				bank = ((attrib & 3) << 1) | (source[offs + 1] >> 15);
@@ -1425,21 +1445,21 @@ static void draw_sprites( struct osd_bitmap *bitmap, int controller, int priorit
 			}
 			color = (attrib >> 2) & 0x3f;
 
-			/****** find out sprite size ******/
+			/***** find out sprite size *****/
 			sprite_sizex = ((source[offs + 2] & 0x0f) + 1) * 8;
 			sprite_sizey = ((source[offs + 3] & 0x0f) + 1) * 8;
 
-			/****** find position to display sprite ******/
-			sx_base = (source[offs + 2] >> 7) - sprite_scrollx[controller];
-			sy_base = (source[offs + 3] >> 7) - sprite_scrolly[controller];
+			/***** find position to display sprite *****/
+            sx_base = ((source[offs + 2] >> 7) - sprite_scrollx[controller]) & 0x1ff;
+            sy_base = ((source[offs + 3] >> 7) - sprite_scrolly[controller]) & 0x1ff;
 
 			flipx = attrib & TOAPLAN2_SPRITE_FLIPX;
 			flipy = attrib & TOAPLAN2_SPRITE_FLIPY;
 
 			if (flipx)
 			{
+				/***** Wrap sprite position around *****/
 				sx_base -= 7;
-				/****** wrap around sprite position ******/
 				if (sx_base >= 0x1c0) sx_base -= 0x200;
 			}
 			else
@@ -1457,7 +1477,7 @@ static void draw_sprites( struct osd_bitmap *bitmap, int controller, int priorit
 				if (sy_base >= 0x180) sy_base -= 0x200;
 			}
 
-			/****** flip the sprite layer in any active X or Y flip ******/
+			/***** Flip the sprite layer in any active X or Y flip *****/
 			if (sprite_flip[controller])
 			{
 				if (sprite_flip[controller] & TOAPLAN2_SPRITE_FLIPX)
@@ -1466,18 +1486,19 @@ static void draw_sprites( struct osd_bitmap *bitmap, int controller, int priorit
 					sy_base = 240 - sy_base;
 			}
 
-			/****** cancel flip, if it and sprite layer flip are active ******/
+			/***** Cancel flip, if it, and sprite layer flip are active *****/
 			flipx = (flipx ^ (sprite_flip[controller] & TOAPLAN2_SPRITE_FLIPX));
 			flipy = (flipy ^ (sprite_flip[controller] & TOAPLAN2_SPRITE_FLIPY));
 
-			for (temp_y = 0; temp_y < sprite_sizey; temp_y += 8)
+			/***** Draw the complete sprites using the dimension info *****/
+			for (dim_y = 0; dim_y < sprite_sizey; dim_y += 8)
 			{
-				if (flipy) sy = sy_base - temp_y;
-				else       sy = sy_base + temp_y;
-				for (temp_x = 0; temp_x < sprite_sizex; temp_x += 8)
+				if (flipy) sy = sy_base - dim_y;
+				else       sy = sy_base + dim_y;
+				for (dim_x = 0; dim_x < sprite_sizex; dim_x += 8)
 				{
-					if (flipx) sx = sx_base - temp_x;
-					else       sx = sx_base + temp_x;
+					if (flipx) sx = sx_base - dim_x;
+					else       sx = sx_base + dim_x;
 
 					drawgfx(bitmap,gfx,sprite,
 						color,
