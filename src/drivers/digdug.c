@@ -347,25 +347,25 @@ static struct namco_interface namco_interface =
 
 
 
-static struct MachineDriver machine_driver_digdug =
+static const struct MachineDriver machine_driver_digdug =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3125000,	/* 3.125 Mhz */
+			3125000,	/* 3.125 MHz */
 			readmem_cpu1,writemem_cpu1,0,0,
 			digdug_interrupt_1,1
 		},
 		{
 			CPU_Z80,
-			3125000,	/* 3.125 Mhz */
+			3125000,	/* 3.125 MHz */
 			readmem_cpu2,writemem_cpu2,0,0,
 			digdug_interrupt_2,1
 		},
 		{
 			CPU_Z80,
-			3125000,	/* 3.125 Mhz */
+			3125000,	/* 3.125 MHz */
 			readmem_cpu3,writemem_cpu3,0,0,
 			digdug_interrupt_3,2
 		}
@@ -381,7 +381,7 @@ static struct MachineDriver machine_driver_digdug =
 	32,8*2+64*4+64*4,
 	digdug_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	digdug_vh_start,
 	digdug_vh_stop,

@@ -334,13 +334,13 @@ static struct AY8910interface ay8910_interface =
 };
 
 
-static struct MachineDriver machine_driver_dday =
+static const struct MachineDriver machine_driver_dday =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			2000000,     /* 2 Mhz ? */
+			2000000,     /* 2 MHz ? */
 			readmem,writemem,0,0,
 			dday_interrupt,1
 		}

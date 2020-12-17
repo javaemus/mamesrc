@@ -333,13 +333,13 @@ static struct CustomSound_interface pleiads_custom_interface =
 
 #define MACHINE_DRIVER(GAMENAME)									\
 																	\
-static struct MachineDriver machine_driver_##GAMENAME = 			\
+static const struct MachineDriver machine_driver_##GAMENAME = 			\
 {																	\
 	/* basic machine hardware */									\
 	{																\
 		{															\
 			CPU_8080,												\
-			3072000,	/* 3 Mhz ? */								\
+			3072000,	/* 3 MHz ? */								\
 			readmem,GAMENAME##_writemem,0,0,						\
 			ignore_interrupt,1										\
 		}															\

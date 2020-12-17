@@ -113,7 +113,7 @@ static void nvram_handler(void *file,int read_or_write)
 
 static WRITE_HANDLER( ccastles_led_w )
 {
-	osd_led_w(offset,~data);
+	set_led_status(offset,~data & 1);
 }
 
 static WRITE_HANDLER( ccastles_coin_counter_w )
@@ -248,13 +248,13 @@ static struct POKEYinterface pokey_interface =
 
 
 
-static struct MachineDriver machine_driver_ccastles =
+static const struct MachineDriver machine_driver_ccastles =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6502,
-			1500000,	/* 1.5 Mhz */
+			1500000,	/* 1.5 MHz */
 			readmem,writemem,0,0,
 			interrupt,4
 		}

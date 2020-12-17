@@ -215,19 +215,19 @@ static struct AY8910interface ay8910_interface =
 	{ 0 }
 };
 
-static struct MachineDriver machine_driver_solomon =
+static const struct MachineDriver machine_driver_solomon =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			4000000,	/* 4.0 Mhz (?????) */
+			4000000,	/* 4.0 MHz (?????) */
 			readmem,writemem,0,0,
 			nmi_interrupt,1
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			3072000,	/* 3.072 Mhz (?????) */
+			3072000,	/* 3.072 MHz (?????) */
 			solomon_sound_readmem,solomon_sound_writemem,0,solomon_sound_writeport,
 			interrupt,2	/* ??? */
 						/* NMIs are caused by the main CPU */
@@ -243,7 +243,7 @@ static struct MachineDriver machine_driver_solomon =
 	256, 256,
 	0,
 
-	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE | VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
 	0,
 	solomon_vh_start,
 	solomon_vh_stop,

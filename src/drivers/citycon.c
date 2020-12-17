@@ -213,19 +213,19 @@ static struct YM2203interface ym2203_interface =
 
 
 
-static struct MachineDriver machine_driver_citycon =
+static const struct MachineDriver machine_driver_citycon =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6809,
-			2048000,        /* 2.048 Mhz ??? */
+			2048000,        /* 2.048 MHz ??? */
 			readmem,writemem,0,0,
 			interrupt,1
 		},
 		{
 			CPU_M6809 | CPU_AUDIO_CPU,
-			640000,        /* 0.640 Mhz ??? */
+			640000,        /* 0.640 MHz ??? */
 			readmem_sound,writemem_sound,0,0,
 			interrupt,1
 		}

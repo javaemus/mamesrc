@@ -374,19 +374,19 @@ static struct DACinterface dac_interface =
 
 
 
-static struct MachineDriver machine_driver_matmania =
+static const struct MachineDriver machine_driver_matmania =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6502,
-			1500000,	/* 1.5 Mhz ???? */
+			1500000,	/* 1.5 MHz ???? */
 			matmania_readmem,matmania_writemem,0,0,
 			interrupt,1
 		},
 		{
 			CPU_M6502 | CPU_AUDIO_CPU,
-			1200000,	/* 1.2 Mhz ???? */
+			1200000,	/* 1.2 MHz ???? */
 			sound_readmem,sound_writemem,0,0,
 			nmi_interrupt,15	/* ???? */
 								/* IRQs are caused by the main CPU */
@@ -440,26 +440,26 @@ static struct YM3526interface ym3526_interface =
 };
 
 
-static struct MachineDriver machine_driver_maniach =
+static const struct MachineDriver machine_driver_maniach =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6502,
-			1500000,	/* 1.5 Mhz ???? */
+			1500000,	/* 1.5 MHz ???? */
 			maniach_readmem,maniach_writemem,0,0,
 			interrupt,1
 		},
 		{
 			CPU_M6809 | CPU_AUDIO_CPU,
-			1500000,	/* 1.5 Mhz ???? */
+			1500000,	/* 1.5 MHz ???? */
 			maniach_sound_readmem,maniach_sound_writemem,0,0,
 			ignore_interrupt,0,	/* FIRQs are caused by the YM3526 */
 								/* IRQs are caused by the main CPU */
 		},
 		{
 			CPU_M68705,
-			500000,	/* .5 Mhz (don't know really how fast, but it doesn't need to even be this fast) */
+			500000,	/* .5 MHz (don't know really how fast, but it doesn't need to even be this fast) */
 			mcu_readmem,mcu_writemem,0,0,
 			ignore_interrupt,1
 		}

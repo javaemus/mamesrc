@@ -189,7 +189,7 @@ static WRITE_HANDLER( galaxian_coin_lockout_w )
 
 static WRITE_HANDLER( galaxian_leds_w )
 {
-	osd_led_w(offset,data);
+	set_led_status(offset,data & 1);
 }
 
 static READ_HANDLER( galapx_funky_r )
@@ -1873,13 +1873,13 @@ static struct DACinterface kingball_dac_interface =
 
 #define MACHINE_DRIVER(NAME, MEM, INT, INIT, GFX, VHSTART)						\
 																				\
-static struct MachineDriver machine_driver_##NAME =								\
+static const struct MachineDriver machine_driver_##NAME =								\
 {																				\
 	/* basic machine hardware */												\
 	{																			\
 		{																		\
 			CPU_Z80,															\
-			18432000/6,	/* 3.072 Mhz */											\
+			18432000/6,	/* 3.072 MHz */											\
 			MEM##_readmem,MEM##_writemem,0,0,									\
 			INT##_vh_interrupt,1												\
 		}																		\
@@ -1924,13 +1924,13 @@ MACHINE_DRIVER(mooncrst, mooncrst, galaxian,  0,                     galaxian, 	
 MACHINE_DRIVER(moonqsr,  mooncrst, galaxian,  0,                     galaxian, 	moonqsr)
 
 
-static struct MachineDriver machine_driver_zigzag =
+static const struct MachineDriver machine_driver_zigzag =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			18432000/6,	/* 3.072 Mhz */
+			18432000/6,	/* 3.072 MHz */
 			zigzag_readmem,zigzag_writemem,0,0,
 			nmi_interrupt,1
 		}
@@ -1961,13 +1961,13 @@ static struct MachineDriver machine_driver_zigzag =
 	}
 };
 
-static struct MachineDriver machine_driver_jumpbug =
+static const struct MachineDriver machine_driver_jumpbug =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz */
+			3072000,	/* 3.072 MHz */
 			jumpbug_readmem,jumpbug_writemem,0,0,
 			jumpbug_vh_interrupt,1
 		}
@@ -1998,7 +1998,7 @@ static struct MachineDriver machine_driver_jumpbug =
 	}
 };
 
-static struct MachineDriver machine_driver_checkman =
+static const struct MachineDriver machine_driver_checkman =
 {
 	/* basic machine hardware */
 	{
@@ -2046,13 +2046,13 @@ static struct MachineDriver machine_driver_checkman =
 	}
 };
 
-static struct MachineDriver machine_driver_checkmaj =
+static const struct MachineDriver machine_driver_checkmaj =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz */
+			3072000,	/* 3.072 MHz */
 			galaxian_readmem,checkmaj_writemem,0,0,
 			galaxian_vh_interrupt,1
 		},
@@ -2090,13 +2090,13 @@ static struct MachineDriver machine_driver_checkmaj =
 };
 
 
-static struct MachineDriver machine_driver_kingball =
+static const struct MachineDriver machine_driver_kingball =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			18432000/6,	/* 3.072 Mhz? */
+			18432000/6,	/* 3.072 MHz? */
 			mooncrst_readmem,kingball_writemem,0,0,
 			galaxian_vh_interrupt,1
 		},

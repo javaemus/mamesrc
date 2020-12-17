@@ -65,12 +65,12 @@ void gaiden_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 int  gaiden_vh_start(void);
 
 
-int gaiden_interrupt(void)
+static int gaiden_interrupt(void)
 {
 	return 5;  /*Interrupt vector 5*/
 }
 
-READ_HANDLER( gaiden_input_r )
+static READ_HANDLER( gaiden_input_r )
 {
 	switch (offset)
 	{
@@ -89,7 +89,7 @@ READ_HANDLER( gaiden_input_r )
 }
 
 
-WRITE_HANDLER( gaiden_sound_command_w )
+static WRITE_HANDLER( gaiden_sound_command_w )
 {
 	if (data & 0xff000000) soundlatch_w(0,data & 0xff);	/* Ninja Gaiden */
 	if (data & 0x00ff0000) soundlatch_w(0,(data >> 8) & 0xff);	/* Tecmo Knight */
@@ -104,7 +104,7 @@ WRITE_HANDLER( gaiden_sound_command_w )
 
 static int prot;
 
-WRITE_HANDLER( tknight_protection_w )
+static WRITE_HANDLER( tknight_protection_w )
 {
 	static int jumpcode;
 	static int jumppoints[] =
@@ -151,7 +151,7 @@ logerror("unknown jumpcode %02x\n",jumpcode);
 	}
 }
 
-READ_HANDLER( tknight_protection_r )
+static READ_HANDLER( tknight_protection_r )
 {
 //logerror("PC %06x: read prot %02x\n",cpu_get_pc(),prot);
 	return prot;
@@ -464,13 +464,13 @@ static struct OKIM6295interface okim6295_interface =
 };
 
 
-static struct MachineDriver machine_driver_gaiden =
+static const struct MachineDriver machine_driver_gaiden =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M68000,
-			8000000,	/* 8 Mhz */
+			8000000,	/* 8 MHz */
 			readmem,writemem,0,0,
 			gaiden_interrupt,1,0,0
 		},
@@ -691,8 +691,8 @@ ROM_END
 
 
 
-GAME( 1988, gaiden,   0,       gaiden, gaiden,  0, ROT0, "Tecmo", "Ninja Gaiden (World)" )
-GAME( 1988, shadoww,  gaiden,  gaiden, gaiden,  0, ROT0, "Tecmo", "Shadow Warriors (US)" )
-GAME( 1989, ryukendn, gaiden,  gaiden, gaiden,  0, ROT0, "Tecmo", "Ninja Ryukenden (Japan)" )
-GAME( 1989, tknight,  0,       gaiden, tknight, 0, ROT0, "Tecmo", "Tecmo Knight" )
-GAME( 1989, wildfang, tknight, gaiden, tknight, 0, ROT0, "Tecmo", "Wild Fang" )
+GAMEX( 1988, gaiden,   0,       gaiden, gaiden,  0, ROT0, "Tecmo", "Ninja Gaiden (World)", GAME_NO_COCKTAIL )
+GAMEX( 1988, shadoww,  gaiden,  gaiden, gaiden,  0, ROT0, "Tecmo", "Shadow Warriors (US)", GAME_NO_COCKTAIL )
+GAMEX( 1989, ryukendn, gaiden,  gaiden, gaiden,  0, ROT0, "Tecmo", "Ninja Ryukenden (Japan)", GAME_NO_COCKTAIL )
+GAMEX( 1989, tknight,  0,       gaiden, tknight, 0, ROT0, "Tecmo", "Tecmo Knight", GAME_NO_COCKTAIL )
+GAMEX( 1989, wildfang, tknight, gaiden, tknight, 0, ROT0, "Tecmo", "Wild Fang", GAME_NO_COCKTAIL )

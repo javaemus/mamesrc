@@ -34,8 +34,9 @@ static void mem_dump( void );
 #define ABITS2(index)					(cpuintf[Machine->drv->cpu[index].cpu_type & ~CPU_FLAGS_MASK].abits2)
 #define ABITS3(index)					(0)
 #define ABITSMIN(index) 				(cpuintf[Machine->drv->cpu[index].cpu_type & ~CPU_FLAGS_MASK].abitsmin)
+#define ALIGNUNIT(index)				(cpuintf[Machine->drv->cpu[index].cpu_type & ~CPU_FLAGS_MASK].align_unit)
 
-#if LSB_FIRST
+#ifdef LSB_FIRST
 	#define BYTE_XOR_BE(a) ((a) ^ 1)
 	#define BYTE_XOR_LE(a) (a)
 #else
@@ -295,7 +296,7 @@ static MHELE *get_element( MHELE *element , int ad , int elemask ,
 	/* get next subelement top */
 	subelement	= &subelement[ele<<MH_SBITS];
 	/* initialize new block */
-	for( i = 0 ; i < (1<<MH_SBITS) ; i++ )
+	for( i = 0 ; i < (banks<<MH_SBITS) ; i++ )
 		subelement[i] = hw;
 
 	return subelement;
@@ -399,23 +400,23 @@ static int memory_allocate_ext (void)
 
 				/* find the base of the lowest memory region that extends past the end */
 				for (mra = Machine->drv->cpu[cpu].memory_read; mra->start != -1; mra++)
-					if (mra->start <= end && mra->end > end) end = mra->end + 1;
+					if (mra->start <= end && mra->end > end) end = mra->end;
 				for (mwa = Machine->drv->cpu[cpu].memory_write; mwa->start != -1; mwa++)
-					if (mwa->start <= end && mwa->end > end) end = mwa->end + 1;
+					if (mwa->start <= end && mwa->end > end) end = mwa->end;
 			}
 
 			/* time to allocate */
 			ext->start = lowest;
-			ext->end = end - 1;
+			ext->end = end;
 			ext->region = region;
-			ext->data = malloc (end - lowest);
+			ext->data = malloc (end+1 - lowest);
 
 			/* if that fails, we're through */
 			if (!ext->data)
 				return 0;
 
 			/* reset the memory */
-			memset (ext->data, 0, end - lowest);
+			memset (ext->data, 0, end+1 - lowest);
 			size = ext->end + 1;
 			ext++;
 		}
@@ -506,8 +507,8 @@ int memory_init(void)
 		{
 			while (_mra->start != -1)
 			{
-//				if (_mra->base) *_mra->base = memory_find_base (cpu, _mra->start);
-//				if (_mra->size) *_mra->size = _mra->end - _mra->start + 1;
+/*				if (_mra->base) *_mra->base = memory_find_base (cpu, _mra->start); */
+/*				if (_mra->size) *_mra->size = _mra->end - _mra->start + 1; */
 				_mra++;
 			}
 		}
@@ -574,7 +575,9 @@ int memory_init(void)
 	for( i = 0 ; i < MH_HARDMAX ; i++ ){
 		memoryreadoffset[i] = 0;
 		memorywriteoffset[i] = 0;
-	}
+		memoryreadhandler[i] = NULL;
+		memorywritehandler[i] = NULL;
+    }
 	/* bank memory */
 	for (i = 1; i <= MAX_BANKS; i++)
 	{
@@ -943,7 +946,7 @@ READWORD(cpu_readmem16bew, TYPE_16BIT_BE, 16BEW, ALWAYS_ALIGNED)
 READBYTE(cpu_readmem16lew, TYPE_16BIT_LE, 16LEW)
 READWORD(cpu_readmem16lew, TYPE_16BIT_LE, 16LEW, ALWAYS_ALIGNED)
 
-READBYTE(cpu_readmem24,    TYPE_8BIT,	  24)
+READBYTE(cpu_readmem24,     TYPE_8BIT,	  24)
 
 READBYTE(cpu_readmem24bew, TYPE_16BIT_BE, 24BEW)
 READWORD(cpu_readmem24bew, TYPE_16BIT_BE, 24BEW, CAN_BE_MISALIGNED)
@@ -1164,7 +1167,7 @@ WRITEWORD(cpu_writemem16bew, TYPE_16BIT_BE, 16BEW, ALWAYS_ALIGNED)
 WRITEBYTE(cpu_writemem16lew, TYPE_16BIT_LE, 16LEW)
 WRITEWORD(cpu_writemem16lew, TYPE_16BIT_LE, 16LEW, ALWAYS_ALIGNED)
 
-WRITEBYTE(cpu_writemem24,	 TYPE_8BIT, 	24)
+WRITEBYTE(cpu_writemem24,	  TYPE_8BIT, 	24)
 
 WRITEBYTE(cpu_writemem24bew, TYPE_16BIT_BE, 24BEW)
 WRITEWORD(cpu_writemem24bew, TYPE_16BIT_BE, 24BEW, CAN_BE_MISALIGNED)
@@ -1174,7 +1177,7 @@ WRITEBYTE(cpu_writemem26lew, TYPE_16BIT_LE, 26LEW)
 WRITEWORD(cpu_writemem26lew, TYPE_16BIT_LE, 26LEW, ALWAYS_ALIGNED)
 WRITELONG(cpu_writemem26lew, TYPE_16BIT_LE, 26LEW, ALWAYS_ALIGNED)
 
-WRITEBYTE(cpu_writemem29,	 TYPE_16BIT_LE, 29)
+WRITEBYTE(cpu_writemem29,    TYPE_16BIT_LE, 29)
 WRITEWORD(cpu_writemem29,	 TYPE_16BIT_LE, 29,    CAN_BE_MISALIGNED)
 WRITELONG(cpu_writemem29,	 TYPE_16BIT_LE, 29,    CAN_BE_MISALIGNED)
 
@@ -1239,6 +1242,7 @@ SETOPBASE(cpu_setOPbase20,	  20,	 0)
 SETOPBASE(cpu_setOPbase21,	  21,	 0)
 SETOPBASE(cpu_setOPbase24,	  24,	 0)
 SETOPBASE(cpu_setOPbase24bew, 24BEW, 0)
+SETOPBASE(cpu_setOPbase26lew, 26LEW, 0)
 SETOPBASE(cpu_setOPbase29,	  29,	 3)
 SETOPBASE(cpu_setOPbase32,	  32,	 0)
 SETOPBASE(cpu_setOPbase32lew, 32LEW, 0)
@@ -1429,6 +1433,17 @@ void *install_mem_read_handler(int cpu, int start, int end, mem_read_handler han
 #endif
 	abitsmin = ABITSMIN (cpu);
 
+	if (end < start)
+	{
+		printf("fatal: install_mem_read_handler(), start = %08x > end = %08x\n",start,end);
+		exit(1);
+	}
+	if ((start & (ALIGNUNIT(cpu)-1)) != 0 || (end & (ALIGNUNIT(cpu)-1)) != (ALIGNUNIT(cpu)-1))
+	{
+		printf("fatal: install_mem_read_handler(), start = %08x, end = %08x ALIGN = %d\n",start,end,ALIGNUNIT(cpu));
+		exit(1);
+	}
+
 	/* see if this function is already registered */
 	hw_set = 0;
 	for ( i = 0 ; i < MH_HARDMAX ; i++)
@@ -1526,6 +1541,17 @@ void *install_mem_write_handler(int cpu, int start, int end, mem_write_handler h
 #endif
 #endif
 	abitsmin = ABITSMIN (cpu);
+
+	if (end < start)
+	{
+		printf("fatal: install_mem_write_handler(), start = %08x > end = %08x\n",start,end);
+		exit(1);
+	}
+	if ((start & (ALIGNUNIT(cpu)-1)) != 0 || (end & (ALIGNUNIT(cpu)-1)) != (ALIGNUNIT(cpu)-1))
+	{
+		printf("fatal: install_mem_write_handler(), start = %08x, end = %08x ALIGN = %d\n",start,end,ALIGNUNIT(cpu));
+		exit(1);
+	}
 
 	/* see if this function is already registered */
 	hw_set = 0;
@@ -1640,7 +1666,17 @@ static void *install_port_read_handler_common(int cpu, int start, int end,
 	}
 	else
 	{
+		struct IOReadPort *old_readport = readport[cpu];
+
 		readport[cpu] = realloc(readport[cpu], readport_size[cpu]);
+
+		/* check if we're changing the current readport and ifso update it */
+		if (cur_readport == old_readport)
+		   cur_readport = readport[cpu];
+
+		/* realloc leaves the old buffer intact if it fails, so free it */
+		if(!readport[cpu])
+		   free(old_readport);
 	}
 
 	if (readport[cpu] == 0)  return 0;
@@ -1685,7 +1721,17 @@ static void *install_port_write_handler_common(int cpu, int start, int end,
 	}
 	else
 	{
+		struct IOWritePort *old_writeport = writeport[cpu];
+
 		writeport[cpu] = realloc(writeport[cpu], writeport_size[cpu]);
+
+		/* check if we're changing the current writeport and ifso update it */
+		if (cur_writeport == old_writeport)
+		   cur_writeport = writeport[cpu];
+
+		/* realloc leaves the old buffer intact if it fails, so free it */
+		if(!writeport[cpu])
+		   free(old_writeport);
 	}
 
 	if (writeport[cpu] == 0)  return 0;
@@ -1719,7 +1765,6 @@ static void *install_port_write_handler_common(int cpu, int start, int end,
 #ifdef MEM_DUMP
 static void mem_dump( void )
 {
-	extern int totalcpu;
 	int cpu;
 	int naddr,addr;
 	MHELE nhw,hw;

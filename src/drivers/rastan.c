@@ -363,46 +363,29 @@ static struct YM2151interface ym2151_interface =
 	{ rastan_bankswitch_w }
 };
 
-
-struct ADPCMsample rastan_samples[] =
-{
-	{ 0x00, 0x0000, 0x0200*2 },
-	{ 0x02, 0x0200, 0x0500*2 },
-	{ 0x07, 0x0700, 0x2100*2 },
-	{ 0x28, 0x2800, 0x3b00*2 },
-	{ 0x63, 0x6300, 0x4e00*2 },
-	{ 0xb1, 0xb100, 0x1600*2 }
-};
-
-static void adpcm_init(const struct ADPCMinterface *adpcm_intf, struct ADPCMsample *sample_list, int max)
-{
-	memcpy(sample_list,rastan_samples,sizeof(rastan_samples));
-}
-
 static struct ADPCMinterface adpcm_interface =
 {
-	1,			/* 1 chip */
-	8000,       /* 8000Hz playback */
+	1,			/* 1 channel */
+	8000,		/* 8000Hz playback */
 	REGION_SOUND1,	/* memory region */
-	adpcm_init,	/* init function */
-	{ 60 }
+	{ 60 }		/* volume */
 };
 
 
 
-static struct MachineDriver machine_driver_rastan =
+static const struct MachineDriver machine_driver_rastan =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M68000,
-			8000000,	/* 8 Mhz */
+			8000000,	/* 8 MHz */
 			rastan_readmem,rastan_writemem,0,0,
 			rastan_interrupt,1
 		},
 		{
 			CPU_Z80,
-			4000000,	/* 4 Mhz */
+			4000000,	/* 4 MHz */
 			rastan_s_readmem,rastan_s_writemem,0,0,
 			ignore_interrupt,1
 		}

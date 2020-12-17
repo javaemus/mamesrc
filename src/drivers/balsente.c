@@ -502,7 +502,7 @@ static WRITE_HANDLER( misc_output_w )
 	}
 	else
 	{
-//		osd_led_w(offset, data);
+//		set_led_status(offset, data);
 	}
 }
 
@@ -2417,19 +2417,19 @@ static struct cem3394_interface cem_interface =
  *
  *************************************/
 
-static struct MachineDriver machine_driver_balsente =
+static const struct MachineDriver machine_driver_balsente =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6809,
-			5000000/4,                     /* 5Mhz/4 */
+			5000000/4,                     /* 5MHz/4 */
 			readmem_cpu1,writemem_cpu1,0,0,
 			update_analog_inputs,1
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			4000000,                       /* 4Mhz */
+			4000000,                       /* 4MHz */
 			readmem_cpu2,writemem_cpu2,readport_cpu2,writeport_cpu2,
 			ignore_interrupt,1
 		}

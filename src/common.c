@@ -392,8 +392,15 @@ int readroms(void)
 
 		if (!options.gui_host && !bailing)
 		{
+			int k;
+
 			printf ("Press any key to continue\n");
-			keyboard_read_sync();
+			do
+			{
+				k = code_read_async();
+			}
+			while (k == CODE_NONE || k == KEYCODE_LCONTROL);
+
 			if (keyboard_pressed(KEYCODE_LCONTROL) && keyboard_pressed(KEYCODE_C))
 				return 1;
 		}
@@ -888,6 +895,11 @@ void set_visible_area(int min_x,int max_x,int min_y,int max_y)
 	}
 
 	osd_set_visible_area(min_x,max_x,min_y,max_y);
+
+	Machine->absolute_visible_area.min_x = min_x;
+	Machine->absolute_visible_area.max_x = max_x;
+	Machine->absolute_visible_area.min_y = min_y;
+	Machine->absolute_visible_area.max_y = max_y;
 }
 
 
@@ -926,18 +938,44 @@ void save_screen_snapshot_as(void *fp,struct osd_bitmap *bitmap)
 		sizex = Machine->visible_area.max_x - Machine->visible_area.min_x + 1;
 		sizey = Machine->visible_area.max_y - Machine->visible_area.min_y + 1;
 
-		scalex = 1;
+		scalex = (Machine->drv->video_attributes & VIDEO_PIXEL_ASPECT_RATIO_2_1) ? 2 : 1;
 		scaley = (Machine->drv->video_attributes & VIDEO_PIXEL_ASPECT_RATIO_1_2) ? 2 : 1;
 
 		copy = bitmap_alloc_depth(sizex * scalex,sizey * scaley,bitmap->depth);
 
 		if (copy)
 		{
-			copyrozbitmap(copy,bitmap,
-					Machine->visible_area.min_x << 16,Machine->visible_area.min_y << 16,
-					0x10000 / scalex,0,0,0x10000 / scaley,	/* zoom, no rotation */
-					0,	/* no wraparound */
-					0,TRANSPARENCY_NONE,0,0);
+			int x,y,sx,sy;
+
+			sx = Machine->absolute_visible_area.min_x;
+			sy = Machine->absolute_visible_area.min_y;
+			if (Machine->orientation & ORIENTATION_SWAP_XY)
+			{
+				int t;
+
+				t = scalex; scalex = scaley; scaley = t;
+			}
+
+			if (bitmap->depth == 16)
+			{
+				for (y = 0;y < copy->height;y++)
+				{
+					for (x = 0;x < copy->width;x++)
+					{
+						((UINT16 *)copy->line[y])[x] = ((UINT16 *)bitmap->line[sy+(y/scaley)])[sx +(x/scalex)];
+					}
+				}
+			}
+			else
+			{
+				for (y = 0;y < copy->height;y++)
+				{
+					for (x = 0;x < copy->width;x++)
+					{
+						copy->line[y][x] = bitmap->line[sy+(y/scaley)][sx +(x/scalex)];
+					}
+				}
+			}
 
 			png_write_bitmap(fp,copy);
 			bitmap_free(copy);

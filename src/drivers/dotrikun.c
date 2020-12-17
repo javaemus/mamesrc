@@ -73,13 +73,13 @@ INPUT_PORTS_START( dotrikun )
 INPUT_PORTS_END
 
 
-static struct MachineDriver machine_driver_dotrikun =
+static const struct MachineDriver machine_driver_dotrikun =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			4000000,		 /* 4 Mhz */
+			4000000,		 /* 4 MHz */
 			readmem, writemem, readport, writeport,
 			interrupt, 1
 		}

@@ -483,25 +483,25 @@ static int ddragon_interrupt(void)
 
 
 
-static struct MachineDriver machine_driver_ddragon =
+static const struct MachineDriver machine_driver_ddragon =
 {
 	/* basic machine hardware */
 	{
 		{
  			CPU_HD6309,
-			3579545,	/* 3.579545 Mhz */
+			3579545,	/* 3.579545 MHz */
 			readmem,writemem,0,0,
 			ddragon_interrupt,1
 		},
 		{
  			CPU_HD63701,
-			2000000, /* 2 Mhz ???*/
+			2000000, /* 2 MHz ???*/
 			sub_readmem,sub_writemem,0,0,
 			ignore_interrupt,0
 		},
 		{
  			CPU_HD6309 | CPU_AUDIO_CPU,	/* ? */
-			3579545,	/* 3.579545 Mhz */
+			3579545,	/* 3.579545 MHz */
 			sound_readmem,sound_writemem,0,0,
 			ignore_interrupt,0 /* irq on command */
 		}
@@ -535,25 +535,25 @@ static struct MachineDriver machine_driver_ddragon =
 	}
 };
 
-static struct MachineDriver machine_driver_ddragonb =
+static const struct MachineDriver machine_driver_ddragonb =
 {
 	/* basic machine hardware */
 	{
 		{
  			CPU_HD6309,
-			3579545,	/* 3.579545 Mhz */
+			3579545,	/* 3.579545 MHz */
 			readmem,writemem,0,0,
 			ddragon_interrupt,1
 		},
 		{
  			CPU_HD6309,	/* ? */
-			12000000 / 3, /* 4 Mhz */
+			12000000 / 3, /* 4 MHz */
 			sub_readmem,sub_writemem,0,0,
 			ignore_interrupt,0
 		},
 		{
  			CPU_HD6309 | CPU_AUDIO_CPU,	/* ? */
-			3579545,	/* 3.579545 Mhz */
+			3579545,	/* 3.579545 MHz */
 			sound_readmem,sound_writemem,0,0,
 			ignore_interrupt,0 /* irq on command */
 		}
@@ -587,25 +587,25 @@ static struct MachineDriver machine_driver_ddragonb =
 	}
 };
 
-static struct MachineDriver machine_driver_ddragon2 =
+static const struct MachineDriver machine_driver_ddragon2 =
 {
 	/* basic machine hardware */
 	{
 		{
  			CPU_HD6309,
-			3579545,	/* 3.579545 Mhz */
+			3579545,	/* 3.579545 MHz */
 			readmem,dd2_writemem,0,0,
 			ddragon_interrupt,1
 		},
 		{
 			CPU_Z80,
-			12000000 / 3, /* 4 Mhz */
+			12000000 / 3, /* 4 MHz */
 			dd2_sub_readmem,dd2_sub_writemem,0,0,
 			ignore_interrupt,0
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			3579545,	/* 3.579545 Mhz */
+			3579545,	/* 3.579545 MHz */
 			dd2_sound_readmem,dd2_sound_writemem,0,0,
 			ignore_interrupt,0
 		}

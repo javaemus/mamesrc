@@ -816,13 +816,13 @@ static struct VLM5030interface vlm5030_interface =
 
 
 #define MACHINE_DRIVER(NAME,GFX,COLORTABLE)											\
-static struct MachineDriver machine_driver_##NAME =									\
+static const struct MachineDriver machine_driver_##NAME =									\
 {																					\
 	/* basic machine hardware */													\
 	{																				\
 		{																			\
 			CPU_Z80,																\
-			8000000/2,	/* 4 Mhz */													\
+			8000000/2,	/* 4 MHz */													\
 			readmem,writemem,readport,writeport,									\
 			nmi_interrupt,1															\
 		},																			\

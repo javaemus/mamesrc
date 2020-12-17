@@ -82,7 +82,7 @@ static WRITE_HANDLER( rallyx_coin_lockout_w )
 
 static WRITE_HANDLER( rallyx_leds_w )
 {
-	osd_led_w(offset,data);
+	set_led_status(offset,data & 1);
 }
 
 static WRITE_HANDLER( rallyx_play_sound_w )
@@ -308,13 +308,13 @@ static struct Samplesinterface samples_interface =
 
 
 
-static struct MachineDriver machine_driver_rallyx =
+static const struct MachineDriver machine_driver_rallyx =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz ? */
+			3072000,	/* 3.072 MHz ? */
 			readmem,writemem,0,writeport,
 			interrupt,1
 		}

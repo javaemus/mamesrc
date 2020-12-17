@@ -639,13 +639,13 @@ static struct Samplesinterface zaxxon_samples_interface =
 };
 
 
-static struct MachineDriver machine_driver_zaxxon =
+static const struct MachineDriver machine_driver_zaxxon =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz ?? */
+			3072000,	/* 3.072 MHz ?? */
 			readmem,writemem,0,0,
 			zaxxon_interrupt,1
 		}
@@ -676,13 +676,13 @@ static struct MachineDriver machine_driver_zaxxon =
 	}
 };
 
-static struct MachineDriver machine_driver_futspy =
+static const struct MachineDriver machine_driver_futspy =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz ?? */
+			3072000,	/* 3.072 MHz ?? */
 			readmem,futspy_writemem,0,0,
 			zaxxon_interrupt,1
 		}
@@ -713,13 +713,13 @@ static struct MachineDriver machine_driver_futspy =
 	}
 };
 
-static struct MachineDriver machine_driver_razmataz =
+static const struct MachineDriver machine_driver_razmataz =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz ?? */
+			3072000,	/* 3.072 MHz ?? */
 			razmataz_readmem,razmataz_writemem,0,0,
 			zaxxon_interrupt,1
 		}

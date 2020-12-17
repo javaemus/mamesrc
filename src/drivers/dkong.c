@@ -951,19 +951,19 @@ static struct Samplesinterface dkongjr_samples_interface =
 	dkongjr_sample_names
 };
 
-static struct MachineDriver machine_driver_radarscp =
+static const struct MachineDriver machine_driver_radarscp =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz (?) */
+			3072000,	/* 3.072 MHz (?) */
 			readmem,radarscp_writemem,0,0,
 			nmi_interrupt,1
 		},
 		{
 			CPU_I8035 | CPU_AUDIO_CPU,
-			6000000/15,	/* 6Mhz crystal */
+			6000000/15,	/* 6MHz crystal */
 			readmem_sound,writemem_sound,readport_sound,writeport_sound,
 			ignore_interrupt,1
 		}
@@ -978,7 +978,7 @@ static struct MachineDriver machine_driver_radarscp =
 	256+2, 64*4,	/* two extra colors for stars and radar grid */
 	dkong_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY|VIDEO_MODIFIES_PALETTE,
+	VIDEO_TYPE_RASTER | VIDEO_MODIFIES_PALETTE,
 	0,
 	dkong_vh_start,
 	generic_vh_stop,
@@ -998,19 +998,19 @@ static struct MachineDriver machine_driver_radarscp =
 	}
 };
 
-static struct MachineDriver machine_driver_dkong =
+static const struct MachineDriver machine_driver_dkong =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz (?) */
+			3072000,	/* 3.072 MHz (?) */
 			readmem,dkong_writemem,0,0,
 			nmi_interrupt,1
 		},
 		{
 			CPU_I8035 | CPU_AUDIO_CPU,
-			6000000/15,	/* 6Mhz crystal */
+			6000000/15,	/* 6MHz crystal */
 			readmem_sound,writemem_sound,readport_sound,writeport_sound,
 			ignore_interrupt,1
 		}
@@ -1025,7 +1025,7 @@ static struct MachineDriver machine_driver_dkong =
 	256, 64*4,
 	dkong_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	dkong_vh_start,
 	generic_vh_stop,
@@ -1050,7 +1050,7 @@ static int hunchbkd_interrupt(void)
 	return 0x03;	/* hunchbkd S2650 interrupt vector */
 }
 
-static struct MachineDriver machine_driver_hunchbkd =
+static const struct MachineDriver machine_driver_hunchbkd =
 {
 	/* basic machine hardware */
 	{
@@ -1062,7 +1062,7 @@ static struct MachineDriver machine_driver_hunchbkd =
 		},
         {
 			CPU_I8035 | CPU_AUDIO_CPU,
-			6000000/15,	/* 6Mhz crystal */
+			6000000/15,	/* 6MHz crystal */
 			readmem_sound,writemem_sound,readport_hunchbkd_sound,writeport_sound,
 			ignore_interrupt,1
 		}
@@ -1077,7 +1077,7 @@ static struct MachineDriver machine_driver_hunchbkd =
 	256, 64*4,
 	dkong_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	dkong_vh_start,
 	generic_vh_stop,
@@ -1099,7 +1099,7 @@ int herbiedk_interrupt(void)
 	return ignore_interrupt();
 }
 
-static struct MachineDriver machine_driver_herbiedk =
+static const struct MachineDriver machine_driver_herbiedk =
 {
 	/* basic machine hardware */
 	{
@@ -1111,7 +1111,7 @@ static struct MachineDriver machine_driver_herbiedk =
 		},
         {
 			CPU_I8035 | CPU_AUDIO_CPU,
-			6000000/15,	/* 6Mhz crystal */
+			6000000/15,	/* 6MHz crystal */
 			readmem_sound,writemem_sound,readport_hunchbkd_sound,writeport_sound,
 			ignore_interrupt,1
 		}
@@ -1126,7 +1126,7 @@ static struct MachineDriver machine_driver_herbiedk =
 	256, 64*4,
 	dkong_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	dkong_vh_start,
 	generic_vh_stop,
@@ -1142,19 +1142,19 @@ static struct MachineDriver machine_driver_herbiedk =
 	}
 };
 
-static struct MachineDriver machine_driver_dkongjr =
+static const struct MachineDriver machine_driver_dkongjr =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			3072000,	/* 3.072 Mhz (?) */
+			3072000,	/* 3.072 MHz (?) */
 			readmem,dkongjr_writemem,0,0,
 			nmi_interrupt,1
 		},
 		{
 			CPU_I8035 | CPU_AUDIO_CPU,
-			6000000/15,	/* 6Mhz crystal */
+			6000000/15,	/* 6MHz crystal */
 			readmem_sound,writemem_sound,readport_sound,writeport_sound,
 			ignore_interrupt,1
 		}
@@ -1169,7 +1169,7 @@ static struct MachineDriver machine_driver_dkongjr =
 	256, 64*4,
 	dkong_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	dkong_vh_start,
 	generic_vh_stop,
@@ -1199,13 +1199,13 @@ static struct NESinterface nes_interface =
 };
 
 
-static struct MachineDriver machine_driver_dkong3 =
+static const struct MachineDriver machine_driver_dkong3 =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			8000000/2,	/* 4 Mhz */
+			8000000/2,	/* 4 MHz */
 			dkong3_readmem,dkong3_writemem,0,dkong3_writeport,
 			nmi_interrupt,1
 		},
@@ -1232,7 +1232,7 @@ static struct MachineDriver machine_driver_dkong3 =
 	256, 64*4,
 	dkong3_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	dkong_vh_start,
 	generic_vh_stop,

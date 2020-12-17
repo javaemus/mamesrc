@@ -219,13 +219,13 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 
 
 
-static struct MachineDriver machine_driver_safarir =
+static const struct MachineDriver machine_driver_safarir =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_8080,
-			3072000,	/* 3 Mhz ? */								\
+			3072000,	/* 3 MHz ? */								\
 			readmem,writemem,0,0,
 			ignore_interrupt,1
 		}

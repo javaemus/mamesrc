@@ -257,7 +257,7 @@ static READ_HANDLER( sound_hardware_r )
 	switch( offset ) {
 		case 0:
 			data = meadows_0c00;
-#if VERBOSE
+#if 0
             {
 				static int last_data = 0;
 				if (data != last_data) {
@@ -443,7 +443,7 @@ static struct CustomSound_interface custom_interface =
 
 
 
-static struct MachineDriver machine_driver_deadeye =
+static const struct MachineDriver machine_driver_deadeye =
 {
 	/* basic machine hardware */
 	{
@@ -492,7 +492,7 @@ static struct MachineDriver machine_driver_deadeye =
     }
 };
 
-static struct MachineDriver machine_driver_gypsyjug =
+static const struct MachineDriver machine_driver_gypsyjug =
 {
 	/* basic machine hardware */
 	{

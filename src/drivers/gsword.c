@@ -550,7 +550,7 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 static struct AY8910interface ay8910_interface =
 {
 	2,		/* 2 chips */
-	1500000,	/* 1.5 MHZ */
+	1500000,	/* 1.5 MHz */
 	{ 30, 30 },
 	{ 0,0 },
 	{ 0,0 },
@@ -569,7 +569,7 @@ static struct MSM5205interface msm5205_interface =
 
 
 
-static struct MachineDriver machine_driver_gsword =
+static const struct MachineDriver machine_driver_gsword =
 {
 	/* basic machine hardware */
 	{

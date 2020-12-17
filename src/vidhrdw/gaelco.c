@@ -1,39 +1,23 @@
-#include "driver.h"
-#include "vidhrdw/generic.h"
-#include "tilemap.h"
-
-unsigned char *splash_vregs;
-unsigned char *splash_videoram;
-unsigned char *splash_spriteram;
-unsigned char *splash_pixelram;
-
-static struct tilemap *screen0, *screen1;
-static struct osd_bitmap *screen2;
-
 /***************************************************************************
 
-	Palette
+  Gaelco Type 1 Video Hardware
+
+  Functions to emulate the video hardware of the machine
 
 ***************************************************************************/
 
-WRITE_HANDLER( paletteram_xRRRRxGGGGxBBBBx_word_w )
-{
-	int r,g,b;
-	int oldword = READ_WORD(&paletteram[offset]);
-	int newword = COMBINE_WORD(oldword,data);
+#include "driver.h"
+#include "tilemap.h"
+#include "vidhrdw/generic.h"
 
-	WRITE_WORD(&paletteram[offset],newword);
+unsigned char *gaelco_vregs;
+unsigned char *gaelco_videoram;
+unsigned char *gaelco_spriteram;
 
-	r = (newword >> 11) & 0x0f;
-	g = (newword >>  6) & 0x0f;
-	b = (newword >>  1) & 0x0f;
+int sprite_count[5];
+int *sprite_table[5];
+static struct tilemap *pant[2];
 
-	r = (r << 4) | r;
-	g = (g << 4) | g;
-	b = (b << 4) | b;
-
-	palette_change_color(offset >> 1, r, g, b);
-}
 
 /***************************************************************************
 
@@ -41,24 +25,46 @@ WRITE_HANDLER( paletteram_xRRRRxGGGGxBBBBx_word_w )
 
 ***************************************************************************/
 
-static void get_tile_info_screen0(int tile_index)
-{
-	unsigned short data = READ_WORD(&splash_videoram[2*tile_index]);
-	unsigned char attr = data >> 8;
-	unsigned char code = data & 0xff;
+/*
+	Tile format
+	-----------
 
-	SET_TILE_INFO(0, code + ((0x20 + (attr & 0x0f)) << 8), (attr & 0xf0) >> 4);
+	Screen 0 & 1: (32*32, 16x16 tiles)
+
+	Byte | Bit(s)			 | Description
+	-----+-FEDCBA98-76543210-+--------------------------
+	  0  | -------- -------x | flip x
+	  0  | -------- ------x- | flip y
+	  0  | -------- xxxxxx-- | code (low 6 bits)
+	  0  | xxxxxxxx -------- | code (high 8 bits)
+	  2  | -------- --xxxxxx | color
+	  2	 | -------- xx------ | priority
+	  2  | xxxxxxxx -------- | not used
+*/
+
+static void get_tile_info_gaelco_screen0(int tile_index)
+{
+	int data = READ_WORD(&gaelco_videoram[tile_index << 2]);
+	int data2 = READ_WORD(&gaelco_videoram[(tile_index << 2) + 2]);
+	int code = ((data & 0xfffc) >> 2);
+
+	tile_info.flags = TILE_FLIPYX(data & 0x03);
+	tile_info.priority = (data2 >> 6) & 0x03;
+
+	SET_TILE_INFO(1, 0x4000 + code, data2 & 0x3f);
 }
 
-static void get_tile_info_screen1(int tile_index)
+
+static void get_tile_info_gaelco_screen1(int tile_index)
 {
-	unsigned short data = READ_WORD(&splash_videoram[2*tile_index+0x1000]);
-	unsigned char attr = data >> 8;
-	unsigned char code = data & 0xff;
+	int data = READ_WORD(&gaelco_videoram[0x1000 + (tile_index << 2)]);
+	int data2 = READ_WORD(&gaelco_videoram[0x1000 + (tile_index << 2) + 2]);
+	int code = ((data & 0xfffc) >> 2);
 
-	tile_info.flags = TILE_FLIPXY(code & 0x03);
+	tile_info.flags = TILE_FLIPYX(data & 0x03);
+	tile_info.priority = (data2 >> 6) & 0x03;
 
-	SET_TILE_INFO(1, (code >> 2) + ((0x30 + (attr & 0x0f)) << 6), (attr & 0xf0) >> 4);
+	SET_TILE_INFO(1, 0x4000 + code, data2 & 0x3f);
 }
 
 /***************************************************************************
@@ -67,61 +73,81 @@ static void get_tile_info_screen1(int tile_index)
 
 ***************************************************************************/
 
-READ_HANDLER( splash_vram_r )
+READ_HANDLER( gaelco_vram_r )
 {
-	return READ_WORD(&splash_videoram[offset]);
+	return READ_WORD(&gaelco_videoram[offset]);
 }
 
-WRITE_HANDLER( splash_vram_w )
+WRITE_HANDLER( gaelco_vram_w )
 {
-	COMBINE_WORD_MEM(&splash_videoram[offset],data);
-	if (offset < 0x1000){	/* Screen 0 */
-		tilemap_mark_tile_dirty(screen0,offset/2);
-	}
-	else{	/* Screen 1 */
-		offset -= 0x1000;
-		tilemap_mark_tile_dirty(screen1,offset/2);
-	}
-}
-
-READ_HANDLER( splash_pixelram_r )
-{
-	return READ_WORD(&splash_pixelram[offset]);
-}
-
-WRITE_HANDLER( splash_pixelram_w )
-{
-	int sx,sy,color;
-
-	COMBINE_WORD_MEM(&splash_pixelram[offset],data);
-
-	sx = (offset >> 1) & 0x1ff;	//(offset/2) % 512;
-	sy = (offset >> 10);		//(offset/2) / 512;
-
-	color = READ_WORD(&splash_pixelram[offset]);
-
-	plot_pixel(screen2, sx-9, sy, Machine->pens[0x300 + (color & 0xff)]);
+	COMBINE_WORD_MEM(&gaelco_videoram[offset],data);
+	tilemap_mark_tile_dirty(pant[offset >> 12],(offset & 0x0fff) >> 2);
 }
 
 /***************************************************************************
 
-	Start the video hardware emulation.
+	Start/Stop the video hardware emulation.
 
 ***************************************************************************/
 
-int splash_vh_start(void)
+void gaelco_vh_stop(void)
 {
-	screen0 = tilemap_create(get_tile_info_screen0,tilemap_scan_rows,TILEMAP_TRANSPARENT, 8, 8,64,32);
-	screen1 = tilemap_create(get_tile_info_screen1,tilemap_scan_rows,TILEMAP_TRANSPARENT,16,16,32,32);
-	screen2 = bitmap_alloc (512, 256);
+	int i;
 
-	if (!screen0 || !screen1 || !screen2)
+	for (i = 0; i < 5; i++){
+		if (sprite_table[i])
+			free(sprite_table[i]);
+		sprite_table[i] = NULL;
+	}
+}
+
+int bigkarnk_vh_start(void)
+{
+	int i;
+
+	pant[0] = tilemap_create(get_tile_info_gaelco_screen0,tilemap_scan_rows,TILEMAP_SPLIT,16,16,32,32);
+	pant[1] = tilemap_create(get_tile_info_gaelco_screen1,tilemap_scan_rows,TILEMAP_SPLIT,16,16,32,32);
+
+	if (!pant[0] || !pant[1])
 		return 1;
 
-	screen0->transparent_pen = 0;
-	screen1->transparent_pen = 0;
+	pant[0]->transparent_pen = 0;
+	pant[1]->transparent_pen = 0;
 
-	tilemap_set_scrollx(screen0, 0, 4);
+	pant[0]->transmask[0] = 0xff01; /* pens 1-7 opaque, pens 0, 8-15 transparent */
+	pant[1]->transmask[0] = 0xff01; /* pens 1-7 opaque, pens 0, 8-15 transparent */
+
+	for (i = 0; i < 5; i++){
+		sprite_table[i] = malloc(512*sizeof(int));
+		if (!sprite_table[i]){
+			gaelco_vh_stop();
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int maniacsq_vh_start(void)
+{
+	int i;
+
+	pant[0] = tilemap_create(get_tile_info_gaelco_screen0,tilemap_scan_rows,TILEMAP_TRANSPARENT,16,16,32,32);
+	pant[1] = tilemap_create(get_tile_info_gaelco_screen1,tilemap_scan_rows,TILEMAP_TRANSPARENT,16,16,32,32);
+
+	if (!pant[0] || !pant[1])
+		return 1;
+
+	pant[0]->transparent_pen = 0;
+	pant[1]->transparent_pen = 0;
+
+	for (i = 0; i < 5; i++){
+		sprite_table[i] = malloc(512*sizeof(int));
+		if (!sprite_table[i]){
+			gaelco_vh_stop();
+			return 1;
+		}
+	}
 
 	return 0;
 }
@@ -129,68 +155,182 @@ int splash_vh_start(void)
 
 /***************************************************************************
 
+	Sprites
+
+***************************************************************************/
+
+static void gaelco_sort_sprites(void)
+{
+	int i;
+
+	sprite_count[0] = 0;
+	sprite_count[1] = 0;
+	sprite_count[2] = 0;
+	sprite_count[3] = 0;
+	sprite_count[4] = 0;
+
+	for (i = 6; i < 0x1000 - 6; i += 8){
+		int color = (READ_WORD(&gaelco_spriteram[i+4]) & 0x7e00) >> 9;
+		int priority = (READ_WORD(&gaelco_spriteram[i]) & 0x3000) >> 12;
+
+		/* palettes 0x38-0x3f are used for high priority sprites in Big Karnak */
+		if (color >= 0x38){
+			sprite_table[4][sprite_count[4]] = i;
+			sprite_count[4]++;
+		}
+
+		/* save sprite number in the proper array for later */
+		sprite_table[priority][sprite_count[priority]] = i;
+		sprite_count[priority]++;
+	}
+}
+
+/*
+	Sprite Format
+	-------------
+
+	Byte | Bit(s)			 | Description
+	-----+-FEDCBA98-76543210-+--------------------------
+	  0  | -------- xxxxxxxx | y position
+	  0  | -----xxx -------- | not used
+	  0  | ----x--- -------- | sprite size
+	  0  | --xx---- -------- | sprite priority
+	  0  | -x------ -------- | flipx
+	  0  | x------- -------- | flipy
+	  2  | xxxxxxxx xxxxxxxx | not used
+	  4  | -------x xxxxxxxx | x position
+	  4  | -xxxxxx- -------- | sprite color
+	  6	 | -------- ------xx | sprite code (8x8 cuadrant)
+	  6  | xxxxxxxx xxxxxx-- | sprite code
+*/
+
+static void gaelco_draw_sprites(struct osd_bitmap *bitmap, int pri)
+{
+	int j, x, y, ex, ey;
+	const struct GfxElement *gfx = Machine->gfx[0];
+
+	static int x_offset[2] = {0x0,0x2};
+	static int y_offset[2] = {0x0,0x1};
+
+	for (j = 0; j < sprite_count[pri]; j++){
+		int i = sprite_table[pri][j];
+		int sx = READ_WORD(&gaelco_spriteram[i+4]) & 0x01ff;
+		int sy = (240 - (READ_WORD(&gaelco_spriteram[i]) & 0x00ff)) & 0x00ff;
+		int number = READ_WORD(&gaelco_spriteram[i+6]);
+		int color = (READ_WORD(&gaelco_spriteram[i+4]) & 0x7e00) >> 9;
+		int attr = (READ_WORD(&gaelco_spriteram[i]) & 0xfe00) >> 9;
+
+		int xflip = attr & 0x20;
+		int yflip = attr & 0x40;
+		int spr_size;
+
+		if (attr & 0x04){
+			spr_size = 1;
+		}
+		else{
+			spr_size = 2;
+			number &= (~3);
+		}
+
+		for (y = 0; y < spr_size; y++){
+			for (x = 0; x < spr_size; x++){
+
+				ex = xflip ? (spr_size-1-x) : x;
+				ey = yflip ? (spr_size-1-y) : y;
+
+				drawgfx(bitmap,gfx,number + x_offset[ex] + y_offset[ey],
+						color,xflip,yflip,
+						sx-0x0f+x*8,sy+y*8,
+						&Machine->visible_area,TRANSPARENCY_PEN,0);
+			}
+		}
+	}
+}
+
+/***************************************************************************
+
 	Display Refresh
 
 ***************************************************************************/
 
-/*
- * Sprite Format
- * -------------
- *
- * Byte | Bit(s)   | Description
- * -----+-76543210-+--------------------------
- *   0  | xxxxxxxx | sprite code (low 8 bits)
- *   2  | xxxxxxxx | y position
- *   4  | xxxxxxxx | x position (low 8 bits)
- *   6  | x------- | flip y
- *   6  | -x------ | flip x
- *   6  | --xx---- | unknown
- *   6  | ----xxxx | sprite code (high 4 bits)
- * 801	| x------- | x position (high bit)
- * 801	| -xxx---- | unknown
- * 801	| ----xxxx | color
-*/
-
-static void draw_sprites(struct osd_bitmap *bitmap)
-{
-	int i;
-	const struct GfxElement *gfx = Machine->gfx[1];
-
-	for (i = 0; i < 0x800; i += 8){
-		int sx = READ_WORD(&splash_spriteram[i+4]) & 0xff;						/* x position */
-		int sy = 256 - (READ_WORD(&splash_spriteram[i+2]) & 0xff);				/* y position */
-		int attr = READ_WORD(&splash_spriteram[i+6]) & 0xff;					/* attributes */
-		int attr2 = READ_WORD(&splash_spriteram[i+0x800]) >> 8;				/* attributes 2 */
-		int number = (READ_WORD(&splash_spriteram[i]) & 0xff) + (attr & 0xf)*256;/* sprite number */
-
-		if (attr2 & 0x80) sx += 256;
-
-		drawgfx(bitmap,gfx,
-			number,
-			0x10 + (attr2 & 0x0f),
-			attr & 0x40, attr & 0x80,
-			sx-8,sy-16,
-			&Machine->visible_area,
-			TRANSPARENCY_PEN,0);
-	}
-}
-
-void splash_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+void maniacsq_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	/* set scroll registers */
-	tilemap_set_scrolly(screen0, 0, READ_WORD(&splash_vregs[0]));
-	tilemap_set_scrolly(screen1, 0, READ_WORD(&splash_vregs[2]));
+	tilemap_set_scrolly(pant[0], 0, READ_WORD(&gaelco_vregs[0]));
+	tilemap_set_scrollx(pant[0], 0, READ_WORD(&gaelco_vregs[2])+4);
+	tilemap_set_scrolly(pant[1], 0, READ_WORD(&gaelco_vregs[4]));
+	tilemap_set_scrollx(pant[1], 0, READ_WORD(&gaelco_vregs[6]));
 
 	tilemap_update(ALL_TILEMAPS);
+	gaelco_sort_sprites();
 
 	if (palette_recalc())
 		tilemap_mark_all_pixels_dirty(ALL_TILEMAPS);
 
 	tilemap_render(ALL_TILEMAPS);
 
-	copybitmap(bitmap,screen2,0,0,0,0,&Machine->visible_area,TRANSPARENCY_NONE,0);
 
-	tilemap_draw(bitmap,screen1,0);
-	draw_sprites(bitmap);
-	tilemap_draw(bitmap,screen0,0);
+	fillbitmap( bitmap, Machine->pens[0], &Machine->visible_area );
+
+	tilemap_draw(bitmap,pant[1],3);
+	tilemap_draw(bitmap,pant[0],3);
+	gaelco_draw_sprites(bitmap,3);
+
+	tilemap_draw(bitmap,pant[1],2);
+	tilemap_draw(bitmap,pant[0],2);
+	gaelco_draw_sprites(bitmap,2);
+
+	tilemap_draw(bitmap,pant[1],1);
+	tilemap_draw(bitmap,pant[0],1);
+	gaelco_draw_sprites(bitmap,1);
+
+	tilemap_draw(bitmap,pant[1],0);
+	tilemap_draw(bitmap,pant[0],0);
+	gaelco_draw_sprites(bitmap,0);
+}
+
+void bigkarnk_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+{
+	/* set scroll registers */
+	tilemap_set_scrolly(pant[0], 0, READ_WORD(&gaelco_vregs[0]));
+	tilemap_set_scrollx(pant[0], 0, READ_WORD(&gaelco_vregs[2])+4);
+	tilemap_set_scrolly(pant[1], 0, READ_WORD(&gaelco_vregs[4]));
+	tilemap_set_scrollx(pant[1], 0, READ_WORD(&gaelco_vregs[6]));
+
+	tilemap_update(ALL_TILEMAPS);
+	gaelco_sort_sprites();
+
+	if (palette_recalc())
+		tilemap_mark_all_pixels_dirty(ALL_TILEMAPS);
+
+	tilemap_render(ALL_TILEMAPS);
+
+
+	fillbitmap( bitmap, Machine->pens[0], &Machine->visible_area );
+
+	tilemap_draw(bitmap,pant[1],TILEMAP_BACK | 3);
+	tilemap_draw(bitmap,pant[0],TILEMAP_BACK | 3);
+	gaelco_draw_sprites(bitmap,3);
+	tilemap_draw(bitmap,pant[1],TILEMAP_FRONT | 3);
+	tilemap_draw(bitmap,pant[0],TILEMAP_FRONT | 3);
+
+	tilemap_draw(bitmap,pant[1],TILEMAP_BACK | 2);
+	tilemap_draw(bitmap,pant[0],TILEMAP_BACK | 2);
+	gaelco_draw_sprites(bitmap,2);
+	tilemap_draw(bitmap,pant[1],TILEMAP_FRONT | 2);
+	tilemap_draw(bitmap,pant[0],TILEMAP_FRONT | 2);
+
+	tilemap_draw(bitmap,pant[1],TILEMAP_BACK | 1);
+	tilemap_draw(bitmap,pant[0],TILEMAP_BACK | 1);
+	gaelco_draw_sprites(bitmap,1);
+	tilemap_draw(bitmap,pant[1],TILEMAP_FRONT | 1);
+	tilemap_draw(bitmap,pant[0],TILEMAP_FRONT | 1);
+
+	tilemap_draw(bitmap,pant[1],TILEMAP_BACK | 0);
+	tilemap_draw(bitmap,pant[0],TILEMAP_BACK | 0);
+	gaelco_draw_sprites(bitmap,0);
+	tilemap_draw(bitmap,pant[1],TILEMAP_FRONT | 0);
+	tilemap_draw(bitmap,pant[0],TILEMAP_FRONT | 0);
+
+	gaelco_draw_sprites(bitmap,4);
 }

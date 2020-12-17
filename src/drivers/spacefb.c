@@ -372,13 +372,13 @@ static struct DACinterface dac_interface =
 	{ 100 }
 };
 
-static struct MachineDriver machine_driver_spacefb =
+static const struct MachineDriver machine_driver_spacefb =
 {
 	/* basic machine hardware */
 	{
         {
             CPU_Z80,
-            4000000,    /* 4 Mhz? */
+            4000000,    /* 4 MHz? */
             readmem,writemem,readport,writeport,
             spacefb_interrupt,2 /* two int's per frame */
         },
@@ -401,7 +401,7 @@ static struct MachineDriver machine_driver_spacefb =
 	32,32,
 	spacefb_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	generic_vh_start,
 	generic_vh_stop,

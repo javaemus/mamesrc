@@ -84,7 +84,7 @@ static void nvram_handler(void *file,int read_or_write)
 
 static WRITE_HANDLER( cloud9_led_w )
 {
-//	osd_led_w(offset,~data >> 7);
+	set_led_status(offset,~data & 0x80);
 }
 
 
@@ -232,13 +232,13 @@ static struct POKEYinterface pokey_interface =
 };
 
 
-static struct MachineDriver machine_driver_cloud9 =
+static const struct MachineDriver machine_driver_cloud9 =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6502,
-			12096000/8,	/* 1.512 Mhz?? */
+			12096000/8,	/* 1.512 MHz?? */
 			readmem,writemem,0,0,
 			interrupt,4
 		}

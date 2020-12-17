@@ -624,13 +624,13 @@ static struct GfxDecodeInfo gfxdecodeinfo[] =
 static struct SN76496interface sn76496_interface =
 {
 	4,	/* 4 chips */
-	{ 4000000, 4000000, 4000000, 4000000 },	/* 4 Mhz? */
+	{ 4000000, 4000000, 4000000, 4000000 },	/* 4 MHz? */
 	{ 25, 25, 25, 25 }
 };
 
 
 
-static struct MachineDriver machine_driver_docastle =
+static const struct MachineDriver machine_driver_docastle =
 {
 	/* basic machine hardware */
 	{
@@ -657,7 +657,7 @@ static struct MachineDriver machine_driver_docastle =
 	258, 96*16,
 	docastle_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	docastle_vh_start,
 	docastle_vh_stop,
@@ -673,19 +673,19 @@ static struct MachineDriver machine_driver_docastle =
 	}
 };
 
-static struct MachineDriver machine_driver_dorunrun =
+static const struct MachineDriver machine_driver_dorunrun =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_Z80,
-			4000000,	/* 4 Mhz */
+			4000000,	/* 4 MHz */
 			dorunrun_readmem,dorunrun_writemem,0,0,
 			interrupt,1
 		},
 		{
 			CPU_Z80,
-			4000000,	/* 4 Mhz */
+			4000000,	/* 4 MHz */
 			dorunrun_readmem2,dorunrun_writemem2,0,0,
 			interrupt,8
 		}
@@ -700,7 +700,7 @@ static struct MachineDriver machine_driver_dorunrun =
 	258, 96*16,
 	dorunrun_vh_convert_color_prom,
 
-	VIDEO_TYPE_RASTER|VIDEO_SUPPORTS_DIRTY,
+	VIDEO_TYPE_RASTER,
 	0,
 	docastle_vh_start,
 	docastle_vh_stop,

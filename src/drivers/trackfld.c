@@ -27,7 +27,6 @@ void konami1_decode(void);
 
 extern unsigned char *trackfld_scroll;
 extern unsigned char *trackfld_scroll2;
-WRITE_HANDLER( trackfld_flipscreen_w );
 void trackfld_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
 void trackfld_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 int trackfld_vh_start(void);
@@ -160,7 +159,7 @@ static struct MemoryReadAddress readmem[] =
 static struct MemoryWriteAddress writemem[] =
 {
 	{ 0x1000, 0x1000, watchdog_reset_w },
-	{ 0x1080, 0x1080, trackfld_flipscreen_w },
+	{ 0x1080, 0x1080, flip_screen_w },
 	{ 0x1081, 0x1081, konami_sh_irqtrigger_w },  /* cause interrupt on audio CPU */
 	{ 0x1083, 0x1083, MWA_NOP },  /* Coin counter 1 */
 	{ 0x1084, 0x1084, MWA_NOP },  /* Coin counter 2 */
@@ -396,19 +395,19 @@ struct VLM5030interface trackfld_vlm5030_interface =
 
 
 
-static struct MachineDriver machine_driver_tracklfd =
+static const struct MachineDriver machine_driver_tracklfd =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6809,
-			2048000,        /* 1.400 Mhz ??? */
+			2048000,        /* 1.400 MHz ??? */
 			readmem,writemem,0,0,
 			interrupt,1
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			14318180/4,	/* Z80 Clock is derived from a 14.31818 Mhz crystal */
+			14318180/4,	/* Z80 Clock is derived from a 14.31818 MHz crystal */
 			sound_readmem,sound_writemem,0,0,
 			ignore_interrupt,1	/* interrupts are triggered by the main CPU */
 		}
@@ -451,19 +450,19 @@ static struct MachineDriver machine_driver_tracklfd =
 
 /* same as the original, but uses ADPCM instead of VLM5030 */
 /* also different memory handlers do handle that */
-static struct MachineDriver machine_driver_hyprolyb =
+static const struct MachineDriver machine_driver_hyprolyb =
 {
 	/* basic machine hardware */
 	{
 		{
 			CPU_M6809,
-			2048000,        /* 1.400 Mhz ??? */
+			2048000,        /* 1.400 MHz ??? */
 			readmem,writemem,0,0,
 			interrupt,1
 		},
 		{
 			CPU_Z80 | CPU_AUDIO_CPU,
-			14318180/4,	/* Z80 Clock is derived from a 14.31818 Mhz crystal */
+			14318180/4,	/* Z80 Clock is derived from a 14.31818 MHz crystal */
 			hyprolyb_sound_readmem,hyprolyb_sound_writemem,0,0,
 			ignore_interrupt,0	/* interrupts are triggered by the main CPU */
 		}
