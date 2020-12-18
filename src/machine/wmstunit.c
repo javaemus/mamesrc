@@ -12,7 +12,7 @@
 #include "cpu/tms34010/tms34010.h"
 #include "cpu/m6809/m6809.h"
 #include "sndhrdw/williams.h"
-
+#include "wmstunit.h"
 
 
 /* constant definitions */
@@ -39,32 +39,12 @@
 	wms_speedup_base = install_mem_read16_handler(0, TOBYTE((addr) & ~0x1f), TOBYTE((addr) | 0x1f), wms_generic_speedup_3);
 
 
-/* code-related variables */
-extern data16_t *wms_code_rom;
-
 /* CMOS-related variables */
-extern data16_t *wms_cmos_ram;
 static UINT8	cmos_write_enable;
-
-/* graphics-related variables */
-extern UINT8 *	wms_gfx_rom;
-extern size_t	wms_gfx_rom_size;
-extern UINT8	wms_gfx_rom_large;
 
 /* sound-related variables */
 static UINT8	sound_type;
 static UINT8	fake_sound_state;
-
-/* speedup-related variables */
-extern offs_t 	wms_speedup_pc;
-extern offs_t 	wms_speedup_offset;
-extern offs_t 	wms_speedup_spin[3];
-extern data16_t *wms_speedup_base;
-
-
-/* speedup-related prototypes */
-extern READ16_HANDLER( wms_generic_speedup_1_16bit );
-extern READ16_HANDLER( wms_generic_speedup_3 );
 
 
 
@@ -79,23 +59,25 @@ WRITE16_HANDLER( wms_tunit_cmos_enable_w )
 	cmos_write_enable = 1;
 }
 
+
 WRITE16_HANDLER( wms_tunit_cmos_w )
 {
 	if (1)/*cmos_write_enable)*/
 	{
-		COMBINE_DATA(&wms_cmos_ram[offset]);
+		COMBINE_DATA(&((data16_t *)generic_nvram)[offset]);
 		cmos_write_enable = 0;
 	}
 	else
 	{
-		logerror("%08X:Unexpected CMOS W @ %05X\n", cpu_get_pc(), offset);
+		logerror("%08X:Unexpected CMOS W @ %05X\n", activecpu_get_pc(), offset);
 		usrintf_showmessage("Bad CMOS write");
 	}
 }
 
+
 READ16_HANDLER( wms_tunit_cmos_r )
 {
-	return wms_cmos_ram[offset];
+	return ((data16_t *)generic_nvram)[offset];
 }
 
 
@@ -134,12 +116,12 @@ static UINT8 mk_prot_index;
 
 static READ16_HANDLER( mk_prot_r )
 {
-	logerror("%08X:Protection R @ %05X = %04X\n", cpu_get_pc(), offset, mk_prot_values[mk_prot_index] << 9);
+	logerror("%08X:Protection R @ %05X = %04X\n", activecpu_get_pc(), offset, mk_prot_values[mk_prot_index] << 9);
 
 	/* just in case */
 	if (mk_prot_index >= sizeof(mk_prot_values))
 	{
-		logerror("%08X:Unexpected protection R @ %05X\n", cpu_get_pc(), offset);
+		logerror("%08X:Unexpected protection R @ %05X\n", activecpu_get_pc(), offset);
 		mk_prot_index = 0;
 	}
 
@@ -164,11 +146,11 @@ static WRITE16_HANDLER( mk_prot_w )
 		/* just in case */
 		if (i == sizeof(mk_prot_values))
 		{
-			logerror("%08X:Unhandled protection W @ %05X = %04X\n", cpu_get_pc(), offset, data);
+			logerror("%08X:Unhandled protection W @ %05X = %04X\n", activecpu_get_pc(), offset, data);
 			mk_prot_index = 0;
 		}
 
-		logerror("%08X:Protection W @ %05X = %04X\n", cpu_get_pc(), offset, data);
+		logerror("%08X:Protection W @ %05X = %04X\n", activecpu_get_pc(), offset, data);
 	}
 }
 
@@ -339,6 +321,7 @@ static void init_tunit_generic(int sound)
 			break;
 
 		case SOUND_DCS:
+			williams_dcs_init();
 			break;
 	}
 
@@ -356,7 +339,7 @@ static void init_tunit_generic(int sound)
  *
  *************************************/
 
-void init_mk(void)
+DRIVER_INIT( mk )
 {
 	/* common init */
 	init_tunit_generic(SOUND_ADPCM);
@@ -401,19 +384,19 @@ static void init_nbajam_common(int te_protection)
 		install_mem_write_handler(1, 0xfbec, 0xfc16, MWA_RAM);
 }
 
-void init_nbajam(void)
+DRIVER_INIT( nbajam )
 {
 	init_nbajam_common(0);
 	INSTALL_SPEEDUP_1_16BIT(0x010754c0, 0xff833480, 0x1008040, 0xd0, 0xb0);
 }
 
-void init_nbajam20(void)
+DRIVER_INIT( nbajam20 )
 {
 	init_nbajam_common(0);
 	INSTALL_SPEEDUP_1_16BIT(0x010754c0, 0xff833520, 0x1008040, 0xd0, 0xb0);
 }
 
-void init_nbajamte(void)
+DRIVER_INIT( nbajamte )
 {
 	init_nbajam_common(1);
 	INSTALL_SPEEDUP_1_16BIT(0x0106d480, 0xff84e480, 0x1000040, 0xd0, 0xb0);
@@ -445,13 +428,19 @@ static void init_mk2_common(void)
 	install_mem_read16_handler (0, TOBYTE(0x01def920), TOBYTE(0x01def93f), mk2_prot_const_r);
 }
 
-void init_mk2(void)
+DRIVER_INIT( mk2 )
 {
 	init_mk2_common();
 	INSTALL_SPEEDUP_3(0x01068e70, 0xff80db70, 0x105d480, 0x105d4a0, 0x105d4c0);
 }
 
-void init_mk2r14(void)
+DRIVER_INIT( mk2r21 )
+{
+	init_mk2_common();
+	INSTALL_SPEEDUP_3(0x01068e40, 0xff80db70, 0x105d480, 0x105d4a0, 0x105d4c0);
+}
+
+DRIVER_INIT( mk2r14 )
 {
 	init_mk2_common();
 	INSTALL_SPEEDUP_3(0x01068de0, 0xff80d960, 0x105d480, 0x105d4a0, 0x105d4c0);
@@ -465,7 +454,7 @@ void init_mk2r14(void)
  *
  *************************************/
 
-void wms_tunit_init_machine(void)
+MACHINE_INIT( wms_tunit )
 {
 	/* reset sound */
 	switch (sound_type)
@@ -476,7 +465,8 @@ void wms_tunit_init_machine(void)
 			break;
 
 		case SOUND_DCS:
-			williams_dcs_init(1);
+			williams_dcs_reset_w(1);
+			williams_dcs_reset_w(0);
 			break;
 	}
 }
@@ -491,7 +481,7 @@ void wms_tunit_init_machine(void)
 
 READ16_HANDLER( wms_tunit_sound_state_r )
 {
-	logerror("%08X:Sound status read\n", cpu_get_pc());
+	logerror("%08X:Sound status read\n", activecpu_get_pc());
 
 	if (sound_type == SOUND_DCS && Machine->sample_rate)
 		return williams_dcs_control_r() >> 4;
@@ -506,7 +496,7 @@ READ16_HANDLER( wms_tunit_sound_state_r )
 
 READ16_HANDLER( wms_tunit_sound_r )
 {
-	logerror("%08X:Sound data read\n", cpu_get_pc());
+	logerror("%08X:Sound data read\n", activecpu_get_pc());
 
 	if (sound_type == SOUND_DCS && Machine->sample_rate)
 		return williams_dcs_data_r();
@@ -519,7 +509,7 @@ WRITE16_HANDLER( wms_tunit_sound_w )
 	/* check for out-of-bounds accesses */
 	if (!offset)
 	{
-		logerror("%08X:Unexpected write to sound (lo) = %04X\n", cpu_get_pc(), data);
+		logerror("%08X:Unexpected write to sound (lo) = %04X\n", activecpu_get_pc(), data);
 		return;
 	}
 
@@ -537,7 +527,7 @@ WRITE16_HANDLER( wms_tunit_sound_w )
 				break;
 
 			case SOUND_DCS:
-				logerror("%08X:Sound write = %04X\n", cpu_get_pc(), data);
+				logerror("%08X:Sound write = %04X\n", activecpu_get_pc(), data);
 				williams_dcs_reset_w(~data & 0x100);
 				williams_dcs_data_w(data & 0xff);
 				/* the games seem to check for $82 loops, so this should be just barely enough */

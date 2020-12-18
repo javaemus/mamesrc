@@ -108,6 +108,86 @@ Warriorb
 
 Colscroll effects?
 
+Please can someone make sense of these DIPs from
+http://www.funtom.com/dip.html
+
+DIP 1
+
+Item Contents 1 2 3 4 5 6 7 8 Each round
+When clearing
+Physical reconditioning quantity Normally
+It is little
+It is many
+Furthermore many OFF
+ON
+OFF
+ON OFF
+OFF
+ON
+ON Static test mode Normality play
+Static test mode OFF
+ON Demonstration sound Possession
+Nothing OFF
+ON Play fee
+COIN A 1 coin 1 play
+1 coin 2 play
+2 coins 1 play
+3 coins 1 play OFF
+ON
+OFF
+ON OFF
+OFF
+ON
+ON Play fee
+COIN B 1 coin 1 play
+1 coin 2 play
+2 coins 1 play
+3 coins 1 play OFF
+ON
+OFF
+ON OFF
+OFF
+ON
+ON
+
+DIP 2
+
+Item Contents 1 2 3 4 5 6 7 8 Degree of hardness setting
+Divination (A) - > difficulty (D) Ranking B
+Ranking A
+Ranking C
+Ranking D OFF
+ON
+OFF
+ON OFF
+OFF
+ON
+ON Gold ship
+Frequency of occurrence
+Note) 1 Only 50,000pts
+Every after 70,000 the 50,000pts OFF
+ON When starting
+Power of prayer
+Note) 2 Normal
+Full power OFF
+ON Old person of puzzle
+Condition of appearance
+Note) 3 Item (crystal) acquisition time
+Regular appearance OFF
+ON Continuing Possession
+Nothing OFF
+ON Round number
+Note) 4 Normal specification
+Long specification OFF
+ON Unused OFF
+
+Note) the gold ship of 1 item appears the point number where
+Note) round it clears 2 these games it is the game where the prayer becomes strong
+every.
+When starting it decides you start with either one.
+Note) the old person of 3 puzzles appears condition because
+Note) the numbers of 4 round with normal with play contents change in 10 - 14 stages.
+When it is long, 14 stages everything is possible.
 
 ***************************************************************************/
 
@@ -118,20 +198,9 @@ Colscroll effects?
 #include "vidhrdw/taitoic.h"
 #include "sndhrdw/taitosnd.h"
 
-int darius2d_vh_start (void);
-int warriorb_vh_start (void);
-void warriorb_vh_stop (void);
-void warriorb_vh_screenrefresh (struct mame_bitmap *bitmap,int full_refresh);
-
-
-/***********************************************************
-				INTERRUPTS
-***********************************************************/
-
-static int warriorb_interrupt(void)
-{
-	return 4;
-}
+VIDEO_START( darius2d );
+VIDEO_START( warriorb );
+VIDEO_UPDATE( warriorb );
 
 
 /***********************************************************
@@ -485,9 +554,9 @@ static int subwoofer_sh_start(const struct MachineSound *msound)
 {
 	/* Adjust the lowpass filter of the first three YM2610 channels */
 
-	mixer_set_lowpass_frequency(0,100);
-	mixer_set_lowpass_frequency(1,100);
-	mixer_set_lowpass_frequency(2,100);
+	mixer_set_lowpass_frequency(0,20);
+	mixer_set_lowpass_frequency(1,20);
+	mixer_set_lowpass_frequency(2,20);
 
 	return 0;
 }
@@ -504,95 +573,67 @@ static struct CustomSound_interface subwoofer_interface =
 			     MACHINE DRIVERS
 ***********************************************************/
 
-static struct MachineDriver machine_driver_darius2d =
-{
-	{
-		{
-			CPU_M68000,
-			12000000,	/* 12 MHz ??? (Might well be 16!) */
-			darius2d_readmem,darius2d_writemem,0,0,
-			warriorb_interrupt, 1
-		},
-		{
-			CPU_Z80 | CPU_AUDIO_CPU,
-			16000000/4,	/* 4 MHz ? */
-			z80_sound_readmem, z80_sound_writemem,0,0,
-			ignore_interrupt,0	/* IRQs are triggered by the YM2610 */
-		},
-	},
-	60, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
-	1,	/* CPU slices */
-	0,
+static MACHINE_DRIVER_START( darius2d )
+
+	/* basic machine hardware */
+	MDRV_CPU_ADD(M68000, 12000000)	/* 12 MHz ??? (Might well be 16!) */
+	MDRV_CPU_MEMORY(darius2d_readmem,darius2d_writemem)
+	MDRV_CPU_VBLANK_INT(irq4_line_hold,1)
+
+	MDRV_CPU_ADD(Z80,16000000/4)
+	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)	/* 4 MHz ? */
+	MDRV_CPU_MEMORY(z80_sound_readmem,z80_sound_writemem)
+
+	MDRV_FRAMES_PER_SECOND(60)
+	MDRV_VBLANK_DURATION(DEFAULT_60HZ_VBLANK_DURATION)
 
 	/* video hardware */
-	80*8, 32*8, { 0*8, 80*8-1, 3*8, 32*8-1 },
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR)
+	MDRV_ASPECT_RATIO(8,3)
+	MDRV_SCREEN_SIZE(80*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 80*8-1, 3*8, 32*8-1)
+	MDRV_GFXDECODE(warriorb_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(4096*2)
 
-	warriorb_gfxdecodeinfo,
-	4096*2, 0,
-	0,
-
-	VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(8,3),
-	0,
-	darius2d_vh_start,
-	warriorb_vh_stop,
-	warriorb_vh_screenrefresh,
+	MDRV_VIDEO_START(darius2d)
+	MDRV_VIDEO_UPDATE(warriorb)
 
 	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		{
-			SOUND_YM2610,
-			&ym2610_interface
-		},
-		{
-			SOUND_CUSTOM,
-			&subwoofer_interface
-		}
-	}
-};
+	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
+	MDRV_SOUND_ADD(YM2610, ym2610_interface)
+	MDRV_SOUND_ADD(CUSTOM, subwoofer_interface)
+MACHINE_DRIVER_END
 
-static struct MachineDriver machine_driver_warriorb =
-{
-	{
-		{
-			CPU_M68000,
-			16000000,	/* 16 MHz ? */
-			warriorb_readmem,warriorb_writemem,0,0,
-			warriorb_interrupt, 1
-		},
-		{
-			CPU_Z80 | CPU_AUDIO_CPU,
-			16000000/4,	/* 4 MHz ? */
-			z80_sound_readmem, z80_sound_writemem,0,0,
-			ignore_interrupt,0	/* IRQs are triggered by the YM2610 */
-		},
-	},
-	60, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
-	1,	/* CPU slices */
-	0,
+
+static MACHINE_DRIVER_START( warriorb )
+
+	/* basic machine hardware */
+	MDRV_CPU_ADD(M68000, 16000000)	/* 16 MHz ? */
+	MDRV_CPU_MEMORY(warriorb_readmem,warriorb_writemem)
+	MDRV_CPU_VBLANK_INT(irq4_line_hold,1)
+
+	MDRV_CPU_ADD(Z80,16000000/4)
+	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)	/* 4 MHz ? */
+	MDRV_CPU_MEMORY(z80_sound_readmem,z80_sound_writemem)
+
+	MDRV_FRAMES_PER_SECOND(60)
+	MDRV_VBLANK_DURATION(DEFAULT_60HZ_VBLANK_DURATION)
 
 	/* video hardware */
-	80*8, 32*8, { 0*8, 80*8-1, 2*8, 32*8-1 },
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR)
+	MDRV_ASPECT_RATIO(8,3)
+	MDRV_SCREEN_SIZE(80*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 80*8-1, 2*8, 32*8-1)
+	MDRV_GFXDECODE(warriorb_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(4096*2)
 
-	warriorb_gfxdecodeinfo,
-	4096*2, 0,
-	0,
-
-	VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(8,3),
-	0,
-	warriorb_vh_start,
-	warriorb_vh_stop,
-	warriorb_vh_screenrefresh,
+	MDRV_VIDEO_START(warriorb)
+	MDRV_VIDEO_UPDATE(warriorb)
 
 	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		{
-			SOUND_YM2610B,
-			&ym2610_interface
-		}
-	}
-};
+	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
+	MDRV_SOUND_ADD(YM2610B, ym2610_interface)
+MACHINE_DRIVER_END
 
 
 /***************************************************************************
@@ -730,7 +771,7 @@ ROM_START( warriorb )
 ROM_END
 
 
-static void init_warriorb(void)
+static DRIVER_INIT( warriorb )
 {
 	state_save_register_int("sound1", 0, "sound region", &banknum);
 	state_save_register_func_postload(reset_sound_region);

@@ -156,26 +156,28 @@ extern unsigned char *galaxian_bulletsram;
 extern size_t galaxian_spriteram_size;
 extern size_t galaxian_bulletsram_size;
 
-void galaxian_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-void scramble_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
+PALETTE_INIT( galaxian );
+PALETTE_INIT( scramble );
 WRITE_HANDLER( galaxian_videoram_w );
 READ_HANDLER( galaxian_videoram_r );
 WRITE_HANDLER( galaxian_stars_enable_w );
 WRITE_HANDLER( scramble_background_enable_w );
 WRITE_HANDLER( mooncrst_gfxextend_w );
 WRITE_HANDLER( mooncrgx_gfxextend_w );
-int galaxian_plain_vh_start(void);
-int galaxian_vh_start(void);
-int mooncrst_vh_start(void);
-int  moonqsr_vh_start(void);
-int   pisces_vh_start(void);
-int gteikob2_vh_start(void);
-int  batman2_vh_start(void);
-int scramble_vh_start(void);
-int  jumpbug_vh_start(void);
-void galaxian_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
+VIDEO_START( galaxian_plain );
+VIDEO_START( galaxian );
+VIDEO_START( mooncrst );
+VIDEO_START( skybase );
+VIDEO_START( moonqsr );
+VIDEO_START( pisces );
+VIDEO_START( gteikob2 );
+VIDEO_START( batman2 );
+VIDEO_START( scramble );
+VIDEO_START( jumpbug );
+VIDEO_UPDATE( galaxian );
 WRITE_HANDLER( jumpbug_gfxbank_w );
 WRITE_HANDLER( pisces_gfxbank_w );
+WRITE_HANDLER( skybase_gfxbank_w );
 WRITE_HANDLER( galaxian_flip_screen_x_w );
 WRITE_HANDLER( galaxian_flip_screen_y_w );
 WRITE_HANDLER( gteikob2_flip_screen_x_w );
@@ -255,7 +257,7 @@ static READ_HANDLER( jumpbug_protection_r )
 	case 0x0235:  return 0x02;
 	case 0x0311:  return 0x00;  /* not checked */
 	default:
-		logerror("Unknown protection read. Offset: %04X  PC=%04X\n",0xb000+offset,cpu_get_pc());
+		logerror("Unknown protection read. Offset: %04X  PC=%04X\n",0xb000+offset,activecpu_get_pc());
 	}
 
 	return 0;
@@ -263,7 +265,7 @@ static READ_HANDLER( jumpbug_protection_r )
 
 static READ_HANDLER( checkmaj_protection_r )
 {
-	switch (cpu_get_pc())
+	switch (activecpu_get_pc())
 	{
 	case 0x0f15:  return 0xf5;
 	case 0x0f8f:  return 0x7c;
@@ -272,7 +274,7 @@ static READ_HANDLER( checkmaj_protection_r )
 	case 0x10f1:  return 0xaa;
 	case 0x1402:  return 0xaa;
 	default:
-		logerror("Unknown protection read. PC=%04X\n",cpu_get_pc());
+		logerror("Unknown protection read. PC=%04X\n",activecpu_get_pc());
 	}
 
 	return 0;
@@ -282,7 +284,7 @@ static READ_HANDLER( checkmaj_protection_r )
 static WRITE_HANDLER( checkman_sound_command_w )
 {
 	soundlatch_w (0,data);
-	cpu_cause_interrupt (1, Z80_NMI_INT);
+	cpu_set_irq_line (1, IRQ_LINE_NMI, PULSE_LINE);
 }
 
 static WRITE_HANDLER( galaxian_coin_counter_w )
@@ -349,6 +351,40 @@ static MEMORY_WRITE_START( mooncrst_writemem )
 	{ 0x9880, 0x98ff, MWA_RAM },
 	{ 0xa000, 0xa002, mooncrst_gfxextend_w },
 	{ 0xa003, 0xa003, galaxian_coin_counter_w },
+	{ 0xa004, 0xa007, galaxian_lfo_freq_w },
+	{ 0xa800, 0xa802, galaxian_background_enable_w },
+	{ 0xa803, 0xa803, galaxian_noise_enable_w },
+	{ 0xa805, 0xa805, galaxian_shoot_enable_w },
+	{ 0xa806, 0xa807, galaxian_vol_w },
+	{ 0xb000, 0xb000, interrupt_enable_w },
+	{ 0xb004, 0xb004, galaxian_stars_enable_w },
+	{ 0xb006, 0xb006, galaxian_flip_screen_x_w },
+	{ 0xb007, 0xb007, galaxian_flip_screen_y_w },
+	{ 0xb800, 0xb800, galaxian_pitch_w },
+MEMORY_END
+
+
+static MEMORY_READ_START( skybase_readmem )
+	{ 0x0000, 0x5fff, MRA_ROM },
+	{ 0x8000, 0x87ff, MRA_RAM },
+	{ 0x9000, 0x93ff, MRA_RAM },
+	{ 0x9400, 0x97ff, galaxian_videoram_r },
+	{ 0x9800, 0x98ff, MRA_RAM },
+	{ 0xa000, 0xa000, input_port_0_r },
+	{ 0xa800, 0xa800, input_port_1_r },
+	{ 0xb000, 0xb000, input_port_2_r },
+	{ 0xb800, 0xb800, watchdog_reset_r },
+MEMORY_END
+
+static MEMORY_WRITE_START( skybase_writemem )
+	{ 0x0000, 0x5fff, MWA_ROM },
+	{ 0x8000, 0x87ff, MWA_RAM },
+	{ 0x9000, 0x93ff, MWA_RAM, &galaxian_videoram },
+	{ 0x9800, 0x983f, MWA_RAM, &galaxian_attributesram },
+	{ 0x9840, 0x985f, MWA_RAM, &galaxian_spriteram, &galaxian_spriteram_size },
+	{ 0x9860, 0x987f, MWA_RAM, &galaxian_bulletsram, &galaxian_bulletsram_size },
+	{ 0x9880, 0x98ff, MWA_RAM },
+	{ 0xa002, 0xa002, skybase_gfxbank_w },
 	{ 0xa004, 0xa007, galaxian_lfo_freq_w },
 	{ 0xa800, 0xa802, galaxian_background_enable_w },
 	{ 0xa803, 0xa803, galaxian_noise_enable_w },
@@ -1921,6 +1957,49 @@ INPUT_PORTS_START( kingball )
 	PORT_DIPSETTING(    0x01, DEF_STR( On ) )
 INPUT_PORTS_END
 
+INPUT_PORTS_START( skybase )
+	PORT_START	/* IN0 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_COIN1 )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_UNUSED )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_2WAY )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_2WAY )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 )
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x20, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Cocktail ) )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_UNUSED )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNUSED )
+
+	PORT_START	/* IN1 */
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_START1 )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START2 )
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_2WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_2WAY | IPF_COCKTAIL )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNUSED )
+ 	PORT_DIPNAME( 0xc0, 0x00, DEF_STR( Coinage ) )
+	PORT_DIPSETTING(    0x80, "1C/1C (2 to start)" )
+	PORT_DIPSETTING(    0x00, DEF_STR( 1C_1C ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( 1C_2C ) )
+	PORT_DIPSETTING(    0xc0, DEF_STR( Free_Play ) )
+
+	PORT_START	/* IN2 */
+	PORT_DIPNAME( 0x03, 0x00, DEF_STR( Lives ) )
+	PORT_DIPSETTING(    0x00, "3" )
+	PORT_DIPSETTING(    0x01, "4" )
+	PORT_DIPSETTING(    0x02, "5" )
+	PORT_BITX( 0,       0x03, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Unlimited", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0c, 0x00, DEF_STR( Bonus_Life ) )
+	PORT_DIPSETTING(    0x00, "10000" )
+	PORT_DIPSETTING(    0x04, "15000" )
+	PORT_DIPSETTING(    0x08, "20000" )
+	PORT_DIPSETTING(    0x0c, "None" )
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_UNUSED )
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_UNUSED )
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_BUTTON2 )
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_BUTTON2 | IPF_COCKTAIL )
+INPUT_PORTS_END
+
 
 static struct GfxLayout galaxian_charlayout =
 {
@@ -2021,307 +2100,311 @@ static struct DACinterface kingball_dac_interface =
 };
 
 
-#define MACHINE_DRIVER(NAME, MEM, INT, GFX, VHSTART)							\
-																				\
-static const struct MachineDriver machine_driver_##NAME =						\
-{																				\
-	/* basic machine hardware */												\
-	{																			\
-		{																		\
-			CPU_Z80,															\
-			18432000/6,	/* 3.072 MHz */											\
-			MEM##_readmem,MEM##_writemem,0,0,									\
-			INT,1																\
-		}																		\
-	},																			\
-	16000.0/132/2, 2500,	/* frames per second, vblank duration */			\
-	1,	/* single CPU, no need for interleaving */								\
-	0,																			\
-																				\
-	/* video hardware */														\
-	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },									\
-	GFX##_gfxdecodeinfo,														\
-	32+2+64,8*4,	/* 32 for the characters, 2 for the bullets, 64 for the stars */	\
-	galaxian_vh_convert_color_prom,												\
-																				\
-	VIDEO_TYPE_RASTER,															\
-	0,																			\
-	VHSTART##_vh_start,															\
-	0,																			\
-	galaxian_vh_screenrefresh,													\
-																				\
-	/* sound hardware */														\
-	0,0,0,0,																	\
-	{																			\
-		{																		\
-			SOUND_CUSTOM,														\
-			&custom_interface													\
-		}																		\
-	}																			\
-};
 
-/*			   NAME      MEM  	   INTERRUPT  	  GFXDECODE VH_START */
-MACHINE_DRIVER(galaxian, galaxian, nmi_interrupt, galaxian, galaxian)
-MACHINE_DRIVER(pisces,   galaxian, nmi_interrupt, galaxian, pisces)
-MACHINE_DRIVER(gteikob2, galaxian, nmi_interrupt, galaxian, gteikob2)
-MACHINE_DRIVER(batman2,  galaxian, nmi_interrupt, galaxian, batman2)
-MACHINE_DRIVER(mooncrgx, galaxian, nmi_interrupt, galaxian, mooncrst)
-MACHINE_DRIVER(pacmanbl, galaxian, nmi_interrupt, pacmanbl, galaxian)
-MACHINE_DRIVER(devilfsg, galaxian, interrupt,  	  pacmanbl, galaxian)
-MACHINE_DRIVER(mooncrst, mooncrst, nmi_interrupt, galaxian, mooncrst)
-MACHINE_DRIVER(moonqsr,  mooncrst, nmi_interrupt, galaxian, moonqsr)
+static MACHINE_DRIVER_START( galaxian )
 
-
-static const struct MachineDriver machine_driver_scramblb =
-{
 	/* basic machine hardware */
-	{
-		{
-			CPU_Z80,
-			18432000/6,	/* 3.072 MHz */
-			scramblb_readmem,scramblb_writemem,0,0,
-			nmi_interrupt,1
-		}
-	},
-	16000.0/132/2, 2500,	/* frames per second, vblank duration */
-	1,	/* single CPU, no need for interleaving */
-	0,
+	MDRV_CPU_ADD_TAG("main", Z80, 18432000/6)	/* 3.072 MHz */
+	MDRV_CPU_MEMORY(galaxian_readmem,galaxian_writemem)
+	MDRV_CPU_VBLANK_INT(nmi_line_pulse,1)
+
+	MDRV_FRAMES_PER_SECOND(16000.0/132/2)
+	MDRV_VBLANK_DURATION(2500)
 
 	/* video hardware */
-	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
-	galaxian_gfxdecodeinfo,
-	32+2+64+1,8*4,	/* 32 for the characters, 2 for the bullets, 64 for the stars, 1 for background */
-	scramble_vh_convert_color_prom,
-
-	VIDEO_TYPE_RASTER,
-	0,
-	scramble_vh_start,
-	0,
-	galaxian_vh_screenrefresh,
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 2*8, 30*8-1)
+	MDRV_GFXDECODE(galaxian_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(32+2+64)		/* 32 for the characters, 2 for the bullets, 64 for the stars */
+	MDRV_COLORTABLE_LENGTH(8*4)
+	
+	MDRV_PALETTE_INIT(galaxian)
+	MDRV_VIDEO_START(galaxian)
+	MDRV_VIDEO_UPDATE(galaxian)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_CUSTOM,
-			&custom_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(CUSTOM, custom_interface)
+MACHINE_DRIVER_END
 
-static const struct MachineDriver machine_driver_zigzag =
-{
+
+static MACHINE_DRIVER_START( pisces )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_Z80,
-			18432000/6,	/* 3.072 MHz */
-			zigzag_readmem,zigzag_writemem,0,0,
-			nmi_interrupt,1
-		}
-	},
-	16000.0/132/2, 2500,	/* frames per second, vblank duration */
-	1,	/* single CPU, no need for interleaving */
-	0,
+	MDRV_IMPORT_FROM(galaxian)
+	
+	/* video hardware */
+	MDRV_VIDEO_START(pisces)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( gteikob2 )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	
+	/* video hardware */
+	MDRV_VIDEO_START(gteikob2)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( batman2 )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	
+	/* video hardware */
+	MDRV_VIDEO_START(batman2)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( mooncrgx )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	
+	/* video hardware */
+	MDRV_VIDEO_START(mooncrst)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( pacmanbl )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	
+	/* video hardware */
+	MDRV_GFXDECODE(pacmanbl_gfxdecodeinfo)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( devilfsg )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	MDRV_CPU_MODIFY("main")
+	MDRV_CPU_VBLANK_INT(irq0_line_hold,1)
+	
+	/* video hardware */
+	MDRV_GFXDECODE(pacmanbl_gfxdecodeinfo)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( mooncrst )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	MDRV_CPU_MODIFY("main")
+	MDRV_CPU_MEMORY(mooncrst_readmem,mooncrst_writemem)
+	
+	/* video hardware */
+	MDRV_VIDEO_START(mooncrst)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( skybase )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	MDRV_CPU_MODIFY("main")
+	MDRV_CPU_MEMORY(skybase_readmem,skybase_writemem)
+	
+	/* video hardware */
+	MDRV_VIDEO_START(skybase)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( moonqsr )
+
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(galaxian)
+	MDRV_CPU_MODIFY("main")
+	MDRV_CPU_MEMORY(mooncrst_readmem,mooncrst_writemem)
+	
+	/* video hardware */
+	MDRV_VIDEO_START(moonqsr)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( scramblb )
+
+	/* basic machine hardware */
+	MDRV_CPU_ADD(Z80,18432000/6)	/* 3.072 MHz */
+	MDRV_CPU_MEMORY(scramblb_readmem,scramblb_writemem)
+	MDRV_CPU_VBLANK_INT(nmi_line_pulse,1)
+
+	MDRV_FRAMES_PER_SECOND(16000.0/132/2)
+	MDRV_VBLANK_DURATION(2500)
 
 	/* video hardware */
-	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
-	pacmanbl_gfxdecodeinfo,
-	32+2+64,8*4,	/* 32 for the characters, 2 for the bullets, 64 for the stars */
-	galaxian_vh_convert_color_prom,
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 2*8, 30*8-1)
+	MDRV_GFXDECODE(galaxian_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(32+2+64+1)	/* 32 for the characters, 2 for the bullets, 64 for the stars, 1 for background */
+	MDRV_COLORTABLE_LENGTH(8*4)
 
-	VIDEO_TYPE_RASTER,
-	0,
-	galaxian_plain_vh_start,
-	0,
-	galaxian_vh_screenrefresh,
+	MDRV_PALETTE_INIT(scramble)
+	MDRV_VIDEO_START(scramble)
+	MDRV_VIDEO_UPDATE(galaxian)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_AY8910,
-			&jumpbug_ay8910_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(CUSTOM, custom_interface)
+MACHINE_DRIVER_END
 
-static const struct MachineDriver machine_driver_jumpbug =
-{
+
+static MACHINE_DRIVER_START( zigzag )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_Z80,
-			3072000,	/* 3.072 MHz */
-			jumpbug_readmem,jumpbug_writemem,0,0,
-			nmi_interrupt,1
-		}
-	},
-	16000.0/132/2, 2500,	/* frames per second, vblank duration */
-	1,	/* single CPU, no need for interleaving */
-	0,
+	MDRV_CPU_ADD(Z80,18432000/6)	/* 3.072 MHz */
+	MDRV_CPU_MEMORY(zigzag_readmem,zigzag_writemem)
+	MDRV_CPU_VBLANK_INT(nmi_line_pulse,1)
+
+	MDRV_FRAMES_PER_SECOND(16000.0/132/2)
+	MDRV_VBLANK_DURATION(2500)
 
 	/* video hardware */
-	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
-	galaxian_gfxdecodeinfo,
-	32+2+64,8*4,	/* 32 for the characters, 2 for the bullets, 64 for the stars */
-	galaxian_vh_convert_color_prom,
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 2*8, 30*8-1)
+	MDRV_GFXDECODE(pacmanbl_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(32+2+64)	/* 32 for the characters, 2 for the bullets, 64 for the stars */
+	MDRV_COLORTABLE_LENGTH(8*4)
 
-	VIDEO_TYPE_RASTER,
-	0,
-	jumpbug_vh_start,
-	0,
-	galaxian_vh_screenrefresh,
+	MDRV_PALETTE_INIT(galaxian)
+	MDRV_VIDEO_START(galaxian_plain)
+	MDRV_VIDEO_UPDATE(galaxian)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_AY8910,
-			&jumpbug_ay8910_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(AY8910, jumpbug_ay8910_interface)
+MACHINE_DRIVER_END
 
-static const struct MachineDriver machine_driver_checkman =
-{
+
+static MACHINE_DRIVER_START( jumpbug )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_Z80,
-			18432000/6,	/* 3.072 MHz */
-			mooncrst_readmem,checkman_writemem,0,checkman_writeport,
-			nmi_interrupt,1
-		},
-		{
-			CPU_Z80 | CPU_AUDIO_CPU,
-			1620000,	/* 1.62 MHz */
-			checkman_sound_readmem,checkman_sound_writemem,
-			checkman_sound_readport,checkman_sound_writeport,
-			interrupt,1	/* NMIs are triggered by the main CPU */
-		}
-	},
-	16000.0/132/2, 2500,	/* frames per second, vblank duration */
-	1,	/* 1 CPU slice per frame - interleaving is forced when a sound command is written */
-	0,
+	MDRV_CPU_ADD(Z80, 3072000)	/* 3.072 MHz */
+	MDRV_CPU_MEMORY(jumpbug_readmem,jumpbug_writemem)
+	MDRV_CPU_VBLANK_INT(nmi_line_pulse,1)
+
+	MDRV_FRAMES_PER_SECOND(16000.0/132/2)
+	MDRV_VBLANK_DURATION(2500)
 
 	/* video hardware */
-	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
-	galaxian_gfxdecodeinfo,
-	32+2+64,8*4,	/* 32 for the characters, 2 for the bullets, 64 for the stars */
-	galaxian_vh_convert_color_prom,
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 2*8, 30*8-1)
+	MDRV_GFXDECODE(galaxian_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(32+2+64)	/* 32 for the characters, 2 for the bullets, 64 for the stars */
+	MDRV_COLORTABLE_LENGTH(8*4)
 
-	VIDEO_TYPE_RASTER,
-	0,
-	mooncrst_vh_start,
-	0,
-	galaxian_vh_screenrefresh,
+	MDRV_PALETTE_INIT(galaxian)
+	MDRV_VIDEO_START(jumpbug)
+	MDRV_VIDEO_UPDATE(galaxian)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_CUSTOM,
-			&custom_interface
-		},
-		{
-			SOUND_AY8910,
-			&jumpbug_ay8910_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(AY8910, jumpbug_ay8910_interface)
+MACHINE_DRIVER_END
 
-static const struct MachineDriver machine_driver_checkmaj =
-{
+
+static MACHINE_DRIVER_START( checkman )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_Z80,
-			18432000/6,	/* 3.072 MHz */
-			galaxian_readmem,checkmaj_writemem,0,0,
-			nmi_interrupt,1
-		},
-		{
-			CPU_Z80 | CPU_AUDIO_CPU,
-			1620000,	/* 1.62 MHz? (used the same as Moon Cresta) */
-			checkmaj_sound_readmem,checkmaj_sound_writemem,0,0,
-			interrupt,32	/* NMIs are triggered by the main CPU */
-		}
-	},
-	16000.0/132/2, 2500,	/* frames per second, vblank duration */
-	1,	/* 1 CPU slice per frame - interleaving is forced when a sound command is written */
-	0,
+	MDRV_CPU_ADD(Z80,18432000/6)	/* 3.072 MHz */
+	MDRV_CPU_MEMORY(mooncrst_readmem,checkman_writemem)
+	MDRV_CPU_PORTS(0,checkman_writeport)
+	MDRV_CPU_VBLANK_INT(nmi_line_pulse,1)
+
+	MDRV_CPU_ADD(Z80, 1620000)
+	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)	/* 1.62 MHz */
+	MDRV_CPU_MEMORY(checkman_sound_readmem,checkman_sound_writemem)
+	MDRV_CPU_PORTS(checkman_sound_readport,checkman_sound_writeport)
+	MDRV_CPU_VBLANK_INT(irq0_line_hold,1)	/* NMIs are triggered by the main CPU */
+
+	MDRV_FRAMES_PER_SECOND(16000.0/132/2)
+	MDRV_VBLANK_DURATION(2500)
 
 	/* video hardware */
-	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
-	galaxian_gfxdecodeinfo,
-	32+2+64,8*4,	/* 32 for the characters, 2 for the bullets, 64 for the stars */
-	galaxian_vh_convert_color_prom,
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 2*8, 30*8-1)
+	MDRV_GFXDECODE(galaxian_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(32+2+64)	/* 32 for the characters, 2 for the bullets, 64 for the stars */
+	MDRV_COLORTABLE_LENGTH(8*4)
 
-	VIDEO_TYPE_RASTER,
-	0,
-	galaxian_vh_start,
-	0,
-	galaxian_vh_screenrefresh,
+	MDRV_PALETTE_INIT(galaxian)
+	MDRV_VIDEO_START(mooncrst)
+	MDRV_VIDEO_UPDATE(galaxian)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_AY8910,
-			&checkmaj_ay8910_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(CUSTOM, custom_interface)
+	MDRV_SOUND_ADD(AY8910, jumpbug_ay8910_interface)
+MACHINE_DRIVER_END
 
 
-static const struct MachineDriver machine_driver_kingball =
-{
+static MACHINE_DRIVER_START( checkmaj )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_Z80,
-			18432000/6,	/* 3.072 MHz */
-			mooncrst_readmem,kingball_writemem,0,0,
-			nmi_interrupt,1
-		},
-		{
-			CPU_Z80 | CPU_AUDIO_CPU,
-			5000000/2,	/* 2.5 MHz */
-			kingball_sound_readmem,kingball_sound_writemem,
-			kingball_sound_readport,kingball_sound_writeport,
-			ignore_interrupt,1
-		}
-	},
-	16000.0/132/2, 2500,	/* frames per second, vblank duration */
-	1,	/* 1 CPU slice per frame - interleaving is forced when a sound command is written */
-	0,
+	MDRV_CPU_ADD(Z80,18432000/6)	/* 3.072 MHz */
+	MDRV_CPU_MEMORY(galaxian_readmem,checkmaj_writemem)
+	MDRV_CPU_VBLANK_INT(nmi_line_pulse,1)
+
+	MDRV_CPU_ADD(Z80, 1620000)
+	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)	/* 1.62 MHz? (used the same as Moon Cresta) */
+	MDRV_CPU_MEMORY(checkmaj_sound_readmem,checkmaj_sound_writemem)
+	MDRV_CPU_VBLANK_INT(irq0_line_hold,32)	/* NMIs are triggered by the main CPU */
+
+	MDRV_FRAMES_PER_SECOND(16000.0/132/2)
+	MDRV_VBLANK_DURATION(2500)
 
 	/* video hardware */
-	32*8, 32*8, { 0*8, 32*8-1, 2*8, 30*8-1 },
-	galaxian_gfxdecodeinfo,
-	32+2+64,8*4,	/* 32 for the characters, 2 for the bullets, 64 for the stars */
-	galaxian_vh_convert_color_prom,
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 2*8, 30*8-1)
+	MDRV_GFXDECODE(galaxian_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(32+2+64)	/* 32 for the characters, 2 for the bullets, 64 for the stars */
+	MDRV_COLORTABLE_LENGTH(8*4)
 
-	VIDEO_TYPE_RASTER,
-	0,
-	galaxian_vh_start,
-	0,
-	galaxian_vh_screenrefresh,
+	MDRV_PALETTE_INIT(galaxian)
+	MDRV_VIDEO_START(galaxian)
+	MDRV_VIDEO_UPDATE(galaxian)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_CUSTOM,
-			&custom_interface
-		},
-		{
-			SOUND_DAC,
-			&kingball_dac_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(AY8910, checkmaj_ay8910_interface)
+MACHINE_DRIVER_END
+
+
+static MACHINE_DRIVER_START( kingball )
+
+	/* basic machine hardware */
+	MDRV_CPU_ADD(Z80,18432000/6)	/* 3.072 MHz */
+	MDRV_CPU_MEMORY(mooncrst_readmem,kingball_writemem)
+	MDRV_CPU_VBLANK_INT(nmi_line_pulse,1)
+
+	MDRV_CPU_ADD(Z80,5000000/2)
+	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)	/* 2.5 MHz */
+	MDRV_CPU_MEMORY(kingball_sound_readmem,kingball_sound_writemem)
+	MDRV_CPU_PORTS(kingball_sound_readport,kingball_sound_writeport)
+
+	MDRV_FRAMES_PER_SECOND(16000.0/132/2)
+	MDRV_VBLANK_DURATION(2500)
+
+	/* video hardware */
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 2*8, 30*8-1)
+	MDRV_GFXDECODE(galaxian_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(32+2+64)	/* 32 for the characters, 2 for the bullets, 64 for the stars */
+	MDRV_COLORTABLE_LENGTH(8*4)
+
+	MDRV_PALETTE_INIT(galaxian)
+	MDRV_VIDEO_START(galaxian)
+	MDRV_VIDEO_UPDATE(galaxian)
+
+	/* sound hardware */
+	MDRV_SOUND_ADD(CUSTOM, custom_interface)
+	MDRV_SOUND_ADD(DAC, kingball_dac_interface)
+MACHINE_DRIVER_END
 
 
 /***************************************************************************
@@ -3028,23 +3111,6 @@ ROM_START( mooncrst )
 	ROM_LOAD( "l06_prom.bin", 0x0000, 0x0020, 0x6a0c7d87 )
 ROM_END
 
-ROM_START( skybase )
-	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
-	ROM_LOAD( "skybase.9a",   0x0000, 0x1000, 0x7d954a7a )
-	ROM_LOAD( "skybase.8a",   0x1000, 0x1000, 0x7d954a7a )
-	ROM_LOAD( "skybase.7a",   0x2000, 0x1000, 0x7d954a7a )
-	ROM_LOAD( "skybase.6a",   0x3000, 0x1000, 0x7d954a7a )
-
-	ROM_REGION( 0x2000, REGION_GFX1, ROMREGION_DISPOSE )
-	ROM_LOAD( "mcs_b",        0x0000, 0x0800, 0xfb0f1f81 )
-	ROM_LOAD( "mcs_d",        0x0800, 0x0800, 0x13932a15 )
-	ROM_LOAD( "mcs_a",        0x1000, 0x0800, 0x631ebb5a )
-	ROM_LOAD( "mcs_c",        0x1800, 0x0800, 0x24cfd145 )
-
-	ROM_REGION( 0x0020, REGION_PROMS, 0 )
-	ROM_LOAD( "l06_prom.bin", 0x0000, 0x0020, 0x6a0c7d87 )
-ROM_END
-
 ROM_START( mooncrsg )
 	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
 	ROM_LOAD( "epr194",       0x0000, 0x0800, 0x0e5582b1 )
@@ -3212,6 +3278,25 @@ ROM_START( eagle2 )
 	ROM_LOAD( "l06_prom.bin", 0x0000, 0x0020, 0x6a0c7d87 )
 ROM_END
 
+ROM_START( skybase )
+	ROM_REGION( 0x10000, REGION_CPU1, 0 )	/* 64k for code */
+	ROM_LOAD( "skybase.9a",   0x0000, 0x1000, 0x845b87a5 )
+	ROM_LOAD( "skybase.8a",   0x1000, 0x1000, 0x096785c2 )
+	ROM_LOAD( "skybase.7a",   0x2000, 0x1000, 0xd50c715b )
+	ROM_LOAD( "skybase.6a",   0x3000, 0x1000, 0xf57edb27 )
+	ROM_LOAD( "skybase.5a",   0x4000, 0x1000, 0x50365d95 )
+	ROM_LOAD( "skybase.4a",   0x5000, 0x1000, 0xcbd6647f )
+
+	ROM_REGION( 0x4000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "skybase.7t",   0x0000, 0x1000, 0x9b471686 )
+	ROM_LOAD( "skybase.8t",   0x1000, 0x1000, 0x1cf723da )
+	ROM_LOAD( "skybase.10t",  0x2000, 0x1000, 0xfe02e72c )
+	ROM_LOAD( "skybase.9t",   0x3000, 0x1000, 0x0871291f )
+
+	ROM_REGION( 0x0020, REGION_PROMS, 0 )
+	ROM_LOAD( "skybase.123",  0x0000, 0x0020, 0x6a0c7d87 )
+ROM_END
+
 ROM_START( moonqsr )
 	ROM_REGION( 0x20000, REGION_CPU1, 0 )	/* 64k for code + 64k for decrypted opcodes */
 	ROM_LOAD( "mq1",          0x0000, 0x0800, 0x132c13ec )
@@ -3326,19 +3411,19 @@ ROM_END
 
 
 
-static void init_pisces(void)
+static DRIVER_INIT( pisces )
 {
 	/* the coin lockout was replaced */
 	install_mem_write_handler(0, 0x6002, 0x6002, pisces_gfxbank_w);
 }
 
-static void init_checkmaj(void)
+static DRIVER_INIT( checkmaj )
 {
 	/* for the title screen */
 	install_mem_read_handler(0, 0x3800, 0x3800, checkmaj_protection_r);
 }
 
-static void init_kingball(void)
+static DRIVER_INIT( kingball )
 {
 	install_mem_read_handler(0, 0xa000, 0xa000, kingball_IN0_r);
 	install_mem_read_handler(0, 0xa800, 0xa800, kingball_IN1_r);
@@ -3357,7 +3442,7 @@ static unsigned char decode(int data,int addr)
 	return res;
 }
 
-static void init_mooncrst(void)
+static DRIVER_INIT( mooncrst )
 {
 	int A;
 	unsigned char *rom = memory_region(REGION_CPU1);
@@ -3367,19 +3452,19 @@ static void init_mooncrst(void)
 		rom[A] = decode(rom[A],A);
 }
 
-static void init_mooncrgx(void)
+static DRIVER_INIT( mooncrgx )
 {
 	init_mooncrst();
 
 	install_mem_write_handler(0, 0x6000, 0x6002, mooncrgx_gfxextend_w);
 }
 
-static void init_moonal2(void)
+static DRIVER_INIT( moonal2 )
 {
 	install_mem_write_handler(0, 0xa000, 0xa002, MWA_NOP);
 }
 
-static void init_moonqsr(void)
+static DRIVER_INIT( moonqsr )
 {
 	int A;
 	unsigned char *rom = memory_region(REGION_CPU1);
@@ -3392,7 +3477,7 @@ static void init_moonqsr(void)
 		rom[A + diff] = decode(rom[A],A);
 }
 
-static void init_checkman(void)
+static DRIVER_INIT( checkman )
 {
 /*
                      Encryption Table
@@ -3451,7 +3536,7 @@ Pin layout is such that links can replace the PAL if encryption is not used.
 	}
 }
 
-static void init_gteikob2(void)
+static DRIVER_INIT( gteikob2 )
 {
 	init_pisces();
 
@@ -3504,6 +3589,7 @@ GAMEX(1980, fantazia, mooncrst, mooncrst, mooncrst, 0,        ROT90,  "bootleg",
 GAME( 1980, eagle,    mooncrst, mooncrst, eagle,    0,        ROT90,  "Centuri", "Eagle (set 1)" )
 GAME( 1980, eagle2,   mooncrst, mooncrst, eagle2,   0,        ROT90,  "Centuri", "Eagle (set 2)" )
 GAME( 1980, mooncrgx, mooncrst, mooncrgx, mooncrgx, mooncrgx, ROT270, "bootleg", "Moon Cresta (bootleg on Galaxian hardware)" )
+GAME( 1982, skybase,  0,        skybase,  skybase,  0,        ROT90,  "Omori Electric Co., Ltd.", "Sky Base" )
 GAME( 19??, omega,    theend,   galaxian, omega,    0,        ROT270, "bootleg?", "Omega" )
 GAME( 1980, moonqsr,  0,        moonqsr,  moonqsr,  moonqsr,  ROT90,  "Nichibutsu", "Moon Quasar" )
 GAME( 1980, moonal2,  0,        mooncrst, moonal2,  moonal2,  ROT90,  "Nichibutsu", "Moon Alien Part 2" )

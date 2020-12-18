@@ -8,6 +8,10 @@ David Graves
 (Thanks to Richard Bush and the Raine team for their
 preliminary driver.)
 
+It seems likely there are a LOT of undumped versions of this game...
+If you have access to a board, please check the rom numbers to see if
+any are different from the ones listed below.
+
 				*****
 
 World Grand Prix runs on hardware which is pretty different from the
@@ -21,8 +25,8 @@ there's a "piv" tilemap generator, which creates three scrollable
 row-scrollable zoomable 64x64 tilemaps composed of 16x16 tiles.
 
 As well as these six tilemap layers, there is a sprite layer with
-zoomable / rotatable sprites. Big sprites are created from 16x16 gfx
-chunks via a sprite mapping area in RAM.
+individually zoomable / rotatable sprites. Big sprites are created
+from 16x16 gfx chunks via a sprite mapping area in RAM.
 
 The piv and sprite layers are rotatable (but not individually, only
 together).
@@ -264,12 +268,10 @@ $fcc00-$fffff empty (0xff fill)
 #include "vidhrdw/taitoic.h"
 #include "sndhrdw/taitosnd.h"
 
-int wgp_vh_start (void);
-int wgp2_vh_start (void);
-void wgp_vh_stop (void);
-void wgp_vh_screenrefresh (struct mame_bitmap *bitmap,int full_refresh);
+VIDEO_START( wgp );
+VIDEO_START( wgp2 );
+VIDEO_UPDATE( wgp );
 
-//static data16_t *wgp_ram;
 extern data16_t *wgp_spritemap;
 extern size_t    wgp_spritemap_size;
 
@@ -316,12 +318,12 @@ static WRITE16_HANDLER( cpua_ctrl_w )	/* assumes Z80 sandwiched between 68Ks */
 
 	parse_control();
 
-	logerror("CPU #0 PC %06x: write %04x to cpu control\n",cpu_get_pc(),data);
+	logerror("CPU #0 PC %06x: write %04x to cpu control\n",activecpu_get_pc(),data);
 }
 
 
 /***********************************************************
-				INTERRUPTS
+                        INTERRUPTS
 ***********************************************************/
 
 /* 68000 A */
@@ -329,48 +331,43 @@ static WRITE16_HANDLER( cpua_ctrl_w )	/* assumes Z80 sandwiched between 68Ks */
 /*
 void wgp_interrupt4(int x)
 {
-	cpu_cause_interrupt(0,4);
+	cpu_set_irq_line(0,4,HOLD_LINE);
 }
 */
 
 void wgp_interrupt6(int x)
 {
-	cpu_cause_interrupt(0,6);
+	cpu_set_irq_line(0,6,HOLD_LINE);
 }
 
 /* 68000 B */
 
 void wgp_cpub_interrupt6(int x)
 {
-	cpu_cause_interrupt(2,6);	/* assumes Z80 sandwiched between the 68Ks */
+	cpu_set_irq_line(2,6,HOLD_LINE);	/* assumes Z80 sandwiched between the 68Ks */
 }
 
 
 
 /***** Routines for particular games *****/
 
-static int wgp_interrupt(void)
-{
-	return 4;
-}
-
 /* FWIW offset of 10000,10500 on ints can get CPUB obeying the
    first CPUA command the same frame; probably not necessary */
 
-static int wgp_cpub_interrupt(void)
+static INTERRUPT_GEN( wgp_cpub_interrupt )
 {
 	timer_set(TIME_IN_CYCLES(200000-500,0),0, wgp_cpub_interrupt6);
-	return 4;
+	cpu_set_irq_line(2, 4, HOLD_LINE);
 }
 
 
 /**********************************************************
-				GAME INPUTS
+                         GAME INPUTS
 **********************************************************/
 
 static READ16_HANDLER( lan_status_r )
 {
-	logerror("CPU #2 PC %06x: warning - read lan status\n",cpu_get_pc());
+	logerror("CPU #2 PC %06x: warning - read lan status\n",activecpu_get_pc());
 
 	return  (0x4 << 8);	/* CPUB expects this in code at $104d0 (Wgp) */
 }
@@ -397,7 +394,7 @@ static WRITE16_HANDLER( rotate_port_w )
 	{
 		case 0x00:
 		{
-//logerror("CPU #0 PC %06x: warning - port %04x write %04x\n",cpu_get_pc(),port_sel,data);
+//logerror("CPU #0 PC %06x: warning - port %04x write %04x\n",activecpu_get_pc(),port_sel,data);
 
 			wgp_rotate_ctrl[port_sel] = data;
 			return;
@@ -413,19 +410,28 @@ static WRITE16_HANDLER( rotate_port_w )
 
 static READ16_HANDLER( wgp_adinput_r )
 {
-	UINT16 steer = 0x40;
+	int steer = 0x40;
+	int fake = input_port_5_word_r(0,0);
 
-	if (input_port_5_word_r(0,0) & 0x8)	/* pressing down */
-		steer = 0x0d;
+	if (!(fake &0x10))	/* Analogue steer (the real control method) */
+	{
+		/* Reduce span to 0x80 */
+		steer = ((input_port_6_word_r(0,0)) * 0x80) / 0x100;
+	}
+	else	/* Digital steer */
+	{
+		if (fake & 0x8)	/* pressing down */
+			steer = 0x20;
 
-	if (input_port_5_word_r(0,0) & 0x4)	/* pressing up */
-		steer = 0x73;
+		if (fake & 0x4)	/* pressing up */
+			steer = 0x60;
 
-	if (input_port_5_word_r(0,0) & 0x2)	/* pressing right */
-		steer = 0x00;
+		if (fake & 0x2)	/* pressing right */
+			steer = 0x00;
 
-	if (input_port_5_word_r(0,0) & 0x1)	/* pressing left */
-		steer = 0x80;
+		if (fake & 0x1)	/* pressing left */
+			steer = 0x80;
+	}
 
 	switch (offset)
 	{
@@ -455,10 +461,10 @@ static READ16_HANDLER( wgp_adinput_r )
 		}
 
 		case 0x05:
-			return input_port_6_word_r(0,0);	/* unknown */
+			return input_port_7_word_r(0,0);	/* unknown */
 	}
 
-logerror("CPU #0 PC %06x: warning - read unmapped a/d input offset %06x\n",cpu_get_pc(),offset);
+logerror("CPU #0 PC %06x: warning - read unmapped a/d input offset %06x\n",activecpu_get_pc(),offset);
 
 	return 0xff;
 }
@@ -474,7 +480,7 @@ static WRITE16_HANDLER( wgp_adinput_w )
 
 
 /**********************************************************
-				SOUND
+                          SOUND
 **********************************************************/
 
 static int banknum = -1;
@@ -507,7 +513,7 @@ READ16_HANDLER( wgp_sound_r )
 
 
 /*****************************************************************
-				 MEMORY STRUCTURES
+                         MEMORY STRUCTURES
 *****************************************************************/
 
 static MEMORY_READ16_START( wgp_readmem )
@@ -594,7 +600,7 @@ MEMORY_END
 
 
 /***********************************************************
-			 INPUT PORTS, DIPs
+                      INPUT PORTS, DIPs
 ***********************************************************/
 
 INPUT_PORTS_START( wgp )	/* Wgp2 has no "lumps" ? */
@@ -675,11 +681,14 @@ INPUT_PORTS_START( wgp )	/* Wgp2 has no "lumps" ? */
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
-	PORT_START      /* fake inputs, for steering etc. */
+	PORT_START      /* fake inputs, allowing digital steer etc. */
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT  | IPF_4WAY | IPF_PLAYER1 )
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT | IPF_4WAY | IPF_PLAYER1 )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP    | IPF_4WAY | IPF_PLAYER1 )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_DOWN  | IPF_4WAY | IPF_PLAYER1 )
+	PORT_DIPNAME( 0x10, 0x10, "Steering type" )
+	PORT_DIPSETTING(    0x10, "Digital" )
+	PORT_DIPSETTING(    0x00, "Analogue" )
 	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_BUTTON1 | IPF_PLAYER1 )	/* accel */
 	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_BUTTON2 | IPF_PLAYER1 )	/* brake */
 
@@ -689,10 +698,10 @@ INPUT_PORTS_START( wgp )	/* Wgp2 has no "lumps" ? */
    input port above, so keyboard control is feasible. */
 
 //	PORT_START	/* accel, 0-255 */
-//	PORT_ANALOG( 0xff, 0x00, IPT_AD_STICK_Y | IPF_REVERSE | IPF_PLAYER1, 20, 10, 0, 0xff)
+//	PORT_ANALOG( 0xff, 0x00, IPT_AD_STICK_Y | IPF_REVERSE | IPF_PLAYER1, 20, 25, 0, 0xff)
 
-//	PORT_START	/* steer -64 to +64 */
-//	PORT_ANALOG( 0xff, 0x00, IPT_AD_STICK_X | IPF_REVERSE | IPF_PLAYER1, 20, 10, 0, 0x80)
+	PORT_START	/* steer */
+	PORT_ANALOG( 0xff, 0x80, IPT_AD_STICK_X | IPF_REVERSE | IPF_PLAYER1, 20, 25, 0, 0xff)
 
 //	PORT_START	/* steer offset */
 
@@ -791,7 +800,7 @@ INPUT_PORTS_END
 
 
 /***********************************************************
-				GFX DECODING
+                        GFX DECODING
 ***********************************************************/
 
 static struct GfxLayout wgp_tilelayout =
@@ -840,7 +849,7 @@ static struct GfxDecodeInfo wgp_gfxdecodeinfo[] =
 
 
 /**************************************************************
-			     YM2610 (SOUND)
+                           YM2610 (SOUND)
 **************************************************************/
 
 /* handler called by the YM2610 emulator when the internal timers cause an IRQ */
@@ -866,112 +875,85 @@ static struct YM2610interface ym2610_interface =
 
 
 /***********************************************************
-			     MACHINE DRIVERS
+                      MACHINE DRIVERS
 
 Wgp has high interleaving to prevent "common ram error".
+However sync to vblank is lacking, which is causing the
+graphics glitches.
 ***********************************************************/
 
-static struct MachineDriver machine_driver_wgp =
-{
-	{
-		{
-			CPU_M68000,
-			12000000,	/* 12 MHz ??? */
-			wgp_readmem,wgp_writemem,0,0,
-			wgp_interrupt, 1
-		},
-		{																			\
-			CPU_Z80 | CPU_AUDIO_CPU,												\
-			16000000/4,	/* 4 MHz ??? */													\
-			z80_sound_readmem, z80_sound_writemem,0,0,										\
-			ignore_interrupt,0	/* IRQs are triggered by the YM2610 */				\
-		},																			\
-		{
-			CPU_M68000,
-			12000000,	/* 12 MHz ??? */
-			wgp_cpub_readmem,wgp_cpub_writemem,0,0,
-			wgp_cpub_interrupt, 1
-		},
-	},
-	60, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
-	250,	/* CPU slices */
-	0,
+static MACHINE_DRIVER_START( wgp )
+
+	/* basic machine hardware */
+	MDRV_CPU_ADD(M68000, 12000000)	/* 12 MHz ??? */
+	MDRV_CPU_MEMORY(wgp_readmem,wgp_writemem)
+	MDRV_CPU_VBLANK_INT(irq4_line_hold,1)
+	
+	MDRV_CPU_ADD(Z80, 16000000/4)	/* 4 MHz ??? */
+	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)
+	MDRV_CPU_MEMORY(z80_sound_readmem,z80_sound_writemem)
+
+	MDRV_CPU_ADD(M68000, 12000000)	/* 12 MHz ??? */
+	MDRV_CPU_MEMORY(wgp_cpub_readmem,wgp_cpub_writemem)
+	MDRV_CPU_VBLANK_INT(wgp_cpub_interrupt,1)
+
+	MDRV_FRAMES_PER_SECOND(60)
+	MDRV_VBLANK_DURATION(DEFAULT_60HZ_VBLANK_DURATION)
+	MDRV_INTERLEAVE(250)
 
 	/* video hardware */
-	40*8, 32*8, { 0*8, 40*8-1, 2*8, 32*8-1 },
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(40*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 40*8-1, 2*8, 32*8-1)
+	MDRV_GFXDECODE(wgp_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(4096)
 
-	wgp_gfxdecodeinfo,
-	4096, 0,
-	0,
-
-	VIDEO_TYPE_RASTER,
-	0,
-	wgp_vh_start,
-	wgp_vh_stop,
-	wgp_vh_screenrefresh,
+	MDRV_VIDEO_START(wgp)
+	MDRV_VIDEO_UPDATE(wgp)
 
 	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		{
-			SOUND_YM2610,
-			&ym2610_interface
-		}
-	}
-};
+	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
+	MDRV_SOUND_ADD(YM2610, ym2610_interface)
+MACHINE_DRIVER_END
 
-static struct MachineDriver machine_driver_wgp2 =
-{
-	{
-		{
-			CPU_M68000,
-			12000000,	/* 12 MHz ??? */
-			wgp_readmem,wgp_writemem,0,0,
-			wgp_interrupt, 1
-		},
-		{																			\
-			CPU_Z80 | CPU_AUDIO_CPU,												\
-			16000000/4,	/* 4 MHz ??? */													\
-			z80_sound_readmem, z80_sound_writemem,0,0,										\
-			ignore_interrupt,0	/* IRQs are triggered by the YM2610 */				\
-		},																			\
-		{
-			CPU_M68000,
-			12000000,	/* 12 MHz ??? */
-			wgp_cpub_readmem,wgp_cpub_writemem,0,0,
-			wgp_cpub_interrupt, 1
-		},
-	},
-	60, DEFAULT_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
-	200,	/* CPU slices */
-	0,
+
+static MACHINE_DRIVER_START( wgp2 )
+
+	/* basic machine hardware */
+	MDRV_CPU_ADD(M68000, 12000000)	/* 12 MHz ??? */
+	MDRV_CPU_MEMORY(wgp_readmem,wgp_writemem)
+	MDRV_CPU_VBLANK_INT(irq4_line_hold,1)
+
+	MDRV_CPU_ADD(Z80, 16000000/4)	/* 4 MHz ??? */
+	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)
+	MDRV_CPU_MEMORY(z80_sound_readmem,z80_sound_writemem)
+
+	MDRV_CPU_ADD(M68000, 12000000)	/* 12 MHz ??? */
+	MDRV_CPU_MEMORY(wgp_cpub_readmem,wgp_cpub_writemem)
+	MDRV_CPU_VBLANK_INT(wgp_cpub_interrupt,1)
+
+	MDRV_FRAMES_PER_SECOND(60)
+	MDRV_VBLANK_DURATION(DEFAULT_60HZ_VBLANK_DURATION)
+	MDRV_INTERLEAVE(200)
 
 	/* video hardware */
-	40*8, 32*8, { 0*8, 40*8-1, 2*8, 32*8-1 },
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(40*8, 32*8)
+	MDRV_VISIBLE_AREA(0*8, 40*8-1, 2*8, 32*8-1)
+	MDRV_GFXDECODE(wgp_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(4096)
 
-	wgp_gfxdecodeinfo,
-	4096, 0,
-	0,
-
-	VIDEO_TYPE_RASTER,
-	0,
-	wgp2_vh_start,
-	wgp_vh_stop,
-	wgp_vh_screenrefresh,
+	MDRV_VIDEO_START(wgp2)
+	MDRV_VIDEO_UPDATE(wgp)
 
 	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		{
-			SOUND_YM2610,
-			&ym2610_interface
-		}
-	}
-};
+	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
+	MDRV_SOUND_ADD(YM2610, ym2610_interface)
+MACHINE_DRIVER_END
 
 
 /***************************************************************************
-					DRIVERS
+                                   DRIVERS
 ***************************************************************************/
 
 ROM_START( wgp )
@@ -1009,7 +991,12 @@ ROM_START( wgp )
 	ROM_REGION( 0x80000, REGION_SOUND2, 0 )	/* Delta-T samples */
 	ROM_LOAD( "c32-12.7",  0x00000, 0x80000, 0xdf48a37b )
 
-//	Pals (not dumped)
+//	Pals (Guru dump)
+//	ROM_LOAD( "c32-13.14", 0x00000, 0x00???, 0x00000000 )
+//	ROM_LOAD( "c32-14.19", 0x00000, 0x00???, 0x00000000 )
+//	ROM_LOAD( "c32-15.52", 0x00000, 0x00???, 0x00000000 )
+//	ROM_LOAD( "c32-16.54", 0x00000, 0x00???, 0x00000000 )
+//	ROM_LOAD( "c32-17.53", 0x00000, 0x00???, 0x00000000 )
 //	ROM_LOAD( "c32-18.64", 0x00000, 0x00???, 0x00000000 )
 //	ROM_LOAD( "c32-19.27", 0x00000, 0x00???, 0x00000000 )
 //	ROM_LOAD( "c32-20.67", 0x00000, 0x00???, 0x00000000 )
@@ -1094,6 +1081,42 @@ ROM_START( wgpjoy )
 	ROM_LOAD( "c32-12.7", 0x00000, 0x80000, 0xdf48a37b )
 ROM_END
 
+ROM_START( wgpjoya )	/* Older joystick version ??? */
+	ROM_REGION( 0x100000, REGION_CPU1, 0 )	/* 256K for 68000 code (CPU A) */
+	ROM_LOAD16_BYTE( "c32-57.12",      0x00000, 0x20000, 0x13a78911 )
+	ROM_LOAD16_BYTE( "c32-58.13",      0x00001, 0x20000, 0x326d367b )
+	ROM_LOAD16_WORD_SWAP( "c32-10.9",  0x80000, 0x80000, 0xa44c66e9 )	/* data rom */
+
+	ROM_REGION( 0x40000, REGION_CPU3, 0 )	/* 256K for 68000 code (CPU B) */
+	ROM_LOAD16_BYTE( "c32-46.64", 0x00000, 0x20000, 0x64191891 )	// older rev?
+	ROM_LOAD16_BYTE( "c32-45.63", 0x00001, 0x20000, 0x759b39d5 )	// older rev?
+
+	ROM_REGION( 0x1c000, REGION_CPU2, 0 )	/* Z80 sound cpu */
+	ROM_LOAD( "c32-61.34",   0x00000, 0x04000, 0x2fcad5a3 )
+	ROM_CONTINUE(            0x10000, 0x0c000 )	/* banked stuff */
+
+	ROM_REGION( 0x80000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "c32-09.16", 0x00000, 0x80000, 0x96495f35 )	/* SCR */
+
+	ROM_REGION( 0x200000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD32_BYTE( "c32-04.9",  0x000000, 0x80000, 0x473a19c9 )	/* PIV */
+	ROM_LOAD32_BYTE( "c32-03.10", 0x000001, 0x80000, 0x9ec3e134 )
+	ROM_LOAD32_BYTE( "c32-02.11", 0x000002, 0x80000, 0xc5721f3a )
+	ROM_LOAD32_BYTE( "c32-01.12", 0x000003, 0x80000, 0xd27d7d93 )
+
+	ROM_REGION( 0x200000, REGION_GFX3, ROMREGION_DISPOSE )
+	ROM_LOAD16_BYTE( "c32-05.71", 0x000000, 0x80000, 0x3698d47a )	/* OBJ */
+	ROM_LOAD16_BYTE( "c32-06.70", 0x000001, 0x80000, 0xf0267203 )
+	ROM_LOAD16_BYTE( "c32-07.69", 0x100000, 0x80000, 0x743d46bd )
+	ROM_LOAD16_BYTE( "c32-08.68", 0x100001, 0x80000, 0xfaab63b0 )
+
+	ROM_REGION( 0x80000, REGION_SOUND1, 0 )	/* ADPCM samples */
+	ROM_LOAD( "c32-11.8", 0x00000, 0x80000, 0x2b326ff0 )
+
+	ROM_REGION( 0x80000, REGION_SOUND2, 0 )	/* delta-t samples */
+	ROM_LOAD( "c32-12.7", 0x00000, 0x80000, 0xdf48a37b )
+ROM_END
+
 ROM_START( wgp2 )
 	ROM_REGION( 0x100000, REGION_CPU1, 0 )	/* 256K for 68000 code (CPU A) */
 	ROM_LOAD16_BYTE( "c73-01.12",      0x00000, 0x20000, 0Xc6434834 )
@@ -1134,7 +1157,7 @@ ROM_START( wgp2 )
 ROM_END
 
 
-void init_wgp(void)
+DRIVER_INIT( wgp )
 {
 #if 0
 	/* Patch for coding error that causes corrupt data in
@@ -1153,7 +1176,7 @@ void init_wgp(void)
 	state_save_register_func_postload(reset_sound_region);
 }
 
-void init_wgp2(void)
+DRIVER_INIT( wgp2 )
 {
 	/* Code patches to prevent failure in memory checks */
 	data16_t *ROM = (data16_t *)memory_region(REGION_CPU3);
@@ -1163,10 +1186,11 @@ void init_wgp2(void)
 	init_wgp();
 }
 
-/* Working Games with a few graphics problems - missing rotation */
+/* Working Games with some graphics problems - e.g. missing rotation */
 
-GAMEX( 1989, wgp,    0,      wgp,    wgp,    wgp,    ROT0, "Taito America Corporation", "World Grand Prix (US)", GAME_IMPERFECT_GRAPHICS )
-GAMEX( 1989, wgpj,   wgp,    wgp,    wgp,    wgp,    ROT0, "Taito Corporation", "World Grand Prix (Japan)", GAME_IMPERFECT_GRAPHICS )
-GAMEX( 1989, wgpjoy, wgp,    wgp,    wgpjoy, wgp,    ROT0, "Taito Corporation", "World Grand Prix (joystick version) (Japan)", GAME_IMPERFECT_GRAPHICS )
-GAMEX( 1990, wgp2,   wgp,    wgp2,   wgp,    wgp2,   ROT0, "Taito Corporation", "World Grand Prix 2 (Japan)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1989, wgp,      0,      wgp,    wgp,    wgp,    ROT0, "Taito America Corporation", "World Grand Prix (US)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1989, wgpj,     wgp,    wgp,    wgp,    wgp,    ROT0, "Taito Corporation", "World Grand Prix (Japan)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1989, wgpjoy,   wgp,    wgp,    wgpjoy, wgp,    ROT0, "Taito Corporation", "World Grand Prix (joystick version set 1) (Japan)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1989, wgpjoya,  wgp,    wgp,    wgpjoy, wgp,    ROT0, "Taito Corporation", "World Grand Prix (joystick version set 2) (Japan)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1990, wgp2,     wgp,    wgp2,   wgp,    wgp2,   ROT0, "Taito Corporation", "World Grand Prix 2 (Japan)", GAME_IMPERFECT_GRAPHICS )
 

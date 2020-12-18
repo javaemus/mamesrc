@@ -302,6 +302,15 @@ static struct rgb_descriptor scan75v_desc =
 	}
 };
 
+// table for "sharp" pattern, i.e., no change, just pixel double
+static struct rgb_descriptor sharp_desc =
+{
+	1,
+	{
+		{ RGB,RGB,RGB,RGB,RGB,RGB,RGB,RGB, RGB,RGB,RGB,RGB,RGB,RGB,RGB,RGB }
+	}
+};
+
 
 //============================================================
 //	PROTOTYPES
@@ -453,7 +462,7 @@ int win_perform_blit(const struct win_blit_params *blit, int update)
 
 	asmblit_dirtydata = blit->dirtydata;
 
-	if (((UINT32)asmblit_dstdata & 15) != 0)
+	if (((UINT32)asmblit_dstdata & 7) != 0)
 		fprintf(stderr, "Misaligned blit to: %08x\n", (UINT32)asmblit_dstdata);
 
 	// pick the blitter
@@ -948,7 +957,7 @@ static void emit_expansion(int count, const UINT8 *reglist, const UINT32 *offsli
 	// loop over copied lines and blit them
 	for (row = 0; row < blit->dstyscale; row++)
 	{
-		// handle dimmed win_old_scanlines
+		// handle dimmed scanlines
 		if (blit->dsteffect >= EFFECT_SCANLINE_25 && blit->dsteffect <= EFFECT_SCANLINE_75 && row != 0 && row == blit->dstyscale - 1)
 		{
 			if (has_mmx)
@@ -963,7 +972,7 @@ static void emit_expansion(int count, const UINT8 *reglist, const UINT32 *offsli
 		rowoffs += blit->dstpitch;
 	}
 
-	// if updating, and generating win_old_scanlines, store a 0
+	// if updating, and generating scanlines, store a 0
 	if (update && blit->dstyskip)
 	{
 		// if we have any MMX, generate a PXOR MM7,MM7
@@ -1045,6 +1054,8 @@ static void expand_blitter(int which, const struct win_blit_params *blit, UINT8 
 					generate_rgb_masks(&rgbtiny_desc, blit);
 				else if (blit->dsteffect == EFFECT_SCANLINE_75V)
 					generate_rgb_masks(&scan75v_desc, blit);
+				else if (blit->dsteffect == EFFECT_SHARP)
+					generate_rgb_masks(&sharp_desc, blit);
 
 				if (which == 1)
 					blitter = (UINT8 *)(blit1_core_rgb[srcdepth_index][dstdepth_index]);

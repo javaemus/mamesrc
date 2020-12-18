@@ -5,26 +5,18 @@
 
 #define TC0100SCN_GFX_NUM 1
 
-void asuka_vh_stop(void);
-
 static UINT16 sprite_ctrl = 0;
 static UINT16 sprites_flipscreen = 0;
 
 /**********************************************************/
 
-int asuka_core_vh_start (int x_offs)
+int asuka_core_video_start(int x_offs)
 {
 	if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,x_offs,0,0,0,0,0,0))
-	{
-		asuka_vh_stop();
 		return 1;
-	}
 
 	if (TC0110PCR_vh_start())
-	{
-		asuka_vh_stop();
 		return 1;
-	}
 
 	state_save_register_UINT16("sprite_ctrl", 0, "sprites", &sprite_ctrl, 1);
 	state_save_register_UINT16("sprite_flip", 0, "sprites", &sprites_flipscreen, 1);
@@ -32,21 +24,14 @@ int asuka_core_vh_start (int x_offs)
 	return 0;
 }
 
-int asuka_vh_start (void)
+VIDEO_START( asuka )
 {
-	return (asuka_core_vh_start(0));
+	return (asuka_core_video_start(0));
 }
 
-int galmedes_vh_start (void)
+VIDEO_START( galmedes )
 {
-	return (asuka_core_vh_start(1));
-}
-
-void asuka_vh_stop (void)
-{
-	TC0100SCN_vh_stop();
-
-	TC0110PCR_vh_stop();
+	return (asuka_core_video_start(1));
 }
 
 
@@ -126,12 +111,11 @@ WRITE16_HANDLER( asuka_spriteflip_w )
 ********************************************************/
 
 
-static void asuka_draw_sprites(struct mame_bitmap *bitmap)
+static void asuka_draw_sprites(struct mame_bitmap *bitmap, const struct rectangle *cliprect)
 {
 	int offs;
 	int sprite_colbank = (sprite_ctrl & 0x3c) << 2;
 
-	/* Mofflot sets this, I haven't seen the other games do so */
 	int priority = (sprite_ctrl & 0x2000) >> 13;	/* 1 = sprites under top bg layer */
 
 	for (offs = 0;offs < spriteram_size/2;offs += 4)
@@ -140,21 +124,21 @@ static void asuka_draw_sprites(struct mame_bitmap *bitmap)
 		int x, y;
 		int data,code,color;
 
-		data = spriteram16[offs+0];
+		data = buffered_spriteram16[offs+0];
 		flipy = (data & 0x8000) >> 15;
 		flipx = (data & 0x4000) >> 14;
 		color = (data & 0x000f) | sprite_colbank;
 
-		code = spriteram16[offs+2] & 0x1fff;
-		x = spriteram16[offs+3] & 0x1ff;   // correct mask?
-		y = spriteram16[offs+1] & 0x1ff;   // correct mask?
+		code = buffered_spriteram16[offs+2] & 0x1fff;
+		x = buffered_spriteram16[offs+3] & 0x1ff;   // correct mask?
+		y = buffered_spriteram16[offs+1] & 0x1ff;   // correct mask?
 		y += 8;
 
 		/* treat coords as signed */
 		if (x>0x140) x -= 0x200;
 		if (y>0x140) y -= 0x200;
 
-		if ((sprites_flipscreen &1) == 0)
+		if ((sprites_flipscreen & 1) == 0)
 		{
 			x = 320 - x - 16;
 			y = 256 - y;
@@ -168,7 +152,7 @@ static void asuka_draw_sprites(struct mame_bitmap *bitmap)
 				color,
 				flipx,flipy,
 				x,y,
-				&Machine->visible_area,TRANSPARENCY_PEN,0,
+				cliprect,TRANSPARENCY_PEN,0,
 				priority ? 0xfc : 0xf0);
 	}
 }
@@ -178,7 +162,7 @@ static void asuka_draw_sprites(struct mame_bitmap *bitmap)
 				SCREEN REFRESH
 **************************************************************/
 
-void asuka_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
+VIDEO_UPDATE( asuka )
 {
 	UINT8 layer[3];
 
@@ -188,16 +172,16 @@ void asuka_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh)
 	layer[1] = layer[0]^1;
 	layer[2] = 2;
 
-	fillbitmap(priority_bitmap,0,NULL);
+	fillbitmap(priority_bitmap,0,cliprect);
 
 	/* Ensure screen blanked even when bottom layer not drawn due to disable bit */
-	fillbitmap(bitmap, Machine->pens[0], &Machine->visible_area);
+	fillbitmap(bitmap, Machine->pens[0], cliprect);
 
-	TC0100SCN_tilemap_draw(bitmap,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);
-	TC0100SCN_tilemap_draw(bitmap,0,layer[1],0,2);
-	TC0100SCN_tilemap_draw(bitmap,0,layer[2],0,4);
+	TC0100SCN_tilemap_draw(bitmap,cliprect,0,layer[0],TILEMAP_IGNORE_TRANSPARENCY,1);
+	TC0100SCN_tilemap_draw(bitmap,cliprect,0,layer[1],0,2);
+	TC0100SCN_tilemap_draw(bitmap,cliprect,0,layer[2],0,4);
 
-	asuka_draw_sprites(bitmap);
+	asuka_draw_sprites(bitmap,cliprect);
 
 #if 0
 	{

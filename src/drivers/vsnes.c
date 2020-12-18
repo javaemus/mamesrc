@@ -65,42 +65,43 @@ Can't Rotate
 #define N2A03_DEFAULTCLOCK ( 21477272.724 / 12 )
 
 /* from vidhrdw */
-extern int vsnes_vh_start( void );
-extern void vsnes_vh_stop( void );
-extern void vsnes_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
-extern void vsnes_vh_screenrefresh( struct mame_bitmap *bitmap, int full_refresh );
-extern int vsdual_vh_start( void );
-extern void vsdual_vh_screenrefresh( struct mame_bitmap *bitmap, int full_refresh );
-extern void vsdual_vh_convert_color_prom(unsigned char *palette, unsigned short *colortable,const unsigned char *color_prom);
+extern VIDEO_START( vsnes );
+extern PALETTE_INIT( vsnes );
+extern VIDEO_UPDATE( vsnes );
+extern VIDEO_START( vsdual );
+extern VIDEO_UPDATE( vsdual );
+extern PALETTE_INIT( vsdual );
 
 /* from machine */
-extern void vsnes_init_machine( void );
-extern void vsdual_init_machine( void );
-extern void init_vsnes( void );
-extern void init_suprmrio( void );
-extern void init_excitebk( void );
-extern void init_excitbkj( void );
-extern void init_vsnormal( void );
-extern void init_duckhunt( void );
-extern void init_hogalley( void );
-extern void init_goonies( void );
-extern void init_machridr( void );
-extern void init_vsslalom( void );
-extern void init_cstlevna( void );
-extern void init_drmario( void);
-extern void init_rbibb( void );
-extern void init_tkoboxng( void );
-extern void init_vstopgun( void );
-extern void init_vsgradus( void );
-extern void init_vspinbal( void );
-extern void init_vsskykid( void );
-extern void init_platoon(void);
-extern void init_vstennis( void );
-extern void init_wrecking(void);
-extern void init_balonfgt(void);
-extern void init_vsbball(void);
-extern void init_iceclmrj(void);
-extern void init_xevious(void);
+extern MACHINE_INIT( vsnes );
+extern MACHINE_INIT( vsdual );
+extern DRIVER_INIT( vsnes );
+extern DRIVER_INIT( suprmrio );
+extern DRIVER_INIT( excitebk );
+extern DRIVER_INIT( excitbkj );
+extern DRIVER_INIT( vsnormal );
+extern DRIVER_INIT( duckhunt );
+extern DRIVER_INIT( hogalley );
+extern DRIVER_INIT( goonies );
+extern DRIVER_INIT( machridr );
+extern DRIVER_INIT( vsslalom );
+extern DRIVER_INIT( cstlevna );
+extern DRIVER_INIT( drmario );
+extern DRIVER_INIT( rbibb );
+extern DRIVER_INIT( tkoboxng );
+extern DRIVER_INIT( vstopgun );
+extern DRIVER_INIT( vsgradus );
+extern DRIVER_INIT( vspinbal );
+extern DRIVER_INIT( vsskykid );
+extern DRIVER_INIT( platoon );
+extern DRIVER_INIT( vstennis );
+extern DRIVER_INIT( wrecking );
+extern DRIVER_INIT( balonfgt );
+extern DRIVER_INIT( vsbball );
+extern DRIVER_INIT( iceclmrj );
+extern DRIVER_INIT( xevious );
+extern DRIVER_INIT( btlecity );
+extern DRIVER_INIT( vstetris );
 
 
 extern READ_HANDLER( vsnes_in0_r );
@@ -912,13 +913,13 @@ INPUT_PORTS_START( rbibb )
 	PORT_DIPNAME( 0x10, 0x00, DEF_STR(Demo_Sounds ) )
 	PORT_DIPSETTING(	0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x00, DEF_STR( On ) )
-	/*Note the 3 dips below are docuemtned as required to be off in the manual */
-	/* Turning them on messes with the colors */
-	PORT_BIT ( 0x20, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT ( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT ( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
-
-
+	PORT_DIPNAME( 0xe0,0x80, "Color Palette" )
+	PORT_DIPSETTING(	0x80, "Normal" )
+	PORT_DIPSETTING(  0x00, "Wrong 1" )
+	PORT_DIPSETTING(	0x40, "Wrong 2" )
+	PORT_DIPSETTING(	0x20, "Wrong 3" )
+	PORT_DIPSETTING(  0xc0, "Wrong 4" )
+	/* 0x60,0xa0,0xe0:again "Wrong 3"*/
 INPUT_PORTS_END
 
 INPUT_PORTS_START( btlecity )
@@ -943,11 +944,11 @@ INPUT_PORTS_START( btlecity )
 	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x20, DEF_STR( On ) )
-	PORT_DIPNAME( 0xc0, 0x00, "Color Palette" )
-	PORT_DIPSETTING(	0x00, "1" )
-	PORT_DIPSETTING(	0x40, "2" )
-	PORT_DIPSETTING(	0x80, "3" )
-	PORT_DIPSETTING(	0xc0, "4" )
+	PORT_DIPNAME( 0xc0, 0x80, "Color Palette" )
+	PORT_DIPSETTING(	0x80, "Normal" )
+	PORT_DIPSETTING(	0x00, "Wrong 1" )
+	PORT_DIPSETTING(	0x40, "Wrong 2" )
+	PORT_DIPSETTING(	0xc0, "Wrong 3" )
 INPUT_PORTS_END
 
 
@@ -1123,7 +1124,7 @@ INPUT_PORTS_START( suprmrio )
 	PORT_DIPSETTING(	0x30, "250" )
 	PORT_DIPNAME(0x40, 0x00, "Timer")
 	PORT_DIPSETTING(	0x00, "Slow")
-	PORT_DIPSETTING(	0x40, "FAST")
+	PORT_DIPSETTING(	0x40, "Fast")
 	PORT_DIPNAME(0x80, 0x00, "Continue Lives" )
 	PORT_DIPSETTING(	0x00, "4" )
 	PORT_DIPSETTING(	0x80, "3" )
@@ -1244,17 +1245,13 @@ INPUT_PORTS_START( vstetris )
 	PORT_DIPNAME( 0x10, 0x00, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x10, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
-	PORT_DIPSETTING(	0x20, DEF_STR( On ) )
-	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
-	PORT_DIPSETTING(	0x40, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
-	PORT_DIPSETTING(	0x80, DEF_STR( On ) )
-
-
+	PORT_DIPNAME( 0xe0,0x80, "Color Palette" )
+	PORT_DIPSETTING(	0x80, "Normal" )
+	PORT_DIPSETTING(  0x00, "Wrong 1" )
+	PORT_DIPSETTING(	0x40, "Wrong 2" )
+	PORT_DIPSETTING(	0x20, "Wrong 3" )
+	PORT_DIPSETTING(  0xc0, "Wrong 4" )
+	/* 0x60,0xa0,0xe0:again "Wrong 3"*/
 INPUT_PORTS_END
 
 INPUT_PORTS_START( vsskykid )
@@ -1351,104 +1348,66 @@ static struct DACinterface nes_dual_dac_interface =
 	{ 25, 25 },
 };
 
-static struct MachineDriver machine_driver_vsnes =
-{
+static MACHINE_DRIVER_START( vsnes )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_N2A03,
-			N2A03_DEFAULTCLOCK,
-			readmem,writemem,0,0,
-			ignore_interrupt, 0	/* NMIs are triggered by the PPU */
+	MDRV_CPU_ADD(N2A03,N2A03_DEFAULTCLOCK)
+	MDRV_CPU_MEMORY(readmem,writemem)
 								/* some carts also trigger IRQs */
-		}
-	},
-	60, ( ( ( 1.0 / 60.0 ) * 1000000.0 ) / 262 ) * ( 262 - 239 ), /* frames per second, vblank duration */
-	1,
-	vsnes_init_machine,
+	MDRV_FRAMES_PER_SECOND(60)
+	MDRV_VBLANK_DURATION(( ( ( 1.0 / 60.0 ) * 1000000.0 ) / 262 ) * ( 262 - 239 ))
+
+	MDRV_MACHINE_INIT(vsnes)
 
 	/* video hardware */
-	32*8, 30*8,	{ 0*8, 32*8-1, 0*8, 30*8-1 },
-	nes_gfxdecodeinfo,
-	4*16, 4*8,
-	vsnes_vh_convert_color_prom,
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(32*8, 30*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8-1, 0*8, 30*8-1)
+	MDRV_GFXDECODE(nes_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(4*16)
+	MDRV_COLORTABLE_LENGTH(4*8)
 
-	VIDEO_TYPE_RASTER,
-	0,
-	vsnes_vh_start,
-	vsnes_vh_stop,
-	vsnes_vh_screenrefresh,
+	MDRV_PALETTE_INIT(vsnes)
+	MDRV_VIDEO_START(vsnes)
+	MDRV_VIDEO_UPDATE(vsnes)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_NES,
-			&nes_interface
-		},
-		{
-			SOUND_DAC,
-			&nes_dac_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(NES, nes_interface)
+	MDRV_SOUND_ADD(DAC, nes_dac_interface)
+MACHINE_DRIVER_END
 
-static struct MachineDriver machine_driver_vsdual =
-{
+
+static MACHINE_DRIVER_START( vsdual )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_N2A03,
-			N2A03_DEFAULTCLOCK,
-			readmem,writemem,0,0,
-			ignore_interrupt, 0	/* NMIs are triggered by the PPU */
+	MDRV_CPU_ADD(N2A03,N2A03_DEFAULTCLOCK)
+	MDRV_CPU_MEMORY(readmem,writemem)
 								/* some carts also trigger IRQs */
-		},
-		{
-			CPU_N2A03,
-			N2A03_DEFAULTCLOCK,
-			readmem_1,writemem_1,0,0,
-			ignore_interrupt, 0	/* NMIs are triggered by the PPU */
+	MDRV_CPU_ADD(N2A03,N2A03_DEFAULTCLOCK)
+	MDRV_CPU_MEMORY(readmem_1,writemem_1)
 								/* some carts also trigger IRQs */
-		}
-	},
-	60, ( ( ( 1.0 / 60.0 ) * 1000000.0 ) / 262 ) * ( 262 - 239 ), /* frames per second, vblank duration */
-	1,
-	vsdual_init_machine,
+	MDRV_FRAMES_PER_SECOND(60)
+	MDRV_VBLANK_DURATION(( ( ( 1.0 / 60.0 ) * 1000000.0 ) / 262 ) * ( 262 - 239 ))
+
+	MDRV_MACHINE_INIT(vsdual)
 
 	/* video hardware */
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR)
+	MDRV_ASPECT_RATIO(8,3)
+	MDRV_SCREEN_SIZE(32*8*2, 30*8)
+	MDRV_VISIBLE_AREA(0*8, 32*8*2-1, 0*8, 30*8-1)
+	MDRV_GFXDECODE(nes_gfxdecodeinfo)
+	MDRV_PALETTE_LENGTH(2*4*16)
+	MDRV_COLORTABLE_LENGTH(2*4*16)
 
-
-
-
-
-	32*8*2, 30*8, { 0*8, 32*8*2-1, 0*8, 30*8-1 },
-
-
-	nes_gfxdecodeinfo,
-
-	2*4*16, 2*4*16,
-	vsdual_vh_convert_color_prom,
-
-	VIDEO_TYPE_RASTER | VIDEO_DUAL_MONITOR | VIDEO_ASPECT_RATIO(8,3),
-	0,
-	vsdual_vh_start,
-	vsnes_vh_stop,
-	vsdual_vh_screenrefresh,
+	MDRV_PALETTE_INIT(vsdual)
+	MDRV_VIDEO_START(vsdual)
+	MDRV_VIDEO_UPDATE(vsdual)
 
 	/* sound hardware */
-	0,0,0,0,
-	{
-		{
-			SOUND_NES,
-			&nes_dual_interface
-		},
-		{
-			SOUND_DAC,
-			&nes_dual_dac_interface
-		}
-	}
-};
+	MDRV_SOUND_ADD(NES, nes_dual_interface)
+	MDRV_SOUND_ADD(DAC, nes_dual_dac_interface)
+MACHINE_DRIVER_END
 
 
 /******************************************************************************/
@@ -1971,7 +1930,7 @@ ROM_END
 /******************************************************************************/
 
 /*    YEAR  NAME      PARENT    MACHINE  INPUT     INIT  	   MONITOR  */
-GAMEX(1985, btlecity, 0,	    vsnes,   btlecity, vsnormal, ROT0, "Namco",     "Battle City",GAME_WRONG_COLORS )
+GAME(1985, btlecity, 0,	    vsnes,   btlecity, btlecity, ROT0, "Namco",     "Battle City" )
 GAME( 1985, starlstr, 0,        vsnes,   vsnes,    vsnormal, ROT0, "Namco",  	  "Star Luster" )
 GAME( 1987,	cstlevna, 0,	    vsnes,   cstlevna, cstlevna, ROT0, "Konami",    "Vs. Castlevania" )
 GAME( 1984, cluclu,   0,	    vsnes,   cluclu,   suprmrio, ROT0, "Nintendo",  "Clu Clu Land" )
@@ -1984,7 +1943,7 @@ GAME( 1985, hogalley, 0,        vsnes,   hogalley, hogalley, ROT0, "Nintendo",  
 GAME( 1984, iceclimb, 0,        vsnes,   iceclimb, suprmrio, ROT0, "Nintendo",  "Ice Climber" )
 GAME( 1984, ladygolf, 0,        vsnes,   golf,     machridr, ROT0, "Nintendo",  "Stroke and Match Golf (Ladies Version)" )
 GAME( 1985, machridr, 0,        vsnes,   machridr, machridr, ROT0, "Nintendo",  "Mach Rider" )
-GAME( 1986, rbibb,	  0,	    vsnes,   rbibb,    rbibb,    ROT0, "Namco",  	   "Atari RBI Baseball")
+GAME( 1986, rbibb,	  0,	    vsnes,   rbibb,    rbibb,    ROT0, "Namco",  	   "Atari RBI Baseball" )
 GAME( 1986, suprmrio, 0,        vsnes,   suprmrio, suprmrio, ROT0, "Nintendo",  "Vs. Super Mario Bros" )
 GAME( 1985, vsskykid, 0,	    vsnes,   vsskykid, vsskykid, ROT0, "Namco",     "Super SkyKid"  )
 GAMEX(1987,tkoboxng, 0,         vsnes,   vsnes,    tkoboxng, ROT0, "Namco LTD.", "Vs. TKO Boxing", GAME_WRONG_COLORS )
@@ -1996,7 +1955,7 @@ GAME( 1986, vsslalom, 0,        vsnes,   vsnes,    vsslalom, ROT0, "Rare LTD.", 
 GAME( 1985, vssoccer, 0,        vsnes,   vsnes,    excitebk, ROT0, "Nintendo",  "Soccer" )
 GAME( 1986, vsgradus, 0,        vsnes,   vsnes,    vsgradus, ROT0, "Konami",  "Vs. Gradius" )
 GAMEX(1987, platoon,  0,        vsnes,   platoon,  platoon,  ROT0, "Ocean Software Limited", 	"Platoon", GAME_WRONG_COLORS )
-GAMEX(1987, vstetris, 0,        vsnes,   vstetris, vspinbal, ROT0, "Academysoft-Elory",  "Vs. Tetris",GAME_WRONG_COLORS )
+GAMEX(1987, vstetris, 0,        vsnes,   vstetris, vstetris, ROT0, "Academysoft-Elory",  "Vs. Tetris" , GAME_IMPERFECT_COLORS )
 
 /* Dual games */
 GAME( 1984, vstennis, 0,        vsdual,  vstennis, vstennis, ROT0, "Nintendo",		  "Vs. Tennis"  )
@@ -2011,7 +1970,7 @@ GAME( 1984, iceclmrj, 0,        vsdual,  iceclmrj, iceclmrj, ROT0, "Nintendo",  
 
 /* are these using the correct mappers? */
 
-GAMEX(19??, topgun,   0,	    vsnes,   vsnes,    vstopgun, ROT0, "Nintendo",  "VS Topgun", GAME_NOT_WORKING )
-GAMEX(19??, jajamaru, 0,        vsnes,   vsnes,    vsnormal, ROT0, "Nintendo",  "JAJARU", GAME_NOT_WORKING )
-GAMEX(19??, vsxevus,  0,        vsnes,   vsnes,	   xevious,  ROT0, "Namco?", 	"Xevious", GAME_NOT_WORKING )
+GAMEX(19??, topgun,   0,	  vsnes,   vsnes,    vstopgun, ROT0, "Konami",  "Vs. Topgun", GAME_NOT_WORKING )
+GAMEX(19??, jajamaru, 0,        vsnes,   vsnes,    vsnormal, ROT0, "Jaleco",  "Vs. Jajamaru Kun", GAME_NOT_WORKING )
+GAMEX(19??, vsxevus,  0,        vsnes,   vsnes,	   xevious,  ROT0, "Namco?", 	"Vs. Xevious", GAME_NOT_WORKING )
 

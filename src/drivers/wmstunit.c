@@ -1,28 +1,18 @@
 /*************************************************************************
 
-	Driver for Midway T-unit games
+	Midway T-unit system
 
-	TMS34010 processor @ 6.25MHz
-	Two sound options:
-		standard Williams ADPCM board, with 6809 @ 2MHz, a YM2151, and an OKI6295 ADPCM decoder
-		Williams compressed digital sound board, with ADSP2105 and a DAC
+    driver by Alex Pasadyn, Zsolt Vasvari, Kurt Mahan, Ernesto Corvi,
+    and Aaron Giles
 
+	Games supported:
+		* Mortal Kombat (T-unit version)
+		* Mortal Kombat 2
+		* NBA Jam
+		* NBA Jam Tournament Edition
 
-	Created by Alex Pasadyn and Zsolt Vasvari with some help from Kurt Mahan
-	Enhancements by Aaron Giles and Ernesto Corvi
-
-
-	Currently playable:
-	------------------
-	- Mortal Kombat (T-unit version)
-	- Mortal Kombat 2
-	- NBA Jam
-	- NBA Jam Tournament Edition
-
-
-	Known Bugs:
-	----------
-	none
+	Known bugs:
+		* shadows are missing in MK2
 
 **************************************************************************/
 
@@ -31,83 +21,7 @@
 #include "cpu/tms34010/tms34010.h"
 #include "cpu/adsp2100/adsp2100.h"
 #include "sndhrdw/williams.h"
-
-
-/* these are accurate for MK Rev 5 according to measurements done by Bryan on a real board */
-/* due to the way the TMS34010 core operates, however, we need to use 0 for our VBLANK */
-/* duration (263ms is the measured value) */
-#define MKLA5_VBLANK_DURATION		0
-#define MKLA5_FPS					53.204950
-
-
-/* code-related variables */
-extern data16_t *wms_code_rom;
-extern data16_t *wms_scratch_ram;
-
-/* CMOS-related variables */
-extern data16_t *wms_cmos_ram;
-
-/* graphics-related variables */
-extern UINT8 *	wms_gfx_rom;
-extern size_t 	wms_gfx_rom_size;
-
-
-/* driver-specific initialization */
-void init_mk(void);
-void init_mk2(void);
-void init_mk2r14(void);
-void init_nbajam(void);
-void init_nbajam20(void);
-void init_nbajamte(void);
-
-/* general machine init */
-void wms_tunit_init_machine(void);
-
-
-/* external read handlers */
-READ16_HANDLER( wms_tunit_dma_r );
-READ16_HANDLER( wms_tunit_vram_r );
-READ16_HANDLER( wms_tunit_cmos_r );
-READ16_HANDLER( wms_tunit_input_r );
-READ16_HANDLER( wms_tunit_gfxrom_r );
-READ16_HANDLER( wms_tunit_sound_r );
-READ16_HANDLER( wms_tunit_sound_state_r );
-
-/* external write handlers */
-WRITE16_HANDLER( wms_tunit_dma_w );
-WRITE16_HANDLER( wms_tunit_vram_w );
-WRITE16_HANDLER( wms_tunit_cmos_w );
-WRITE16_HANDLER( wms_tunit_cmos_enable_w );
-WRITE16_HANDLER( wms_tunit_control_w );
-WRITE16_HANDLER( wms_tunit_sound_w );
-WRITE16_HANDLER( wms_tunit_paletteram_w );
-
-
-/* external video routines */
-int wms_tunit_vh_start(void);
-void wms_tunit_vh_stop(void);
-void wms_tunit_vh_screenrefresh(struct mame_bitmap *bitmap,int full_refresh);
-void wms_tunit_to_shiftreg(offs_t address, unsigned short *shiftreg);
-void wms_tunit_from_shiftreg(offs_t address, unsigned short *shiftreg);
-void wms_tunit_display_addr_changed(UINT32 offs, int rowbytes, int scanline);
-
-
-
-/*************************************
- *
- *	CMOS read/write
- *
- *************************************/
-
-static void nvram_handler(void *file, int read_or_write)
-{
-	if (read_or_write)
-		osd_fwrite(file, wms_cmos_ram, 0x4000);
-	else if (file)
-		osd_fread(file, wms_cmos_ram, 0x4000);
-	else
-		memset(wms_cmos_ram, 0, 0x4000);
-}
+#include "wmstunit.h"
 
 
 
@@ -131,10 +45,11 @@ static MEMORY_READ16_START( readmem )
 	{ TOBYTE(0xff800000), TOBYTE(0xffffffff), MRA16_RAM },
 MEMORY_END
 
+
 static MEMORY_WRITE16_START( writemem )
 	{ TOBYTE(0x00000000), TOBYTE(0x003fffff), wms_tunit_vram_w },
 	{ TOBYTE(0x01000000), TOBYTE(0x013fffff), MWA16_RAM, &wms_scratch_ram },
-	{ TOBYTE(0x01400000), TOBYTE(0x0141ffff), wms_tunit_cmos_w, &wms_cmos_ram },
+	{ TOBYTE(0x01400000), TOBYTE(0x0141ffff), wms_tunit_cmos_w, (data16_t **)&generic_nvram, &generic_nvram_size },
 	{ TOBYTE(0x01480000), TOBYTE(0x014fffff), wms_tunit_cmos_enable_w },
 	{ TOBYTE(0x01800000), TOBYTE(0x0187ffff), wms_tunit_paletteram_w, &paletteram16 },
 	{ TOBYTE(0x01a80000), TOBYTE(0x01a800ff), wms_tunit_dma_w },
@@ -249,6 +164,7 @@ INPUT_PORTS_START( mk )
 	PORT_DIPSETTING(      0x8000, DEF_STR( On ))
 INPUT_PORTS_END
 
+
 INPUT_PORTS_START( mk2 )
 	PORT_START
 	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_PLAYER1 | IPF_8WAY )
@@ -344,6 +260,7 @@ INPUT_PORTS_START( mk2 )
 	PORT_DIPSETTING(      0x0000, DEF_STR( Off ))
 	PORT_DIPSETTING(      0x8000, DEF_STR( On ))
 INPUT_PORTS_END
+
 
 INPUT_PORTS_START( nbajam )
 	PORT_START
@@ -456,7 +373,7 @@ static struct tms34010_config cpu_config =
 	NULL,							/* generate interrupt */
 	wms_tunit_to_shiftreg,			/* write to shiftreg function */
 	wms_tunit_from_shiftreg,		/* read from shiftreg function */
-	wms_tunit_display_addr_changed,	/* display address changed */
+	0,								/* display address changed */
 	0								/* display interrupt callback */
 };
 
@@ -468,81 +385,43 @@ static struct tms34010_config cpu_config =
  *
  *************************************/
 
-static const struct MachineDriver machine_driver_tunit_adpcm =
-{
+static MACHINE_DRIVER_START( tunit_core )
+
 	/* basic machine hardware */
-	{
-		{
-			CPU_TMS34010,
-			50000000/TMS34010_CLOCK_DIVIDER,	/* 50 MHz */
-			readmem,writemem,0,0,
-			ignore_interrupt,0,
-			0,0,&cpu_config
-		},
-		SOUND_CPU_WILLIAMS_ADPCM
-	},
-	MKLA5_FPS, MKLA5_VBLANK_DURATION,	/* frames per second, vblank duration */
-	1,
-	wms_tunit_init_machine,
+	MDRV_CPU_ADD(TMS34010, 50000000/TMS34010_CLOCK_DIVIDER)
+	MDRV_CPU_CONFIG(cpu_config)
+	MDRV_CPU_MEMORY(readmem,writemem)
+
+	MDRV_FRAMES_PER_SECOND(MKLA5_FPS)
+	MDRV_VBLANK_DURATION(MKLA5_VBLANK_DURATION)
+	MDRV_MACHINE_INIT(wms_tunit)
+	MDRV_NVRAM_HANDLER(generic_0fill)
 
 	/* video hardware */
-	512, 288, { 56, 450, 0, 253 },
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
+	MDRV_SCREEN_SIZE(512, 288)
+	MDRV_VISIBLE_AREA(56, 450, 0, 253)
+	MDRV_PALETTE_LENGTH(32768)
 
-	0,
-	32768, 0,
-	0,
+	MDRV_VIDEO_START(wms_tunit)
+	MDRV_VIDEO_UPDATE(wms_tunit)
+MACHINE_DRIVER_END
 
-	VIDEO_TYPE_RASTER,
-	0,
-	wms_tunit_vh_start,
-	wms_tunit_vh_stop,
-	wms_tunit_vh_screenrefresh,
 
-	/* sound hardware */
-	SOUND_SUPPORTS_STEREO,0,0,0,
-	{
-		SOUND_WILLIAMS_ADPCM(REGION_SOUND1)
-	},
-	nvram_handler
-};
+static MACHINE_DRIVER_START( tunit_adpcm )
 
-static const struct MachineDriver machine_driver_tunit_dcs =
-{
 	/* basic machine hardware */
-	{
-		{
-			CPU_TMS34010,
-			50000000/TMS34010_CLOCK_DIVIDER,	/* 50 MHz */
-			readmem,writemem,0,0,
-			ignore_interrupt,0,
-			0,0,&cpu_config
-		},
-		SOUND_CPU_WILLIAMS_DCS
-	},
-	MKLA5_FPS, MKLA5_VBLANK_DURATION,	/* frames per second, vblank duration */
-	1,
-	wms_tunit_init_machine,
+	MDRV_IMPORT_FROM(tunit_core)
+	MDRV_IMPORT_FROM(williams_adpcm_sound)
+MACHINE_DRIVER_END
 
-	/* video hardware */
-	512, 288, { 56, 450, 0, 253 },
 
-	0,
-	32768, 0,
-	0,
+static MACHINE_DRIVER_START( tunit_dcs )
 
-	VIDEO_TYPE_RASTER,
-	0,
-	wms_tunit_vh_start,
-	wms_tunit_vh_stop,
-	wms_tunit_vh_screenrefresh,
-
-	/* sound hardware */
-	0,0,0,0,
-	{
-		SOUND_WILLIAMS_DCS
-	},
-	nvram_handler
-};
+	/* basic machine hardware */
+	MDRV_IMPORT_FROM(tunit_core)
+	MDRV_IMPORT_FROM(williams_dcs_sound)
+MACHINE_DRIVER_END
 
 
 
@@ -584,6 +463,7 @@ ROM_START( mk )
 	ROM_LOAD( "mkt-uj22.bin", 0xa00000, 0x80000, 0x5e12523b )
 ROM_END
 
+
 ROM_START( mkr4 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -615,6 +495,7 @@ ROM_START( mkr4 )
 	ROM_LOAD( "mkt-uj20.bin", 0x980000, 0x80000, 0xeae96df0 )
 	ROM_LOAD( "mkt-uj22.bin", 0xa00000, 0x80000, 0x5e12523b )
 ROM_END
+
 
 ROM_START( mk2 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
@@ -656,6 +537,7 @@ ROM_START( mk2 )
 	ROM_LOAD( "uj22-vid", 0xb00000, 0x100000, 0x8891d785 )
 ROM_END
 
+
 ROM_START( mk2r32 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -695,6 +577,48 @@ ROM_START( mk2r32 )
 	ROM_LOAD( "uj20-vid", 0xa00000, 0x100000, 0xb96824f0 )
 	ROM_LOAD( "uj22-vid", 0xb00000, 0x100000, 0x8891d785 )
 ROM_END
+
+
+ROM_START( mk2r21 )
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
+
+	ROM_REGION( ADSP2100_SIZE + 0x800000, REGION_CPU2, 0 )	/* ADSP-2105 data */
+	ROM_LOAD( "su2.l1", ADSP2100_SIZE + 0x000000, 0x80000, 0x5f23d71d )
+	ROM_RELOAD(	        ADSP2100_SIZE + 0x080000, 0x80000 )
+	ROM_LOAD( "su3.l1", ADSP2100_SIZE + 0x100000, 0x80000, 0xd6d92bf9 )
+	ROM_RELOAD(	        ADSP2100_SIZE + 0x180000, 0x80000 )
+	ROM_LOAD( "su4.l1", ADSP2100_SIZE + 0x200000, 0x80000, 0xeebc8e0f )
+	ROM_RELOAD(	        ADSP2100_SIZE + 0x280000, 0x80000 )
+	ROM_LOAD( "su5.l1", ADSP2100_SIZE + 0x300000, 0x80000, 0x2b0b7961 )
+	ROM_RELOAD(	        ADSP2100_SIZE + 0x380000, 0x80000 )
+	ROM_LOAD( "su6.l1", ADSP2100_SIZE + 0x400000, 0x80000, 0xf694b27f )
+	ROM_RELOAD(	        ADSP2100_SIZE + 0x480000, 0x80000 )
+	ROM_LOAD( "su7.l1", ADSP2100_SIZE + 0x500000, 0x80000, 0x20387e0a )
+	ROM_RELOAD(	        ADSP2100_SIZE + 0x580000, 0x80000 )
+	/* su8 and su9 are unpopulated */
+
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "uj12.121", 0x00000, 0x80000, 0xd6a35699 )
+	ROM_LOAD16_BYTE( "ug12.121", 0x00001, 0x80000, 0xaeb703ff )
+
+	ROM_REGION( 0xc00000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "ug14-vid", 0x000000, 0x100000, 0x01e73af6 )
+	ROM_LOAD( "ug16-vid", 0x100000, 0x100000, 0x8ba6ae18 )
+	ROM_LOAD( "ug17-vid", 0x200000, 0x100000, 0x937d8620 )
+
+	ROM_LOAD( "uj14-vid", 0x300000, 0x100000, 0xd4985cbb )
+	ROM_LOAD( "uj16-vid", 0x400000, 0x100000, 0x39d885b4 )
+	ROM_LOAD( "uj17-vid", 0x500000, 0x100000, 0x218de160 )
+
+	ROM_LOAD( "ug19-vid", 0x600000, 0x100000, 0xfec137be )
+	ROM_LOAD( "ug20-vid", 0x700000, 0x100000, 0x809118c1 )
+	ROM_LOAD( "ug22-vid", 0x800000, 0x100000, 0x154d53b1 )
+
+	ROM_LOAD( "uj19-vid", 0x900000, 0x100000, 0x2d763156 )
+	ROM_LOAD( "uj20-vid", 0xa00000, 0x100000, 0xb96824f0 )
+	ROM_LOAD( "uj22-vid", 0xb00000, 0x100000, 0x8891d785 )
+ROM_END
+
 
 ROM_START( mk2r14 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
@@ -736,6 +660,7 @@ ROM_START( mk2r14 )
 	ROM_LOAD( "uj22-vid", 0xb00000, 0x100000, 0x8891d785 )
 ROM_END
 
+
 ROM_START( mk2r42 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -775,6 +700,7 @@ ROM_START( mk2r42 )
 	ROM_LOAD( "uj20-vid", 0xa00000, 0x100000, 0xb96824f0 )
 	ROM_LOAD( "uj22-vid", 0xb00000, 0x100000, 0x8891d785 )
 ROM_END
+
 
 ROM_START( mk2r91 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
@@ -816,6 +742,7 @@ ROM_START( mk2r91 )
 	ROM_LOAD( "uj22-vid", 0xb00000, 0x100000, 0x8891d785 )
 ROM_END
 
+
 ROM_START( mk2chal )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -856,6 +783,7 @@ ROM_START( mk2chal )
 	ROM_LOAD( "uj22-vid", 0xb00000, 0x100000, 0x8891d785 )
 ROM_END
 
+
 /*
     equivalences for the extension board version (same contents, split in half)
 
@@ -887,6 +815,7 @@ ROM_END
 	ROM_LOAD( "uj22.l1",  0xa00000, 0x080000, 0xa6546b15 )
 	ROM_LOAD( "uj23.l1",  0xa80000, 0x080000, 0x45867c6f )
 */
+
 
 ROM_START( nbajam )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
@@ -925,6 +854,7 @@ ROM_START( nbajam )
 	ROM_LOAD( "nbauj23.bin", 0xa80000, 0x80000, 0x427d2eee )
 ROM_END
 
+
 ROM_START( nbajamr2 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -961,6 +891,7 @@ ROM_START( nbajamr2 )
 	ROM_LOAD( "nbauj22.bin", 0xa00000, 0x80000, 0x59a95878 )
 	ROM_LOAD( "nbauj23.bin", 0xa80000, 0x80000, 0x427d2eee )
 ROM_END
+
 
 ROM_START( nbajamte )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
@@ -999,6 +930,7 @@ ROM_START( nbajamte )
 	ROM_LOAD( "te-uj23.bin", 0xa80000, 0x80000, 0xf8c30998 )
 ROM_END
 
+
 ROM_START( nbajamt1 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -1036,6 +968,7 @@ ROM_START( nbajamt1 )
 	ROM_LOAD( "te-uj23.bin", 0xa80000, 0x80000, 0xf8c30998 )
 ROM_END
 
+
 ROM_START( nbajamt2 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -1072,6 +1005,7 @@ ROM_START( nbajamt2 )
 	ROM_LOAD( "te-uj22.bin", 0xa00000, 0x80000, 0x39791051 )
 	ROM_LOAD( "te-uj23.bin", 0xa80000, 0x80000, 0xf8c30998 )
 ROM_END
+
 
 ROM_START( nbajamt3 )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
@@ -1123,6 +1057,7 @@ GAME( 1992, mkr4,     mk,      tunit_adpcm, mk,      mk,       ROT0, "Midway",  
 
 GAME( 1993, mk2,      0,       tunit_dcs,   mk2,     mk2,      ROT0, "Midway",   "Mortal Kombat II (rev L3.1)" )
 GAME( 1993, mk2r32,   mk2,     tunit_dcs,   mk2,     mk2,      ROT0, "Midway",   "Mortal Kombat II (rev L3.2 (European))" )
+GAME( 1993, mk2r21,   mk2,     tunit_dcs,   mk2,     mk2r21,   ROT0, "Midway",   "Mortal Kombat II (rev L2.1)" )
 GAME( 1993, mk2r14,   mk2,     tunit_dcs,   mk2,     mk2r14,   ROT0, "Midway",   "Mortal Kombat II (rev L1.4)" )
 GAME( 1993, mk2r42,   mk2,     tunit_dcs,   mk2,     mk2,      ROT0, "hack",     "Mortal Kombat II (rev L4.2, hack)" )
 GAME( 1993, mk2r91,   mk2,     tunit_dcs,   mk2,     mk2,      ROT0, "hack",     "Mortal Kombat II (rev L9.1, hack)" )

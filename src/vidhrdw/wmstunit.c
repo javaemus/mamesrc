@@ -6,7 +6,7 @@
 
 #include "driver.h"
 #include "cpu/tms34010/tms34010.h"
-
+#include "wmstunit.h"
 
 
 /* compile-time options */
@@ -40,8 +40,6 @@ enum
 
 
 /* graphics-related variables */
-extern UINT8 *	wms_gfx_rom;
-extern size_t	wms_gfx_rom_size;
        UINT8	wms_gfx_rom_large;
 static data16_t	wms_control;
 static UINT8	wms_using_34020;
@@ -83,10 +81,6 @@ static struct
 
 
 
-/* prototypes */
-void wms_tunit_vh_stop(void);
-
-
 /* macros */
 #define TMS_SET_IRQ_LINE(x)				\
 	if (wms_using_34020) 				\
@@ -102,20 +96,17 @@ void wms_tunit_vh_stop(void);
  *
  *************************************/
 
-int wms_tunit_vh_start(void)
+VIDEO_START( wms_tunit )
 {
 	int i;
 
 	/* allocate memory */
-	local_videoram = malloc(0x100000);
-	pen_map = malloc(65536 * sizeof(pen_map[0]));
+	local_videoram = auto_malloc(0x100000);
+	pen_map = auto_malloc(65536 * sizeof(pen_map[0]));
 
 	/* handle failure */
 	if (!local_videoram || !pen_map)
-	{
-		wms_tunit_vh_stop();
 		return 1;
-	}
 
 	/* initialize pen map */
 	for (i = 0; i < 0x10000; i++)
@@ -133,40 +124,21 @@ int wms_tunit_vh_start(void)
 }
 
 
-int wms_wolfu_vh_start(void)
+VIDEO_START( wms_wolfu )
 {
-	int result = wms_tunit_vh_start();
+	int result = video_start_wms_tunit();
 	wms_gfx_rom_large = 1;
 	return result;
 }
 
 
-int wms_revx_vh_start(void)
+VIDEO_START( revx )
 {
-	int result = wms_tunit_vh_start();
+	int result = video_start_wms_tunit();
 	wms_gfx_rom_large = 1;
 	wms_using_34020 = 1;
 	videobank_select = 1;
 	return result;
-}
-
-
-
-/*************************************
- *
- *	Video shutdown
- *
- *************************************/
-
-void wms_tunit_vh_stop(void)
-{
-	if (pen_map)
-		free(pen_map);
-	pen_map = NULL;
-
-	if (local_videoram)
-		free(local_videoram);
-	local_videoram = NULL;
 }
 
 
@@ -358,6 +330,19 @@ WRITE16_HANDLER( wms_tunit_paletteram_w )
 	b = (b << 3) | (b >> 2);
 
 	palette_set_color(offset, r, g, b);
+}
+
+
+WRITE16_HANDLER( revx_paletteram_w )
+{
+	if (!(offset & 1))
+		wms_tunit_paletteram_w(offset / 2, data, mem_mask);
+}
+
+
+READ16_HANDLER( revx_paletteram_r )
+{
+	return paletteram16_word_r(offset / 2, 0);
 }
 
 
@@ -659,7 +644,7 @@ static void dma_callback(int is_in_34010_context)
 		TMS_SET_IRQ_LINE(ASSERT_LINE);
 	}
 	else
-		cpu_cause_interrupt(0, 0);
+		cpu_set_irq_line(0, 0, HOLD_LINE);
 }
 
 
@@ -734,7 +719,7 @@ WRITE16_HANDLER( wms_tunit_dma_w )
 
 #if LOG_DMA
 	if (keyboard_pressed(KEYCODE_L))
-		logerror("%08X:DMA %d = %04X\n", cpu_get_pc(), regnum, data);
+		logerror("%08X:DMA %d = %04X\n", activecpu_get_pc(), regnum, data);
 #endif
 
 	/* only writes to DMA_COMMAND actually cause actions */
@@ -881,33 +866,20 @@ skipdma:
 
 /*************************************
  *
- *	34010 display address callback
- *
- *************************************/
-
-void wms_tunit_display_addr_changed(UINT32 offs, int rowbytes, int scanline)
-{
-}
-
-
-
-/*************************************
- *
  *	Core refresh routine
  *
  *************************************/
 
-void wms_tunit_vh_screenrefresh(struct mame_bitmap *bitmap, int full_refresh)
+VIDEO_UPDATE( wms_tunit )
 {
 	int v, width, xoffs;
 	UINT32 offset;
 
 	/* determine the base of the videoram */
 	if (wms_using_34020)
-		offset = (tms34020_get_DPYSTRT(0) >> 5) & 0x3ffff;
+		offset = (tms34020_get_DPYSTRT(0) >> 3) & 0x3ffff;
 	else
 		offset = ((~tms34010_get_DPYSTRT(0) & 0x1ff0) << 5) & 0x3ffff;
-	logerror("Screen offset = %06X\n", offset);
 
 	/* determine how many pixels to copy */
 	xoffs = Machine->visible_area.min_x;

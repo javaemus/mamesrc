@@ -69,6 +69,7 @@ int palette_start(void)
 		colormode = PALETTIZED_16BIT;
 
 	Machine->pens = malloc(total_colors * sizeof(*Machine->pens));
+	Machine->palette = malloc(total_colors * sizeof(*Machine->palette));
 	Machine->debug_pens = malloc(DEBUGGER_TOTAL_COLORS * sizeof(*Machine->debug_pens));
 
 	if (Machine->drv->color_table_len)
@@ -85,13 +86,17 @@ int palette_start(void)
 
 	if (colormode == PALETTIZED_16BIT)
 	{
-		palette_shadow_table = malloc(total_colors * sizeof(*palette_shadow_table));
+		/* we allocate a full 65536 entries table, to prevent memory corruption
+		 * bugs should the tilemap contains pens >= total_colors
+		 * (e.g. Machine->uifont->colortable[0] as returned by get_black_pen())
+		 */
+		palette_shadow_table = malloc(65536 * sizeof(*palette_shadow_table));
 		if (palette_shadow_table == 0)
 		{
 			palette_stop();
 			return 1;
 		}
-		for (i = 0;i < total_colors;i++)
+		for (i = 0;i < 65536;i++)
 		{
 			palette_shadow_table[i] = i;
 			if ((Machine->drv->video_attributes & VIDEO_HAS_SHADOWS) && i < Machine->drv->total_colors)
@@ -183,7 +188,7 @@ int palette_init(void)
 	}
 
 	/* We initialize the palette and colortable to some default values so that */
-	/* drivers which dynamically change the palette don't need a vh_init_palette() */
+	/* drivers which dynamically change the palette don't need an init_palette() */
 	/* function (provided the default color table fits their needs). */
 
 	for (i = 0;i < total_colors;i++)
@@ -195,13 +200,13 @@ int palette_init(void)
 
 	/* Preload the colortable with a default setting, following the same */
 	/* order of the palette. The driver can overwrite this in */
-	/* vh_init_palette() */
+	/* init_palette() */
 	for (i = 0;i < Machine->drv->color_table_len;i++)
 		Machine->game_colortable[i] = i % total_colors;
 
 	/* now the driver can modify the default values if it wants to. */
-	if (Machine->drv->vh_init_palette)
-		(*Machine->drv->vh_init_palette)(game_palette,Machine->game_colortable,memory_region(REGION_PROMS));
+	if (Machine->drv->init_palette)
+		(*Machine->drv->init_palette)(game_palette,Machine->game_colortable,memory_region(REGION_PROMS));
 
 
 	switch (colormode)
@@ -255,9 +260,9 @@ int palette_init(void)
 
 	for (i = 0;i < Machine->drv->color_table_len;i++)
 	{
-		int color = Machine->game_colortable[i];
+		pen_t color = Machine->game_colortable[i];
 
-		/* check for invalid colors set by Machine->drv->vh_init_palette */
+		/* check for invalid colors set by Machine->drv->init_palette */
 		if (color < total_colors)
 			Machine->remapped_colortable[i] = Machine->pens[color];
 		else
@@ -278,7 +283,7 @@ int palette_init(void)
 
 
 
-INLINE void palette_set_color_15_direct(int color,UINT8 red,UINT8 green,UINT8 blue)
+INLINE void palette_set_color_15_direct(pen_t color,UINT8 red,UINT8 green,UINT8 blue)
 {
 	if (	actual_palette[3*color + 0] == red &&
 			actual_palette[3*color + 1] == green &&
@@ -295,7 +300,7 @@ INLINE void palette_set_color_15_direct(int color,UINT8 red,UINT8 green,UINT8 bl
 
 static void palette_reset_15_direct(void)
 {
-	int color;
+	pen_t color;
 	for(color = 0; color < total_colors; color++)
 		Machine->pens[color] =
 				(game_palette[3*color + 0]>>3) * (direct_rgb_components[0] / 0x1f) +
@@ -303,7 +308,7 @@ static void palette_reset_15_direct(void)
 				(game_palette[3*color + 2]>>3) * (direct_rgb_components[2] / 0x1f);
 }
 
-INLINE void palette_set_color_32_direct(int color,UINT8 red,UINT8 green,UINT8 blue)
+INLINE void palette_set_color_32_direct(pen_t color,UINT8 red,UINT8 green,UINT8 blue)
 {
 	if (	actual_palette[3*color + 0] == red &&
 			actual_palette[3*color + 1] == green &&
@@ -320,7 +325,7 @@ INLINE void palette_set_color_32_direct(int color,UINT8 red,UINT8 green,UINT8 bl
 
 static void palette_reset_32_direct(void)
 {
-	int color;
+	pen_t color;
 	for(color = 0; color < total_colors; color++)
 		Machine->pens[color] =
 				game_palette[3*color + 0] * (direct_rgb_components[0] / 0xff) +
@@ -328,7 +333,7 @@ static void palette_reset_32_direct(void)
 				game_palette[3*color + 2] * (direct_rgb_components[2] / 0xff);
 }
 
-INLINE void palette_set_color_16_palettized(int color,UINT8 red,UINT8 green,UINT8 blue)
+INLINE void palette_set_color_16_palettized(pen_t color,UINT8 red,UINT8 green,UINT8 blue)
 {
 	if (	actual_palette[3*color + 0] == red &&
 			actual_palette[3*color + 1] == green &&
@@ -347,7 +352,7 @@ static void palette_reset_16_palettized(void)
 {
 	if (palette_initialized)
 	{
-		int color;
+		pen_t color;
 		for (color=0; color<total_colors; color++)
 			osd_modify_pen(Machine->pens[color],
 						   game_palette[3*color + 0],
@@ -374,7 +379,7 @@ INLINE void adjust_shadow(UINT8 *r,UINT8 *g,UINT8 *b,double factor)
 	*b = *b * factor + 0.5;
 }
 
-void palette_set_color(int color,UINT8 r,UINT8 g,UINT8 b)
+void palette_set_color(pen_t color,UINT8 r,UINT8 g,UINT8 b)
 {
 	if (color >= total_colors)
 	{
@@ -392,6 +397,8 @@ logerror("error: palette_set_color() called with color %d, but only %d allocated
 		g = g * brightness[color] + 0.5;
 		b = b * brightness[color] + 0.5;
 	}
+
+	Machine->palette[color] = MAKE_RGB(r,g,b);
 
 	switch (colormode)
 	{
@@ -432,14 +439,25 @@ logerror("error: palette_set_color() called with color %d, but only %d allocated
 	}
 }
 
-void palette_get_color(int color,UINT8 *r,UINT8 *g,UINT8 *b)
+void palette_get_color(pen_t color,UINT8 *r,UINT8 *g,UINT8 *b)
 {
-	*r = game_palette[3*color + 0];
-	*g = game_palette[3*color + 1];
-	*b = game_palette[3*color + 2];
+	if (color == get_black_pen())
+	{
+		*r = *g = *b = 0;
+	}
+	else if (color >= total_colors)
+	{
+		usrintf_showmessage("palette_get_color() out of range");
+	}
+	else
+	{
+		*r = game_palette[3*color + 0];
+		*g = game_palette[3*color + 1];
+		*b = game_palette[3*color + 2];
+	}
 }
 
-void palette_set_brightness(int color,double bright)
+void palette_set_brightness(pen_t color,double bright)
 {
 	if (brightness[color] != bright)
 	{
@@ -478,6 +496,11 @@ void palette_set_highlight_factor(double factor)
 	}
 }
 
+
+pen_t get_black_pen(void)
+{
+	return Machine->uifont->colortable[0];
+}
 
 
 /******************************************************************************
@@ -641,7 +664,7 @@ WRITE_HANDLER( paletteram_BBGGRRII_w )
 }
 
 
-INLINE void changecolor_xxxxBBBBGGGGRRRR(int color,int data)
+INLINE void changecolor_xxxxBBBBGGGGRRRR(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -688,7 +711,7 @@ WRITE16_HANDLER( paletteram16_xxxxBBBBGGGGRRRR_word_w )
 }
 
 
-INLINE void changecolor_xxxxBBBBRRRRGGGG(int color,int data)
+INLINE void changecolor_xxxxBBBBRRRRGGGG(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -729,7 +752,7 @@ WRITE_HANDLER( paletteram_xxxxBBBBRRRRGGGG_split2_w )
 }
 
 
-INLINE void changecolor_xxxxRRRRBBBBGGGG(int color,int data)
+INLINE void changecolor_xxxxRRRRBBBBGGGG(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -758,7 +781,7 @@ WRITE_HANDLER( paletteram_xxxxRRRRBBBBGGGG_split2_w )
 }
 
 
-INLINE void changecolor_xxxxRRRRGGGGBBBB(int color,int data)
+INLINE void changecolor_xxxxRRRRGGGGBBBB(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -793,7 +816,7 @@ WRITE16_HANDLER( paletteram16_xxxxRRRRGGGGBBBB_word_w )
 }
 
 
-INLINE void changecolor_RRRRGGGGBBBBxxxx(int color,int data)
+INLINE void changecolor_RRRRGGGGBBBBxxxx(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -834,7 +857,7 @@ WRITE16_HANDLER( paletteram16_RRRRGGGGBBBBxxxx_word_w )
 }
 
 
-INLINE void changecolor_BBBBGGGGRRRRxxxx(int color,int data)
+INLINE void changecolor_BBBBGGGGRRRRxxxx(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -875,7 +898,7 @@ WRITE16_HANDLER( paletteram16_BBBBGGGGRRRRxxxx_word_w )
 }
 
 
-INLINE void changecolor_xBBBBBGGGGGRRRRR(int color,int data)
+INLINE void changecolor_xBBBBBGGGGGRRRRR(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -910,7 +933,7 @@ WRITE16_HANDLER( paletteram16_xBBBBBGGGGGRRRRR_word_w )
 }
 
 
-INLINE void changecolor_xRRRRRGGGGGBBBBB(int color,int data)
+INLINE void changecolor_xRRRRRGGGGGBBBBB(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -939,7 +962,7 @@ WRITE16_HANDLER( paletteram16_xRRRRRGGGGGBBBBB_word_w )
 }
 
 
-INLINE void changecolor_xGGGGGRRRRRBBBBB(int color,int data)
+INLINE void changecolor_xGGGGGRRRRRBBBBB(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -962,7 +985,7 @@ WRITE16_HANDLER( paletteram16_xGGGGGRRRRRBBBBB_word_w )
 }
 
 
-INLINE void changecolor_RRRRRGGGGGBBBBBx(int color,int data)
+INLINE void changecolor_RRRRRGGGGGBBBBBx(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -991,7 +1014,7 @@ WRITE16_HANDLER( paletteram16_RRRRRGGGGGBBBBBx_word_w )
 }
 
 
-INLINE void changecolor_IIIIRRRRGGGGBBBB(int color,int data)
+INLINE void changecolor_IIIIRRRRGGGGBBBB(pen_t color,int data)
 {
 	int i,r,g,b;
 
@@ -1017,7 +1040,7 @@ WRITE16_HANDLER( paletteram16_IIIIRRRRGGGGBBBB_word_w )
 }
 
 
-INLINE void changecolor_RRRRGGGGBBBBIIII(int color,int data)
+INLINE void changecolor_RRRRGGGGBBBBIIII(pen_t color,int data)
 {
 	int i,r,g,b;
 
@@ -1066,7 +1089,7 @@ WRITE16_HANDLER( paletteram16_xrgb_word_w )
 }
 
 
-INLINE void changecolor_RRRRGGGGBBBBRGBx(int color,int data)
+INLINE void changecolor_RRRRGGGGBBBBRGBx(pen_t color,int data)
 {
 	int r,g,b;
 
@@ -1104,7 +1127,7 @@ WRITE16_HANDLER( paletteram16_RRRRGGGGBBBBRGBx_word_w )
   bit 0 -- 2.2kohm resistor  -- RED/GREEN/BLUE
 
 ***************************************************************************/
-void palette_RRRR_GGGG_BBBB_convert_prom(unsigned char *obsolete,unsigned short *colortable,const unsigned char *color_prom)
+PALETTE_INIT( RRRR_GGGG_BBBB )
 {
 	int i;
 
